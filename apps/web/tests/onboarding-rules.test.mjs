@@ -54,7 +54,8 @@ describe("anonymous visitors", () => {
     const flags = await pub.get("feature_flags?select=key,enabled&key=like.partner_self_service_*");
     expectOk(flags);
     assert.deepEqual(flags.body.map((f) => f.key).sort(), ["partner_self_service_broker", "partner_self_service_insurer"]);
-    expectRule(await pub.rpc("refresh_licence_status", {}), /Only the platform/);
+    // Execute is revoked from anon, so the call never reaches the function's own staff check.
+    expectRefused(await pub.rpc("refresh_licence_status", {}));
   });
 });
 

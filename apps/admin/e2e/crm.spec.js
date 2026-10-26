@@ -14,8 +14,8 @@ test.describe("partnerships CRM", () => {
       await expect(board.getByRole("listitem", { name: new RegExp(`^${stage} \\(\\d+\\)$`) })).toBeVisible();
     }
     await expect(page.getByText("Open accounts", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Owner")).toBeVisible();
-    await expect(page.getByLabel("Kind")).toBeVisible();
+    await expect(page.getByLabel("Owner", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Kind", { exact: true })).toBeVisible();
     await expect(page.getByText(/Lost accounts \(\d+\)/)).toBeVisible();
     // Sidebar group
     const nav = page.getByRole("navigation", { name: "Admin" }).first();
@@ -47,12 +47,12 @@ test.describe("partnerships CRM", () => {
     const name = `${TAG} CRM ${Date.now()}`;
     await page.goto("/partners/crm/new");
     await expect(page.getByRole("heading", { level: 1, name: "New account" })).toBeVisible();
-    await page.getByLabel("Name").fill(name);
-    await page.getByLabel("Kind").selectOption("broker");
-    await page.getByLabel("Source").selectOption("event");
-    await page.getByLabel("Region").fill("Ashanti");
-    await page.getByLabel("Contact name").fill("Kwame Boateng");
-    await page.getByLabel("Contact email").fill("kwame@example.com");
+    await page.getByLabel("Name", { exact: true }).fill(name);
+    await page.getByLabel("Kind", { exact: true }).selectOption("broker");
+    await page.getByLabel("Source", { exact: true }).selectOption("event");
+    await page.getByLabel("Region", { exact: true }).fill("Ashanti");
+    await page.getByLabel("Contact name", { exact: true }).fill("Kwame Boateng");
+    await page.getByLabel("Contact email", { exact: true }).fill("kwame@example.com");
     await page.getByRole("button", { name: "Create account" }).click();
     await page.waitForURL(/\/partners\/crm\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(name);

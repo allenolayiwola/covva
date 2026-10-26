@@ -61,6 +61,25 @@ test.describe("admin portal", () => {
     await expect(page.getByText("Last 100 audit events for this organisation.")).toBeVisible();
   });
 
+  test("partner applications queue and appointment requests render", async ({ page }) => {
+    await page.goto("/partners/applications");
+    await expect(page.getByRole("heading", { level: 1, name: "Partner applications" })).toBeVisible();
+    for (const kpi of ["Submitted", "In review", "Needs changes"]) await expect(page.getByText(kpi, { exact: true }).first()).toBeVisible();
+    await expect(page.getByLabel("Company or licence number")).toBeVisible();
+    await expect(page.locator("main table")).toBeVisible();
+    await expect(page.locator("main table").getByRole("columnheader", { name: "Completeness" })).toBeVisible();
+    // Either queued applications or the empty state, never a blank table.
+    await expect(page.locator("main table tbody tr").first()).toBeVisible();
+    await page.getByLabel("Status").selectOption("approved");
+    await page.getByRole("button", { name: "Apply" }).click();
+    await expect(page).toHaveURL(/status=approved/);
+
+    await page.goto("/partners/appointments");
+    await expect(page.getByRole("heading", { level: 1, name: "Appointment requests" })).toBeVisible();
+    await expect(page.getByText("Letters awaiting review", { exact: true })).toBeVisible();
+    await expect(page.locator("main table tbody tr").first()).toBeVisible();
+  });
+
   test("category launch gate blocks 'integrated' when a checklist item is unticked", async ({ page }) => {
     await page.goto("/categories");
     await expect(page.getByRole("heading", { level: 1, name: "Categories" })).toBeVisible();
