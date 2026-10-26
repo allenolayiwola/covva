@@ -143,6 +143,7 @@ language sql stable security definer set search_path = '' as $$
   );
 $$;
 
+-- Used by rate_rows (reads the parent table row, which already exists).
 create or replace function private.can_view_rate_table(p_table uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (
@@ -161,8 +162,15 @@ alter table public.rate_rows enable row level security;
 
 do $$ begin
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'rate_tables' and policyname = 'rate_tables: read') then
+    -- Inline (not private.can_view_rate_table(id)): a STABLE function cannot see the row an
+    -- INSERT ... RETURNING just added, which would make broker proposals fail on return.
     execute 'create policy "rate_tables: read" on public.rate_tables for select to authenticated
-  using (private.can_view_rate_table(id))';
+  using (
+    (select private.is_platform_staff())
+    or (product_version_id is not null and private.can_view_version(product_version_id))
+    or submitted_by_org_id in (select private.user_org_ids())
+    or (status = ''approved'' and (select private.is_partner_user()))
+  )';
   end if;
 end $$;
 

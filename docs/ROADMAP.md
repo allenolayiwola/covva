@@ -62,13 +62,13 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 ### Phase 0 — Model changes and platform guardrails (prerequisite, ~1 sprint)
 **Routing engine (Addendum 2 D)**
-- [ ] `insurer_line_integrations` (insurer × category → level L1/L2/L3, `direct_sales` flag, SLA hours, issuance type, nominated broker ids), admin + insurer UI.
-- [ ] `order_routing` + `order_offers`: routing decision per request (mode, candidates, reasons, timeout), offer records per eligible broker, accept/decline, re-route on expiry (cron), audit of every decision.
-- [ ] Broker eligibility = verified appointment for insurer × line (Addendum 2 C4, 3 C2).
-- [ ] "Talk to an expert" flag and complexity thresholds (fleet size, commercial property, marine, group size) → broker route regardless of insurer.
-- [ ] Insurer-nominated brokers; broker-sourced clients stay with their broker (`customer_broker_assignments`).
-- [ ] Lightweight accept: signed one-tap accept links in SMS/WhatsApp/push (Addendum 2 E, 4.2).
-- [ ] Unit tests for routing decisions and timeout re-routing.
+- [x] `insurer_line_integrations` (insurer × category → level L1/L2/L3, `direct_sales` flag, SLA hours, issuance type, nominated broker ids), admin + insurer UI.
+- [x] `order_routing` + `order_offers`: routing decision per request (mode, candidates, reasons, timeout), offer records per eligible broker, accept/decline, re-route on expiry (cron), audit of every decision.
+- [x] Broker eligibility = verified appointment for insurer × line (Addendum 2 C4, 3 C2).
+- [x] "Talk to an expert" flag and complexity thresholds (fleet size, commercial property, marine, group size) → broker route regardless of insurer.
+- [x] Insurer-nominated brokers; broker-sourced clients stay with their broker (`customer_broker_assignments`).
+- [x] Lightweight accept: signed one-tap accept links in SMS/WhatsApp/push (Addendum 2 E, 4.2).
+- [x] Unit tests for routing decisions and timeout re-routing.
 
 **Catalogue extensions (Addendum 2 B, 3 B3)**
 - [ ] Rate tables as first-class data (`rate_tables`, `rate_rows`) with CSV/Excel import + validation templates; keep the existing `rating` JSON as one rule type.

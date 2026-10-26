@@ -64,7 +64,7 @@ describe("insurer underwriter (owning organisation)", () => {
     ids.table = created.body[0].id;
     const rows = await db.insert("rate_rows", [
       { rate_table_id: ids.table, factors: { vehicle_use: "*", region: "*" }, rate: 0.05, rate_kind: "rate_on_value", min_premium: 400 },
-      { rate_table_id: ids.table, factors: { vehicle_use: "private", region: "Greater Accra" }, rate: 0.045, rate_kind: "rate_on_value" },
+      { rate_table_id: ids.table, factors: { vehicle_use: "private", region: "Greater Accra" }, rate: 0.045, rate_kind: "rate_on_value", min_premium: null },
     ]);
     expectOk(rows, 201);
     assert.equal(rows.body.length, 2);
