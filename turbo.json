@@ -1,0 +1,11 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["NODE_ENV", "VERCEL_ENV"],
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": [".next/**", "!.next/cache/**", "dist/**"], "env": ["NEXT_PUBLIC_*", "SUPABASE_*", "AI_GATEWAY_API_KEY", "PAYSTACK_*", "RESEND_*", "SMS_*", "CRON_SECRET", "APP_*"] },
+    "dev": { "cache": false, "persistent": true },
+    "lint": {},
+    "typecheck": { "dependsOn": ["^typecheck"] },
+    "test": {}
+  }
+}
