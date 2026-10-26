@@ -43,7 +43,7 @@ async function RequestDetail({ params }: Pick<PageProps<"/requests/[id]">, "para
   const people = await profileMap(supabase, [r.customer_id, r.assigned_to, ...(events ?? []).map((e) => e.actor_id)]);
   const open = OPEN_REQUEST_STATUSES.includes(r.status) || r.status === "draft";
   const due = relativeDue(r.due_at);
-  const routing = (events ?? []).filter((e) => /rout|broker_assigned|broker_reassigned/.test(e.event));
+  const routing = (events ?? []).filter((e) => /rout|broker_assigned|broker_reassigned|offer/.test(e.event));
   const brokers = [...orgs.values()].filter((o) => o.type === "broker" && o.status === "active" && o.id !== r.broker_org_id);
   const canAct = can(staff.roles, "operations");
   // Consented hand-over waiting for completion: a broker_change disclosure for a broker other than the current one.
@@ -209,7 +209,11 @@ async function RequestDetail({ params }: Pick<PageProps<"/requests/[id]">, "para
         </div>
 
         <div className="space-y-6">
-          <Panel title="Routing decision" description="Why this broker was chosen (from @im/core routeRequest).">
+          <Panel
+            title="Routing decision"
+            description={`Mode: ${r.routing_mode ? r.routing_mode.replace(/_/g, " ") : "legacy (assigned at creation)"}${r.complexity_flags?.length ? ` · ${r.complexity_flags.join(", ")}` : ""}${r.talk_to_expert ? " · talk to an expert" : ""}`}
+            actions={<Link href={`/routing/integrations?request=${r.id}`} className="text-sm text-brand hover:underline">Offers &amp; candidates →</Link>}
+          >
             {routing.length ? (
               <ul className="space-y-3">
                 {routing.map((e) => (

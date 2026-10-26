@@ -6,7 +6,7 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { categoryMap, ilikeTerm, orgMap, pageOf, sp, type SearchParams } from "@/lib/query";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { PRODUCT_TONE } from "./meta";
+import { CATALOGUE_TABS, PRODUCT_TONE } from "./meta";
 import { FilterBar, FilterInput, FilterSelect, LoadingBlock, Pagination } from "@/components/ui/layout";
 
 const STATUSES: Enum<"product_status">[] = ["draft", "pending_approval", "approved", "suspended", "retired"];
@@ -32,9 +32,7 @@ async function Products({ searchParams }: { searchParams: Promise<SearchParams> 
     supabase.from("product_versions").select("id, product_id, version, created_at, submitted_by, insurer_approved_at, products!inner(name, insurer_org_id, category_id)").eq("status", "pending_approval").order("created_at"),
   ]);
   const view = sp(params, "view") === "queue" ? "queue" : "all";
-  const tabs = (
-    <Tabs className="mb-4 w-fit" active={view} items={[{ key: "all", label: "All products", href: "/products" }, { key: "queue", label: "Review queue", href: "/products?view=queue", count: pending?.length ?? 0 }]} />
-  );
+  const tabs = <Tabs className="mb-4 w-fit" active={view} items={CATALOGUE_TABS({ queue: pending?.length ?? 0 })} />;
 
   if (view === "queue") {
     return (

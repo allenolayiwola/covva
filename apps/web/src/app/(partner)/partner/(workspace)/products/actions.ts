@@ -2,10 +2,9 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { z } from "zod";
+import { RATING_MODELS } from "@im/core";
 import type { Json } from "@im/db";
 import { ROLES, actionContext, dbMessage, run, type ActionState } from "../../_lib/context";
-
-const RATING_MODELS = ["rate_on_value", "per_day", "per_person", "age_banded", "flat"] as const;
 
 const Payload = z.object({
   productId: z.string().uuid(),
@@ -54,6 +53,7 @@ export async function submitVersion(_prev: ActionState, formData: FormData): Pro
       product_id: product.id,
       version,
       status: "pending_approval",
+      compliance_status: "submitted",
       coverage: p.coverage as unknown as Json,
       limits: p.limits as Json,
       excesses: p.excesses as Json,

@@ -8,11 +8,15 @@ import {
   Inbox,
   LayoutDashboard,
   Megaphone,
+  MessageCircle,
+  Percent,
+  PhoneCall,
   ScrollText,
   Timer,
   UserRoundCheck,
+  Wallet,
 } from "lucide-react";
-import { DemoBadge, buttonClass } from "@im/ui";
+import { DemoBadge, Pill, buttonClass } from "@im/ui";
 import { getPlans } from "@/lib/catalog";
 import { isDemoMode } from "@/components/marketing/brand";
 import { PageHero } from "@/components/marketing/page-hero";
@@ -29,13 +33,29 @@ export const metadata: Metadata = {
 };
 
 const VALUE = [
-  { icon: Megaphone, title: "A new distribution channel", body: "Reach customers who start online and on mobile, without building and running your own digital platform." },
+  { icon: Megaphone, title: "Free qualified leads", body: "Customers who have already described their risk and uploaded documents, routed to your firm — no cost per lead." },
+  { icon: Wallet, title: "Faster payment", body: "Premiums collected by MoMo or card settle to the insurer; your commission statement follows automatically." },
+  { icon: BellRing, title: "Renewals on autopilot", body: "Automatic reminders and renewal reviews protect your book and keep customers properly covered." },
+  { icon: LayoutDashboard, title: "A free digital office", body: "Quotes, insurer submissions, payments, policy delivery and claims in one workspace — nothing to install." },
+  { icon: MessageCircle, title: "Works on WhatsApp and mobile", body: "Message customers in the request thread, from the app or WhatsApp-assisted service as it is approved." },
   { icon: ClipboardList, title: "Structured requests", body: "Every request arrives with the risk details, documents and needs assessment your advisers would otherwise chase." },
   { icon: LayoutDashboard, title: "A workspace that drives fulfilment", body: "Quotes, insurer submissions, payments and policy delivery move through one controlled sequence." },
   { icon: UserRoundCheck, title: "One accountable broker", body: "Your firm is the named broker of record for each request, disclosed to the customer before any advice." },
   { icon: Timer, title: "A queue with SLAs", body: "Response targets, at-risk flags and escalation to named supervisors keep every request moving." },
   { icon: ScrollText, title: "Traceable records", body: "Disclosures, advice, consents and status changes are written to a tamper-evident audit trail." },
-  { icon: BellRing, title: "Renewals built in", body: "Automatic reminders and renewal reviews protect your book and keep customers properly covered." },
+];
+
+const MODELS = [
+  { icon: Percent, title: "Revenue share", tag: "No fixed fee", body: "Keep your commission; Covva takes an agreed technology share on policies issued through the platform. Best when you are starting out." },
+  { icon: LayoutDashboard, title: "Subscription", tag: "Predictable", body: "A flat monthly workspace fee per firm with no per-policy share. Best for established firms with steady volume." },
+];
+
+const ONBOARDING = [
+  { title: "Register", body: "Create your firm’s account in minutes." },
+  { title: "Licence check", body: "We verify your NIC licence, PI cover and classes." },
+  { title: "Agreement", body: "Commercial model, SLAs and data roles signed." },
+  { title: "Set up", body: "Add advisers, insurer appointments and routing rules." },
+  { title: "Pilot & scale", body: "Real requests, weekly reviews, then more categories." },
 ];
 
 const GATES = [
@@ -59,8 +79,8 @@ export default async function BrokersPage() {
         lede="Covva gives licensed brokers a digital front door and a workspace built around the request — so your advisers spend their time advising, not collecting information."
         actions={
           <>
-            <Link href="#enquire" className={buttonClass("primary", "lg")}>Become a partner broker</Link>
-            <Link href="#plans" className={buttonClass("secondary", "lg")}>See plans</Link>
+            <Link href="/partner/register?type=broker" className={buttonClass("primary", "lg")}>Register as a Broker <ArrowRight aria-hidden className="size-4" /></Link>
+            <Link href="#enquire" className={buttonClass("secondary", "lg")}><PhoneCall aria-hidden className="size-4" /> Request a call</Link>
           </>
         }
       />
@@ -103,9 +123,42 @@ export default async function BrokersPage() {
         </div>
       </Section>
 
-      <Section id="plans" labelledBy="plans-title">
+      <Section labelledBy="models-title">
+        <SectionHeading id="models-title" eyebrow="Commercial models" title="Revenue share or subscription — your choice" description="You keep your commission either way; our fees are for the technology, and are disclosed to customers." />
+        <div className="grid gap-4 md:grid-cols-2">
+          {MODELS.map((m) => (
+            <article key={m.title} className="rounded-[20px] border border-line bg-white p-6 sm:p-7">
+              <div className="flex items-center justify-between">
+                <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-mint text-brand-deep"><m.icon className="size-5" /></span>
+                <Pill tone="ok">{m.tag}</Pill>
+              </div>
+              <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">{m.title}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">{m.body}</p>
+            </article>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="plans" tone="mist" labelledBy="plans-title">
         <SectionHeading id="plans-title" eyebrow="Plans" title="Start with a pilot. Grow on evidence." description="Simple workspace plans for broker firms. You keep your commission; our fees are for the technology." />
         <PlanCards plans={brokerPlans} />
+      </Section>
+
+      <Section labelledBy="onboarding-title">
+        <SectionHeading id="onboarding-title" eyebrow="Onboarding" title="From registration to first request" />
+        <ol className="grid gap-3 md:grid-cols-5">
+          {ONBOARDING.map((g, i) => (
+            <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
+              <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold tabular-nums text-white">{i + 1}</span>
+              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/partner/register?type=broker" className={buttonClass("primary", "md")}>Register as a Broker <ArrowRight aria-hidden className="size-4" /></Link>
+          <Link href="/waitlist#partners" className={buttonClass("outline", "md")}>Become a launch partner</Link>
+        </div>
       </Section>
 
       <Section tone="mist" labelledBy="gates-title">
@@ -125,7 +178,7 @@ export default async function BrokersPage() {
       <Section id="enquire" labelledBy="enquire-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
-            <SectionHeading id="enquire-title" eyebrow="Partner enquiry" title="Let’s talk" className="mb-6! sm:mb-6!" />
+            <SectionHeading id="enquire-title" eyebrow="Request a call" title="Let’s talk" className="mb-6! sm:mb-6!" />
             <p className="text-[17px] leading-relaxed text-muted">
               Tell us about your firm and the classes you place. We will come back within two working days to arrange an introductory conversation.
             </p>
@@ -140,8 +193,8 @@ export default async function BrokersPage() {
             organizationLabel="Broker firm"
             messageLabel="Tell us about your firm"
             messagePlaceholder="Licence number, classes you place, team size, and what you would like to achieve."
-            submitLabel="Send enquiry"
-            successBody="Thank you. Our partnerships team will be in touch within two working days to arrange an introductory conversation."
+            submitLabel="Request a call"
+            successBody="Thank you. Our partnerships team will call you within two working days to arrange an introductory conversation."
           />
         </div>
       </Section>

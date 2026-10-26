@@ -1,5 +1,8 @@
-export const BROKER_ROLES = ["admin", "supervisor", "adviser", "finance", "viewer"] as const;
-export const INSURER_ROLES = ["admin", "underwriter", "claims_officer", "finance", "viewer"] as const;
+import { assignableRoles } from "@im/core";
+
+/** Enum values an organisation may assign by invite — derived from the Addendum 3 role lists in `@im/core` (`roles.ts`). */
+export const BROKER_ROLES: readonly string[] = assignableRoles("broker");
+export const INSURER_ROLES: readonly string[] = assignableRoles("insurer");
 
 export const API_SCOPES = ["requests:read", "requests:write", "quotes:write", "policies:read", "policies:write", "claims:read", "claims:write", "webhooks:manage"] as const;
 

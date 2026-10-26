@@ -13,6 +13,7 @@ import { PageSkeleton } from "@/components/customer/skeletons";
 import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite } from "../../../../_lib/data";
 import { DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting } from "./checkout-steps";
 import { declarationsFor } from "./declarations";
+import { feeBreakdownForQuoteId } from "@/server/commercial";
 
 export const metadata: Metadata = { title: "Apply" };
 
@@ -110,6 +111,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
         quoteId={quoteId}
         insurer={insurerName}
         premium={Number(quote.premium) + Number(quote.taxes ?? 0) + Number(quote.fees ?? 0)}
+        feeBreakdown={await feeBreakdownForQuoteId(quote.id).catch(() => null)}
         benefits={benefits}
         termsVersion={termsVersion ?? "current"}
         declarations={declarationsFor(request.category?.slug, {

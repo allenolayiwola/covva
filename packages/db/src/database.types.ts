@@ -769,6 +769,50 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_broker_assignments: {
+        Row: {
+          active: boolean
+          broker_org_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          ended_at: string | null
+          id: string
+          note: string | null
+          source: string
+        }
+        Insert: {
+          active?: boolean
+          broker_org_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          ended_at?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+        }
+        Update: {
+          active?: boolean
+          broker_org_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          ended_at?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_broker_assignments_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_tokens: {
         Row: {
           app_version: string | null
@@ -801,6 +845,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      document_templates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          product_version_id: string
+          status: string
+          template: Json
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          product_version_id: string
+          status?: string
+          template?: Json
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          product_version_id?: string
+          status?: string
+          template?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -978,6 +1069,63 @@ export type Database = {
           },
           {
             foreignKeyName: "insurer_broker_appointments_insurer_org_id_fkey"
+            columns: ["insurer_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurer_line_integrations: {
+        Row: {
+          active: boolean
+          category_id: string
+          created_at: string
+          direct_sales: boolean
+          id: string
+          insurer_org_id: string
+          issuance_type: string
+          level: string
+          nominated_broker_org_ids: string[]
+          sla_hours: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category_id: string
+          created_at?: string
+          direct_sales?: boolean
+          id?: string
+          insurer_org_id: string
+          issuance_type?: string
+          level?: string
+          nominated_broker_org_ids?: string[]
+          sla_hours?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category_id?: string
+          created_at?: string
+          direct_sales?: boolean
+          id?: string
+          insurer_org_id?: string
+          issuance_type?: string
+          level?: string
+          nominated_broker_org_ids?: string[]
+          sla_hours?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurer_line_integrations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurer_line_integrations_insurer_org_id_fkey"
             columns: ["insurer_org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1263,6 +1411,63 @@ export type Database = {
         }
         Relationships: []
       }
+      ledger_entries: {
+        Row: {
+          amount: number
+          counterparty_org_id: string | null
+          created_at: string
+          currency: string
+          entry_type: string
+          id: number
+          memo: string | null
+          org_id: string
+          payment_id: string | null
+          policy_id: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          counterparty_org_id?: string | null
+          created_at?: string
+          currency?: string
+          entry_type: string
+          id?: never
+          memo?: string | null
+          org_id: string
+          payment_id?: string | null
+          policy_id?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          counterparty_org_id?: string | null
+          created_at?: string
+          currency?: string
+          entry_type?: string
+          id?: never
+          memo?: string | null
+          org_id?: string
+          payment_id?: string | null
+          policy_id?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_counterparty_org_id_fkey"
+            columns: ["counterparty_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           active: boolean
@@ -1379,6 +1584,223 @@ export type Database = {
         }
         Relationships: []
       }
+      order_offers: {
+        Row: {
+          accept_token: string
+          broker_org_id: string
+          created_at: string
+          decline_reason: string | null
+          id: string
+          offered_at: string
+          request_id: string
+          responded_at: string | null
+          responded_by: string | null
+          responds_by: string
+          round: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accept_token?: string
+          broker_org_id: string
+          created_at?: string
+          decline_reason?: string | null
+          id?: string
+          offered_at?: string
+          request_id: string
+          responded_at?: string | null
+          responded_by?: string | null
+          responds_by: string
+          round?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accept_token?: string
+          broker_org_id?: string
+          created_at?: string
+          decline_reason?: string | null
+          id?: string
+          offered_at?: string
+          request_id?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          responds_by?: string
+          round?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_offers_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_offers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_routing: {
+        Row: {
+          broker_org_id: string | null
+          candidates: Json
+          complexity_flags: string[]
+          created_at: string
+          current_round: number
+          decided_at: string
+          decided_by: string
+          expires_at: string | null
+          id: string
+          insurer_org_id: string | null
+          max_rounds: number
+          mode: string
+          offer_batch_size: number
+          offer_timeout_minutes: number
+          reason: string
+          request_id: string
+          rule: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          broker_org_id?: string | null
+          candidates?: Json
+          complexity_flags?: string[]
+          created_at?: string
+          current_round?: number
+          decided_at?: string
+          decided_by?: string
+          expires_at?: string | null
+          id?: string
+          insurer_org_id?: string | null
+          max_rounds?: number
+          mode: string
+          offer_batch_size?: number
+          offer_timeout_minutes?: number
+          reason?: string
+          request_id: string
+          rule?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          broker_org_id?: string | null
+          candidates?: Json
+          complexity_flags?: string[]
+          created_at?: string
+          current_round?: number
+          decided_at?: string
+          decided_by?: string
+          expires_at?: string | null
+          id?: string
+          insurer_org_id?: string | null
+          max_rounds?: number
+          mode?: string
+          offer_batch_size?: number
+          offer_timeout_minutes?: number
+          reason?: string
+          request_id?: string
+          rule?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_routing_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_routing_insurer_org_id_fkey"
+            columns: ["insurer_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_routing_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_commercial_terms: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          broker_commission_pct: number
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          model: string
+          notes: string | null
+          org_id: string
+          platform_fee_pct: number
+          revenue_share_pct: number
+          subscription_plan_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          broker_commission_pct?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          model: string
+          notes?: string | null
+          org_id: string
+          platform_fee_pct?: number
+          revenue_share_pct?: number
+          subscription_plan_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          broker_commission_pct?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          model?: string
+          notes?: string | null
+          org_id?: string
+          platform_fee_pct?: number
+          revenue_share_pct?: number
+          subscription_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_commercial_terms_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_commercial_terms_subscription_plan_id_fkey"
+            columns: ["subscription_plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           address: string | null
@@ -1399,10 +1821,12 @@ export type Database = {
           nic_licence_class: string | null
           nic_licence_expires_on: string | null
           nic_licence_number: string | null
+          paystack_split_code: string | null
           paystack_subaccount_code: string | null
           professional_indemnity_expires_on: string | null
           region: string | null
           registration_number: string | null
+          require_mfa: boolean
           settings: Json
           slug: string
           status: Database["public"]["Enums"]["org_status"]
@@ -1429,10 +1853,12 @@ export type Database = {
           nic_licence_class?: string | null
           nic_licence_expires_on?: string | null
           nic_licence_number?: string | null
+          paystack_split_code?: string | null
           paystack_subaccount_code?: string | null
           professional_indemnity_expires_on?: string | null
           region?: string | null
           registration_number?: string | null
+          require_mfa?: boolean
           settings?: Json
           slug: string
           status?: Database["public"]["Enums"]["org_status"]
@@ -1459,10 +1885,12 @@ export type Database = {
           nic_licence_class?: string | null
           nic_licence_expires_on?: string | null
           nic_licence_number?: string | null
+          paystack_split_code?: string | null
           paystack_subaccount_code?: string | null
           professional_indemnity_expires_on?: string | null
           region?: string | null
           registration_number?: string | null
+          require_mfa?: boolean
           settings?: Json
           slug?: string
           status?: Database["public"]["Enums"]["org_status"]
@@ -1471,6 +1899,63 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      payment_splits: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          org_id: string | null
+          party: string
+          payment_id: string
+          pct: number | null
+          provider_split_ref: string | null
+          settled_at: string | null
+          status: string
+          subaccount_code: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          org_id?: string | null
+          party: string
+          payment_id: string
+          pct?: number | null
+          provider_split_ref?: string | null
+          settled_at?: string | null
+          status?: string
+          subaccount_code?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          org_id?: string | null
+          party?: string
+          payment_id?: string
+          pct?: number | null
+          provider_split_ref?: string | null
+          settled_at?: string | null
+          status?: string
+          subaccount_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_splits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_splits_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -1698,6 +2183,7 @@ export type Database = {
           quote_id: string | null
           renewal_reminders_sent: Json
           request_id: string | null
+          source: string
           status: Database["public"]["Enums"]["policy_status"]
           sum_insured: number | null
           summary: string | null
@@ -1730,6 +2216,7 @@ export type Database = {
           quote_id?: string | null
           renewal_reminders_sent?: Json
           request_id?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["policy_status"]
           sum_insured?: number | null
           summary?: string | null
@@ -1762,6 +2249,7 @@ export type Database = {
           quote_id?: string | null
           renewal_reminders_sent?: Json
           request_id?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["policy_status"]
           sum_insured?: number | null
           summary?: string | null
@@ -1873,7 +2361,10 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          change_summary: string | null
           claims_process: string | null
+          compliance_notes: string | null
+          compliance_status: string
           conditions: string | null
           coverage: Json
           created_at: string
@@ -1883,6 +2374,7 @@ export type Database = {
           exclusions: string[]
           id: string
           insurer_approved_at: string | null
+          issuance_type: string
           key_exclusion: string | null
           limits: Json
           optional_benefits: Json
@@ -1891,8 +2383,11 @@ export type Database = {
           review_note: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          scheduled_effective_from: string | null
+          sla_hours: number | null
           status: Database["public"]["Enums"]["product_status"]
           submitted_by: string | null
+          supersedes_version_id: string | null
           version: number
           waiting_period_days: number
           wording_url: string | null
@@ -1900,7 +2395,10 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          change_summary?: string | null
           claims_process?: string | null
+          compliance_notes?: string | null
+          compliance_status?: string
           conditions?: string | null
           coverage?: Json
           created_at?: string
@@ -1910,6 +2408,7 @@ export type Database = {
           exclusions?: string[]
           id?: string
           insurer_approved_at?: string | null
+          issuance_type?: string
           key_exclusion?: string | null
           limits?: Json
           optional_benefits?: Json
@@ -1918,8 +2417,11 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scheduled_effective_from?: string | null
+          sla_hours?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           submitted_by?: string | null
+          supersedes_version_id?: string | null
           version: number
           waiting_period_days?: number
           wording_url?: string | null
@@ -1927,7 +2429,10 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          change_summary?: string | null
           claims_process?: string | null
+          compliance_notes?: string | null
+          compliance_status?: string
           conditions?: string | null
           coverage?: Json
           created_at?: string
@@ -1937,6 +2442,7 @@ export type Database = {
           exclusions?: string[]
           id?: string
           insurer_approved_at?: string | null
+          issuance_type?: string
           key_exclusion?: string | null
           limits?: Json
           optional_benefits?: Json
@@ -1945,8 +2451,11 @@ export type Database = {
           review_note?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scheduled_effective_from?: string | null
+          sla_hours?: number | null
           status?: Database["public"]["Enums"]["product_status"]
           submitted_by?: string | null
+          supersedes_version_id?: string | null
           version?: number
           waiting_period_days?: number
           wording_url?: string | null
@@ -1957,6 +2466,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_versions_supersedes_version_id_fkey"
+            columns: ["supersedes_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -2031,6 +2547,7 @@ export type Database = {
       profiles: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
+          active_workspace: Json | null
           avatar_url: string | null
           business_name: string | null
           city: string | null
@@ -2042,6 +2559,7 @@ export type Database = {
           id: string
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           kyc_verified_at: string | null
+          last_seen_platform: string | null
           locale: string
           notification_prefs: Json
           onboarded_at: string | null
@@ -2052,6 +2570,7 @@ export type Database = {
         }
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"]
+          active_workspace?: Json | null
           avatar_url?: string | null
           business_name?: string | null
           city?: string | null
@@ -2063,6 +2582,7 @@ export type Database = {
           id: string
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           kyc_verified_at?: string | null
+          last_seen_platform?: string | null
           locale?: string
           notification_prefs?: Json
           onboarded_at?: string | null
@@ -2073,6 +2593,7 @@ export type Database = {
         }
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
+          active_workspace?: Json | null
           avatar_url?: string | null
           business_name?: string | null
           city?: string | null
@@ -2084,6 +2605,7 @@ export type Database = {
           id?: string
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           kyc_verified_at?: string | null
+          last_seen_platform?: string | null
           locale?: string
           notification_prefs?: Json
           onboarded_at?: string | null
@@ -2109,6 +2631,7 @@ export type Database = {
           excess: number | null
           excesses: Json
           exclusions: string[]
+          fee_breakdown: Json | null
           fees: number
           id: string
           insurer_org_id: string
@@ -2145,6 +2668,7 @@ export type Database = {
           excess?: number | null
           excesses?: Json
           exclusions?: string[]
+          fee_breakdown?: Json | null
           fees?: number
           id?: string
           insurer_org_id: string
@@ -2181,6 +2705,7 @@ export type Database = {
           excess?: number | null
           excesses?: Json
           exclusions?: string[]
+          fee_breakdown?: Json | null
           fees?: number
           id?: string
           insurer_org_id?: string
@@ -2244,6 +2769,113 @@ export type Database = {
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "insurer_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_rows: {
+        Row: {
+          created_at: string
+          factors: Json
+          id: string
+          loadings: Json
+          min_premium: number | null
+          rate: number
+          rate_kind: string
+          rate_table_id: string
+        }
+        Insert: {
+          created_at?: string
+          factors?: Json
+          id?: string
+          loadings?: Json
+          min_premium?: number | null
+          rate: number
+          rate_kind?: string
+          rate_table_id: string
+        }
+        Update: {
+          created_at?: string
+          factors?: Json
+          id?: string
+          loadings?: Json
+          min_premium?: number | null
+          rate?: number
+          rate_kind?: string
+          rate_table_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_rows_rate_table_id_fkey"
+            columns: ["rate_table_id"]
+            isOneToOne: false
+            referencedRelation: "rate_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_tables: {
+        Row: {
+          base_currency: string
+          created_at: string
+          factor_keys: string[]
+          id: string
+          name: string
+          product_version_id: string | null
+          proposed_insurer_name: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          status: string
+          submitted_by: string | null
+          submitted_by_org_id: string | null
+        }
+        Insert: {
+          base_currency?: string
+          created_at?: string
+          factor_keys?: string[]
+          id?: string
+          name: string
+          product_version_id?: string | null
+          proposed_insurer_name?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+          submitted_by?: string | null
+          submitted_by_org_id?: string | null
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          factor_keys?: string[]
+          id?: string
+          name?: string
+          product_version_id?: string | null
+          proposed_insurer_name?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+          submitted_by?: string | null
+          submitted_by_org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_tables_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_tables_submitted_by_org_id_fkey"
+            columns: ["submitted_by_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2478,6 +3110,7 @@ export type Database = {
           cancelled_reason: string | null
           category_id: string
           completed_at: string | null
+          complexity_flags: string[]
           created_at: string
           customer_id: string
           due_at: string | null
@@ -2490,10 +3123,13 @@ export type Database = {
           related_policy_id: string | null
           risk_data: Json
           risk_fingerprint: string | null
+          routing_mode: string | null
           sla_breached_at: string | null
           source: Database["public"]["Enums"]["request_source"]
+          source_broker_org_id: string | null
           status: Database["public"]["Enums"]["request_status"]
           submitted_at: string | null
+          talk_to_expert: boolean
           team: string | null
           title: string | null
           type: Database["public"]["Enums"]["request_type"]
@@ -2506,6 +3142,7 @@ export type Database = {
           cancelled_reason?: string | null
           category_id: string
           completed_at?: string | null
+          complexity_flags?: string[]
           created_at?: string
           customer_id: string
           due_at?: string | null
@@ -2518,10 +3155,13 @@ export type Database = {
           related_policy_id?: string | null
           risk_data?: Json
           risk_fingerprint?: string | null
+          routing_mode?: string | null
           sla_breached_at?: string | null
           source?: Database["public"]["Enums"]["request_source"]
+          source_broker_org_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           submitted_at?: string | null
+          talk_to_expert?: boolean
           team?: string | null
           title?: string | null
           type?: Database["public"]["Enums"]["request_type"]
@@ -2534,6 +3174,7 @@ export type Database = {
           cancelled_reason?: string | null
           category_id?: string
           completed_at?: string | null
+          complexity_flags?: string[]
           created_at?: string
           customer_id?: string
           due_at?: string | null
@@ -2546,10 +3187,13 @@ export type Database = {
           related_policy_id?: string | null
           risk_data?: Json
           risk_fingerprint?: string | null
+          routing_mode?: string | null
           sla_breached_at?: string | null
           source?: Database["public"]["Enums"]["request_source"]
+          source_broker_org_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           submitted_at?: string | null
+          talk_to_expert?: boolean
           team?: string | null
           title?: string | null
           type?: Database["public"]["Enums"]["request_type"]
@@ -2589,6 +3233,111 @@ export type Database = {
             columns: ["related_policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_source_broker_org_id_fkey"
+            columns: ["source_broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_lines: {
+        Row: {
+          id: number
+          ledger_entry_id: number
+          statement_id: string
+        }
+        Insert: {
+          id?: never
+          ledger_entry_id: number
+          statement_id: string
+        }
+        Update: {
+          id?: never
+          ledger_entry_id?: number
+          statement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_lines_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlement_lines_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "settlement_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_statements: {
+        Row: {
+          commission: number
+          created_at: string
+          currency: string
+          gross_premium: number
+          id: string
+          issued_at: string | null
+          line_count: number
+          net_due: number
+          org_id: string
+          paid_at: string | null
+          pdf_path: string | null
+          period_end: string
+          period_start: string
+          platform_fee: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission?: number
+          created_at?: string
+          currency?: string
+          gross_premium?: number
+          id?: string
+          issued_at?: string | null
+          line_count?: number
+          net_due?: number
+          org_id: string
+          paid_at?: string | null
+          pdf_path?: string | null
+          period_end: string
+          period_start: string
+          platform_fee?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission?: number
+          created_at?: string
+          currency?: string
+          gross_premium?: number
+          id?: string
+          issued_at?: string | null
+          line_count?: number
+          net_due?: number
+          org_id?: string
+          paid_at?: string | null
+          pdf_path?: string | null
+          period_end?: string
+          period_start?: string
+          platform_fee?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_statements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2646,6 +3395,50 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      underwriting_rules: {
+        Row: {
+          active: boolean
+          condition: Json
+          created_at: string
+          id: string
+          message: string | null
+          name: string
+          outcome: string
+          priority: number
+          product_version_id: string
+        }
+        Insert: {
+          active?: boolean
+          condition?: Json
+          created_at?: string
+          id?: string
+          message?: string | null
+          name: string
+          outcome?: string
+          priority?: number
+          product_version_id: string
+        }
+        Update: {
+          active?: boolean
+          condition?: Json
+          created_at?: string
+          id?: string
+          message?: string | null
+          name?: string
+          outcome?: string
+          priority?: number
+          product_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "underwriting_rules_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -2797,6 +3590,22 @@ export type Database = {
           role: Database["public"]["Enums"]["member_role"]
         }[]
       }
+      accept_order_offer: {
+        Args: { p_offer_id?: string; p_token?: string }
+        Returns: {
+          broker_org_id: string
+          customer_id: string
+          offer_id: string
+          reference: string
+          request_id: string
+          round: number
+        }[]
+      }
+      activate_scheduled_versions: { Args: never; Returns: number }
+      build_settlement_statement: {
+        Args: { p_end: string; p_org: string; p_start: string }
+        Returns: string
+      }
       complete_broker_change: {
         Args: { p_broker_org_id?: string; p_request: string }
         Returns: {
@@ -2806,6 +3615,16 @@ export type Database = {
           request_id: string
           to_broker_name: string
           to_broker_org_id: string
+        }[]
+      }
+      decline_order_offer: {
+        Args: { p_offer_id: string; p_reason?: string }
+        Returns: {
+          broker_org_id: string
+          offer_id: string
+          open_offers: number
+          request_id: string
+          round: number
         }[]
       }
       find_customer_for_partner: {
@@ -2831,6 +3650,36 @@ export type Database = {
           role: Database["public"]["Enums"]["member_role"]
           team: string
         }[]
+      }
+      list_my_sessions: {
+        Args: never
+        Returns: {
+          aal: string
+          created_at: string
+          id: string
+          ip: string
+          not_after: string
+          updated_at: string
+          user_agent: string
+        }[]
+      }
+      request_routing_mode: { Args: { p_request: string }; Returns: string }
+      set_commercial_terms: {
+        Args: {
+          p_broker_commission_pct?: number
+          p_effective_from?: string
+          p_model: string
+          p_notes?: string
+          p_org: string
+          p_platform_fee_pct?: number
+          p_revenue_share_pct?: number
+          p_subscription_plan_id?: string
+        }
+        Returns: string
+      }
+      transition_settlement_statement: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
       }
       verify_audit_chain: {
         Args: { p_limit?: number }

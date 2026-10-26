@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Compass, Eye, Layers, Scale, ShieldCheck, UserRoundCheck, Users } from "lucide-react";
-import { Avatar, Eyebrow, Pill } from "@im/ui";
+import { Building2, Compass, Eye, Layers, LockKeyhole, Mail, MessageSquareWarning, Scale, ShieldCheck, UserRoundCheck, Users } from "lucide-react";
+import { Avatar, Eyebrow, Notice, Pill } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
 import { getBrand } from "@/components/marketing/brand";
 import { PageHero } from "@/components/marketing/page-hero";
 import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/components/marketing/section";
 import { CtaBand } from "@/components/marketing/cta-band";
+import { REGULATION } from "@/components/marketing/content";
 
 export const metadata: Metadata = {
   title: "About us",
@@ -70,7 +71,7 @@ export default async function AboutPage() {
       </Section>
 
       <Section tone="mist" labelledBy="model-title">
-        <SectionHeading id="model-title" eyebrow="Operating model" title="A technology partner working alongside licensed professionals" description="Each party does what it is licensed and best placed to do." />
+        <SectionHeading id="model-title" eyebrow="How Covva works" title="A technology platform working alongside licensed professionals" description={`${brand.name} is a technology platform. We are not an insurer and not a broker. Policies are provided by insurers licensed by the National Insurance Commission and arranged by licensed brokers.`} />
         <div className="grid gap-4 md:grid-cols-3">
           <FeatureCard icon={<Layers />} title="Us — technology">{ROLE_STATEMENTS.platform}</FeatureCard>
           <FeatureCard icon={<UserRoundCheck />} title="Brokers — advice">{ROLE_STATEMENTS.broker}</FeatureCard>
@@ -82,7 +83,28 @@ export default async function AboutPage() {
         </p>
       </Section>
 
-      <Section labelledBy="gov-title">
+      <Section labelledBy="status-title">
+        <SectionHeading id="status-title" eyebrow="Regulatory status, data and complaints" title="Where we stand" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <FeatureCard icon={<ShieldCheck />} title="Regulatory status">
+            We operate as a technology provider. Our classification is being confirmed with the {REGULATION.nic.name}. Broking is done only by NIC-licensed brokers; policies are issued only by insurers licensed under the {REGULATION.act1061}.{" "}
+            <Link href="/trust#licensing" className="font-medium text-brand hover:underline">Details</Link>
+          </FeatureCard>
+          <FeatureCard icon={<LockKeyhole />} title="Data protection (Act 843)">
+            Personal data is processed under the {REGULATION.act843}. We collect only what is needed to arrange and service insurance, never sell it, and honour access, correction and deletion requests.{" "}
+            <Link href="/legal/privacy" className="font-medium text-brand hover:underline">Privacy notice</Link>
+          </FeatureCard>
+          <FeatureCard icon={<MessageSquareWarning />} title="Complaints">
+            Raise a complaint with your broker, then with us at {brand.supportEmail}; we aim to resolve within 14 days. Unresolved complaints can be escalated to the NIC Complaints Bureau.{" "}
+            <Link href="/legal/complaints" className="font-medium text-brand hover:underline">Complaints procedure</Link>
+          </FeatureCard>
+        </div>
+        <Notice tone="info" className="mt-6">
+          <span className="inline-flex items-center gap-2"><Mail aria-hidden className="size-4" /> Contact: <a href={`mailto:${brand.supportEmail}`} className="font-medium underline underline-offset-2">{brand.supportEmail}</a> · <Link href="/contact" className="font-medium underline underline-offset-2">Contact form</Link> · <Link href="/press" className="font-medium underline underline-offset-2">Press & media kit</Link></span>
+        </Notice>
+      </Section>
+
+      <Section tone="mist" labelledBy="gov-title">
         <SectionHeading id="gov-title" eyebrow="Governance" title="Accountable by design" description="Our governance framework is being established ahead of launch. Committee composition will be published once confirmed." />
         <div className="grid gap-8 lg:grid-cols-2">
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -101,7 +123,7 @@ export default async function AboutPage() {
         </div>
       </Section>
 
-      <Section tone="mist" labelledBy="team-title">
+      <Section labelledBy="team-title">
         <SectionHeading
           id="team-title"
           eyebrow="Team"

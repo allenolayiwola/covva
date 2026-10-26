@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea, cn } from "@im/ui";
 import { submitLead, type LeadState } from "@/app/(marketing)/actions";
+import type { LeadTag } from "./lead-tags";
 
 type Kind = "customer" | "broker" | "insurer" | "enterprise" | "press" | "other";
 
@@ -36,6 +37,8 @@ export interface LeadFormProps {
   successTitle?: string;
   successBody?: string;
   className?: string;
+  /** Campaign tag stored with the lead (see lead-tags.ts). */
+  tag?: LeadTag;
 }
 
 /**
@@ -64,10 +67,14 @@ function LeadFormInstance({
   successTitle = "Thank you — we’ve got your message.",
   successBody = "Someone from our team will reply within two working days. If your enquiry is about an existing policy or claim, your broker is the fastest route.",
   className,
+  tag,
   onReset,
 }: LeadFormProps & { onReset: () => void }) {
   const [state, formAction, pending] = useActionState(submitLead, INITIAL);
-  const [meta, setMeta] = React.useState({ started: "", page: "", utm: "" });
+  const startedRef = React.useRef<HTMLInputElement>(null);
+  const pageRef = React.useRef<HTMLInputElement>(null);
+  const utmRef = React.useRef<HTMLInputElement>(null);
+  const topicRef = React.useRef<HTMLSelectElement>(null);
   const uid = React.useId();
   const id = (f: string) => `${uid}-${f}`;
   const err = state.fieldErrors ?? {};
@@ -78,15 +85,15 @@ function LeadFormInstance({
   const successRef = React.useRef<HTMLDivElement>(null);
   const statusRef = React.useRef<HTMLDivElement>(null);
 
-  const [topic, setTopic] = React.useState(val.category_slug ?? defaultTopic ?? "");
-
   React.useEffect(() => {
-    setMeta({ started: String(Date.now()), page: window.location.pathname, utm: window.location.search.slice(0, 1000) });
+    // Bot guard + attribution written straight to the hidden inputs (DOM only, no state → no re-render).
+    if (startedRef.current) startedRef.current.value = String(Date.now());
+    if (pageRef.current) pageRef.current.value = window.location.pathname;
+    if (utmRef.current) utmRef.current.value = window.location.search.slice(0, 1000);
     // Pre-select a topic passed as ?topic=slug (e.g. "Register interest" links from category pages).
     const fromUrl = new URLSearchParams(window.location.search).get("topic");
-    if (fromUrl && topics?.some((t) => t.value === fromUrl)) setTopic(fromUrl);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (fromUrl && topicRef.current && topics?.some((t) => t.value === fromUrl)) topicRef.current.value = fromUrl;
+  }, [topics]);
 
   React.useEffect(() => {
     if (state.status === "success") successRef.current?.focus();
@@ -127,10 +134,11 @@ function LeadFormInstance({
         <label htmlFor={id("hp")}>Company website</label>
         <input id={id("hp")} name="company_website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
       </div>
-      <input type="hidden" name="started_at" value={meta.started} />
-      <input type="hidden" name="source_page" value={meta.page} />
-      <input type="hidden" name="utm" value={meta.utm} />
+      <input ref={startedRef} type="hidden" name="started_at" defaultValue="" />
+      <input ref={pageRef} type="hidden" name="source_page" defaultValue="" />
+      <input ref={utmRef} type="hidden" name="utm" defaultValue="" />
       {kind && <input type="hidden" name="kind" value={kind} />}
+      {tag && <input type="hidden" name="tag" value={tag} />}
 
       <div className="grid gap-5 sm:grid-cols-2">
         {!kind && (
@@ -164,7 +172,7 @@ function LeadFormInstance({
         </Field>
         {topics && topics.length > 0 && (
           <Field label={topicLabel ?? "Topic"} htmlFor={id("topic")} error={err.category_slug} className="sm:col-span-2">
-            <Select id={id("topic")} name="category_slug" value={topic} onChange={(e) => setTopic(e.target.value)}>
+            <Select ref={topicRef} id={id("topic")} name="category_slug" defaultValue={val.category_slug ?? defaultTopic ?? ""}>
               <option value="">Choose one (optional)</option>
               {topics.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>

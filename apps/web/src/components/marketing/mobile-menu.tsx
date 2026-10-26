@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Menu, UserRound, X } from "lucide-react";
-import { buttonClass } from "@im/ui";
-import { PRIMARY_NAV, SECONDARY_NAV } from "./nav-links";
+import { ArrowRight, ChevronDown, Menu, UserRound, X } from "lucide-react";
+import { buttonClass, cn } from "@im/ui";
+import { PRIMARY_NAV, SECONDARY_NAV, isGroup } from "./nav-links";
 
-/** Small, dependency-free mobile menu (< md). Closes on Escape, on navigation and on outside scroll lock release. */
+/** Small, dependency-free mobile menu (< md). Groups expand inline; closes on Escape and on navigation. */
 export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
   const [open, setOpen] = React.useState(false);
+  const [expanded, setExpanded] = React.useState<string | null>("Insurance");
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const id = React.useId();
@@ -36,6 +37,8 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
   // Cache Components keeps hidden routes mounted; make sure the menu never stays open across them.
   React.useEffect(() => () => setOpen(false), []);
 
+  const itemClass = "flex items-center justify-between py-3.5 text-[17px] font-semibold text-ink rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand";
+
   return (
     <div className="md:hidden">
       <button
@@ -56,22 +59,46 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
         hidden={!open}
         className="fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-line bg-white motion-safe:animate-fade-up"
       >
-        <nav aria-label="Mobile" className="px-4 pb-10 pt-4">
+        <nav aria-label="Mobile" className="px-4 pb-10 pt-2">
           <ul className="divide-y divide-line">
-            {PRIMARY_NAV.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} onClick={() => close(false)} className="flex items-center justify-between py-4 text-lg font-semibold text-ink">
-                  {l.label}
-                  <ArrowRight aria-hidden className="size-4 text-subtle" />
-                </Link>
-              </li>
-            ))}
+            {PRIMARY_NAV.map((entry) =>
+              isGroup(entry) ? (
+                <li key={entry.label}>
+                  <button
+                    type="button"
+                    aria-expanded={expanded === entry.label}
+                    aria-controls={`${id}-${entry.label}`}
+                    onClick={() => setExpanded((e) => (e === entry.label ? null : entry.label))}
+                    className={cn(itemClass, "w-full text-left")}
+                  >
+                    {entry.label}
+                    <ChevronDown aria-hidden className={cn("size-4 text-subtle transition-transform motion-reduce:transition-none", expanded === entry.label && "rotate-180")} />
+                  </button>
+                  <ul id={`${id}-${entry.label}`} hidden={expanded !== entry.label} className="mb-3 grid grid-cols-1 gap-0.5 rounded-xl bg-mist p-2">
+                    {entry.items.map((item) => (
+                      <li key={item.href}>
+                        <Link href={item.href} onClick={() => close(false)} className="block rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-2 hover:bg-white hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                <li key={entry.href}>
+                  <Link href={entry.href} onClick={() => close(false)} className={itemClass}>
+                    {entry.label}
+                    <ArrowRight aria-hidden className="size-4 text-subtle" />
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
           <p className="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-subtle">More</p>
-          <ul className="mt-2 grid grid-cols-1 gap-1">
+          <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
             {SECONDARY_NAV.map((l) => (
               <li key={l.href}>
-                <Link href={l.href} onClick={() => close(false)} className="block rounded-lg py-2.5 text-[16px] text-ink-2 hover:text-brand">
+                <Link href={l.href} onClick={() => close(false)} className="block rounded-lg py-2 text-[15px] text-ink-2 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                   {l.label}
                 </Link>
               </li>
@@ -79,7 +106,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
           </ul>
           <div className="mt-8 grid gap-3">
             <Link href="/get-started" onClick={() => close(false)} className={buttonClass("primary", "lg", "w-full")}>
-              What do I need?
+              Get a quote
             </Link>
             {showAccount && (
               <Link href="/account" onClick={() => close(false)} className={buttonClass("secondary", "lg", "w-full")}>

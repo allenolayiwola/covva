@@ -15,13 +15,17 @@ export default async function CookiesPage() {
     { name: "sb-…-auth-token", purpose: "Keeps you signed in securely", type: "Strictly necessary", duration: "Session / up to 1 week" },
     { name: "Session storage: im:needs:v1", purpose: "Remembers your Help me choose answers in this tab", type: "Functional (stays on your device)", duration: "Until you close the tab" },
     { name: "Form drafts", purpose: "Saves request forms so you can resume on a slow connection", type: "Functional", duration: "Until submitted or [90] days" },
+    { name: "covva_consent", purpose: "Remembers your cookie choice (analytics or essential only)", type: "Strictly necessary", duration: "180 days" },
+    { name: "covva_lang", purpose: "Remembers your preferred language on the Learn pages", type: "Functional", duration: "1 year" },
+    { name: "Session storage: covva:app-banner:dismissed", purpose: "Remembers that you closed the Android app banner", type: "Functional (stays on your device)", duration: "Until you close the browser" },
+    { name: "_ga, _ga_*", purpose: "Google Analytics 4 — only after you accept analytics in the consent banner; IP addresses anonymised", type: "Analytics (consent required)", duration: "Up to 2 years" },
   ];
 
   return (
     <LegalPage
       current="/legal/cookies"
       title="Cookies"
-      summary={<>We use as few cookies as possible. Today we only use what is needed to keep you signed in and to save your progress. We do not use advertising cookies.</>}
+      summary={<>We use as few cookies as possible: what is needed to keep you signed in, to save your progress and to remember your choices. Analytics loads only after you accept it in the consent banner. We do not use advertising cookies or tracking pixels.</>}
       sections={[
         {
           id: "what",
@@ -59,7 +63,7 @@ export default async function CookiesPage() {
         {
           id: "analytics",
           title: "Analytics",
-          body: <p>If we introduce analytics to improve the service, we will use privacy-respecting tools, update this notice and ask for your consent where required before setting any non-essential cookies.</p>,
+          body: <p>Where analytics is configured we use Google Analytics 4 with IP anonymisation. It loads only after you choose “Accept analytics” in the consent banner, in line with the Data Protection Act, 2012 (Act 843). Choosing “Essential only” keeps analytics off. You can change your mind by clearing the <code>covva_consent</code> cookie in your browser, after which the banner appears again.</p>,
         },
         {
           id: "control",

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Checkbox, DemoBadge, Field, Input, Notice, PageHeader, Pill, Select, Table, Tabs, Td, Textarea, Th, THead } from "@im/ui";
-import { GHANA_REGIONS, formatDate, formatDateTime, formatGHS, humanize } from "@im/core";
+import { GHANA_REGIONS, formatDate, formatDateTime, formatGHS, humanize, roleLabel as partnerRoleLabel, rolesFor, type MemberRole, type PartnerKind } from "@im/core";
 import { can, getPartnerContext, ROLES, type PartnerContext } from "../../_lib/context";
 import { nowMs, getTeam, teamsOf } from "../../_lib/data";
-import { API_SCOPES, BROKER_ROLES, INSURER_ROLES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
+import { API_SCOPES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
 import { ActionForm } from "@/components/partner/action-form";
 import { ApiKeyForm, InviteForm, LogoUpload } from "@/components/partner/settings-forms";
 import { Bars, Empty, KV, PageSkeleton, Section } from "@/components/partner/ui";
@@ -44,18 +44,21 @@ async function Settings({ searchParams }: { searchParams: Promise<Record<string,
     { key: "organisation", label: "Organisation" },
     { key: "licence", label: "NIC licence" },
     { key: "billing", label: "Billing" },
+    { key: "terms", label: "Commercial terms" },
     { key: "developer", label: "Developer" },
     ...(ctx.kind === "insurer" ? [{ key: "connector", label: "Connector" }] : []),
+    { key: "security", label: "Security" },
   ];
   const tab = tabs.find((t) => t.key === sp.tab)?.key ?? "team";
 
   return (
     <>
-      <Tabs className="mb-6 w-fit max-w-full" active={tab} items={tabs.map((t) => ({ ...t, href: `/partner/settings?tab=${t.key}` }))} />
+      <Tabs className="mb-6 w-fit max-w-full" active={tab} items={tabs.map((t) => ({ ...t, href: t.key === "security" ? "/partner/settings/security" : `/partner/settings?tab=${t.key}` }))} />
       {tab === "team" && <TeamTab ctx={ctx} />}
       {tab === "organisation" && <OrgTab ctx={ctx} />}
       {tab === "licence" && <LicenceTab ctx={ctx} />}
       {tab === "billing" && <BillingTab ctx={ctx} />}
+      {tab === "terms" && <TermsTab ctx={ctx} />}
       {tab === "developer" && <DeveloperTab ctx={ctx} />}
       {tab === "connector" && <ConnectorTab ctx={ctx} />}
       {ctx.isDemo && <DemoBadge className="mt-8" />}
@@ -63,7 +66,8 @@ async function Settings({ searchParams }: { searchParams: Promise<Record<string,
   );
 }
 
-const roleLabel = (r: string) => humanize(r);
+/** Roles as the organisation knows them (Addendum 3): "Product Manager", "Account Executive", "Read-only" … */
+const roleLabel = (kind: PartnerKind, r: string) => partnerRoleLabel(kind, r as MemberRole);
 
 async function TeamTab({ ctx }: { ctx: PartnerContext }) {
   const admin = can(ctx, ROLES.orgAdmin);
@@ -71,7 +75,7 @@ async function TeamTab({ ctx }: { ctx: PartnerContext }) {
     getTeam(ctx, true),
     admin ? ctx.supabase.from("invitations").select("id, email, role, team, expires_at, accepted_at, created_at").eq("org_id", ctx.orgId).is("accepted_at", null).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
   ]);
-  const roles = ctx.kind === "broker" ? BROKER_ROLES : INSURER_ROLES;
+  const roles = rolesFor(ctx.kind);
   return (
     <div className="space-y-6">
       {!admin && <Notice tone="info">Only owners and admins can invite or change members. You can see who is on the team.</Notice>}
@@ -82,7 +86,7 @@ async function TeamTab({ ctx }: { ctx: PartnerContext }) {
             {team.map((m) => (
               <tr key={m.membershipId} className={m.active ? undefined : "opacity-60"}>
                 <Td><p className="font-medium text-ink">{m.name}{m.userId === ctx.userId && <span className="ml-1 text-xs text-muted">(you)</span>}</p><p className="text-xs text-muted">{m.email ?? m.title ?? ""}</p></Td>
-                <Td>{roleLabel(m.role)}{m.isSupervisor && m.role !== "supervisor" && <Pill className="ml-1">Supervisor</Pill>}</Td>
+                <Td>{roleLabel(ctx.kind, m.role)}{m.isSupervisor && m.role !== "supervisor" && <Pill className="ml-1">Supervisor</Pill>}</Td>
                 <Td>{m.team ?? "—"}</Td>
                 <Td>{m.active ? <Pill tone="ok">Active</Pill> : <Pill>Deactivated</Pill>}</Td>
                 {admin && (
@@ -95,7 +99,7 @@ async function TeamTab({ ctx }: { ctx: PartnerContext }) {
                             <input type="hidden" name="membershipId" value={m.membershipId} />
                             <Field label="Role" htmlFor={`r-${m.membershipId}`}>
                               <Select id={`r-${m.membershipId}`} name="role" defaultValue={m.role} className="h-9 text-sm">
-                                {[...new Set([m.role, ...roles])].map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+                                {(roles.some((o) => o.value === m.role) ? roles : [{ value: m.role, label: roleLabel(ctx.kind, m.role), description: "" }, ...roles]).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </Select>
                             </Field>
                             <Field label="Team" htmlFor={`t-${m.membershipId}`}><Input id={`t-${m.membershipId}`} name="team" defaultValue={m.team ?? ""} className="h-9 text-sm" /></Field>
@@ -125,7 +129,7 @@ async function TeamTab({ ctx }: { ctx: PartnerContext }) {
               <ul className="divide-y divide-line rounded-xl border border-line text-sm">
                 {(invites.data ?? []).map((i) => (
                   <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                    <span><span className="font-medium text-ink">{i.email}</span> · {roleLabel(i.role)}{i.team ? ` · ${i.team}` : ""} <span className="text-xs text-muted">· expires {formatDate(i.expires_at)}</span></span>
+                    <span><span className="font-medium text-ink">{i.email}</span> · {roleLabel(ctx.kind, i.role)}{i.team ? ` · ${i.team}` : ""} <span className="text-xs text-muted">· expires {formatDate(i.expires_at)}</span></span>
                     <ActionForm action={revokeInvitation} submitLabel="Revoke" variant="ghost" inline>
                       <input type="hidden" name="id" value={i.id} />
                     </ActionForm>
@@ -268,6 +272,51 @@ async function BillingTab({ ctx }: { ctx: PartnerContext }) {
             </tbody>
           </Table>
         )}
+      </Section>
+    </div>
+  );
+}
+
+/** Read-only view of the organisation's commercial model (set by the platform; see docs/OPERATIONS.md "Settlement and splits"). */
+async function TermsTab({ ctx }: { ctx: PartnerContext }) {
+  if (!can(ctx, ROLES.billing)) return <Notice tone="info">Commercial terms are visible to owners, admins and finance.</Notice>;
+  const today = new Date(nowMs()).toISOString().slice(0, 10);
+  const { data: terms } = await ctx.supabase
+    .from("org_commercial_terms")
+    .select("*, plan:plans!org_commercial_terms_subscription_plan_id_fkey(name, monthly_fee)")
+    .eq("org_id", ctx.orgId)
+    .lte("effective_from", today)
+    .or(`effective_to.is.null,effective_to.gte.${today}`)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const plan = terms?.plan as unknown as { name: string; monthly_fee: number } | null;
+  const broker = ctx.kind === "broker";
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <Section title="Commercial terms" description="Agreed with the platform; changes are made by Covva partnerships with your approval.">
+        {!terms ? (
+          <Empty>No commercial terms recorded yet. Contact the partnerships team.</Empty>
+        ) : (
+          <div className="max-w-xl">
+            <KV label="Model">{terms.model === "revenue_share" ? "Revenue share" : terms.model === "subscription" ? "Subscription" : "Insurer fee"}</KV>
+            {broker && terms.model === "revenue_share" && <KV label="Covva share of commission (Covva-sourced)">{Number(terms.revenue_share_pct)}%</KV>}
+            {broker && terms.model === "subscription" && <KV label="Plan">{plan ? `${plan.name} · ${formatGHS(Number(plan.monthly_fee))}/month` : "—"}</KV>}
+            {!broker && <KV label="Platform fee (Covva-sourced, % of net premium)">{Number(terms.platform_fee_pct)}%</KV>}
+            <KV label={broker ? "Agreed commission rate (0 = insurer's standard rate)" : "Standard broker commission (% of net premium)"}>{Number(terms.broker_commission_pct)}%</KV>
+            <KV label="Effective from">{formatDate(terms.effective_from)}</KV>
+            <KV label="Approved">{terms.approved_at ? formatDate(terms.approved_at) : "—"}</KV>
+            {terms.notes && <p className="mt-3 text-sm text-muted">{terms.notes}</p>}
+          </div>
+        )}
+      </Section>
+      <Section title="How settlement works" tone="mist">
+        <p className="text-sm text-ink-2">
+          {broker
+            ? "Customers pay the insurer directly. Your commission is paid by the insurer out of the premium. On Covva-sourced business under revenue share, Covva's share is deducted; on your own clients you keep the full commission."
+            : "Premiums settle to your account through the payment provider. Broker commission and Covva's platform fee on Covva-sourced business are paid out of the premium, either at checkout (split group) or by monthly statement."}
+        </p>
+        <p className="mt-2 text-sm text-ink-2">Statements are under <strong>Settlements</strong>.</p>
       </Section>
     </div>
   );

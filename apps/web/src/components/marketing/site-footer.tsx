@@ -1,28 +1,34 @@
 import Link from "next/link";
-import { ExternalLink, Mail, ShieldCheck, Smartphone } from "lucide-react";
+import { ExternalLink, Mail } from "lucide-react";
 import { Container, DemoBadge, Logo } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
-import { getCategories } from "@/lib/catalog";
 import { getBrand, getCurrentYear, isDemoMode } from "./brand";
 import { REGULATION } from "./content";
+import { StoreBadges } from "./store-badges";
+import { PaymentBadges } from "./payment-badges";
+import { PRODUCT_LINES } from "./products-content";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
     title: "Get started",
     links: [
       { href: "/get-started", label: "Help me choose" },
-      { href: "/explore", label: "Explore cover" },
-      { href: "/how-it-works", label: "How it works" },
+      { href: "/diaspora", label: "Diaspora" },
+      { href: "/business", label: "Business" },
+      { href: "/claims", label: "Claims" },
+      { href: "/verify", label: "Verify a policy" },
+      { href: "/learn", label: "Learn" },
       { href: "/account", label: "My account" },
     ],
   },
   {
     title: "Partners",
     links: [
-      { href: "/brokers", label: "For brokers" },
       { href: "/insurers", label: "For insurers" },
-      { href: "/business", label: "For business" },
-      { href: "/partners", label: "Participating partners" },
+      { href: "/brokers", label: "For brokers" },
+      { href: "/partners/embedded", label: "Embedded partners" },
+      { href: "/partners", label: "Partner directory" },
+      { href: "/waitlist", label: "Launch partners" },
     ],
   },
   {
@@ -30,6 +36,9 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
     links: [
       { href: "/about", label: "About us" },
       { href: "/trust", label: "Regulation & protection" },
+      { href: "/how-it-works", label: "How it works" },
+      { href: "/referrals", label: "Refer a friend" },
+      { href: "/press", label: "Press & media kit" },
       { href: "/support", label: "Help centre" },
       { href: "/contact", label: "Contact" },
     ],
@@ -47,8 +56,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
 ];
 
 export async function SiteFooter() {
-  const [brand, year, categories, demo] = await Promise.all([getBrand(), getCurrentYear(), getCategories(), isDemoMode()]);
-  const cover = categories.slice(0, 6);
+  const [brand, year, demo] = await Promise.all([getBrand(), getCurrentYear(), isDemoMode()]);
 
   return (
     <footer className="border-t border-line bg-mist" aria-labelledby="footer-heading">
@@ -65,26 +73,19 @@ export async function SiteFooter() {
               <Mail aria-hidden className="size-4" />
               {brand.supportEmail}
             </a>
-            <div className="mt-6 flex flex-wrap gap-2" aria-label="Mobile apps">
-              {["App Store", "Google Play"].map((store) => (
-                <span key={store} className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-white px-3 py-2 text-xs text-muted">
-                  <Smartphone aria-hidden className="size-4 text-brand" />
-                  <span>
-                    <span className="block font-semibold text-ink-2">{store}</span>
-                    Coming at launch
-                  </span>
-                </span>
-              ))}
+            <div className="mt-6" aria-label="Mobile apps">
+              <StoreBadges size="sm" />
             </div>
+            <PaymentBadges compact className="mt-5" />
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             <div>
-              <h3 className="text-sm font-semibold text-ink">Cover</h3>
+              <h3 className="text-sm font-semibold text-ink">Insurance</h3>
               <ul className="mt-4 space-y-2.5 text-sm">
-                {cover.map((c) => (
-                  <li key={c.id}>
-                    <Link href={`/explore/${c.slug}`} className="rounded text-muted hover:text-brand">{c.name}</Link>
+                {PRODUCT_LINES.map((p) => (
+                  <li key={p.slug}>
+                    <Link href={`/insurance/${p.slug}`} className="rounded text-muted hover:text-brand">{p.short}</Link>
                   </li>
                 ))}
                 <li>
@@ -129,7 +130,10 @@ export async function SiteFooter() {
         <div className="mt-8 flex flex-col gap-4 border-t border-line pt-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {year} {brand.name}
-            {brand.workingName ? " (working name)" : ""}. Technology provider. Not an insurer or broker.
+            {brand.workingName ? " (working name)" : ""}. Technology platform. Not an insurer or broker.
+          </p>
+          <p className="text-[13px]">
+            <Link href="/legal/cookies" className="rounded hover:text-brand">Cookies & consent</Link>
           </p>
           {demo && <DemoBadge />}
         </div>

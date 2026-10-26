@@ -144,3 +144,30 @@ test("loadings: lt ignores blank values, equals compares loosely, premium is rou
   const unlabeled = ratePremium(rule, { vehicle_value: 10000, use: "commercial" });
   assert.deepEqual(unlabeled.appliedLoadings, ["use"], "loadings without a label fall back to the field name");
 });
+
+test("rate_table: resolves through rateFromTable when rows are supplied, otherwise reports the rows as missing", () => {
+  const rule: RatingRule = {
+    model: "rate_table",
+    rate_table_id: "00000000-0000-0000-0000-000000000001",
+    factor_keys: ["vehicle_use"],
+    value_fields: ["vehicle_value"],
+    min_premium: 300,
+    rows: [
+      { factors: { vehicle_use: "*" }, rate: 0.05, rate_kind: "rate_on_value" },
+      { factors: { vehicle_use: "private" }, rate: 0.04, rate_kind: "rate_on_value" },
+    ],
+  };
+  const priced = ratePremium(rule, { vehicle_use: "private", vehicle_value: 100000 });
+  assert.equal(priced.ok, true);
+  assert.equal(priced.premium, 4000);
+  assert.equal(priced.sumInsured, 100000);
+  assert.equal(ratePremium(rule, { vehicle_use: "taxi", vehicle_value: 1000 }).premium, 300, "table minimum premium applies");
+
+  const unresolved = ratePremium({ model: "rate_table", rate_table_id: rule.rate_table_id }, { vehicle_use: "private", vehicle_value: 100000 });
+  assert.equal(unresolved.ok, false);
+  assert.equal(unresolved.premium, 0);
+  assert.deepEqual(unresolved.missingFields, ["rate_table_rows"]);
+
+  // Existing models are untouched.
+  assert.equal(ratePremium({ model: "flat", amount: 250 }, {}).premium, 250);
+});

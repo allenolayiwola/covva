@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, ChevronDown, LogOut, UserRound } from "lucide-react";
+import { Bell, ChevronDown, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { Avatar, Pill } from "@im/ui";
 import { formatDateTime } from "@im/core";
 import { getPartnerContext, type PartnerContext } from "@/app/(partner)/partner/_lib/context";
@@ -11,11 +11,14 @@ export function brokerNav(): NavItem[] {
   return [
     { href: "/partner", label: "Overview" },
     { href: "/partner/requests", label: "Request queue" },
+    { href: "/partner/offers", label: "Offers" },
     { href: "/partner/quotes", label: "Quotes" },
     { href: "/partner/customers", label: "Customers" },
     { href: "/partner/policies", label: "Policies" },
     { href: "/partner/service", label: "Service & claims" },
+    { href: "/partner/products/propose", label: "Rate proposals" },
     { href: "/partner/reports", label: "Reports" },
+    { href: "/partner/settlements", label: "Settlements" },
     { href: "/partner/settings", label: "Team settings" },
   ];
 }
@@ -27,7 +30,9 @@ export function insurerNav(): NavItem[] {
     { href: "/partner/issuance", label: "Issuance" },
     { href: "/partner/claims", label: "Claims" },
     { href: "/partner/products", label: "Products" },
+    { href: "/partner/integrations", label: "Integrations" },
     { href: "/partner/reports", label: "Reports" },
+    { href: "/partner/settlements", label: "Settlements" },
     { href: "/partner/settings", label: "Team settings" },
   ];
 }
@@ -137,6 +142,9 @@ function UserMenu({ ctx }: { ctx: PartnerContext }) {
             <OrgSwitcher orgs={ctx.all.map((m) => ({ id: m.org_id, name: m.org.name, kind: m.org.type }))} activeId={ctx.orgId} action={switchOrg} />
           </div>
         )}
+        <Link href="/partner/settings/security" className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-ink-2 hover:bg-mist">
+          <ShieldCheck className="size-4" aria-hidden /> Security &amp; devices
+        </Link>
         <Link href="/account" className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-ink-2 hover:bg-mist">
           <UserRound className="size-4" aria-hidden /> My customer account
         </Link>

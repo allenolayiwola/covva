@@ -96,7 +96,12 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { "content-type": "application/json", authorization: `Bearer ${data.session?.access_token}`, ...init.headers },
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${data.session?.access_token}`,
+      "x-covva-client": "mobile", // always — see §14 (default is "web")
+      ...init.headers,
+    },
   });
   const body = (await res.json()) as ApiResult<T>;
   if (!body.ok) throw Object.assign(new Error(body.error.message), body.error, { status: res.status });
@@ -104,6 +109,8 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 ```
 
+* `error.code === "forbidden"` (403) with `details.reason === "insurer_web_only"`: the signed-in user is an
+  insurer account — show `error.message` and a button to `details.portalUrl` (§14).
 * `error.code === "business_rule"` (422): show `error.message` as-is — it is a product rule written for customers.
 * `invalid_input` (400): `details: [{ path, message }]` maps to form fields.
 * `unauthorised` (401): refresh the session once, then send the user to sign-in.
@@ -230,9 +237,39 @@ Scheme `covva://` plus universal/app links on the web host
 | `/account/notifications` | `covva://notifications` |
 | `/auth/callback?…` | `covva://auth/callback?…` |
 | (payment return) | `covva://payments/return?reference=&status=&requestId=&paymentId=` |
-| `/partner/*`, anything else | `covva://notifications` (web-only) |
+| `/partner/offers` | `covva://offers` (broker app only) |
+| `/partner/offers/accept/{token}` | `covva://offers/accept/{token}` (broker one-tap accept) |
+| `/partner/*` (other), anything else | `covva://notifications` (web-only) |
 
 Expo Router file names should mirror the right-hand column.
+
+## 10a. Broker offers (claim model, Addendum 2 D/E)
+
+New requests are no longer assigned to one broker at creation. The routing engine either sends
+the order straight to a connected insurer, fixes the customer's standing broker, or **offers** it
+to the best few eligible brokers at once; the first to accept becomes broker of record and the
+other offers are withdrawn. Unanswered offers expire after `routing.offer_timeout_minutes`
+(default 30) and the next brokers are offered; after the last round the request is held for
+platform ops. Customers can also tick "talk to an expert" (`talkToExpert` on `POST /requests`),
+which always routes to a broker.
+
+Broker members sign in with the same Supabase session as everyone else. Endpoints (bearer token;
+partner API keys with `requests:read` work too):
+
+| Need | Endpoint |
+|---|---|
+| Open offers with countdown | `GET /partner/offers` (`status=offered` default; `responds_by` drives the timer; `deepLink` / `acceptUrl` per item) |
+| History | `GET /partner/offers?status=accepted` (or `declined`, `expired`, `withdrawn`) |
+| Accept (one tap) | `POST /partner/offers/{id}` `{ "action": "accept" }` → 200 with `requestId`; 422 `business_rule` if expired, already taken or the member's role may not accept (adviser/supervisor/admin/owner) |
+| Decline | `POST /partner/offers/{id}` `{ "action": "decline", "reason"?: "…" }` |
+
+Push notifications of kind `offer.new` carry `data.offer_id`, `data.request_id`, `data.responds_by`,
+`data.accept_url` and `data.deep_link` (`covva://offers/accept/{token}`); the SMS/WhatsApp text
+contains the same web link. Opening the deep link should show the offer and call the accept
+endpoint — never accept silently on open. Realtime: subscribe to `order_offers` filtered by
+`broker_org_id=eq.<org>` to refresh the list when an offer is withdrawn or expires. Before an
+offer is accepted the request's `risk_data` is visible but the customer's profile is not; after
+acceptance the request appears in `GET /partner/requests` as usual.
 
 ## 11. Design tokens
 
@@ -288,3 +325,73 @@ Render `part.type === "text"`; tool parts are `tool-listMyPolicies`, `tool-getPo
 `tool-getRequestStatus`, `tool-explainQuoteComparison`, `tool-explainTerm`, `tool-findCategoryForNeed`,
 `tool-draftMessageToBroker` (output `{ draft, requestId, sent: false }` → offer "Open in messages",
 the user sends it). Message metadata on start carries `threadId` (also the `x-thread-id` header).
+
+## 14. Workspaces and mobile access (Addendum 4)
+
+Who can use the app:
+
+| User type | Mobile app | Web |
+|---|---|---|
+| Customer | yes | `/account` |
+| Broker user | **yes — same app**, broker workspace | `/partner` (everything, plus bulk import, reports, team) |
+| Insurer user | **no** — clear message, link to the web portal | `/partner` (web portal only) |
+| Covva staff | no | admin console |
+
+**Identify the client.** Send `X-Covva-Client: mobile` on every `/api/v1` call (the header is also
+accepted as `web` and `partner-web`; a missing header means `web`). The server stores the last
+value in `profiles.last_seen_platform`.
+
+**Workspaces.** `GET /api/v1/me` returns, besides `profile` / `memberships`:
+
+```jsonc
+{
+  "workspaces": [
+    { "type": "customer", "mobileAllowed": true, "allowed": true },
+    { "type": "broker", "orgId": "…", "orgName": "Demo Broker", "role": "adviser", "mobileAllowed": true, "allowed": true },
+    { "type": "insurer", "orgId": "…", "orgName": "Coastline General", "role": "underwriter", "mobileAllowed": false, "allowed": false }
+  ],
+  "activeWorkspace": { "type": "broker", "orgId": "…" },
+  "client": "mobile"
+}
+```
+
+* Every user has the `customer` workspace. One extra entry per active broker/insurer membership.
+* `mobileAllowed` is the policy for the mobile app; `allowed` is the policy for the calling client.
+* After sign-in: if `workspaces.length === 1` go straight to the customer home. Otherwise show the
+  workspace switcher (or open `activeWorkspace`, which is the stored choice when still valid, else
+  the first usable partner workspace). A user who is both a broker and a customer switches between
+  the two at any time (profile menu → "Switch to my customer account" / "Broker workspace").
+* Persist the choice with `POST /api/v1/me/workspace { "type": "broker", "orgId": "…" }` (or
+  `{ "type": "customer" }`). It is stored in `profiles.active_workspace` and echoed back by `/me`
+  on every device. Choosing a workspace the user doesn't belong to → `403 forbidden`; choosing an
+  insurer workspace from the mobile client → `403 forbidden` with the message below.
+* Broker screens in the app use the partner endpoints under `/api/v1/partner/*` (requests/orders,
+  quotes, policies, claims; accept/decline, documents, messages, renewals and the commission summary
+  follow as the web broker workspace is exposed through the API); always scope calls with the
+  active `orgId`.
+
+**Insurer users.** An account whose only organisation memberships are insurer (or staff) is refused
+on every `/api/v1` call made with `X-Covva-Client: mobile` — including `GET /me` right after
+sign-in — so the app can show one clear screen and sign the user out:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "forbidden",
+    "message": "Insurer accounts are managed in the Covva web portal, not the mobile app. Sign in at https://covva.com.gh/partner on a computer, tablet or phone browser.",
+    "details": { "reason": "insurer_web_only", "portalUrl": "https://covva.com.gh/partner" }
+  }
+}
+```
+
+Show `error.message` verbatim with an "Open the web portal" button (`details.portalUrl`) and a
+"Sign in with a different account" action. A user who also has a broker membership is **not**
+refused: their insurer workspace is simply listed with `mobileAllowed: false` and the app must not
+offer it. Nothing about this is a security boundary — RLS is — it is the Addendum 4 product rule.
+
+**MFA.** Broker and insurer users must pass TOTP two-step verification in the **web** partner
+workspace. The mobile app does not enforce MFA for the broker workspace in this phase; broker
+accounts should enable it on the web (Settings → Security), and the app can read
+`supabase.auth.mfa.getAuthenticatorAssuranceLevel()` to show a reminder. Customers use phone OTP
+and optional biometrics (device-local) — never TOTP.

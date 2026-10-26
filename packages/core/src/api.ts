@@ -14,6 +14,8 @@ export const CreateRequestInput = z.object({
   needsAssessmentId: uuid.optional(),
   source: z.enum(["web", "mobile", "whatsapp", "call_centre", "admin", "api"]).default("web"),
   submit: z.boolean().default(true),
+  /** "Talk to an expert": route to a broker whatever the insurer's integration (Addendum 2 D3). */
+  talkToExpert: z.boolean().default(false),
 });
 export type CreateRequestInput = z.infer<typeof CreateRequestInput>;
 
@@ -275,6 +277,12 @@ export function webPathToDeepLink(path: string | null | undefined): { url: strin
     return fallback;
   }
   if (p === "/account" || p === "/account/") return { url: `${DEEP_LINK_SCHEME}://home`, path: "/home" };
+  // Broker offers (Addendum 2 E): the only partner screens with a mobile equivalent.
+  // `/partner/offers` → `covva://offers`; `/partner/offers/accept/{token}` → `covva://offers/accept/{token}`.
+  if (p === "/partner/offers" || p.startsWith("/partner/offers/") || p.startsWith("/partner/offers?")) {
+    const rest = p.slice("/partner".length);
+    return { url: `${DEEP_LINK_SCHEME}:/${rest}`, path: rest };
+  }
   if (!p.startsWith("/account/")) return fallback;
   let rest = p.slice("/account".length);
   rest = rest.replace(/^\/requests\/([^/?]+)\/confirmation/, "/requests/$1");

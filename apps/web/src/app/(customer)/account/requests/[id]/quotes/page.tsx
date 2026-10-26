@@ -420,6 +420,8 @@ function InsurerHead({ q, s, demo, compact = false }: { q: QuoteRow; s: ScoredQu
   const labels = s.labels.filter((l) => l !== "recommended");
   const rec = s.labels.includes("recommended");
   const isDemoOrg = !!(q.insurer?.settings as { demo?: boolean } | null)?.demo;
+  // Issuance type / expected time travels with the quote (Addendum 2 G: visible before payment).
+  const issuance = (q.assumptions as { issuance?: { label?: string } } | null)?.issuance?.label ?? null;
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -440,6 +442,7 @@ function InsurerHead({ q, s, demo, compact = false }: { q: QuoteRow; s: ScoredQu
         {formatGHS(Number(q.premium))} <span className="text-sm font-normal text-muted">/ {q.billing_period === "month" ? "month" : "year"}</span>
       </p>
       {q.status !== "ready_to_accept" && <p className="mt-1 text-xs text-muted">{QUOTE_STATUS[q.status as QuoteStatus].customerHint}</p>}
+      {issuance && <p className="mt-1 text-xs font-medium text-ink-2">Issuance: {issuance}</p>}
       {(rec || labels.length > 0) && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {rec && <Pill tone="ok" className="bg-brand text-white">{LABELS.recommended}</Pill>}

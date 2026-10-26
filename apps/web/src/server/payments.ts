@@ -8,6 +8,8 @@ import { notify, notifyOrg } from "@/server/notify";
 import { log } from "@/server/log";
 import { paystackKey, simulatorEnabled, simulatorSignature, siteUrl } from "@/server/env";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
+import { persistPaymentSplits, splitForPayment } from "@/server/commercial";
+import { recordPaymentLedger } from "@/server/ledger";
 
 /**
  * Payment service (owner: Backend stream). Premiums are paid through Paystack and
@@ -119,7 +121,7 @@ export async function initiatePayment(args: {
 
   const { data: request } = await svc
     .from("requests")
-    .select("id, reference, status, customer_id, broker_org_id")
+    .select("id, reference, status, customer_id, broker_org_id, source_broker_org_id")
     .eq("id", app.request_id)
     .single();
   if (!request || request.customer_id !== callerId) throw new BusinessRuleError("Request not found.", "not_found");
@@ -129,7 +131,7 @@ export async function initiatePayment(args: {
 
   const { data: insurer } = await svc
     .from("organizations")
-    .select("id, name, type, status, paystack_subaccount_code")
+    .select("id, name, type, status, paystack_subaccount_code, paystack_split_code")
     .eq("id", quote.insurer_org_id)
     .single();
   if (!insurer || insurer.type !== "insurer" || insurer.status !== "active") {
@@ -177,6 +179,9 @@ export async function initiatePayment(args: {
   const reference = newReference();
   const callbackUrl = args.callbackUrl ?? `${siteUrl()}/account/requests/${request.id}/confirmation`;
   const init = { callback_url: callbackUrl, channel: args.channel, momo_provider: args.momo?.provider ?? null, started_at: new Date().toISOString() };
+  // Three-party split (insurer / broker commission / platform fee) — see server/commercial.ts.
+  // Paystack settles one subaccount per transaction unless a split group is configured.
+  const commercial = await splitForPayment(svc, { amount, quote, request, insurer, provider });
 
   const base = {
     application_id: app.id,
@@ -193,7 +198,7 @@ export async function initiatePayment(args: {
     settlement_subaccount: insurer.paystack_subaccount_code ?? (provider === "simulator" ? "SIMULATED" : null),
     authorization_url: null,
     failure_reason: null,
-    raw_event: { initialize: init } as Json,
+    raw_event: { initialize: init, split: commercial.summary } as unknown as Json,
   };
 
   let payment: PaymentRow;
@@ -210,6 +215,7 @@ export async function initiatePayment(args: {
   }
 
   await svc.from("quotes").update({ revalidated_at: new Date().toISOString() }).eq("id", quote.id);
+  await persistPaymentSplits(svc, payment.id, commercial, base.settlement_subaccount);
 
   let authorizationUrl: string | null = null;
   let status: Enum<"payment_status"> = "pending";
@@ -227,8 +233,7 @@ export async function initiatePayment(args: {
         currency: "GHS",
         reference,
         mobile_money: { phone: args.momo.phone, provider: args.momo.provider },
-        subaccount: insurer.paystack_subaccount_code,
-        bearer: "subaccount",
+        ...commercial.paystackSettlement, // split group when configured, else the insurer's subaccount (bearer: subaccount)
         metadata,
       },
     });
@@ -249,8 +254,7 @@ export async function initiatePayment(args: {
         reference,
         callback_url: callbackUrl,
         channels: [args.channel],
-        subaccount: insurer.paystack_subaccount_code, // settle to the insurer
-        bearer: "subaccount",
+        ...commercial.paystackSettlement, // settle to the insurer (or the configured split group)
         metadata: { ...metadata, cancel_action: callbackUrl },
       },
     });
@@ -403,7 +407,7 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
 
   const [{ data: quote }, { data: request }] = await Promise.all([
     payment.quote_id ? svc.from("quotes").select("*").eq("id", payment.quote_id).single() : Promise.resolve({ data: null }),
-    svc.from("requests").select("id, reference, title, category_id, broker_org_id, customer_id, risk_data").eq("id", payment.request_id).single(),
+    svc.from("requests").select("id, reference, title, category_id, broker_org_id, customer_id, risk_data, source_broker_org_id").eq("id", payment.request_id).single(),
   ]);
   if (!quote || !request) {
     log.error("payment.missing_quote_or_request", { paymentId: payment.id });
@@ -434,6 +438,7 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
         category_id: request.category_id,
         product_version_id: quote.product_version_id,
         status: "pending_issuance",
+        source: request.source_broker_org_id ? "broker" : "covva",
         summary: productName,
         premium: payment.amount,
         currency: payment.currency,
@@ -448,6 +453,8 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
     policyId = policy?.id ?? null;
   }
   if (policyId) await svc.from("payments").update({ policy_id: policyId }).eq("id", payment.id);
+  // Ledger: premium to the insurer, commission and platform fee (idempotent; never blocks the flow).
+  await recordPaymentLedger(svc, { ...payment, status: "succeeded", paid_at: paidAt, policy_id: policyId });
 
   await svc.from("requests").update({ status: "policy_documents", next_step: PAYMENT_DOCS_NEXT_STEP }).eq("id", request.id).in("status", ["quotes_ready", "payment_confirmation"]);
   await svc.from("request_events").insert({

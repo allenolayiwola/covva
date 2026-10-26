@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DemoBadge, Notice, Pill, Table, Td, Th, THead } from "@im/ui";
-import { formatDate, formatDateTime, humanize, type RiskField } from "@im/core";
+import { formatDate, formatDateTime, humanize, issuanceLabel, type RiskField } from "@im/core";
 import { can, requireKind, ROLES } from "../../../_lib/context";
 import { getCategoryMap } from "../../../_lib/data";
 import { VersionEditor, type VersionDraft } from "@/components/partner/version-editor";
@@ -70,15 +70,18 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
       <Section title="Versions" description="The current version is the approved one used for quoting and comparison.">
         {(versions ?? []).length === 0 ? <p className="text-sm text-muted">No versions yet.</p> : (
           <Table>
-            <THead><tr><Th>Version</Th><Th>Status</Th><Th>Effective</Th><Th>Submitted</Th><Th>Approved</Th></tr></THead>
+            <THead><tr><Th>Version</Th><Th>Status</Th><Th>Compliance</Th><Th>Effective</Th><Th>Issuance</Th><Th>Submitted</Th><Th>Approved</Th><Th /></tr></THead>
             <tbody>
               {(versions ?? []).map((v) => (
                 <tr key={v.id}>
                   <Td className="font-semibold text-ink">v{v.version} {v.id === product.current_version_id && <Pill tone="ok" className="ml-1">Current</Pill>}</Td>
                   <Td><Pill tone={v.status === "approved" ? "ok" : v.status === "pending_approval" ? "wait" : "neutral"}>{humanize(v.status)}</Pill></Td>
-                  <Td>{formatDate(v.effective_from)}{v.effective_to ? ` – ${formatDate(v.effective_to)}` : ""}</Td>
+                  <Td><Pill tone={v.compliance_status === "published" ? "ok" : v.compliance_status === "returned" ? "danger" : v.compliance_status === "draft" ? "neutral" : "wait"}>{humanize(v.compliance_status)}</Pill></Td>
+                  <Td>{formatDate(v.effective_from)}{v.effective_to ? ` – ${formatDate(v.effective_to)}` : ""}{v.scheduled_effective_from && v.id !== product.current_version_id ? <span className="block text-xs text-muted">scheduled {formatDateTime(v.scheduled_effective_from)}</span> : null}</Td>
+                  <Td className="text-xs">{issuanceLabel(v.issuance_type, v.sla_hours)}</Td>
                   <Td className="text-xs text-muted">{formatDateTime(v.insurer_approved_at ?? v.created_at)}</Td>
                   <Td className="text-xs text-muted">{formatDateTime(v.approved_at)}</Td>
+                  <Td><Link href={`/partner/products/${product.id}/versions/${v.id}`} className="text-sm font-semibold text-brand hover:underline">Rates, rules &amp; templates →</Link></Td>
                 </tr>
               ))}
             </tbody>

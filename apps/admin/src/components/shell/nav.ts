@@ -1,6 +1,6 @@
 import {
   Activity, BadgeCheck, Banknote, Bot, Building2, ClipboardList, FileCheck2, Flag, Gauge, Handshake,
-  HeartPulse, Inbox, LayoutGrid, MessageSquareWarning, Network, Package, Receipt, ScrollText, Settings, ShieldCheck,
+  HeartPulse, Inbox, LayoutGrid, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
   Tags, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +26,7 @@ export const NAV: NavGroup[] = [
       { href: "/organisations", label: "Organisations", icon: Building2, keywords: "brokers insurers licence nic" },
       { href: "/users", label: "Users", icon: Users, keywords: "profiles members invite" },
       { href: "/routing", label: "Routing", icon: Network, keywords: "broker rules simulate" },
+      { href: "/routing/integrations", label: "Integrations & offers", icon: Network, keywords: "insurer line level direct sales nominated brokers order routing offers" },
       { href: "/appointments", label: "Appointments", icon: Handshake, keywords: "insurer broker matrix" },
     ],
   },
@@ -42,6 +43,7 @@ export const NAV: NavGroup[] = [
       { href: "/plans", label: "Plans", icon: Tags, keywords: "pricing saas" },
       { href: "/subscriptions", label: "Subscriptions", icon: ClipboardList, keywords: "trial billing" },
       { href: "/invoices", label: "Invoices", icon: Receipt, keywords: "billing generate" },
+      { href: "/commercial", label: "Commercial terms", icon: Scale, keywords: "revenue share commission ledger settlement statements splits" },
       { href: "/usage", label: "Usage", icon: Activity, keywords: "metering events" },
       { href: "/leads", label: "Leads", icon: Banknote, keywords: "marketing inbox contact" },
     ],

@@ -1,19 +1,152 @@
 import { test, expect } from "playwright/test";
 import { TAG } from "./support/env.js";
+import { a11ySmoke } from "./support/a11y.js";
+
+/** Addendum 5 routes: each must respond 200, render exactly one h1 and pass the shared axe smoke. */
+const NEW_ROUTES = [
+  { path: "/insurance/motor", h1: /Motor insurance/i },
+  { path: "/insurance/home", h1: /home/i },
+  { path: "/insurance/health", h1: /health/i },
+  { path: "/insurance/travel", h1: /Travel/i },
+  { path: "/insurance/life-funeral", h1: /Dignity/i },
+  { path: "/insurance/business", h1: /shop|Business/i },
+  { path: "/insurance/micro", h1: /Small premiums/i },
+  { path: "/diaspora", h1: /Look after your family in Ghana/i },
+  { path: "/claims", h1: /Something happened/i },
+  { path: "/verify", h1: /Is this policy/i },
+  { path: "/partners/embedded", h1: /Insurance inside/i },
+  { path: "/learn", h1: /explained simply/i },
+  { path: "/learn/how-to-make-a-claim", h1: /How to make an insurance claim/i },
+  { path: "/referrals", h1: /worth/i },
+  { path: "/waitlist", h1: /Be first/i },
+  { path: "/press", h1: /Media kit/i },
+];
 
 test.describe("marketing site", () => {
-  test("home renders the hero copy and category cards", async ({ page }) => {
+  test("home renders the hero, quote widget and product tiles", async ({ page }) => {
     await page.goto("/");
     const h1 = page.getByRole("heading", { level: 1 });
-    await expect(h1).toContainText("Find cover.");
-    await expect(h1).toContainText("Move forward.");
-    await expect(page.getByRole("link", { name: "What do I need?" }).first()).toHaveAttribute("href", "/get-started");
+    await expect(h1).toContainText("Compare, buy and manage insurance");
+    await expect(h1).toContainText("in minutes");
+    await expect(page.getByRole("form", { name: "Get an instant quote" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Cover for what matters to you" })).toBeVisible();
-    const cards = page.locator("a[href^='/explore/']");
-    expect(await cards.count()).toBeGreaterThanOrEqual(5);
+    const tiles = page.locator("a[href^='/insurance/']");
+    expect(await tiles.count()).toBeGreaterThanOrEqual(7);
     await expect(page.getByRole("link", { name: /^Motor/ }).first()).toBeVisible();
+    await expect(page.getByText("Licensed partners only").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Protect your family back home." })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: /Are you an insurer or broker/ })).toBeVisible();
+    // Testimonials are placeholders until real reviews exist and must say so.
+    expect(await page.getByText("Illustrative", { exact: true }).count()).toBeGreaterThanOrEqual(3);
     // Platform never presents itself as an insurer or broker.
     await expect(page.getByText(/not an insurer or broker/i).first()).toBeVisible();
+  });
+
+  test("hero quote widget hands over to /get-started with the category and registration", async ({ page }) => {
+    await page.goto("/");
+    const form = page.getByRole("form", { name: "Get an instant quote" });
+    await form.getByLabel("What do you want to insure?").selectOption("motor");
+    await form.getByLabel(/Vehicle registration/).fill("GX 1234-24");
+    await form.getByRole("button", { name: "Get quotes" }).click();
+    await page.waitForURL(/\/get-started\?category=motor/);
+    expect(page.url()).toContain("reg=GX");
+    await expect(page.getByRole("heading", { level: 2, name: /Motor quotes/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Get quotes/ }).first()).toHaveAttribute("href", /\/account\/requests\/new\?category=motor/);
+  });
+
+  for (const r of NEW_ROUTES) {
+    test(`route ${r.path} renders (200, h1, axe smoke)`, async ({ page, request }, testInfo) => {
+      const res = await request.get(r.path);
+      expect(res.status()).toBe(200);
+      await a11ySmoke(page, r.path, testInfo);
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(r.h1);
+    });
+  }
+
+  test("product page explains third party vs comprehensive and verification", async ({ page }) => {
+    await page.goto("/insurance/motor");
+    await expect(page.getByRole("heading", { level: 2, name: /Third party vs comprehensive/ })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 3, name: "Sticker and QR verification" })).toBeVisible();
+    await expect(page.getByText(/from/i).first()).toBeVisible();
+    await expect(page.getByText("Indicative").first()).toBeVisible();
+    await expect(page.getByRole("form", { name: /Motor quotes/ })).toBeVisible();
+    await expect(page.locator("script[type='application/ld+json']").filter({ hasText: '"Product"' })).toHaveCount(1);
+  });
+
+  test("unknown product line renders the not-found page (noindex)", async ({ page }) => {
+    await page.goto("/insurance/does-not-exist");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/couldn.t find that page/i);
+    await expect(page.locator("meta[name='robots']").first()).toHaveAttribute("content", /noindex/);
+  });
+
+  test("diaspora currency switcher converts the example prices", async ({ page }) => {
+    await page.goto("/diaspora");
+    await expect(page.getByRole("button", { name: "GBP" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText(/£/).first()).toBeVisible();
+    await page.getByRole("button", { name: "USD" }).click();
+    await expect(page.getByRole("button", { name: "USD" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText(/\$/).first()).toBeVisible();
+    await expect(page.getByText(/final price in your currency/i)).toBeVisible();
+    await expect(page.getByRole("heading", { level: 3, name: "Parents’ Care Pack" })).toBeVisible();
+  });
+
+  test("verify page prefills ?q= and the API never returns customer data", async ({ page, request }) => {
+    await page.goto("/verify?q=COV-TEST-000");
+    await expect(page.getByLabel("Policy number")).toHaveValue("COV-TEST-000");
+    const bad = await request.post("/api/public/verify-policy", { data: { insurer: "", policyNumber: "" } });
+    expect(bad.status()).toBe(400);
+    const res = await request.post("/api/public/verify-policy", { data: { insurer: "no-such-insurer", policyNumber: "COV-TEST-000" } });
+    expect([200, 503]).toContain(res.status());
+    const body = await res.json();
+    expect(body.valid).toBe(false);
+    for (const k of Object.keys(body)) expect(["valid", "status", "insurerName", "coverStart", "coverEnd", "categoryName", "message"]).toContain(k);
+  });
+
+  test("learn hub language switcher is honest about translations", async ({ page }) => {
+    await page.goto("/learn/third-party-vs-comprehensive");
+    await expect(page.locator("script[type='application/ld+json']").filter({ hasText: '"Article"' }).first()).toBeAttached();
+    await page.getByLabel("Language").selectOption("tw");
+    await expect(page.getByRole("status")).toContainText(/Twi translations are coming soon/);
+    const cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
+  });
+
+  test("consent banner stores the choice in a cookie and goes away", async ({ page }) => {
+    await page.goto("/about");
+    const region = page.getByRole("region", { name: "Cookie consent" });
+    await expect(region).toBeVisible();
+    await region.getByRole("button", { name: "Essential only" }).click();
+    await expect(region).toBeHidden();
+    const cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "covva_consent")?.value).toBe("essential");
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Cookie consent" })).toHaveCount(0);
+  });
+
+  test("header navigation exposes the Insurance and Partners menus to the keyboard", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    const insurance = page.getByRole("button", { name: "Insurance" });
+    await insurance.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(insurance).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByRole("link", { name: /^Motor/ }).first()).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(insurance).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("button", { name: "Partners" })).toBeVisible();
+  });
+
+  test("renewal reminder sign-up captures a tagged lead", async ({ page }) => {
+    await page.goto("/");
+    const form = page.getByRole("form", { name: "Already insured? Let us remind you." });
+    await form.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(2_700); // bot guard: minimum fill time
+    await form.getByLabel("Type of policy").selectOption("motor");
+    await form.getByLabel("Current policy expires on").fill("2027-06-30");
+    await form.getByLabel("Your name").fill(`${TAG} Reminder`);
+    await form.getByLabel("Phone or email").fill("0241234567");
+    await form.getByRole("button", { name: "Remind me" }).click();
+    await expect(page.getByRole("status")).toContainText("Reminder set.");
   });
 
   test("category landing page /explore/motor", async ({ page }) => {
@@ -89,6 +222,7 @@ test.describe("marketing site", () => {
     expect(xml).toContain("<urlset");
     expect(xml).toContain("/explore/motor");
     expect(xml).toContain("/how-it-works");
+    for (const p of ["/insurance/motor", "/diaspora", "/claims", "/verify", "/partners/embedded", "/learn/how-to-make-a-claim", "/referrals", "/waitlist", "/press"]) expect(xml).toContain(p);
 
     const robots = await request.get("/robots.txt");
     expect(robots.status()).toBe(200);

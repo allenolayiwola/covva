@@ -2,7 +2,6 @@ import "server-only";
 import {
   ENGINE_VERSION,
   compareQuotes,
-  ratePremium,
   riskFingerprint,
   riskSchemaToZod,
   riskTitle,
@@ -14,8 +13,10 @@ import {
 } from "@im/core";
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { evaluateUnderwriting, issuanceSummary, quoteVersion } from "@/server/catalogue";
 import { notify, notifyOrg } from "@/server/notify";
 import { emitEvent } from "@/server/webhooks";
+import { routeNewRequest, type RoutingResult } from "@/server/routing";
 
 export class BusinessRuleError extends Error {
   constructor(message: string, public code = "business_rule") {
@@ -117,8 +118,14 @@ export async function generateEstimates(svc: Service, req: Pick<Row<"requests">,
   for (const p of (products ?? []) as unknown as ProductWithVersion[]) {
     const v = p.version;
     if (!v || v.status !== "approved") continue;
-    const result = ratePremium(v.rating as unknown as RatingRule, risk);
+    // Catalogue extensions: rate-table rules resolve their rows; underwriting rules may
+    // decline (no quote) or refer (quote still shown, insurer L1 review); issuance type/SLA
+    // travels with the quote so customers see it before payment (Addendum 2 G).
+    const result = await quoteVersion(svc, v.rating as unknown as RatingRule, risk);
     if (!result.ok || result.premium <= 0) continue;
+    const underwriting = await evaluateUnderwriting(svc, v.id, risk);
+    if (underwriting.outcome === "decline") continue;
+    const issuance = issuanceSummary(v);
 
     const apiConnected = p.insurer?.integration_level === "quote_api" || p.insurer?.integration_level === "policy_api";
     const status: Enum<"quote_status"> = apiConnected ? "ready_to_accept" : "estimate";
@@ -168,7 +175,13 @@ export async function generateEstimates(svc: Service, req: Pick<Row<"requests">,
         waiting_period_days: v.waiting_period_days,
         optional_benefits: v.optional_benefits,
         conditions: v.conditions,
-        assumptions: { rating_lines: result.lines, loadings: result.appliedLoadings, engine: ENGINE_VERSION } as unknown as Json,
+        assumptions: {
+          rating_lines: result.lines,
+          loadings: result.appliedLoadings,
+          engine: ENGINE_VERSION,
+          issuance,
+          underwriting: { outcome: underwriting.outcome, matched: underwriting.matched.map((m) => m.name), reasons: underwriting.reasons },
+        } as unknown as Json,
         valid_until: apiConnected ? validity : null,
         commission_disclosure: "The broker of record may receive commission from the insurer. Ask your broker for details.",
       })
@@ -223,6 +236,8 @@ export interface CreateRequestArgs {
   relatedPolicyId?: string;
   needsAssessmentId?: string;
   submit?: boolean;
+  /** "Talk to an expert": always routed to a broker, whatever the insurer's integration. */
+  talkToExpert?: boolean;
 }
 
 export async function createRequest(
@@ -261,7 +276,6 @@ export async function createRequest(
   const risk = parsed.data as Record<string, unknown>;
   const fingerprint = await riskFingerprint({ customerId: user.id, categorySlug: category.slug, risk });
 
-  const routing = await assignBroker(svc, category, { region: typeof risk.region === "string" ? risk.region : undefined });
   const submit = args.submit ?? true;
   const needsReview = category.availability === "broker_assisted" || category.segment !== "personal";
 
@@ -274,27 +288,29 @@ export async function createRequest(
       status: submit ? "submitted" : "draft",
       source: args.source ?? "web",
       title: riskTitle(category.slug, risk),
-      broker_org_id: routing.brokerOrgId,
       risk_data: risk as Json,
       risk_fingerprint: fingerprint,
       related_policy_id: args.relatedPolicyId ?? null,
       needs_assessment_id: args.needsAssessmentId ?? null,
       needs_adviser_review: needsReview,
-      next_step: routing.brokerOrgId ? "Your broker is reviewing your request." : "We are assigning a broker to your request.",
+      talk_to_expert: args.talkToExpert ?? false,
+      next_step: submit ? "We are routing your request." : "Finish and submit your request when you're ready.",
     })
     .select("*")
     .single();
   if (error) throw new BusinessRuleError(ruleMessage(error, "We couldn't save your request."));
 
-  await svc.from("request_events").insert({
-    request_id: request.id,
-    actor_party: "system",
-    event: "routing_decision",
-    visible_to_customer: false,
-    data: routing as unknown as Json,
-  });
+  // Drafts are routed when they are submitted; nothing is offered to brokers yet.
+  if (!submit) {
+    const unrouted: RoutingResult = { mode: "ops_hold", rule: "ops_hold", reason: "Draft — not routed yet", brokerOrgId: null, insurerOrgId: null, offered: [], candidates: [], complexityFlags: [] };
+    return { request, routing: unrouted, estimates: { quotes: 0, ready: 0 } };
+  }
 
-  if (!submit) return { request, routing, estimates: { quotes: 0, ready: 0 } };
+  // Routing engine (Addendum 2 D): fixed broker, broker offers, direct to insurer, or ops hold.
+  // Writes order_routing (+ offers), requests.routing_mode/broker_org_id and the timeline event.
+  const routing = await routeNewRequest(svc, { ...request, talk_to_expert: args.talkToExpert ?? false }, { category });
+  request.broker_org_id = routing.brokerOrgId;
+  request.routing_mode = routing.mode;
 
   // Document tasks for the customer
   const docs = category.required_documents ?? [];
@@ -316,16 +332,27 @@ export async function createRequest(
     estimates = await generateEstimates(svc, request);
   }
 
-  // Status: binding quotes ready → quotes_ready; estimates only → insurer_response; assisted → adviser_action
-  const nextStatus: Enum<"request_status"> = needsReview
-    ? "adviser_action"
-    : estimates.ready > 0
-      ? "quotes_ready"
-      : estimates.quotes > 0
-        ? "insurer_response"
-        : "adviser_action";
-  const nextStep =
-    nextStatus === "quotes_ready"
+  // Status: binding quotes ready → quotes_ready; estimates only → insurer_response; assisted → adviser_action.
+  // Without a broker of record yet (offers out / direct to insurer / ops hold) the request stays
+  // submitted until a broker accepts; direct insurer orders wait on the insurer.
+  const nextStatus: Enum<"request_status"> = !routing.brokerOrgId
+    ? routing.mode === "insurer_direct"
+      ? "insurer_response"
+      : "submitted"
+    : needsReview
+      ? "adviser_action"
+      : estimates.ready > 0
+        ? "quotes_ready"
+        : estimates.quotes > 0
+          ? "insurer_response"
+          : "adviser_action";
+  const nextStep = !routing.brokerOrgId
+    ? routing.mode === "insurer_direct"
+      ? "The insurer is preparing your quote."
+      : routing.mode === "ops_hold"
+        ? "Our team is finding the right broker for your request."
+        : "We are finding you a licensed broker. The first to accept becomes your broker of record."
+    : nextStatus === "quotes_ready"
       ? "Compare your quotes. Some insurers are still confirming theirs."
       : nextStatus === "insurer_response"
         ? "Indicative estimates are ready. Insurers are confirming binding quotes."

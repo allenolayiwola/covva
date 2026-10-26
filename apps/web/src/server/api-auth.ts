@@ -4,7 +4,7 @@ import { after, type NextRequest } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { ApiErrorCodes, type ApiKeyScope, type ApiResult } from "@im/core";
+import { ApiErrorCodes, CLIENT_HEADER, accessMessage, isClientBlocked, parseClientKind, workspaceAccess, type ApiKeyScope, type ApiResult, type ClientKind, type MembershipType } from "@im/core";
 import type { Database, Enum } from "@im/db";
 import { createClient as createCookieClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError } from "@/server/requests";
@@ -189,6 +189,18 @@ export function takeToken(key: string, limit: RateLimit): { ok: boolean; retryAf
   return { ok: true, retryAfter: 0 };
 }
 
+/**
+ * Which client is calling: `X-Covva-Client: mobile | web | partner-web` (default `web`).
+ * Used for the Addendum 4 access rules (insurer users are web-only) and `profiles.last_seen_platform`.
+ */
+export function clientKind(req: Request): ClientKind {
+  return parseClientKind(req.headers.get(CLIENT_HEADER));
+}
+
+export function siteUrl(): string {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://covva.com.gh").replace(/\/$/, "");
+}
+
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
   return (fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown").slice(0, 64);
@@ -327,6 +339,33 @@ export function hasScopes(auth: ApiKeyAuth, scopes: ApiKeyScope[]) {
 }
 
 // ---------------------------------------------------------------------------
+// Platform access by user type (Addendum 4)
+// ---------------------------------------------------------------------------
+/** Active membership org types for a user (RLS: own memberships are always readable). */
+export async function membershipTypes(auth: UserAuth): Promise<MembershipType[]> {
+  const { data } = await auth.supabase.from("memberships").select("org:organizations!memberships_org_id_fkey(type)").eq("user_id", auth.userId).eq("active", true);
+  const out: MembershipType[] = [];
+  for (const m of data ?? []) {
+    const t = (m.org as unknown as { type?: string } | null)?.type;
+    if (t === "broker" || t === "insurer" || t === "platform") out.push(t);
+  }
+  return out;
+}
+
+/**
+ * Rejects clients a user type may not use: insurer-only (and staff-only) accounts calling from the
+ * mobile app get a 403 `forbidden` that points them to the web portal. Brokers use the same app as
+ * customers; a user with any broker membership (or no memberships) always passes.
+ */
+export async function assertClientAllowed(auth: UserAuth, client: ClientKind): Promise<void> {
+  if (client !== "mobile") return;
+  const types = await membershipTypes(auth);
+  if (!isClientBlocked(types, client)) return;
+  const access = workspaceAccess(types.includes("insurer") ? "insurer" : "platform", client);
+  throw new ApiError("forbidden", accessMessage(access, siteUrl()) ?? "This account can't use the mobile app.", { reason: access.reason, portalUrl: `${siteUrl()}/partner` });
+}
+
+// ---------------------------------------------------------------------------
 // withApi
 // ---------------------------------------------------------------------------
 export interface ApiCtx<M extends AuthMode> {
@@ -334,6 +373,8 @@ export interface ApiCtx<M extends AuthMode> {
   req: NextRequest;
   requestId: string;
   ip: string;
+  /** `X-Covva-Client` header, default `web`. */
+  client: ClientKind;
 }
 
 export interface WithApiOptions<M extends AuthMode> {
@@ -341,6 +382,11 @@ export interface WithApiOptions<M extends AuthMode> {
   /** Required API-key scopes (ignored for user auth). */
   scopes?: ApiKeyScope[];
   rateLimit?: RateLimit;
+  /**
+   * Enforce the platform-access rules for the calling client (default true for user auth):
+   * insurer-only accounts on `X-Covva-Client: mobile` get a 403 pointing to the web portal.
+   */
+  clientGate?: boolean;
 }
 
 /**
@@ -355,6 +401,7 @@ export function withApi<M extends AuthMode, P = unknown>(
     const started = Date.now();
     const requestId = req.headers.get("x-request-id")?.slice(0, 100) || randomUUID();
     const ip = clientIp(req);
+    const client = clientKind(req);
     const headers: Record<string, string> = { "x-request-id": requestId, "cache-control": "private, no-store" };
     let principal = "anon";
     let status = 200;
@@ -380,6 +427,7 @@ export function withApi<M extends AuthMode, P = unknown>(
         throw forbidden(`This API key is missing the required scope: ${opts.scopes.join(", ")}.`);
       }
       principal = auth ? (auth.kind === "user" ? `u:${auth.userId}` : `k:${auth.keyId}`) : "anon";
+      if (auth?.kind === "user" && opts.clientGate !== false) await assertClientAllowed(auth, client);
 
       const limit = opts.rateLimit ?? (auth?.kind === "apiKey" ? RATE_LIMITS.partner : req.method === "GET" ? RATE_LIMITS.default : RATE_LIMITS.write);
       const rl = takeToken(`${limit.name ?? "rl"}|${principal}|${ip}`, limit);
@@ -388,7 +436,7 @@ export function withApi<M extends AuthMode, P = unknown>(
         throw new ApiError("rate_limited", "Too many requests. Please wait a moment and try again.");
       }
 
-      const result = await handler({ auth: auth as AuthFor<M>, req, requestId, ip }, route);
+      const result = await handler({ auth: auth as AuthFor<M>, req, requestId, ip, client }, route);
       if (result instanceof Response) {
         status = result.status;
         for (const [k, v] of Object.entries(headers)) if (!result.headers.has(k)) result.headers.set(k, v);
@@ -402,7 +450,7 @@ export function withApi<M extends AuthMode, P = unknown>(
       if (apiErr.status >= 500) log.error("api.error", { requestId, path: req.nextUrl.pathname, err });
       return fail(apiErr, headers);
     } finally {
-      log.info("api.request", { requestId, method: req.method, path: req.nextUrl.pathname, status, ms: Date.now() - started, principal });
+      log.info("api.request", { requestId, method: req.method, path: req.nextUrl.pathname, status, ms: Date.now() - started, principal, client });
     }
   };
 }

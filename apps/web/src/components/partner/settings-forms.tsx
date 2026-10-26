@@ -50,16 +50,26 @@ export function ApiKeyForm({ action, scopes }: { action: FormAction; scopes: rea
 }
 
 /** Invitation form that shows the invite link after creation. */
-export function InviteForm({ action, roles, teams }: { action: FormAction; roles: readonly string[]; teams: string[] }) {
+export interface RoleOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+/** Invite form; `roles` are the Addendum 3 role options for the organisation kind (`rolesFor()` in `@im/core`). */
+export function InviteForm({ action, roles, teams }: { action: FormAction; roles: readonly RoleOption[]; teams: string[] }) {
   const [state, formAction] = useActionState(action, { ok: false });
   const link = typeof state.data?.link === "string" ? state.data.link : null;
+  const defaultRole = roles.find((r) => r.value === "adviser" || r.value === "underwriter")?.value ?? roles[1]?.value ?? roles[0]?.value;
+  const [role, setRole] = useState<string | undefined>(defaultRole);
+  const selected = roles.find((r) => r.value === role);
   return (
     <form action={formAction} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Email" htmlFor="iv-email"><Input id="iv-email" name="email" type="email" required className="h-10 text-sm" /></Field>
-        <Field label="Role" htmlFor="iv-role">
-          <Select id="iv-role" name="role" className="h-10 text-sm" defaultValue={roles.includes("adviser") ? "adviser" : roles[1]}>
-            {roles.map((r) => <option key={r} value={r}>{r.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())}</option>)}
+        <Field label="Role" htmlFor="iv-role" hint={selected?.description}>
+          <Select id="iv-role" name="role" className="h-10 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
+            {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </Select>
         </Field>
         <Field label="Team" htmlFor="iv-team">

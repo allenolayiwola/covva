@@ -12,6 +12,9 @@ const PLAN = [
   ["policies", `or=(nickname.like.E2E-*,policy_number.like.E2E-*)`],
   ["requests", `title=${LIKE}`], // cascades: quotes, submissions, disclosures, applications, tasks, messages, events
   ["leads", `or=(message.like.E2E-*,name.like.E2E-*)`],
+  ["rate_tables", `name=${LIKE}`], // cascades: rate_rows
+  ["underwriting_rules", `name=${LIKE}`],
+  ["document_templates", `name=${LIKE}`],
 ];
 
 export async function purgeE2EData({ log = console.log } = {}) {

@@ -43,6 +43,7 @@ export const POST = withApi(
         relatedPolicyId: input.relatedPolicyId,
         needsAssessmentId: input.needsAssessmentId,
         submit: input.submit,
+        talkToExpert: input.talkToExpert,
       },
       { supabase: auth.supabase, userId: auth.userId },
     );
@@ -52,6 +53,7 @@ export const POST = withApi(
         data: {
           request: { ...result.request, statusLabel: REQUEST_STATUS[result.request.status].label },
           brokerAssigned: !!result.routing.brokerOrgId,
+          routing: { mode: result.routing.mode, reason: result.routing.reason },
           estimates: result.estimates,
         },
       },

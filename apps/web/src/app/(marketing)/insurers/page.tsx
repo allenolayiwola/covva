@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Braces, Database, FileCheck2, GitBranch, KeyRound, LayoutDashboard, PlugZap, Workflow } from "lucide-react";
+import { ArrowRight, BarChart3, Braces, CalendarCheck, Database, FileCheck2, GitBranch, Globe2, KeyRound, LayoutDashboard, PlugZap, TrendingDown, Users, Workflow, Zap } from "lucide-react";
 import { Pill, buttonClass } from "@im/ui";
 import { getPlans } from "@/lib/catalog";
 import { PageHero } from "@/components/marketing/page-hero";
-import { CheckList, IconTile, Section, SectionHeading } from "@/components/marketing/section";
+import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/components/marketing/section";
 import { PlanCards } from "@/components/marketing/plan-cards";
 import { LeadForm } from "@/components/marketing/lead-form";
 
@@ -14,6 +14,28 @@ export const metadata: Metadata = {
     "Distribute approved products through licensed brokers on a controlled digital channel. Start with a partner portal, then connect quote and policy APIs — with governed product data and strong API safeguards.",
   alternates: { canonical: "/insurers" },
 };
+
+const BENEFITS = [
+  { icon: Users, title: "New customers", body: "Reach people who start on their phone — first-time buyers, SMEs and renewals switching from paper." },
+  { icon: Globe2, title: "Diaspora reach", body: "Ghanaians in the UK, US, Europe and Canada paying in their own currency for cover at home." },
+  { icon: TrendingDown, title: "Lower acquisition cost", body: "Structured, complete submissions and digital issuance cut the cost of every policy sold." },
+  { icon: Zap, title: "Instant digital issuance", body: "Issue certificates to the customer’s wallet in minutes, with QR verification built in." },
+  { icon: BarChart3, title: "Data insights", body: "Conversion, pricing position and renewal retention by product — without exposing customer data." },
+];
+
+const COMMERCIAL = [
+  { title: "Portal (Level 1)", body: "A flat monthly platform fee per insurer. No per-policy charge while you learn the channel.", tag: "Fixed" },
+  { title: "Connected (Levels 2–3)", body: "A lower platform fee plus a small per-policy technology fee on issued policies, invoiced monthly with a reconciliation feed.", tag: "Usage" },
+  { title: "What never changes", body: "Premiums settle to the insurer. Broker commission is set by you and disclosed to the customer. Covva never earns more by steering customers to one insurer.", tag: "Principle" },
+];
+
+const ONBOARDING = [
+  { title: "Register", body: "Create your insurer account and tell us the classes you want to distribute." },
+  { title: "Licence check", body: "We verify your NIC licence and the products you are approved to sell." },
+  { title: "Agreement", body: "Heads of terms, data responsibilities and the broker panel agreed and signed." },
+  { title: "Products & rates", body: "Upload approved wording, limits, excesses and rating rules; name a data owner." },
+  { title: "Pilot & go live", body: "A controlled pilot with real requests, then scale on evidence." },
+];
 
 const LEVELS = [
   {
@@ -72,13 +94,22 @@ export default async function InsurersPage() {
         lede="Reach customers through licensed brokers on a channel built for clean submissions, comparable product data and clear accountability. Integrate at the pace that suits you."
         actions={
           <>
-            <Link href="#enquire" className={buttonClass("primary", "lg")}>Talk to partnerships</Link>
-            <Link href="#levels" className={buttonClass("secondary", "lg")}>Integration levels</Link>
+            <Link href="/partner/register?type=insurer" className={buttonClass("primary", "lg")}>Register as an Insurer <ArrowRight aria-hidden className="size-4" /></Link>
+            <Link href="#enquire" className={buttonClass("secondary", "lg")}><CalendarCheck aria-hidden className="size-4" /> Book a meeting</Link>
           </>
         }
       />
 
-      <Section id="levels" labelledBy="levels-title">
+      <Section labelledBy="benefits-title">
+        <SectionHeading id="benefits-title" eyebrow="Why insurers partner with Covva" title="Grow a digital channel without building one" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {BENEFITS.map((b) => (
+            <FeatureCard key={b.title} icon={<b.icon />} title={b.title}>{b.body}</FeatureCard>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="levels" tone="mist" labelledBy="levels-title">
         <SectionHeading id="levels-title" eyebrow="Three integration levels" title="Start simple. Connect deeper when it pays." />
         <div className="grid gap-4 lg:grid-cols-3">
           {LEVELS.map((l) => (
@@ -96,7 +127,37 @@ export default async function InsurersPage() {
         </div>
       </Section>
 
-      <Section tone="mist" labelledBy="standard-title">
+      <Section labelledBy="commercial-title">
+        <SectionHeading id="commercial-title" eyebrow="Commercial model" title="Simple, published, and never tied to steering" />
+        <div className="grid gap-4 md:grid-cols-3">
+          {COMMERCIAL.map((c) => (
+            <div key={c.title} className="rounded-card border border-line bg-white p-6">
+              <Pill>{c.tag}</Pill>
+              <h3 className="mt-4 text-[18px] font-semibold tracking-tight text-ink">{c.title}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">{c.body}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section tone="mist" labelledBy="onboarding-title">
+        <SectionHeading id="onboarding-title" eyebrow="Onboarding" title="Five steps to your first policy" />
+        <ol className="grid gap-3 md:grid-cols-5">
+          {ONBOARDING.map((g, i) => (
+            <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
+              <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold tabular-nums text-white">{i + 1}</span>
+              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/partner/register?type=insurer" className={buttonClass("primary", "md")}>Register as an Insurer <ArrowRight aria-hidden className="size-4" /></Link>
+          <Link href="/waitlist#partners" className={buttonClass("outline", "md")}>Become a launch partner</Link>
+        </div>
+      </Section>
+
+      <Section labelledBy="standard-title">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <SectionHeading id="standard-title" eyebrow="Internal insurance data standard" title="One risk format. Every channel." className="mb-6! sm:mb-6!" />
@@ -133,7 +194,7 @@ export default async function InsurersPage() {
         </div>
       </Section>
 
-      <Section labelledBy="safeguards-title">
+      <Section tone="mist" labelledBy="safeguards-title">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
           <div>
             <SectionHeading id="safeguards-title" eyebrow="API safeguards" title="Secure by default" description="Connectors are designed to protect your systems and your customers’ data." className="mb-0! sm:mb-0!" />
@@ -142,7 +203,7 @@ export default async function InsurersPage() {
         </div>
       </Section>
 
-      <Section tone="mist" labelledBy="gov-title">
+      <Section labelledBy="gov-title">
         <SectionHeading id="gov-title" eyebrow="Product-data governance" title="Your products, described the way you approved them" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {GOVERNANCE.map((g) => (
@@ -155,18 +216,19 @@ export default async function InsurersPage() {
         </div>
       </Section>
 
-      <Section id="plans" labelledBy="plans-title">
+      <Section id="plans" tone="mist" labelledBy="plans-title">
         <SectionHeading id="plans-title" eyebrow="Insurer plans" title="Portal or connected" />
         <PlanCards plans={plans} highlightIndex={-1} />
       </Section>
 
-      <Section id="enquire" tone="mist" labelledBy="enquire-title">
+      <Section id="enquire" labelledBy="enquire-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
-            <SectionHeading id="enquire-title" eyebrow="Insurer enquiry" title="Start a conversation" className="mb-6! sm:mb-6!" />
+            <SectionHeading id="enquire-title" eyebrow="Book a meeting" title="Start a conversation" className="mb-6! sm:mb-6!" />
             <p className="text-[17px] leading-relaxed text-muted">
-              Tell us which classes you would like to distribute and how you prefer to integrate. We will arrange a session with our partnerships and technical teams.
+              Tell us which classes you would like to distribute and how you prefer to integrate. We will arrange a session with our partnerships and technical teams — usually within two working days.
             </p>
+            <p className="mt-6 text-sm text-muted">Ready now? <Link href="/partner/register?type=insurer" className="font-medium text-brand hover:underline">Register as an Insurer</Link> and we will pick up the rest in onboarding.</p>
           </div>
           <LeadForm
             kind="insurer"
@@ -174,8 +236,8 @@ export default async function InsurersPage() {
             organizationLabel="Insurer"
             messageLabel="What would you like to explore?"
             messagePlaceholder="Classes of business, preferred integration level, timelines."
-            submitLabel="Send enquiry"
-            successBody="Thank you. Our partnerships team will contact you within two working days."
+            submitLabel="Book a meeting"
+            successBody="Thank you. Our partnerships team will contact you within two working days to arrange a session."
           />
         </div>
       </Section>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, Building2, ClipboardCheck, FileStack, Handshake, Users } from "lucide-react";
+import { BadgeCheck, Building2, ClipboardCheck, FileStack, Handshake, HeartPulse, LayoutDashboard, Shield, Truck, Upload, Users } from "lucide-react";
 import { buttonClass } from "@im/ui";
 import { getCategories, getPlans } from "@/lib/catalog";
 import { PageHero } from "@/components/marketing/page-hero";
@@ -21,6 +21,8 @@ export default async function BusinessPage() {
   const business = categories.filter((c) => c.segment !== "personal");
   const enterprisePlans = plans.filter((p) => p.audience === "enterprise");
   const topics = [
+    { value: "group-health-life", label: "Staff group health & life" },
+    { value: "fleet-motor", label: "Fleet motor" },
     ...business.map((c) => ({ value: c.slug, label: c.name })),
     { value: "employee-benefits", label: "Employer or affinity programme" },
     { value: "other", label: "Something else" },
@@ -35,13 +37,30 @@ export default async function BusinessPage() {
         lede="Business risks are rarely one-size-fits-all. Every business request is reviewed by a licensed business adviser before insurers are approached — so the quotes you compare fit what you actually do."
         actions={
           <>
-            <Link href="#enquire" className={buttonClass("primary", "lg")}>Request a call back</Link>
-            <Link href="#categories" className={buttonClass("secondary", "lg")}>Business cover</Link>
+            <Link href="#enquire" className={buttonClass("primary", "lg")}>Talk to our team</Link>
+            <Link href="#lines" className={buttonClass("secondary", "lg")}>What we cover</Link>
           </>
         }
       />
 
-      <Section id="categories" labelledBy="biz-cat-title">
+      <Section id="lines" labelledBy="lines-title">
+        <SectionHeading id="lines-title" eyebrow="For SMEs and enterprises" title="Cover for the people, the premises and the fleet" description="One business account, one adviser, every policy in a central dashboard." />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <FeatureCard icon={<HeartPulse />} title="Staff group health & life">Private health plans and group life or funeral cover for employees, from 5 staff. Each employee gets a digital membership card.</FeatureCard>
+          <FeatureCard icon={<Truck />} title="Fleet motor">Comprehensive or third-party cover for every vehicle on one policy, with certificates per vehicle and lapse alerts.</FeatureCard>
+          <FeatureCard icon={<Shield />} title="Property & liability">Premises, stock and equipment, business interruption, public and professional liability, goods in transit.</FeatureCard>
+          <FeatureCard icon={<LayoutDashboard />} title="Central dashboard">Every policy, renewal date, certificate and claim for the business in one place, with roles for finance and HR.</FeatureCard>
+        </div>
+        <div className="mt-6 flex flex-col gap-4 rounded-card border border-line bg-mist p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-start gap-3 text-[15px] text-ink-2">
+            <Upload aria-hidden className="mt-0.5 size-5 shrink-0 text-brand" />
+            <span><span className="font-semibold text-ink">Bulk enrolment. </span>Upload a spreadsheet of staff or vehicles, or invite employees by link. Changes mid-year — joiners, leavers, new vehicles — take minutes.</span>
+          </p>
+          <Link href="#enquire" className={buttonClass("primary", "md", "shrink-0")}>Talk to our team</Link>
+        </div>
+      </Section>
+
+      <Section id="categories" tone="mist" labelledBy="biz-cat-title">
         <SectionHeading id="biz-cat-title" eyebrow="Business categories" title="Cover for traders, SMEs and professionals" description="Availability depends on approved insurer arrangements. Specialist cover is arranged by specialist brokers." />
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {business.map((c) => (
@@ -50,7 +69,7 @@ export default async function BusinessPage() {
         </ul>
       </Section>
 
-      <Section tone="mist" labelledBy="adviser-title">
+      <Section labelledBy="adviser-title">
         <SectionHeading id="adviser-title" eyebrow="Adviser-assisted quotations" title="How a business request works" />
         <div className="grid gap-4 md:grid-cols-3">
           <FeatureCard icon={<ClipboardCheck />} title="1. Tell us about the business">
@@ -65,7 +84,7 @@ export default async function BusinessPage() {
         </div>
       </Section>
 
-      <Section labelledBy="programmes-title">
+      <Section tone="mist" labelledBy="programmes-title">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <SectionHeading id="programmes-title" eyebrow="Employer & affinity programmes" title="Cover for your people and members" className="mb-6! sm:mb-6!" />
@@ -92,16 +111,16 @@ export default async function BusinessPage() {
       </Section>
 
       {enterprisePlans.length > 0 && (
-        <Section tone="mist" labelledBy="ent-plans-title">
+        <Section labelledBy="ent-plans-title">
           <SectionHeading id="ent-plans-title" eyebrow="Programme administration" title="Plans for employers and affinity groups" />
           <PlanCards plans={enterprisePlans} />
         </Section>
       )}
 
-      <Section id="enquire" labelledBy="enquire-title">
+      <Section id="enquire" tone="mist" labelledBy="enquire-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
-            <SectionHeading id="enquire-title" eyebrow="Business enquiry" title="Talk to a business adviser" className="mb-6! sm:mb-6!" />
+            <SectionHeading id="enquire-title" eyebrow="Talk to our team" title="Tell us about your business" className="mb-6! sm:mb-6!" />
             <p className="text-[17px] leading-relaxed text-muted">
               Tell us a little about your business. A licensed business adviser from a participating broker will call you back — usually within one working day.
             </p>
@@ -114,7 +133,7 @@ export default async function BusinessPage() {
             topics={topics}
             messageLabel="About your business"
             messagePlaceholder="What you do, where you operate, number of staff, and any cover you already have."
-            submitLabel="Request a call back"
+            submitLabel="Talk to our team"
             successBody="Thank you. A business adviser will contact you, usually within one working day."
           />
         </div>

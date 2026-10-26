@@ -1,11 +1,13 @@
-import { UpdateProfileInput } from "@im/core";
+import { after } from "next/server";
+import { UpdateProfileInput, parseActiveWorkspace } from "@im/core";
 import type { Update } from "@im/db";
 import { getFlags, getSetting } from "@/lib/catalog";
 import { check, must, parseJson, withApi } from "@/server/api-auth";
+import { buildWorkspaces, resolveActiveWorkspace } from "@/server/workspaces";
 
-/** GET /api/v1/me — profile, memberships, feature flags and current terms versions. */
+/** GET /api/v1/me — profile, memberships, workspaces, feature flags and current terms versions. */
 export const GET = withApi(
-  async ({ auth }) => {
+  async ({ auth, client }) => {
     const sb = auth.supabase;
     const [profile, { data: memberships }, flags, terms, privacy, { data: consents }] = await Promise.all([
       sb.from("profiles").select("*").eq("id", auth.userId).maybeSingle().then((r) => must(r, "Profile not found.")),
@@ -23,10 +25,21 @@ export const GET = withApi(
     const latest: Record<string, { version: string; granted: boolean; at: string }> = {};
     for (const c of consents ?? []) latest[c.type] ??= { version: c.version, granted: c.granted, at: c.created_at };
     const { ghana_card_number, ...rest } = profile;
+    const workspaces = buildWorkspaces(memberships ?? [], client);
+    const activeWorkspace = resolveActiveWorkspace(parseActiveWorkspace(profile.active_workspace), workspaces);
+    // Remember which platform this account last used (non-blocking; a GET must not wait on a write).
+    if (profile.last_seen_platform !== client) {
+      after(async () => {
+        await sb.from("profiles").update({ last_seen_platform: client }).eq("id", auth.userId);
+      });
+    }
     return {
       profile: { ...rest, ghana_card_last4: ghana_card_number ? ghana_card_number.slice(-4) : null },
       memberships: memberships ?? [],
       isPartner: (memberships ?? []).some((m) => ["broker", "insurer"].includes((m.org as unknown as { type: string } | null)?.type ?? "")),
+      workspaces,
+      activeWorkspace,
+      client,
       flags,
       consents: latest,
       versions: { terms: terms ?? null, privacy: privacy ?? null },

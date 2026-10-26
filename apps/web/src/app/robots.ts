@@ -9,7 +9,8 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // "/partner/" (not "/partner") so the public /partners directory stays crawlable.
-        disallow: ["/account", "/partner$", "/partner/", "/api/"],
+        // "/api/" stays blocked (the public verify endpoint is a POST, nothing to index); "/verify" page itself is crawlable.
+        disallow: ["/account", "/partner$", "/partner/", "/api/", "/sign-in", "/sign-up"],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,

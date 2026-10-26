@@ -1,14 +1,18 @@
 "use server";
 
 import { z } from "zod";
+import type { Json } from "@im/db";
 import { createClient } from "@/lib/supabase/server";
+import { LEAD_TAGS } from "@/components/marketing/lead-tags";
 
 /**
  * Public lead capture (partner enquiries, business enquiries, contact).
  * Anonymous inserts are allowed by RLS only with status = 'new'. Every Server Action is
  * a public endpoint, so input is validated here and the response is deliberately narrow.
  */
-export type LeadField = "name" | "email" | "phone" | "organization" | "message" | "kind" | "category_slug" | "consent";
+export type LeadField = "name" | "email" | "phone" | "organization" | "message" | "kind" | "category_slug" | "consent" | "expires_on";
+
+export type { LeadTag } from "@/components/marketing/lead-tags";
 export interface LeadState {
   status: "idle" | "success" | "error";
   message?: string;
@@ -47,12 +51,23 @@ const LeadSchema = z
     message: optionalText(4000),
     source_page: optionalText(300),
     utm: optionalText(1000),
+    tag: z.enum(LEAD_TAGS).optional(),
+    expires_on: optionalText(20).pipe(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter the date your current policy expires.")
+        .optional(),
+    ),
     consent: z.literal("on", { error: "Please confirm we may contact you about this enquiry." }),
   })
   .superRefine((v, ctx) => {
     if (!v.email && !v.phone) ctx.addIssue({ code: "custom", path: ["email"], message: "Please give an email address or a phone number." });
     if (["broker", "insurer", "enterprise"].includes(v.kind) && !v.organization)
       ctx.addIssue({ code: "custom", path: ["organization"], message: "Please tell us your organisation." });
+    if (v.tag === "renewal_reminder") {
+      if (!v.expires_on) ctx.addIssue({ code: "custom", path: ["expires_on"], message: "Please tell us when your current policy expires." });
+      else if (Number.isNaN(Date.parse(v.expires_on))) ctx.addIssue({ code: "custom", path: ["expires_on"], message: "Please enter a valid date." });
+    }
   });
 
 function parseUtm(raw: string | undefined): Record<string, string> {
@@ -72,7 +87,7 @@ function parseUtm(raw: string | undefined): Record<string, string> {
 
 function echo(raw: Record<string, unknown>): LeadState["values"] {
   const out: LeadState["values"] = {};
-  for (const k of ["kind", "name", "email", "phone", "organization", "category_slug", "message", "consent"] as const) {
+  for (const k of ["kind", "name", "email", "phone", "organization", "category_slug", "message", "consent", "expires_on"] as const) {
     const v = raw[k];
     if (typeof v === "string") out[k] = v.slice(0, 4000);
   }
@@ -91,7 +106,7 @@ export async function submitLead(_prev: LeadState, formData: FormData): Promise<
   }
 
   const raw = Object.fromEntries(
-    ["kind", "name", "email", "phone", "organization", "category_slug", "message", "source_page", "utm", "consent"].map((k) => [
+    ["kind", "name", "email", "phone", "organization", "category_slug", "message", "source_page", "utm", "consent", "tag", "expires_on"].map((k) => [
       k,
       formData.get(k) ?? undefined,
     ]),
@@ -107,6 +122,14 @@ export async function submitLead(_prev: LeadState, formData: FormData): Promise<
   }
 
   const v = parsed.data;
+  const utm: Record<string, Json> = parseUtm(v.utm);
+  const metadata: Record<string, string> = {};
+  if (v.expires_on) metadata.expires_on = v.expires_on;
+  if (v.tag) utm.tags = [v.tag];
+  if (Object.keys(metadata).length) utm.metadata = metadata;
+  const prefix = v.tag === "renewal_reminder" && v.expires_on ? `Renewal reminder — current policy expires on ${v.expires_on}.` : v.tag ? `[${v.tag}]` : "";
+  const message = [prefix, v.message].filter(Boolean).join(" ") || null;
+
   const supabase = await createClient();
   const { error } = await supabase.from("leads").insert({
     kind: v.kind,
@@ -115,9 +138,9 @@ export async function submitLead(_prev: LeadState, formData: FormData): Promise<
     phone: v.phone ?? null,
     organization: v.organization ?? null,
     category_slug: v.category_slug ?? null,
-    message: v.message ?? null,
+    message,
     source_page: v.source_page ?? null,
-    utm: parseUtm(v.utm),
+    utm,
     status: "new",
   });
 

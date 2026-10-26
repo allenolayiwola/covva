@@ -11,6 +11,7 @@ import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { UploadDropzone } from "@/components/customer/upload";
 import { formatBytes } from "@/components/customer/utils";
+import { TransactionParties } from "@/components/transaction-parties";
 import { account, coverLabel, getPolicyOr404, policyTitle, signUrls } from "../../_lib/data";
 import { attachPolicyDocument } from "../actions";
 import { RenameForm } from "./rename-form";
@@ -332,6 +333,14 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
               <p className="mt-1 text-sm text-ink-2">{version.claims_process}</p>
             </Card>
           )}
+          <TransactionParties
+            stage="policy"
+            insurers={insurer ? [{ name: insurer.name, nic_licence_number: insurer.nic_licence_number, settings: insurer.settings }] : []}
+            externalInsurerName={policy.external_insurer_name}
+            broker={broker ? { name: broker.name, nic_licence_number: broker.nic_licence_number } : null}
+            productVersionId={policy.product_version_id}
+            isDemo={isDemo}
+          />
           {disclosure && <DisclosureBlock text={disclosure} />}
           <p className="text-xs text-subtle">Reference {policy.internal_reference}{policy.issued_at ? ` · Issued ${formatDate(policy.issued_at)}` : ""}</p>
         </aside>

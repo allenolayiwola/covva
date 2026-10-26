@@ -25,6 +25,20 @@ export const KNOWN_SETTINGS: Record<string, { schema: z.ZodType; hint: string; e
     hint: "Mandatory transaction disclosure. Must name the platform, broker (with licence) and insurer.",
     example: { text: "Technology provided by {platform}. Insurance broking services provided by {broker}, NIC licence {broker_licence}. This policy is underwritten and issued by {insurer}." },
   },
+  complaints: {
+    schema: z
+      .object({
+        email: z.string().email().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        nic_name: z.string().optional(),
+        nic_phone: z.string().nullable().optional(),
+        nic_email: z.string().email().nullable().optional(),
+        nic_url: z.string().url().optional(),
+      })
+      .passthrough(),
+    hint: "Complaints contacts shown on every quote and policy (Addendum 2 G): platform complaints email/phone and the NIC complaints line. Confirm nic_phone with the NIC before launch.",
+    example: { email: "complaints@covva.com.gh", phone: "+233…", nic_name: "NIC Complaints Bureau", nic_phone: "+233…", nic_url: "https://nic.gov.gh" },
+  },
   terms_version: { schema: z.string().min(1).max(40), hint: "Current customer terms version. Changing it asks customers to accept again.", example: "2026-10-v1" },
   privacy_version: { schema: z.string().min(1).max(40), hint: "Current privacy notice version.", example: "2026-10-v1" },
   complaint_sla_days: { schema: z.number().int().min(1).max(90), hint: "Days to resolve a complaint before escalation.", example: 14 },

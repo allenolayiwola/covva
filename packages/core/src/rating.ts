@@ -3,6 +3,8 @@
  * stored on product_versions.rating. Estimates are never binding: the insurer or
  * broker converts them to "awaiting_underwriting" or "ready_to_accept" quotes.
  */
+import { rateFromTable, type RateRow, type RateTableDef } from "./rate-table";
+
 export type RiskData = Record<string, unknown>;
 
 interface Loading { field: string; equals?: unknown; lt?: number; gt?: number; factor: number; label?: string }
@@ -14,7 +16,15 @@ export type RatingRule =
   | { model: "per_day"; days_field: string; persons_field?: string; daily_rate: number; min_premium?: number; loadings?: Loading[]; variants?: Variants }
   | { model: "per_person"; persons_field: string; base: number; min_premium?: number; loadings?: Loading[]; variants?: Variants }
   | { model: "age_banded"; value_field: string; age_field: string; bands: { max_age: number; rate: number }[]; min_premium?: number; loadings?: Loading[] }
-  | { model: "flat"; amount: number; loadings?: Loading[] };
+  | { model: "flat"; amount: number; loadings?: Loading[] }
+  /**
+   * First-class rate table (Addendum 2 B). The stored rule only references the table;
+   * the server resolves `rows` (and the table's factor keys) before pricing. When `rows`
+   * is absent the result is not ok (missing "rate_table_rows") rather than a wrong price.
+   */
+  | ({ model: "rate_table"; rate_table_id: string; rows?: RateRow[] } & Partial<Omit<RateTableDef, "id" | "name">>);
+
+export const RATING_MODELS = ["rate_on_value", "per_day", "per_person", "age_banded", "flat", "rate_table"] as const;
 
 export interface RatingLine { label: string; amount?: number; factor?: number }
 export interface RatingResult {
@@ -41,6 +51,12 @@ function matches(l: Loading, value: unknown): boolean {
 }
 
 export function ratePremium(rule: RatingRule, risk: RiskData): RatingResult {
+  if (rule.model === "rate_table") {
+    if (!Array.isArray(rule.rows)) {
+      return { ok: false, premium: 0, basePremium: 0, lines: [{ label: "Rate table not loaded" }], appliedLoadings: [], sumInsured: null, missingFields: ["rate_table_rows"] };
+    }
+    return rateFromTable({ factor_keys: rule.factor_keys ?? [], value_fields: rule.value_fields, units_field: rule.units_field, min_premium: rule.min_premium }, rule.rows, risk);
+  }
   const lines: RatingLine[] = [];
   const missing: string[] = [];
   let base = 0;

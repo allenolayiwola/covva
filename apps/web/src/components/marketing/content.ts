@@ -188,3 +188,81 @@ export const REGULATION = {
   act843: "Data Protection Act, 2012 (Act 843)",
   dpc: { name: "Data Protection Commission", url: "https://dataprotection.org.gh" },
 };
+
+/* ----------------------------------------------------------------------------
+ * Home page blocks (Addendum 5)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Testimonials are ILLUSTRATIVE until real, consented customer reviews exist. Names are neutral
+ * placeholders and every block that renders them must show the "Illustrative" label.
+ * Replace via the CMS once genuine reviews are collected — never present these as real.
+ */
+export interface Testimonial { id: string; quote: string; name: string; context: string; illustrative: true }
+export const TESTIMONIALS: Testimonial[] = [
+  { id: "t1", quote: "I compared three motor quotes on my phone during lunch and paid with MoMo. The certificate was in my wallet the same afternoon.", name: "Driver, Accra", context: "Motor · comprehensive", illustrative: true },
+  { id: "t2", quote: "My daughter in London pays for my funeral plan and we both get the renewal message. No more surprises.", name: "Parent, Kumasi", context: "Life & funeral · diaspora-paid", illustrative: true },
+  { id: "t3", quote: "The broker explained the excess before I bought, not after I claimed. That is the difference.", name: "Shop owner, Takoradi", context: "Business property & stock", illustrative: true },
+];
+
+/**
+ * Platform stats shown in the home counter. Figures here are launch targets / placeholders until the
+ * reporting feed is wired; the block labels them as such.
+ */
+export const STATS = [
+  { id: "categories", value: 9, suffix: "", label: "Cover categories", note: "across personal and business lines" },
+  { id: "insurers", value: 3, suffix: "", label: "Licensed partners", note: "insurers and brokers onboarded for pilot" },
+  { id: "minutes", value: 10, suffix: " min", label: "Quote to policy", note: "target for integrated categories" },
+  { id: "currencies", value: 5, suffix: "", label: "Currencies", note: "GHS, GBP, USD, EUR, CAD at launch" },
+] as const;
+
+export const PAYMENT_METHODS = [
+  { id: "mtn", label: "MTN MoMo", short: "MoMo", tone: "#FFCC00", ink: "#1a1a1a" },
+  { id: "telecel", label: "Telecel Cash", short: "Telecel", tone: "#E60000", ink: "#ffffff" },
+  { id: "at", label: "AirtelTigo Money", short: "AT Money", tone: "#0A3D91", ink: "#ffffff" },
+  { id: "visa", label: "Visa", short: "VISA", tone: "#1A1F71", ink: "#ffffff" },
+  { id: "mastercard", label: "Mastercard", short: "MC", tone: "#15343E", ink: "#ffffff" },
+] as const;
+
+export const KEY_BENEFITS = [
+  { id: "instant", title: "Instant policies", body: "For integrated categories, pay and get your certificate in minutes — never before the insurer confirms." },
+  { id: "instalments", title: "Pay in instalments", body: "Spread the premium monthly or quarterly where the insurer offers it. No hidden charges." },
+  { id: "reminders", title: "Renewal reminders", body: "We remind you 45, 30, 14, 7 and 1 day before cover ends — with fresh quotes to compare." },
+  { id: "claims", title: "Claims in the app", body: "Report with photos from your phone and follow every step until the insurer decides." },
+  { id: "wallet", title: "Digital wallet + QR", body: "Every certificate in one place, offline, with a QR code anyone can verify in seconds." },
+] as const;
+
+/* ----------------------------------------------------------------------------
+ * Diaspora
+ * ------------------------------------------------------------------------- */
+
+export interface DiasporaCurrency { code: "GHS" | "GBP" | "USD" | "EUR" | "CAD"; label: string; symbol: string; /** GHS per 1 unit — static, indicative only */ ghsPerUnit: number; flag: string }
+/** Static, indicative rate table. The final price in the payer's currency is always shown at checkout. */
+export const DIASPORA_CURRENCIES: DiasporaCurrency[] = [
+  { code: "GHS", label: "Ghana cedi", symbol: "GH₵", ghsPerUnit: 1, flag: "GH" },
+  { code: "GBP", label: "British pound", symbol: "£", ghsPerUnit: 20.5, flag: "GB" },
+  { code: "USD", label: "US dollar", symbol: "$", ghsPerUnit: 15.6, flag: "US" },
+  { code: "EUR", label: "Euro", symbol: "€", ghsPerUnit: 17.4, flag: "EU" },
+  { code: "CAD", label: "Canadian dollar", symbol: "C$", ghsPerUnit: 11.4, flag: "CA" },
+];
+export const DIASPORA_RATES_AS_OF = "October 2026";
+
+/** Example annual premiums (GHS) for the diaspora price switcher. Indicative only. */
+export const DIASPORA_EXAMPLES = [
+  { id: "funeral", title: "Parents' funeral plan", detail: "Two parents, GH₵ 20,000 benefit each", ghsPerYear: 720, categorySlug: "life-funeral" },
+  { id: "health", title: "Private health for mum", detail: "Outpatient + inpatient, one adult over 60", ghsPerYear: 4200, categorySlug: "health" },
+  { id: "home", title: "Home being built in Kumasi", detail: "Buildings cover, GH₵ 400,000 sum insured", ghsPerYear: 1400, categorySlug: "home" },
+  { id: "motor", title: "Dad's car, comprehensive", detail: "GH₵ 120,000 vehicle, private use", ghsPerYear: 4800, categorySlug: "motor" },
+] as const;
+
+export const DIASPORA_STORIES = [
+  { id: "ama", title: "Ama in London insures her mum's home in Kumasi", body: "Ama pays in pounds, her mother is the policyholder, and both get the certificate and renewal reminders. When a storm damaged the roof, her mum reported the claim from the app and Ama followed every step from London.", tag: "Home & contents" },
+  { id: "kwame", title: "Kwame in Toronto keeps his parents on private health cover", body: "He added both parents as beneficiaries, pays quarterly in Canadian dollars and gets a notification whenever a hospital visit is logged — without ever asking them for paperwork.", tag: "Private health" },
+  { id: "church", title: "A church in Hamburg covers 120 members' families back home", body: "The welfare committee enrolled members in bulk, pays one group premium in euros and each family sees its own funeral policy in the app.", tag: "Group plan" },
+] as const;
+
+/* ----------------------------------------------------------------------------
+ * Press / media kit
+ * ------------------------------------------------------------------------- */
+export const PRESS_BOILERPLATE =
+  "Covva is a Ghanaian technology platform for comparing, buying and managing insurance. Customers in Ghana and the diaspora compare cover from participating licensed insurers, pay by mobile money or card, and keep every policy in a digital wallet with QR verification. Covva is not an insurer or a broker: policies are arranged by licensed brokers and underwritten by insurers licensed by the National Insurance Commission. Personal data is handled under Ghana's Data Protection Act, 2012 (Act 843).";

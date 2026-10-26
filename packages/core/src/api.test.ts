@@ -21,6 +21,8 @@ test("webPathToDeepLink handles absolute URLs and non-customer paths", () => {
   assert.deepEqual(webPathToDeepLink("https://covva.com.gh/account/claims/c1"), { url: "covva://claims/c1", path: "/claims/c1" });
   assert.deepEqual(webPathToDeepLink("http://localhost:3000/account/requests/r1/confirmation?new=1"), { url: "covva://requests/r1?new=1", path: "/requests/r1?new=1" });
   assert.deepEqual(webPathToDeepLink("/partner/requests/1"), inbox, "partner screens have no mobile equivalent");
+  assert.deepEqual(webPathToDeepLink("/partner/offers"), { url: "covva://offers", path: "/offers" }, "broker offers are the exception (one-tap accept)");
+  assert.deepEqual(webPathToDeepLink("/partner/offers/accept/abc123"), { url: "covva://offers/accept/abc123", path: "/offers/accept/abc123" });
   assert.deepEqual(webPathToDeepLink("/admin"), inbox);
   assert.deepEqual(webPathToDeepLink("/accounts/x"), inbox, "prefix must be exactly /account/");
   assert.deepEqual(webPathToDeepLink("https://"), inbox, "malformed URL → fallback");

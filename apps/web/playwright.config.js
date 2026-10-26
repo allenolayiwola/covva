@@ -4,6 +4,8 @@
 // Run:  pnpm --filter @im/web e2e        (needs a production build: `pnpm --filter @im/web build`)
 //       E2E_BUILD=1 pnpm --filter @im/web e2e   builds first
 //       E2E_BASE_URL=https://… pnpm --filter @im/web e2e   targets an already running server
+// The web server is started with PARTNER_MFA_REQUIRED=false so the demo broker/insurer accounts skip TOTP
+// (when targeting a running server with E2E_BASE_URL, start it with that variable yourself).
 import { defineConfig } from "playwright/test";
 
 // Playwright transpiles these files to CommonJS, so __dirname is available (import.meta is not).
@@ -65,5 +67,7 @@ export default defineConfig({
         timeout: process.env.E2E_BUILD ? 600_000 : 120_000,
         stdout: "ignore",
         stderr: "pipe",
+        // Demo partner accounts sign in with a password only; the partner-workspace TOTP gate is off for e2e.
+        env: { ...process.env, PARTNER_MFA_REQUIRED: "false" },
       },
 });

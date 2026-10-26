@@ -86,10 +86,10 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [ ] Tests for split calculations.
 
 **Access, auth and transparency (Addendum 4, 2 G)**
-- [ ] MFA enforced for broker and insurer users (partner workspace gate like the admin console).
-- [ ] Session/device list and remote sign-out for broker/insurer accounts.
-- [ ] Insurer users blocked from the mobile API with a clear message; broker/customer workspace switch for dual-role users (API + mobile guide).
-- [ ] Every quote/policy shows insurer, broker (if any), issuance type, expected time, and complaints contacts.
+- [x] MFA enforced for broker and insurer users (partner workspace gate like the admin console).
+- [x] Session/device list and remote sign-out for broker/insurer accounts.
+- [x] Insurer users blocked from the mobile API with a clear message; broker/customer workspace switch for dual-role users (API + mobile guide).
+- [x] Every quote/policy shows insurer, broker (if any), issuance type, expected time, and complaints contacts.
 - [x] Covva never described as broker/insurer; mandatory disclosure on every transaction.
 
 ### Phase 1 — Catalogue, quote, routing, MoMo + split payments, wallet, renewals
@@ -128,7 +128,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [ ] Insurer registration (company, NIC licence + class, address, contacts, settlement account, documents, e-signature of the partner agreement, integration level per line) → admin verification → live.
 - [ ] Broker registration (same pattern + commercial model choice) → verification; licence expiry tracking and auto-suspend (cron).
 - [ ] Appointment requests broker → insurer approval per line; appointment-letter upload for insurers not on Covva; revoke removes eligibility immediately.
-- [ ] Insurer roles (Admin, Product Manager, Underwriter, Claims, Finance, Read-only) and broker roles (Admin, Account Executive, Claims, Finance, Read-only); MFA; audit.
+- [~] Insurer roles (Admin, Product Manager, Underwriter, Claims, Finance, Read-only) and broker roles (Admin, Account Executive, Claims, Finance, Read-only); MFA; audit. (Roles + MFA done — `packages/core/src/roles.ts`, `/partner/mfa`; audit coverage of role changes pending.)
 - [ ] Insurer self-service product management: create products by line, rate-table builder/import, rules editor, templates, quote simulator, approval workflow (Draft → Submitted → Compliance review → Published), pause/withdraw, bulk updates, change history.
 - [ ] Insurer dashboard (sales, conversions, issued, renewals, lapses, claims, SLA, settlements).
 - [ ] Partnerships CRM in admin: leads/accounts, pipeline stages, notes/meetings/tasks/reminders, attachments, owner; auto-leads from forms and "suggest an insurer"; assisted onboarding (rep pre-fills, partner confirms via OTP/e-signature); onboarding checklist; mobile-friendly rep view; dashboards.

@@ -12,6 +12,7 @@ import { RealtimeRefresh } from "@/components/customer/realtime-refresh";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { UploadDropzone } from "@/components/customer/upload";
 import { formatBytes } from "@/components/customer/utils";
+import { TransactionParties } from "@/components/transaction-parties";
 import { CATEGORY_COLS, account, getRequestOr404, signUrls } from "../../_lib/data";
 import { PARTY_LABEL, REQUEST_TYPE_LABEL } from "../../_lib/labels";
 import { attachRequestDocument } from "./actions";
@@ -40,7 +41,7 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
   const [eventsRes, tasksRes, quotesRes, docsRes, othersRes, lastMsgRes, unreadRes] = await Promise.all([
     supabase.from("request_events").select("id, event, from_status, to_status, note, actor_party, created_at, data").eq("request_id", id).order("created_at", { ascending: true }),
     supabase.from("request_tasks").select("*").eq("request_id", id).order("created_at", { ascending: true }),
-    supabase.from("quotes").select("id, status, premium, insurer_org_id, valid_until, insurer:organizations!quotes_insurer_org_id_fkey(name)").eq("request_id", id),
+    supabase.from("quotes").select("id, status, premium, insurer_org_id, valid_until, product_version_id, insurer:organizations!quotes_insurer_org_id_fkey(name, nic_licence_number, settings)").eq("request_id", id),
     supabase.from("documents").select("id, file_name, storage_path, size_bytes, kind, created_at, delivered_to_insurer_at, task_id").eq("request_id", id).order("created_at", { ascending: false }),
     supabase
       .from("requests")
@@ -55,7 +56,7 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
 
   const events = eventsRes.data ?? [];
   const tasks = (tasksRes.data ?? []) as Row<"request_tasks">[];
-  const quotes = (quotesRes.data ?? []) as unknown as { id: string; status: string; premium: number; insurer_org_id: string; valid_until: string | null; insurer: { name: string } | null }[];
+  const quotes = (quotesRes.data ?? []) as unknown as { id: string; status: string; premium: number; insurer_org_id: string; valid_until: string | null; product_version_id: string | null; insurer: { name: string; nic_licence_number: string | null; settings: unknown } | null }[];
   const docs = docsRes.data ?? [];
   const others = (othersRes.data ?? []) as unknown as { id: string; reference: string; title: string | null; status: RequestStatus; category: { icon: string | null; name: string } | null }[];
   const lastBrokerMsg = lastMsgRes.data?.[0];
@@ -70,6 +71,10 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
   const liveQuotes = quotes.filter((q) => ["estimate", "awaiting_underwriting", "ready_to_accept", "accepted"].includes(q.status));
   const ready = liveQuotes.filter((q) => q.status === "ready_to_accept" && (!q.valid_until || new Date(q.valid_until) > new Date()));
   const insurers = new Set(liveQuotes.map((q) => q.insurer_org_id)).size;
+  // Transparency block: the accepted quote's insurer once chosen, otherwise every participating insurer.
+  const acceptedQuote = quotes.find((q) => q.status === "accepted") ?? null;
+  const partyQuotes = acceptedQuote ? [acceptedQuote] : liveQuotes;
+  const partyInsurers = [...new Map(partyQuotes.filter((q) => q.insurer).map((q) => [q.insurer_org_id, { name: q.insurer!.name, nic_licence_number: q.insurer!.nic_licence_number, settings: q.insurer!.settings }])).values()];
   const cheapest = ready.length ? Math.min(...ready.map((q) => Number(q.premium))) : liveQuotes.length ? Math.min(...liveQuotes.map((q) => Number(q.premium))) : null;
   const broker = request.broker;
   const contact = brokerContact(broker);
@@ -328,6 +333,12 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
             broker={broker}
             messageHref={`/account/requests/${request.id}/messages`}
             quote={lastBrokerMsg ? (lastBrokerMsg.body.length > 180 ? `${lastBrokerMsg.body.slice(0, 177)}…` : lastBrokerMsg.body) : undefined}
+          />
+          <TransactionParties
+            stage="request"
+            insurers={partyInsurers}
+            broker={broker ? { name: broker.name, nic_licence_number: broker.nic_licence_number } : null}
+            productVersionId={acceptedQuote?.product_version_id ?? (partyQuotes.length === 1 ? partyQuotes[0]!.product_version_id : null)}
           />
           {unread > 0 && (
             <Link href={`/account/requests/${request.id}/messages`} className="flex items-center gap-2 rounded-xl bg-mint-2 px-4 py-3 text-sm font-medium text-brand-deep hover:bg-mint">

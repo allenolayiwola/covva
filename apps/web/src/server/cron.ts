@@ -7,6 +7,8 @@ import { recordPolicyActive, period } from "@/server/usage";
 import { toComparable, type QuoteWithParties } from "@/server/quotes";
 import { log } from "@/server/log";
 import { retryDueDeliveries } from "@/server/webhooks";
+import { expireAndRerouteOffers } from "@/server/routing";
+import { buildStatementsForPeriod, previousMonth } from "@/server/ledger";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -256,6 +258,35 @@ const complaintSla: CronJob = async (svc) => {
 /** Partner webhook retries: deliveries past `next_attempt_at` (backoff 1m, 5m, 30m, 2h, 12h; 5 attempts). */
 const webhookRetry: CronJob = async (svc) => retryDueDeliveries(svc, 200);
 
+// ---------------------------------------------------------------------------
+/** Routing engine: expire overdue broker offers and re-route (next round, or ops hold after the last). */
+const offerExpiry: CronJob = async (svc) => expireAndRerouteOffers(svc);
+
+// ---------------------------------------------------------------------------
+/**
+ * Scheduled price changes: promotes platform-approved product versions whose
+ * `scheduled_effective_from` has passed to the product's current version
+ * (public.activate_scheduled_versions → private.activate_scheduled_versions).
+ * Existing quotes and policies keep their product_version_id.
+ */
+const priceSchedule: CronJob = async (svc) => {
+  const { data, error } = await svc.rpc("activate_scheduled_versions");
+  if (error) throw error;
+  return { activated: data ?? 0 };
+};
+
+// ---------------------------------------------------------------------------
+/**
+ * Monthly (1st, 02:00): draft settlement statements for every broker and insurer with
+ * ledger activity in the previous calendar month. Idempotent — statements are unique per
+ * (org, period) and drafts are refreshed, issued ones left untouched (see server/ledger.ts).
+ */
+const settlementStatements: CronJob = async (svc) => {
+  const { start, end } = previousMonth();
+  const r = await buildStatementsForPeriod(svc, start, end);
+  return { period_start: start, period_end: end, orgs: r.orgs, statements: r.statements.length };
+};
+
 export const CRON_JOBS: Record<string, CronJob> = {
   "renewal-reminders": renewalReminders,
   "sla-monitor": slaMonitor,
@@ -264,6 +295,9 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "usage-metering": usageMetering,
   "complaint-sla": complaintSla,
   "webhook-retry": webhookRetry,
+  "offer-expiry": offerExpiry,
+  "price-schedule": priceSchedule,
+  "settlement-statements": settlementStatements,
 };
 
 export async function runCron(job: string) {

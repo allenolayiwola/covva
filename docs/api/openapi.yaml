@@ -33,6 +33,13 @@ info:
 
     Every response has an `x-request-id` header (send your own to correlate).
 
+    ## Client identification and platform access (Addendum 4)
+    Send `X-Covva-Client: mobile | web | partner-web` on every call (missing = `web`). Customers and
+    brokers use the mobile app; **insurer** (and staff) accounts are web-only: a call from `mobile` by an
+    account whose only memberships are insurer/staff gets `403 forbidden` with
+    `details.reason = "insurer_web_only"` and `details.portalUrl` — show the message and link to the web portal.
+    Dual-role users pick a workspace with `POST /me/workspace`; `GET /me` lists `workspaces` with `mobileAllowed`.
+
     ## Product rules clients must honour
     * Show the broker-of-record disclosure and record it (`POST /requests/{id}/disclosure`) **before** an application.
     * Only `ready_to_accept` quotes can be applied for, and only before `valid_until`.
@@ -76,10 +83,14 @@ paths:
   /me:
     get:
       tags: [Me]
-      summary: Current user — profile, memberships, feature flags, consent state
+      summary: Current user — profile, memberships, workspaces, feature flags, consent state
+      parameters: [{ $ref: "#/components/parameters/CovvaClient" }]
       responses:
         "200": { $ref: "#/components/responses/Me" }
         "401": { $ref: "#/components/responses/Error" }
+        "403":
+          description: Insurer/staff account calling from the mobile app (`details.reason = insurer_web_only`)
+          content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } }
     patch:
       tags: [Me]
       summary: Update own profile
@@ -91,6 +102,33 @@ paths:
         "200": { $ref: "#/components/responses/Ok" }
         "400": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /me/workspace:
+    post:
+      tags: [Me]
+      summary: Choose the active workspace (dual-role users)
+      description: |
+        Persists `profiles.active_workspace`. The workspace must be one of the caller's `workspaces` and usable from the
+        calling client — an insurer workspace cannot be activated with `X-Covva-Client: mobile`.
+      parameters: [{ $ref: "#/components/parameters/CovvaClient" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/SetActiveWorkspaceInput" } } }
+      responses:
+        "200":
+          description: Stored choice
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          activeWorkspace: { $ref: "#/components/schemas/ActiveWorkspace" }
+                          workspace: { $ref: "#/components/schemas/Workspace" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /me/consents:
     post:
       tags: [Me]
@@ -551,6 +589,42 @@ paths:
         "200": { $ref: "#/components/responses/Ok" }
         "422": { $ref: "#/components/responses/Error" }
 
+  /partner/offers:
+    get:
+      tags: [Partner API]
+      summary: Requests offered to the broker (claim model, Addendum 2 D2/E)
+      description: |
+        Open offers by default (`status=offered`, soonest deadline first). Works with a broker member's bearer token
+        (RLS limits rows to their organisations) or a broker API key (scope `requests:read`). Each open item carries
+        `acceptUrl` (web one-tap link `/partner/offers/accept/{token}`) and `deepLink` (`covva://offers/accept/{token}`).
+        The customer's identity is only shared once the offer is accepted; `request.risk_data` is available to decide.
+      security: [{ bearerAuth: [] }, { apiKey: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Before" }
+        - { name: status, in: query, schema: { type: string, enum: [offered, accepted, declined, expired, withdrawn], default: offered } }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+        "401": { $ref: "#/components/responses/Error" }
+  /partner/offers/{id}:
+    post:
+      tags: [Partner API]
+      summary: Accept or decline an offered request
+      description: |
+        `accept` makes the organisation the broker of record (first to accept wins; every other open offer is withdrawn;
+        a second accept returns 422). `decline` passes the request on; when the whole round has declined it is re-offered
+        at once, otherwise when the timer expires (`routing.offer_timeout_minutes`, default 30). Callers must be an
+        adviser/supervisor/admin/owner of the offered broker (bearer) or use that broker's API key (scope `requests:read`).
+      security: [{ bearerAuth: [] }, { apiKey: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OfferResponseInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
   /openapi:
     get:
       tags: [System]
@@ -634,6 +708,12 @@ components:
       description: "Partner key `imk_<prefix>_<secret>`; the platform stores only sha256(key)."
 
   parameters:
+    CovvaClient:
+      name: X-Covva-Client
+      in: header
+      required: false
+      description: Which client is calling. Missing = `web`. Insurer and staff accounts are refused on `mobile`.
+      schema: { type: string, enum: [mobile, web, partner-web], default: web }
     Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
     Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
     Before: { name: before, in: query, description: Cursor (ISO timestamp from `nextCursor`), schema: { type: string, format: date-time } }
@@ -672,12 +752,37 @@ components:
                       profile: { type: object, description: "profiles row; Ghana Card returned as ghana_card_last4 only" }
                       memberships: { type: array, items: { type: object } }
                       isPartner: { type: boolean }
+                      workspaces: { type: array, items: { $ref: "#/components/schemas/Workspace" }, description: "Customer workspace first, then one per broker/insurer membership" }
+                      activeWorkspace: { $ref: "#/components/schemas/ActiveWorkspace" }
+                      client: { type: string, enum: [mobile, web, partner-web], description: "Echo of X-Covva-Client" }
                       flags: { type: object, additionalProperties: { type: boolean }, description: "feature_flags (e.g. demo_mode, ai_assistant)" }
                       consents: { type: object, additionalProperties: { type: object } }
                       versions: { type: object, properties: { terms: { type: [string, "null"] }, privacy: { type: [string, "null"] } } }
                       needsConsent: { type: boolean }
 
   schemas:
+    Workspace:
+      type: object
+      required: [type, mobileAllowed, allowed]
+      properties:
+        type: { type: string, enum: [customer, broker, insurer] }
+        orgId: { type: string, format: uuid }
+        orgName: { type: string }
+        role: { type: string, description: "member_role (owner, admin, supervisor, adviser, underwriter, claims_officer, finance, viewer)" }
+        mobileAllowed: { type: boolean, description: "Usable from the mobile app (false for insurer workspaces)" }
+        allowed: { type: boolean, description: "Usable from the calling client" }
+    ActiveWorkspace:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [customer, broker, insurer] }
+        orgId: { type: string, format: uuid }
+    SetActiveWorkspaceInput:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [customer, broker, insurer] }
+        orgId: { type: string, format: uuid, description: "Required unless type is customer" }
     OkEnvelope:
       type: object
       required: [ok, data]
@@ -824,6 +929,7 @@ components:
         relatedPolicyId: { type: string, format: uuid }
         needsAssessmentId: { type: string, format: uuid }
         submit: { type: boolean, default: true }
+        talkToExpert: { type: boolean, default: false, description: "Ask for advice: always routed to a broker, whatever the insurer's integration level" }
     DisclosureAckInput:
       type: object
       properties:
@@ -1060,3 +1166,22 @@ components:
         insurerReference: { type: string }
         decisionAmount: { type: number, minimum: 0 }
         visibleToCustomer: { type: boolean, default: true }
+    OfferResponseInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [accept, decline] }
+        reason: { type: string, maxLength: 500, description: Optional decline reason (kept for routing analytics) }
+    Offer:
+      type: object
+      description: A request offered to a broker (`GET /partner/offers` item).
+      properties:
+        id: { type: string, format: uuid }
+        request_id: { type: string, format: uuid }
+        status: { type: string, enum: [offered, accepted, declined, expired, withdrawn] }
+        round: { type: integer, description: Offer round (1 = first batch of brokers) }
+        offered_at: { type: string, format: date-time }
+        responds_by: { type: string, format: date-time, description: Accept before this or the request moves on }
+        acceptUrl: { type: [string, "null"], description: One-tap accept link (web) }
+        deepLink: { type: [string, "null"], description: "covva://offers/accept/{token}" }
+        request: { type: object, description: "id, reference, title, type, status, risk_data, talk_to_expert, complexity_flags, category" }

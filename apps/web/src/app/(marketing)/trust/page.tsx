@@ -58,7 +58,7 @@ export default async function TrustPage() {
       </PageHero>
 
       <Section id="roles" labelledBy="roles-title">
-        <SectionHeading id="roles-title" eyebrow="Who does what" title="Four parties, clearly separated" />
+        <SectionHeading id="roles-title" eyebrow="Who does what" title="Four parties, clearly separated" description="Policies are provided by licensed insurers and arranged by licensed brokers. Covva provides the technology that connects them to you." />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <FeatureCard icon={<Layers />} title={brand.name}>{ROLE_STATEMENTS.platform}</FeatureCard>
           <FeatureCard icon={<UserRoundCheck />} title="Your broker of record">{ROLE_STATEMENTS.broker}</FeatureCard>
@@ -81,7 +81,7 @@ export default async function TrustPage() {
             <Eyebrow className="mb-3">Licensing status</Eyebrow>
             <h2 id="licensing-title" className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">Our regulatory position</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-ink-2">
-              We operate as a technology provider in partnership with licensed brokers. Our regulatory classification is being confirmed with the National Insurance Commission (NIC).
+              {brand.name} is a technology platform — not an insurer and not a broker. We operate as a technology provider in partnership with licensed brokers and insurers. Our regulatory classification is being confirmed with the National Insurance Commission (NIC).
             </p>
             <p className="mt-4 text-[15px] leading-relaxed text-muted">
               Insurance broking services are provided only by brokers licensed by the NIC, and policies are underwritten only by insurers licensed under the {REGULATION.act1061}. We will update this page when our classification is confirmed.
@@ -131,8 +131,12 @@ export default async function TrustPage() {
             <p className="mt-5 text-[17px] leading-relaxed text-muted">
               We process personal data in line with the {REGULATION.act843}, and we intend to register with the {REGULATION.dpc.name} as required.
             </p>
+            <p className="mt-4 text-[15px] leading-relaxed text-muted">
+              Cookies and analytics load only with your consent (see the banner and our cookie notice). You can withdraw consent or ask for a copy or deletion of your data at any time.
+            </p>
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
               <Link href="/legal/privacy" className={textLinkClass}>Privacy notice <ArrowRight aria-hidden className="size-4" /></Link>
+              <Link href="/legal/cookies" className={textLinkClass}>Cookie notice <ArrowRight aria-hidden className="size-4" /></Link>
               <a href={REGULATION.dpc.url} target="_blank" rel="noreferrer" className={textLinkClass}>
                 Data Protection Commission <ExternalLink aria-hidden className="size-4" /><span className="sr-only">(opens in a new tab)</span>
               </a>
@@ -179,6 +183,9 @@ export default async function TrustPage() {
           </p>
           <Link href="/legal/complaints" className={`${textLinkClass} shrink-0`}>Complaints procedure <ArrowRight aria-hidden className="size-4" /></Link>
         </div>
+        <p className="mt-6 text-[15px] text-muted">
+          Contact us: <a href={`mailto:${brand.supportEmail}`} className="font-medium text-brand hover:underline">{brand.supportEmail}</a> · <Link href="/contact" className="font-medium text-brand hover:underline">contact form</Link> · <Link href="/verify" className="font-medium text-brand hover:underline">verify a policy</Link>
+        </p>
       </Section>
     </>
   );

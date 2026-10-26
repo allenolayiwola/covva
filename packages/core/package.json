@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/*.test.ts"
+    "test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test src/*.test.ts"
   },
   "dependencies": {
     "zod": "^4.3.3",

@@ -34,6 +34,7 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `APPLE_TEAM_ID`, `IOS_BUNDLE_ID` | no | mobile | Universal links (`/.well-known/apple-app-site-association`) |
 | `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_CERT_FINGERPRINTS` | no | mobile | App links (`/.well-known/assetlinks.json`); comma-separated fingerprints (upload key + Play signing key) |
 | `LOG_LEVEL` | no | no | `debug` for verbose logs |
+| `PARTNER_MFA_REQUIRED` | no | no | TOTP two-step verification for broker/insurer users in `/partner`. Defaults to `true` in production builds and `false` elsewhere. Set `false` only for local demos and e2e (`apps/web/playwright.config.js` does). Customers are never gated. |
 
 The `.well-known` files are static at build — **redeploy after changing their env vars**.
 
@@ -92,6 +93,39 @@ Sandbox: with no `PAYSTACK_SECRET_KEY` and `NODE_ENV !== "production"` (or `PAYM
 checkout opens `/api/payments/simulate?reference=…&sig=…` — a clearly labelled simulator that runs the
 same `applyPaymentResult` code path. Never enable it on a production domain.
 
+### Settlement and splits
+
+Migration `20261027100200_commercial_ledger.sql` adds the commercial model (Addendum 2 §F):
+
+* **Commercial terms** (`org_commercial_terms`, admin → Commercial terms): brokers are on
+  `revenue_share` (Covva takes `revenue_share_pct` of the broker's commission on **Covva-sourced**
+  business only) or `subscription` (monthly plan, full commission kept); insurers are on `insurer_fee`
+  (`platform_fee_pct` of the net premium on Covva-sourced business, plus the standard
+  `broker_commission_pct` they pay brokers). Setting terms closes the previous open row
+  (`set_commercial_terms`, platform admins only, approval recorded in `approved_by`).
+* **Source of business**: `requests.source_broker_org_id` marks a broker's own client; the policy is
+  created with `policies.source = 'broker'` (no revenue share), otherwise `'covva'`.
+* **Checkout split** (`payment_splits`, computed by `@im/core` `computeSplit` in pesewas, remainder to
+  the insurer): Paystack settles a single subaccount per transaction, so a three-way split needs a
+  **split group** (Dashboard → Transaction Splits; subaccounts for the insurer, broker and Covva). Set
+  its `SPL_…` code on `organizations.paystack_split_code` (per insurer) or `PAYSTACK_SPLIT_GROUP_CODE`
+  (global). With a split code, `/transaction/initialize` and `/charge` are called with `split_code`;
+  without one they fall back to `subaccount = <insurer>` + `bearer = "subaccount"` and the broker /
+  platform shares are settled by statement. Either way the premium never touches Covva.
+* **Ledger** (`ledger_entries`, append-only — updates and deletes are rejected by trigger): on
+  `charge.success` the server posts `premium_received` (insurer), `broker_commission` (broker ←
+  insurer), `platform_fee` (Covva ← insurer) and `revenue_share` (Covva ← broker), one entry per
+  payment and type (idempotent). Corrections are `adjustment` rows.
+* **Statements** (`settlement_statements` + `settlement_lines`): cron `/api/cron/settlement-statements`
+  (1st of the month, 02:00 UTC) drafts one statement per organisation for the previous month
+  (`build_settlement_statement`, idempotent). Admin → Commercial terms can regenerate drafts for any
+  period, issue them (draft → issued → paid) and export the ledger as CSV. Partners see their statements
+  under Partner workspace → Settlements; `net_due` is positive when Covva/the insurer owes the
+  organisation and negative when the organisation owes commission or fees.
+* **Transparency**: `quotes.fee_breakdown` (set at payment initiation, or computed on the fly for the
+  checkout page) shows the customer the premium, taxes, platform fee and broker commission, and states
+  that the fee and commission are paid by the insurer out of the premium.
+
 ## 3. Supabase Auth settings
 
 * **Site URL**: `https://<web-host>`.
@@ -100,10 +134,35 @@ same `applyPaymentResult` code path. Never enable it on a production domain.
   admin host `https://<admin-host>/auth/callback`.
 * **Providers**: Email (confirm email on; OTP length 6), Phone with an SMS provider (Twilio/MessageBird/Vonage
   or a Send-SMS hook to Arkesel/Hubtel) for phone OTP; set OTP expiry ≤ 10 minutes.
-* **MFA**: enable TOTP. The admin portal requires AAL2 for platform staff.
+* **MFA**: enable TOTP. The admin portal requires AAL2 for platform staff; the partner workspace
+  (`/partner`) requires AAL2 for broker and insurer users (`PARTNER_MFA_REQUIRED`, see §3a).
 * **JWT signing keys**: asymmetric keys recommended (`getClaims()` verifies locally via JWKS).
 * **Rate limits**: tighten OTP/sign-up limits; enable CAPTCHA (hCaptcha/Turnstile) for sign-up if abused.
 * Custom SMTP (Resend) for auth emails with the brand sender.
+
+### 3a. Partner MFA, sessions and devices (Addendum 4)
+
+* **Gate**: `requirePartner()` in `apps/web/src/lib/auth.ts` checks the session's assurance level
+  and sends AAL1 sessions to `/partner/mfa?next=…` (enrol a TOTP factor or verify an existing one;
+  same flow as the admin console). The gate applies when `PARTNER_MFA_REQUIRED` resolves to true
+  **and** the organisation's `organizations.require_mfa` is on (default on; org admins can switch it
+  off from Settings → Security, platform staff can edit it in admin). Customers (`/account`, mobile)
+  are never asked for MFA — they use phone OTP.
+* **Local demo / e2e**: `PARTNER_MFA_REQUIRED=false`. Production deployments must not set it.
+* **Lost authenticator**: an admin removes the user's factors in Supabase Auth → Users → MFA
+  (`auth.mfa_factors`); the user enrols again at next sign-in. There is no self-service reset by design.
+* **Sessions & devices**: Settings → Security lists the user's `auth.sessions`
+  (`public.list_my_sessions()`, SECURITY DEFINER, own rows only) with "Sign out this device"
+  (`public.revoke_my_session(uuid)` — deletes only that one row of the caller's own sessions) and
+  "Sign out everywhere" (`supabase.auth.signOut({ scope: "others" })`). Mobile push registrations
+  (`device_tokens`) are listed with "Remove". Nothing here needs the service key.
+* **Mobile access rules**: `/api/v1` reads `X-Covva-Client: mobile | web | partner-web` (default
+  `web`). Insurer-only (and staff-only) accounts calling with `mobile` get `403 forbidden` pointing to
+  `${NEXT_PUBLIC_SITE_URL}/partner`; brokers use the same app as customers. `profiles.last_seen_platform`
+  records the last client; `profiles.active_workspace` stores the workspace a dual-role user chose
+  (`POST /api/v1/me/workspace`). See `docs/MOBILE_INTEGRATION.md` §14.
+* **Complaints contacts** shown on every quote/policy come from `platform_settings.complaints`
+  (`email`, `phone`, `nic_name`, `nic_phone`, `nic_url`); confirm the NIC complaints line before launch.
 
 ## 4. Scheduled jobs (Vercel Cron, `apps/web/vercel.json`)
 
@@ -116,6 +175,7 @@ same `applyPaymentResult` code path. Never enable it on a production domain.
 | `/api/cron/usage-metering` | daily 01:30 | One `policy_active` usage event per active policy per month for the broker org (idempotent) |
 | `/api/cron/complaint-sla` | daily 08:00 | Open complaints past `due_at` → timeline note, notify owner org + platform compliance (once) |
 | `/api/cron/webhook-retry` | every 10 min | Re-sends partner webhook deliveries whose `next_attempt_at` has passed (backoff 1m, 5m, 30m, 2h, 12h; max 5 attempts). See `docs/WEBHOOKS.md` |
+| `/api/cron/settlement-statements` | monthly, 1st 02:00 | Drafts a settlement statement per broker/insurer for the previous month from the ledger (idempotent; issued statements untouched). See "Settlement and splits" |
 
 Each run writes `platform_settings['cron_last_run:<job>'] = { at, ok, ms, result }` (visible in admin
 system health). Sub-daily schedules need a Vercel Pro plan. Manual run:
@@ -131,6 +191,9 @@ supporting indexes, KYC/request/claim column guards and the `ai_models` setting.
 broker hand-over RPC (`complete_broker_change`), `policies.external_insurer_name` (with
 `insurer_org_id` nullable only when `external_source`), and `webhook_deliveries.last_error` /
 `response_ms` plus retry indexes.
+`20261027100300_access_security.sql` (Addendum 4) adds `organizations.require_mfa`,
+`profiles.active_workspace` / `last_seen_platform`, the own-session RPCs `list_my_sessions()` /
+`revoke_my_session(uuid)` and the `complaints` platform setting.
 
 ## 6. Observability
 

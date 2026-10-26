@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CreditCard, Smartphone } from "lucide-react";
-import { PAYMENT_STATUS, formatGHS, type PaymentStatus } from "@im/core";
+import { PAYMENT_STATUS, formatGHS, type FeeBreakdown, type PaymentStatus } from "@im/core";
+import { FeeBreakdownBlock } from "@/components/customer/fee-breakdown";
 import { Button, Checkbox, DisclosureBlock, Field, Input, Notice, Spinner, buttonClass, cn } from "@im/ui";
 import { createClient } from "@/lib/supabase/client";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
@@ -48,6 +49,7 @@ export function DeclarationsStep({
   premium,
   insurer,
   termsVersion,
+  feeBreakdown,
 }: {
   requestId: string;
   quoteId: string;
@@ -56,6 +58,7 @@ export function DeclarationsStep({
   premium: number;
   insurer: string;
   termsVersion: string;
+  feeBreakdown?: FeeBreakdown | null;
 }) {
   const [state, action] = useActionState(submitApplication, initialActionState);
   const [chosen, setChosen] = React.useState<string[]>([]);
@@ -106,6 +109,7 @@ export function DeclarationsStep({
           <span className="text-2xl font-bold text-ink">{formatGHS(premium + extra)}</span>
         </div>
         <p className="mt-1 text-xs text-muted">The insurer confirms the final amount. Optional benefits may be confirmed by your broker.</p>
+        <FeeBreakdownBlock breakdown={feeBreakdown} className="mt-3" />
       </div>
 
       <div>

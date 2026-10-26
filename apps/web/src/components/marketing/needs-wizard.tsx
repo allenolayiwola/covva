@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Check, Info, RotateCcw, UserRoundCheck } from "l
 import { Button, Notice, Pill, buttonClass, cn } from "@im/ui";
 import { CATEGORY_AVAILABILITY, NEEDS_QUESTIONS, assessNeeds, humanize, type NeedsAnswers } from "@im/core";
 import { CategoryIcon } from "./category-icon";
+import { useIsClient } from "./reveal";
 
 export interface WizardCategory {
   slug: string;
@@ -45,29 +46,36 @@ function save(v: Saved) {
 /**
  * Public "Help me choose" needs assessment. Runs entirely in the browser using
  * `assessNeeds()` from @im/core; answers are kept in sessionStorage so people can resume.
+ * The server renders a fresh wizard; after hydration the inner wizard is remounted once with the
+ * saved answers as its initial state (no setState inside effects).
  */
 export function NeedsWizard({ categories }: { categories: WizardCategory[] }) {
+  const isClient = useIsClient();
+  const saved = isClient ? load() : null;
+  const initial = saved && Object.keys(saved.answers).length > 0 ? saved : null;
+  return <WizardInner key={isClient ? "client" : "server"} categories={categories} initial={initial} hydrated={isClient} />;
+}
+
+function WizardInner({ categories, initial, hydrated }: { categories: WizardCategory[]; initial: Saved | null; hydrated: boolean }) {
   const total = NEEDS_QUESTIONS.length;
-  const [answers, setAnswers] = React.useState<NeedsAnswers>({});
-  const [step, setStep] = React.useState(0);
-  const [done, setDone] = React.useState(false);
-  const [resumed, setResumed] = React.useState(false);
-  const [hydrated, setHydrated] = React.useState(false);
+  const [answers, setAnswers] = React.useState<NeedsAnswers>(() => initial?.answers ?? {});
+  const [step, setStep] = React.useState(() => (initial ? Math.min(Math.max(0, initial.step), total - 1) : 0));
+  const [done, setDone] = React.useState(() => initial?.done ?? false);
+  const [resumed, setResumed] = React.useState(() => !!initial);
+  const [autoAdvance, setAutoAdvance] = React.useState(false);
   const headingRef = React.useRef<HTMLHeadingElement>(null);
-  const advanceTimer = React.useRef<number | undefined>(undefined);
   const firstRender = React.useRef(true);
 
+  // Short pause after a single-choice answer so the selection is visible before moving on.
   React.useEffect(() => {
-    const saved = load();
-    if (saved && Object.keys(saved.answers).length > 0) {
-      setAnswers(saved.answers);
-      setStep(Math.min(Math.max(0, saved.step), total - 1));
-      setDone(saved.done);
-      setResumed(true);
-    }
-    setHydrated(true);
-    return () => window.clearTimeout(advanceTimer.current);
-  }, [total]);
+    if (!autoAdvance) return;
+    const t = window.setTimeout(() => {
+      setAutoAdvance(false);
+      if (step >= total - 1) setDone(true);
+      else setStep((s) => s + 1);
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [autoAdvance, step, total]);
 
   React.useEffect(() => {
     if (!hydrated) return;
@@ -86,19 +94,18 @@ export function NeedsWizard({ categories }: { categories: WizardCategory[] }) {
   const value = answers[q.key];
 
   const goTo = (n: number) => {
-    window.clearTimeout(advanceTimer.current);
+    setAutoAdvance(false);
     setDone(false);
     setStep(Math.min(Math.max(0, n), total - 1));
   };
   const next = () => {
-    window.clearTimeout(advanceTimer.current);
+    setAutoAdvance(false);
     if (step >= total - 1) setDone(true);
     else setStep(step + 1);
   };
   const choose = (v: string | boolean) => {
     setAnswers((a) => ({ ...a, [q.key]: v }));
-    window.clearTimeout(advanceTimer.current);
-    advanceTimer.current = window.setTimeout(next, 220);
+    setAutoAdvance(true);
   };
   const toggle = (v: string) => {
     setAnswers((a) => {
@@ -111,7 +118,7 @@ export function NeedsWizard({ categories }: { categories: WizardCategory[] }) {
     });
   };
   const reset = () => {
-    window.clearTimeout(advanceTimer.current);
+    setAutoAdvance(false);
     setAnswers({});
     setStep(0);
     setDone(false);
