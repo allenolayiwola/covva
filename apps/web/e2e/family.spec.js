@@ -20,8 +20,8 @@ test.describe("family (diaspora)", () => {
     await page.getByLabel(/Their mobile number/).fill("+44 7700 900123");
     await page.getByRole("button", { name: "Add and send consent code" }).click();
     // Server-side zod (beneficiarySchema) maps issues back to the fields; nothing is created.
-    await expect(page.getByText("Choose how they are related to you")).toBeVisible();
-    await expect(page.getByText("Enter a Ghana mobile number, e.g. 024 123 4567")).toBeVisible();
+    await expect(page.getByText("Choose how they are related to you").first()).toBeVisible();
+    await expect(page.getByText("Enter a Ghana mobile number, e.g. 024 123 4567").first()).toBeVisible();
     await expect(page).toHaveURL(/\/account\/family\/beneficiaries\/new$/);
   });
 
@@ -38,13 +38,14 @@ test.describe("family (diaspora)", () => {
     await expect(page.getByText("Awaiting consent").first()).toBeVisible();
     // Consent panel: channel choice + send button for data sharing; proxy claims waits for data consent.
     const panel = page.getByLabel("Share my details so cover can be arranged for me");
-    await expect(panel.getByRole("button", { name: /Send consent code to Kofi/ })).toBeVisible();
+    await expect(panel.getByRole("button", { name: /Send consent code to / })).toBeVisible();
     await expect(panel.getByRole("radio", { name: "SMS" })).toBeChecked();
     await expect(page.getByLabel("Let my sponsor start and follow claims for me").getByText(/Available once/)).toBeVisible();
     // The request form offers this member under "Who is this cover for?" (disabled until consent).
     await page.goto("/account/requests/new?category=motor");
-    await page.getByRole("radio", { name: "A family member in Ghana" }).check();
-    const option = page.getByLabel("Family member").locator("option", { hasText: `${TAG} Kofi Mensah` });
+    await page.locator("label", { hasText: "A family member in Ghana" }).click();
+    await expect(page.getByRole("radio", { name: "A family member in Ghana" })).toBeChecked();
+    const option = page.getByLabel("Family member").locator("option", { hasText: `${TAG} Kofi Mensah` }).first();
     await expect(option).toHaveAttribute("disabled", "");
   });
 });

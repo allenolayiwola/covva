@@ -54,7 +54,7 @@ export function ConsentBanner() {
   if (consent !== "") return null;
 
   return (
-    <div role="region" aria-label="Cookie consent" className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white p-4 shadow-float print:hidden sm:inset-x-auto sm:bottom-6 sm:left-6 sm:max-w-md sm:rounded-card sm:border sm:p-5">
+    <div role="region" aria-label="Cookie consent" className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white p-4 shadow-float print:hidden sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[calc(100%-2rem)] sm:-translate-x-1/2 sm:max-w-md sm:rounded-card sm:border sm:p-5">
       <div className="flex items-start gap-3">
         <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-mint text-brand-deep"><Cookie className="size-4" /></span>
         <div className="text-[14px] leading-relaxed text-ink-2">
