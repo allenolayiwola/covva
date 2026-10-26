@@ -72,8 +72,8 @@ Rules of the road:
   the swap does not shift layout. `TypeScript` requires every variant to have a branch.
 - Exposure is reported once per page view per experiment via `experiment_exposure`; analyse by that event's `variant` param
   in GA4 (Explore → funnel from `experiment_exposure` to `quote_start` / `generate_lead`).
-- Registered today: `home_hero_headline` (off). Switch it on by setting `NEXT_PUBLIC_EXPERIMENTS=home_hero_headline` on the
-  web project in Vercel and redeploying.
+- Registered today: `home_hero_headline` (off): it switches the hero lede, not the `<h1>`, so the LCP element stays static
+  server HTML. Switch it on by setting `NEXT_PUBLIC_EXPERIMENTS=home_hero_headline` on the web project in Vercel and redeploying.
 
 ## 4. Lighthouse (production build, mobile emulation)
 

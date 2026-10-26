@@ -26,13 +26,7 @@ export function HomeHero({ examples }: { examples: HeroExample[] }) {
           <div className="order-1">
             <Eyebrow>Insurance for Ghana and the diaspora</Eyebrow>
             <h1 id="hero-title" className="mt-5 text-h1 text-ink">
-              <Experiment
-                name="home_hero_headline"
-                variants={{
-                  control: <>Real quotes. Your broker. <span className="text-brand">Pay by MoMo.</span></>,
-                  instant: <>Compare, buy and manage insurance <span className="text-brand">in minutes.</span></>,
-                }}
-              />
+              Real quotes. Your broker. <span className="text-brand">Pay by MoMo.</span>
             </h1>
           </div>
 
@@ -42,7 +36,13 @@ export function HomeHero({ examples }: { examples: HeroExample[] }) {
 
           <div className="order-3">
             <p className="mt-6 max-w-[34rem] text-lead text-muted lg:mt-6">
-              Tell us what you want to insure, choose up to three licensed brokers and compare their quotes side by side. Pay with MTN MoMo, Telecel Cash, AirtelTigo Money or card, and the insurer issues your policy to your wallet.
+              <Experiment
+                name="home_hero_headline"
+                variants={{
+                  control: <>Tell us what you want to insure, choose up to three licensed brokers and compare their quotes side by side. Pay with MTN MoMo, Telecel Cash, AirtelTigo Money or card, and the insurer issues your policy to your wallet.</>,
+                  instant: <>Compare, buy and manage insurance in minutes: real quotes from licensed insurers through brokers you choose, paid by MoMo or card, with your policy issued by the insurer straight to your wallet.</>,
+                }}
+              />
             </p>
             <ul className="mt-8 grid gap-3 text-[15px] text-ink-2 sm:grid-cols-3 lg:grid-cols-1">
               {TICKS.map(({ Icon, text }) => (

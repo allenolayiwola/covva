@@ -164,7 +164,7 @@ export function Notice({ tone = "info", title, children, icon, className }: { to
       {icon && <div className="mt-0.5 shrink-0">{icon}</div>}
       <div>
         {title && <p className="font-semibold">{title}</p>}
-        {children && <div className={clsx(title && "mt-0.5", "opacity-90")}>{children}</div>}
+        {children && <div className={clsx(title && "mt-0.5")}>{children}</div>}
       </div>
     </div>
   );

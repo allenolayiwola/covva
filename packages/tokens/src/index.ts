@@ -20,7 +20,7 @@ export const colors = {
   gold: "#D9B36A",
   danger: "#B42318",
   dangerBg: "#FEE4E2",
-  info: "#1F6FB2",
+  info: "#1A63A0", // was #1F6FB2; darkened for WCAG AA on infoBg
   infoBg: "#E3EFFA",
 } as const;
 

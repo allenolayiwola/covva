@@ -28,21 +28,21 @@ export function PhoneMock({ insurers, className }: { insurers: string[]; classNa
               <div className="absolute -right-8 -top-10 size-28 rounded-full bg-white/[0.08]" />
               <div className="absolute -bottom-12 right-6 size-24 rounded-full bg-white/[0.06]" />
               <div className="relative flex items-center justify-between">
-                <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-white/75">Motor · Comprehensive</p>
+                <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-white/90">Motor · Comprehensive</p>
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-white/15 px-1.5 py-0.5 text-[13px] font-medium">
                   <Check className="size-2.5" strokeWidth={3} />
                   Active
                 </span>
               </div>
               <p className="relative mt-2 text-[16px] font-semibold tracking-tight">Your everyday drive</p>
-              <p className="relative text-[13px] text-white/75">{a} · DEMO-1048</p>
+              <p className="relative text-[13px] text-white/90">{a} · DEMO-1048</p>
               <div className="relative mt-3 flex gap-6">
                 <div>
-                  <p className="text-[13px] text-white/70">Cover ends</p>
+                  <p className="text-[13px] text-white/90">Cover ends</p>
                   <p className="text-[13px] font-semibold">30 Nov 2026</p>
                 </div>
                 <div>
-                  <p className="text-[13px] text-white/70">Premium</p>
+                  <p className="text-[13px] text-white/90">Premium</p>
                   <p className="text-[13px] font-semibold">GH₵ 2,400 / yr</p>
                 </div>
               </div>
