@@ -15,6 +15,8 @@ export const WEBHOOK_EVENTS = [
   "claim.reported",
   "claim.status_changed",
   "complaint.filed",
+  "referral.converted",
+  "referral.rewarded",
   "test.ping",
 ] as const;
 
@@ -30,6 +32,8 @@ export const WEBHOOK_EVENT_DESCRIPTIONS: Record<WebhookEvent, string> = {
   "claim.reported": "A customer reported a claim on a policy you are party to.",
   "claim.status_changed": "A claim changed status (decisions are always the insurer's).",
   "complaint.filed": "A customer filed a complaint owned by your organisation.",
+  "referral.converted": "A customer you referred (link, widget or partner API) now has an active policy (distribution partners).",
+  "referral.rewarded": "Your revenue share (from Covva's platform fee) was accrued for a converted referral (distribution partners).",
   "test.ping": "Sent from the settings page to check an endpoint.",
 };
 

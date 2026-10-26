@@ -31,3 +31,8 @@ export * from "./fx";
 export * from "./subscriptions";
 export * from "./bundles";
 export * from "./diaspora";
+export * from "./i18n/index";
+export * from "./ussd";
+export * from "./referrals";
+export * from "./instalments";
+export * from "./micro";

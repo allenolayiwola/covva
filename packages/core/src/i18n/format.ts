@@ -83,11 +83,11 @@ function parseBranches(body: string): Record<string, string> {
   const out: Record<string, string> = {};
   let i = 0;
   while (i < body.length) {
-    while (i < body.length && /\s/.test(body[i])) i++;
+    while (i < body.length && /\s/.test(body[i] ?? "")) i++;
     const start = i;
-    while (i < body.length && body[i] !== "{" && !/\s/.test(body[i])) i++;
+    while (i < body.length && body[i] !== "{" && !/\s/.test(body[i] ?? "")) i++;
     const key = body.slice(start, i);
-    while (i < body.length && /\s/.test(body[i])) i++;
+    while (i < body.length && /\s/.test(body[i] ?? "")) i++;
     if (body[i] !== "{") break;
     const close = matchBrace(body, i);
     if (close < 0) break;

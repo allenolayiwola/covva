@@ -58,7 +58,7 @@ export function normaliseLocale(value: string | null | undefined): Locale | null
   for (const l of LOCALES) {
     if (v === l.code || (l.aliases as readonly string[]).includes(v)) return l.code;
   }
-  const base = v.split("-")[0];
+  const base = v.split("-")[0] ?? v;
   for (const l of LOCALES) {
     if (base === l.code || (l.aliases as readonly string[]).includes(base)) return l.code;
   }
@@ -77,7 +77,7 @@ export function matchAcceptLanguage(header: string | null | undefined): Locale |
       const [tag, ...params] = part.trim().split(";");
       const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
       const weight = q ? Number(q.slice(2)) : 1;
-      return { tag: tag.trim(), q: Number.isFinite(weight) ? weight : 0, i };
+      return { tag: (tag ?? "").trim(), q: Number.isFinite(weight) ? weight : 0, i };
     })
     .filter((r) => r.tag && r.tag !== "*" && r.q > 0)
     .sort((a, b) => b.q - a.q || a.i - b.i);

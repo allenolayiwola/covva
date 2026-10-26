@@ -138,6 +138,12 @@ export async function initiatePayment(args: {
   saveMethod?: boolean;
   /** Sponsor abroad: this payment is the first instalment of a recurring collection (card only). */
   sponsorSubscription?: { cadence: SubscriptionCadence; beneficiaryId?: string | null } | null;
+  /**
+   * Phase 3 plans (server/instalments.ts, server/micro.ts): `instalmentId` charges that instalment's
+   * amount (read from the DB, never from the client) instead of the full premium; `micro` opens a
+   * micro cover window once paid. Both are recorded on `raw_event.initialize`.
+   */
+  plan?: { instalmentId?: string | null; micro?: { period: string; channel: string; autoRenew?: boolean } | null } | null;
 }): Promise<InitiatePaymentResult> {
   const svc = createServiceClient();
 
@@ -216,6 +222,11 @@ export async function initiatePayment(args: {
   let amount = Math.round((Number(quote.premium) + Number(quote.taxes) + Number(quote.fees) + benefitTotal) * 100) / 100;
   if (!(amount > 0)) throw new BusinessRuleError("The amount due could not be calculated.");
   const quotedTotal = amount;
+  const instalmentId = args.plan?.instalmentId ?? null;
+  if (instalmentId) {
+    const { instalmentChargeForApplication } = await import("@/server/instalments");
+    amount = await instalmentChargeForApplication(svc, { instalmentId, applicationId: app.id });
+  }
 
   // Diaspora (roadmap Phase 2): display currency and sponsor instalments. Foreign currency is card only
   // (mobile money and bank transfers are GHS rails); a recurring sponsor plan needs a card authorisation.
@@ -276,6 +287,8 @@ export async function initiatePayment(args: {
     fx_disclosure: fx.disclosure,
     save_method: !!args.saveMethod || !!sponsorPlan,
     sponsor_subscription: sponsorPlan ? { cadence: sponsorPlan.cadence, beneficiary_id: sponsorPlan.beneficiaryId ?? null, quoted_total: quotedTotal, charge_amount: amount, billing_period: quote.billing_period } : null,
+    instalment_id: instalmentId,
+    micro: args.plan?.micro ?? null,
   };
   const psp: Psp = provider === "paystack" && displayCurrency !== "GHS" ? "paystack_intl" : provider;
   // Three-party split (insurer / broker commission / platform fee) — see server/commercial.ts.
@@ -332,7 +345,7 @@ export async function initiatePayment(args: {
   let authorizationUrl: string | null = null;
   let status: Enum<"payment_status"> = "pending";
   let displayText: string | null = null;
-  const metadata = { payment_id: payment.id, application_id: app.id, request_id: request.id, quote_id: quote.id, request_reference: request.reference, display_currency: displayCurrency, display_amount: fx.displayAmount, psp };
+  const metadata = { payment_id: payment.id, application_id: app.id, request_id: request.id, quote_id: quote.id, request_reference: request.reference, display_currency: displayCurrency, display_amount: fx.displayAmount, psp, ...(instalmentId ? { instalment_id: instalmentId } : {}) };
 
   if (provider === "simulator") {
     authorizationUrl = `${siteUrl()}/api/payments/simulate?reference=${encodeURIComponent(reference)}&sig=${simulatorSignature(reference)}`;
@@ -418,7 +431,7 @@ export async function initiatePayment(args: {
     actor_id: callerId,
     actor_party: "customer",
     event: "payment_initiated",
-    note: `Payment of ${quote.currency} ${amount.toFixed(2)} started (${provider === "simulator" ? "sandbox simulator" : provider === "hubtel" ? `Hubtel ${args.channel.replace(/_/g, " ")}` : args.channel.replace(/_/g, " ")})${displayCurrency !== "GHS" ? ` — shown as ≈ ${formatMoney(fx.displayAmount, displayCurrency)} (indicative)` : ""}${sponsorPlan ? ` as the first ${sponsorPlan.cadence} sponsor instalment` : ""}.`,
+    note: `Payment of ${quote.currency} ${amount.toFixed(2)} started (${provider === "simulator" ? "sandbox simulator" : provider === "hubtel" ? `Hubtel ${args.channel.replace(/_/g, " ")}` : args.channel.replace(/_/g, " ")})${displayCurrency !== "GHS" ? ` — shown as ≈ ${formatMoney(fx.displayAmount, displayCurrency)} (indicative)` : ""}${sponsorPlan ? ` as the first ${sponsorPlan.cadence} sponsor instalment` : ""}${instalmentId ? " as the first instalment" : ""}.`,
     data: { payment_id: payment.id, reference, provider, psp, display_currency: displayCurrency, display_amount: fx.displayAmount } as Json,
   });
 
@@ -446,6 +459,30 @@ function isSubscriptionCharge(p: Pick<PaymentRow, "application_id" | "raw_event"
   return p.application_id === null && typeof asObject(p.raw_event).subscription_id === "string";
 }
 
+/** Phase 3 collections without an application: an instalment (`raw_event.instalment_id`) or a micro renewal (`raw_event.micro_session_id`). */
+function planCollectionKind(p: Pick<PaymentRow, "application_id" | "raw_event">): "instalment" | "micro" | null {
+  if (p.application_id !== null) return null;
+  const raw = asObject(p.raw_event);
+  return typeof raw.instalment_id === "string" ? "instalment" : typeof raw.micro_session_id === "string" ? "micro" : null;
+}
+
+/** Checkout of a plan (first instalment / micro cover): link it to the new policy before issuance. Never blocks the flow. */
+async function runPlanHooks(svc: Svc, payment: PaymentRow, policyId: string) {
+  const init = asObject(asObject(payment.raw_event).initialize as Json);
+  try {
+    if (typeof init.instalment_id === "string") {
+      const { linkFirstInstalment } = await import("@/server/instalments");
+      await linkFirstInstalment(svc, payment, policyId, init.instalment_id);
+    }
+    if (init.micro && typeof init.micro === "object") {
+      const { activateMicroSession } = await import("@/server/micro");
+      await activateMicroSession(svc, payment, policyId);
+    }
+  } catch (err) {
+    log.error("plan.hook_failed", { paymentId: payment.id, policyId, err });
+  }
+}
+
 /** The sponsor plan requested at initiation (`raw_event.initialize.sponsor_subscription`), if any. */
 function sponsorPlanOf(p: Pick<PaymentRow, "raw_event">): { cadence: SubscriptionCadence } | null {
   const plan = asObject(asObject(asObject(p.raw_event).initialize as Json).sponsor_subscription as Json);
@@ -463,7 +500,13 @@ function sponsorPlanOf(p: Pick<PaymentRow, "raw_event">): { cadence: Subscriptio
  * is applied through `applyPaymentResult` → `applySubscriptionChargeOutcome`.
  */
 export async function chargeStoredMethod(args: {
-  subscription: Row<"sponsor_subscriptions">;
+  subscription: Pick<Row<"sponsor_subscriptions">, "id" | "ghs_amount" | "display_currency" | "sponsor_user_id">;
+  /**
+   * Instalment / micro collections (server/instalments.ts, server/micro.ts) reuse this stored-card path:
+   * `subscription` then carries the payer and amount, `tags` replace `subscription_id` on the payment
+   * (so `applyPaymentResult` routes the outcome) and `idempotencyKey` replaces the subscription key.
+   */
+  collection?: { tags: Record<string, string | string[] | boolean>; idempotencyKey: string } | null;
   method: Row<"payment_methods"> | null;
   policy: { id: string; request_id: string | null; quote_id: string | null; customer_id: string; insurer_org_id: string; broker_org_id: string | null };
   attempt: number;
@@ -493,7 +536,8 @@ export async function chargeStoredMethod(args: {
   }
   const psp: Psp = provider === "simulator" ? "simulator" : args.method?.psp === "paystack_intl" ? "paystack_intl" : "paystack";
   const fx = await quoteFx(amount, sub.display_currency);
-  const idempotencyKey = `sub:${sub.id}:${args.chargeNo}:${args.attempt}`;
+  const idempotencyKey = args.collection?.idempotencyKey ?? `sub:${sub.id}:${args.chargeNo}:${args.attempt}`;
+  const tags = args.collection?.tags ?? { subscription_id: sub.id };
   const { data: existing } = await svc.from("payments").select("id, provider_reference, status").eq("idempotency_key", idempotencyKey).maybeSingle();
   if (existing) return { paymentId: existing.id, reference: existing.provider_reference ?? "", status: existing.status };
 
@@ -530,13 +574,13 @@ export async function chargeStoredMethod(args: {
       channel: "card",
       status: "pending",
       settlement_subaccount: settlement,
-      raw_event: { subscription_id: sub.id, charge_no: args.chargeNo, attempt: args.attempt, initialize: { channel: "card", started_at: new Date().toISOString(), display_currency: sub.display_currency, display_amount: fx.displayAmount, fx_disclosure: fx.disclosure, payment_method_id: args.method?.id ?? null }, split: commercial.summary } as unknown as Json,
+      raw_event: { ...tags, charge_no: args.chargeNo, attempt: args.attempt, initialize: { channel: "card", started_at: new Date().toISOString(), display_currency: sub.display_currency, display_amount: fx.displayAmount, fx_disclosure: fx.disclosure, payment_method_id: args.method?.id ?? null }, split: commercial.summary } as unknown as Json,
     })
     .select("*")
     .single();
   if (error || !payment) throw new BusinessRuleError(ruleMessage(error, "We couldn't start the collection."));
   await persistPaymentSplits(svc, payment.id, commercial, settlement);
-  await svc.from("subscription_charges").update({ payment_id: payment.id }).eq("subscription_id", sub.id).is("payment_id", null).eq("attempt", args.attempt).eq("status", "pending");
+  if (!args.collection) await svc.from("subscription_charges").update({ payment_id: payment.id }).eq("subscription_id", sub.id).is("payment_id", null).eq("attempt", args.attempt).eq("status", "pending");
 
   if (provider === "simulator") {
     const r = await applyPaymentResult(reference, { status: "succeeded", amountMinor: Math.round(amount * 100), currency: "GHS", paidAt: new Date().toISOString(), channel: "card", event: { simulator: true, subscription: true }, source: "simulator" });
@@ -551,7 +595,7 @@ export async function chargeStoredMethod(args: {
       reference,
       authorization_code: args.method!.provider_token_ref,
       ...commercial.paystackSettlement,
-      metadata: { payment_id: payment.id, subscription_id: sub.id, policy_id: args.policy.id, request_reference: request.reference, display_currency: sub.display_currency, display_amount: fx.displayAmount, psp },
+      metadata: { payment_id: payment.id, ...tags, policy_id: args.policy.id, request_reference: request.reference, display_currency: sub.display_currency, display_amount: fx.displayAmount, psp },
     },
   });
   const d = res.json.data;
@@ -570,6 +614,154 @@ export async function chargeStoredMethod(args: {
   // pending / send_otp / open_url etc.: the webhook (charge.success / charge.failed) completes it.
   await svc.from("payments").update({ status: "processing" }).eq("id", payment.id).eq("status", "pending");
   return { paymentId: payment.id, reference, status: "processing" };
+}
+
+// ---------------------------------------------------------------------------
+// Policy collections (Phase 3: instalments after checkout, micro renewals)
+// ---------------------------------------------------------------------------
+/**
+ * Start a premium collection on an EXISTING policy (no application): a `payments` row in GHS with the
+ * INSURER as payee, split pro rata from the policy's quote (same ledger / settlement path as a checkout),
+ * then a mobile money prompt the customer approves on their phone (Paystack `/charge`), or a hosted pay
+ * link (Paystack checkout, Hubtel checkout per the insurer's provider, or the sandbox simulator). `tags`
+ * mark the payment (`instalment_id` / `micro_session_id`) so `applyPaymentResult` routes the outcome.
+ * Saved cards go through `chargeStoredMethod` instead. Authorisation is the caller's job.
+ */
+export async function initiatePolicyCollection(args: {
+  policyId: string;
+  payerUserId: string;
+  amount: number;
+  tags: Record<string, string | string[] | boolean>;
+  idempotencyKey: string;
+  channel: "mobile_money" | "card" | "link";
+  momo?: { phone: string; provider: "mtn" | "vod" | "atl" } | null;
+  callbackUrl?: string;
+  description: string;
+}): Promise<{ paymentId: string; reference: string; status: Enum<"payment_status">; authorizationUrl: string | null; displayText: string | null; provider: PaymentProvider }> {
+  const svc = createServiceClient();
+  const amount = roundHalfUp(args.amount);
+  if (!(amount > 0)) throw new BusinessRuleError("Nothing to collect.");
+  const { data: policy } = await svc.from("policies").select("id, request_id, quote_id, customer_id, insurer_org_id, broker_org_id").eq("id", args.policyId).maybeSingle();
+  if (!policy?.request_id || !policy.insurer_org_id) throw new BusinessRuleError("This policy can't be paid through Covva.", "not_found");
+  const { data: existing } = await svc.from("payments").select("id, provider, provider_reference, status, authorization_url").eq("idempotency_key", args.idempotencyKey).maybeSingle();
+  if (existing?.status === "succeeded") throw new BusinessRuleError("This has already been paid.", "conflict");
+  if (existing && (existing.status === "pending" || existing.status === "processing") && existing.authorization_url && args.channel !== "mobile_money") {
+    return { paymentId: existing.id, reference: existing.provider_reference ?? "", status: existing.status, authorizationUrl: existing.authorization_url, displayText: null, provider: existing.provider as PaymentProvider };
+  }
+  const [{ data: insurer }, { data: quote }, { data: request }] = await Promise.all([
+    svc.from("organizations").select("id, name, type, status, paystack_subaccount_code, paystack_split_code, settings").eq("id", policy.insurer_org_id).single(),
+    policy.quote_id ? svc.from("quotes").select("*").eq("id", policy.quote_id).maybeSingle() : Promise.resolve({ data: null }),
+    svc.from("requests").select("id, reference, broker_org_id, source_broker_org_id").eq("id", policy.request_id).single(),
+  ]);
+  if (!insurer || insurer.type !== "insurer" || insurer.status !== "active") throw new BusinessRuleError("This insurer can't accept payments right now.");
+  if (!request) throw new BusinessRuleError("Request not found.", "not_found");
+
+  const insurerSettings = asObject(insurer.settings);
+  const hubtelMerchant = typeof insurerSettings.hubtel_merchant_account === "string" ? insurerSettings.hubtel_merchant_account : process.env.HUBTEL_MERCHANT_ACCOUNT ?? null;
+  let provider: PaymentProvider;
+  if (paymentProviderFor(insurer.settings) === "hubtel" && hubtelMerchant) provider = "hubtel";
+  else if (paystackKey() && insurer.paystack_subaccount_code) provider = "paystack";
+  else if (simulatorEnabled()) provider = "simulator";
+  else throw new BusinessRuleError(`${insurer.name}'s payment route isn't set up yet.`, "unavailable");
+
+  const quotedTotal = quote ? Number(quote.premium) + Number(quote.taxes) + Number(quote.fees) : amount;
+  const scale = quotedTotal > 0 ? amount / quotedTotal : 1;
+  const quoteForSplit = quote
+    ? { id: quote.id, premium: Number(quote.premium), taxes: roundHalfUp(Number(quote.taxes) * scale), fees: roundHalfUp(Number(quote.fees) * scale), currency: quote.currency, insurer_org_id: quote.insurer_org_id, broker_org_id: quote.broker_org_id }
+    : { id: "", premium: amount, taxes: 0, fees: 0, currency: "GHS", insurer_org_id: insurer.id, broker_org_id: policy.broker_org_id };
+  const commercial = await splitForPayment(svc, { amount, quote: quoteForSplit, request, insurer, provider });
+  const reference = newReference();
+  const { data: profile } = await svc.from("profiles").select("email, phone").eq("id", args.payerUserId).maybeSingle();
+  const email = profile?.email ?? `customer-${args.payerUserId.slice(0, 8)}@payments.covva.com.gh`;
+  const settlement = provider === "simulator" ? "SIMULATED" : provider === "hubtel" ? hubtelMerchant : insurer.paystack_subaccount_code;
+  const callbackUrl = args.callbackUrl ?? `${siteUrl()}/account/policies/${policy.id}`;
+  const channel: Enum<"payment_channel"> = args.channel === "card" ? "card" : "mobile_money";
+  const row = {
+    application_id: null,
+    request_id: request.id,
+    quote_id: quote?.id ?? null,
+    policy_id: policy.id,
+    customer_id: args.payerUserId,
+    payee_org_id: insurer.id, // premiums settle to the insurer (payments_guard)
+    amount,
+    currency: "GHS",
+    provider,
+    psp: provider as Psp,
+    display_currency: "GHS",
+    display_amount: amount,
+    provider_reference: reference,
+    channel,
+    status: "pending" as const,
+    settlement_subaccount: settlement,
+    authorization_url: null,
+    failure_reason: null,
+    raw_event: { ...args.tags, initialize: { channel: args.channel, momo_provider: args.momo?.provider ?? null, started_at: new Date().toISOString(), callback_url: callbackUrl }, split: commercial.summary } as unknown as Json,
+  };
+  let paymentId: string;
+  if (existing) {
+    const { data, error } = await svc.from("payments").update(row).eq("id", existing.id).neq("status", "succeeded").select("id").single();
+    if (error || !data) throw new BusinessRuleError(ruleMessage(error, "We couldn't start the payment."));
+    paymentId = data.id;
+  } else {
+    const { data, error } = await svc.from("payments").insert({ ...row, idempotency_key: args.idempotencyKey }).select("id").single();
+    if (error?.code === "23505") throw new BusinessRuleError("A payment is already being set up. Please try again in a moment.", "conflict");
+    if (error || !data) throw new BusinessRuleError(ruleMessage(error, "We couldn't start the payment."));
+    paymentId = data.id;
+  }
+  await persistPaymentSplits(svc, paymentId, commercial, settlement);
+
+  let authorizationUrl: string | null = null;
+  let displayText: string | null = null;
+  let status: Enum<"payment_status"> = "pending";
+  const metadata = { payment_id: paymentId, policy_id: policy.id, request_reference: request.reference, ...args.tags };
+  if (provider === "simulator") {
+    authorizationUrl = `${siteUrl()}/api/payments/simulate?reference=${encodeURIComponent(reference)}&sig=${simulatorSignature(reference)}`;
+    displayText = args.channel === "mobile_money" ? "Sandbox: open the link to approve the mobile money payment." : null;
+  } else if (provider === "hubtel") {
+    const res = await hubtelInitiate({
+      amount,
+      description: args.description.slice(0, 120),
+      clientReference: reference,
+      callbackUrl: `${siteUrl()}/api/webhooks/hubtel${process.env.HUBTEL_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET)}` : ""}`,
+      returnUrl: callbackUrl,
+      cancellationUrl: callbackUrl,
+      customerPhone: args.momo?.phone ?? profile?.phone ?? null,
+      customerEmail: email,
+      merchantAccount: hubtelMerchant,
+    });
+    if (!res.ok || !res.checkoutUrl) {
+      await svc.from("payments").update({ status: "failed", failure_reason: (res.message ?? "Checkout could not be started").slice(0, 500) }).eq("id", paymentId).in("status", ["pending", "processing"]);
+      throw new BusinessRuleError("We couldn't start the payment. Please try again.");
+    }
+    authorizationUrl = res.checkoutUrl;
+  } else if (args.channel === "mobile_money" && args.momo) {
+    const res = await paystack<{ status?: string; display_text?: string }>("/charge", {
+      method: "POST",
+      body: { email, amount: Math.round(amount * 100), currency: "GHS", reference, mobile_money: { phone: args.momo.phone, provider: args.momo.provider }, ...commercial.paystackSettlement, metadata },
+    });
+    if (!res.ok) {
+      await svc.from("payments").update({ status: "failed", failure_reason: (res.json.message ?? "Mobile money prompt could not be sent").slice(0, 500) }).eq("id", paymentId).in("status", ["pending", "processing"]);
+      throw new BusinessRuleError(res.json.message ?? "We couldn't send the mobile money prompt. Check the number and try again.");
+    }
+    displayText = res.json.data?.display_text ?? "Approve the payment prompt on your phone.";
+    status = res.json.data?.status === "failed" ? "failed" : "processing";
+  } else {
+    const res = await paystack<{ authorization_url: string }>("/transaction/initialize", {
+      method: "POST",
+      body: { email, amount: Math.round(amount * 100), currency: "GHS", reference, callback_url: callbackUrl, channels: args.channel === "card" ? ["card"] : ["mobile_money", "card"], ...commercial.paystackSettlement, metadata: { ...metadata, cancel_action: callbackUrl } },
+    });
+    if (!res.ok || !res.json.data?.authorization_url) {
+      await svc.from("payments").update({ status: "failed", failure_reason: (res.json.message ?? "Checkout could not be started").slice(0, 500) }).eq("id", paymentId).in("status", ["pending", "processing"]);
+      throw new BusinessRuleError("We couldn't start the payment. Please try again.");
+    }
+    authorizationUrl = res.json.data.authorization_url;
+  }
+  await svc.from("payments").update({ authorization_url: authorizationUrl, status: status === "failed" ? "processing" : status }).eq("id", paymentId).in("status", ["pending", "processing"]);
+  if (status === "failed") {
+    const r = await applyPaymentResult(reference, { status: "failed", failureReason: "Mobile money prompt was declined", source: "verify" });
+    status = r.status ?? "failed";
+  }
+  return { paymentId, reference, status, authorizationUrl, displayText, provider };
 }
 
 // ---------------------------------------------------------------------------
@@ -746,6 +938,16 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
     const { applySubscriptionChargeOutcome } = await import("@/server/subscriptions");
     return applySubscriptionChargeOutcome(svc, payment, outcome);
   }
+  // Phase 3: instalment collections and micro renewals keep an existing policy going.
+  const planKind = planCollectionKind(payment);
+  if (planKind === "instalment") {
+    const { applyInstalmentChargeOutcome } = await import("@/server/instalments");
+    return applyInstalmentChargeOutcome(svc, payment, outcome);
+  }
+  if (planKind === "micro") {
+    const { applyMicroRenewalOutcome } = await import("@/server/micro");
+    return applyMicroRenewalOutcome(svc, payment, outcome);
+  }
 
   if (outcome.status !== "succeeded") {
     if (outcome.status === "refunded" && payment.status === "refunded") {
@@ -844,6 +1046,7 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
     policyId = policy?.id ?? null;
   }
   if (policyId) await svc.from("payments").update({ policy_id: policyId }).eq("id", payment.id);
+  if (policyId) await runPlanHooks(svc, { ...payment, status: "succeeded", paid_at: paidAt, policy_id: policyId }, policyId);
   // Ledger: premium to the insurer, commission and platform fee (idempotent; never blocks the flow).
   await recordPaymentLedger(svc, { ...payment, status: "succeeded", paid_at: paidAt, policy_id: policyId });
   // Sponsor plan: the next instalments are collected automatically (server/subscriptions.ts).
