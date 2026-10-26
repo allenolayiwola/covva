@@ -124,16 +124,16 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] Underinsurance nudges on value changes (`policy-lifecycle` cron, `policies.underinsurance_flag`, policy page nudge).
 
 **Partner self-service (Addendum 3) — needed for the launch partner**
-- [ ] Public "Partner with Covva" pages for insurers and brokers with register / request-a-call CTAs (callback → CRM lead).
-- [ ] Insurer registration (company, NIC licence + class, address, contacts, settlement account, documents, e-signature of the partner agreement, integration level per line) → admin verification → live.
-- [ ] Broker registration (same pattern + commercial model choice) → verification; licence expiry tracking and auto-suspend (cron).
-- [ ] Appointment requests broker → insurer approval per line; appointment-letter upload for insurers not on Covva; revoke removes eligibility immediately.
+- [x] Public "Partner with Covva" pages for insurers and brokers with register / request-a-call CTAs (callback → CRM lead via the `leads` trigger).
+- [x] Insurer registration (company, NIC licence + class, address, contacts, settlement account, documents, in-app e-signature of the partner agreement, integration level per line) → admin verification (manual NIC register confirmation) → live. External e-signature provider still to add.
+- [x] Broker registration (same pattern + commercial model choice) → verification; licence expiry tracking and auto-suspend (`licence-status` cron).
+- [x] Appointment requests broker → insurer approval per line; appointment-letter upload for insurers not on Covva; revoke removes eligibility immediately.
 - [~] Insurer roles (Admin, Product Manager, Underwriter, Claims, Finance, Read-only) and broker roles (Admin, Account Executive, Claims, Finance, Read-only); MFA; audit. (Roles + MFA done — `packages/core/src/roles.ts`, `/partner/mfa`; audit coverage of role changes pending.)
-- [ ] Insurer self-service product management: create products by line, rate-table builder/import, rules editor, templates, quote simulator, approval workflow (Draft → Submitted → Compliance review → Published), pause/withdraw, bulk updates, change history.
-- [ ] Insurer dashboard (sales, conversions, issued, renewals, lapses, claims, SLA, settlements).
-- [ ] Partnerships CRM in admin: leads/accounts, pipeline stages, notes/meetings/tasks/reminders, attachments, owner; auto-leads from forms and "suggest an insurer"; assisted onboarding (rep pre-fills, partner confirms via OTP/e-signature); onboarding checklist; mobile-friendly rep view; dashboards.
-- [ ] Broker bulk import of existing clients and policies; account-manager assignment; "assisted service" flag.
-- [ ] Feature flags gating self-service registration by NIC approval status.
+- [~] Insurer self-service product management: create products by line, rate-table builder/import, rules editor, templates, quote simulator, approval workflow (Draft → Submitted → Compliance review → Published) done in Phase 0; pause/withdraw exists; bulk updates and a change-history view still to do.
+- [x] Insurer dashboard (sales, conversions, issued, renewals, lapses, claims, SLA, settlements) + broker dashboard, reports CSV, activity tab.
+- [x] Partnerships CRM in admin: leads/accounts, pipeline stages, notes/meetings/tasks/reminders, attachments, owner; auto-leads from forms and "suggest an insurer"; assisted onboarding (rep pre-fills, partner confirms via the in-app agreement signature); onboarding checklist; mobile-friendly rep view; dashboards.
+- [x] Broker bulk import of existing clients and policies; account-manager assignment; "assisted service" flag.
+- [x] Feature flags gating self-service registration (`partner_self_service_insurer` / `partner_self_service_broker`).
 
 **Tests:** quote calculations per rating model, split calculations, routing (direct / pool / fixed / advice), SLA escalation.
 

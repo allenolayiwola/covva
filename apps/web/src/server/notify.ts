@@ -221,6 +221,28 @@ async function deliver(svc: Svc, rows: Inserted[]) {
   );
 }
 
+/**
+ * Deliver notification rows written directly in the database (SECURITY DEFINER RPCs such as
+ * approve_partner_application, decide_appointment_request and refresh_licence_status insert the
+ * in-app row but cannot send email/SMS/push). Picks rows of the given kinds whose `delivered` is
+ * still empty and older than `minAgeMs` (so rows `notify()` is still delivering are left alone).
+ */
+export async function deliverPending(svc: Svc, opts: { kinds: string[]; limit?: number; minAgeMs?: number }): Promise<{ delivered: number }> {
+  const before = new Date(Date.now() - (opts.minAgeMs ?? 2 * 60_000)).toISOString();
+  const { data } = await svc
+    .from("notifications")
+    .select("id, user_id, kind, title, body, link, data, channels")
+    .in("kind", opts.kinds)
+    .eq("delivered", "{}")
+    .lt("created_at", before)
+    .order("created_at")
+    .limit(opts.limit ?? 200);
+  const rows = (data ?? []) as Inserted[];
+  if (!rows.length) return { delivered: 0 };
+  await deliver(svc, rows);
+  return { delivered: rows.length };
+}
+
 // ---------------------------------------------------------------------------
 // Email (Resend REST API)
 // ---------------------------------------------------------------------------

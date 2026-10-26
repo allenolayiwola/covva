@@ -12,6 +12,7 @@
     { "path": "/api/cron/price-schedule", "schedule": "10 * * * *" },
     { "path": "/api/cron/settlement-statements", "schedule": "0 2 1 * *" },
     { "path": "/api/cron/licence-status", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/onboarding-notifications", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/issuance-retry", "schedule": "*/30 * * * *" },
     { "path": "/api/cron/crm-reminders", "schedule": "0 6 * * *" }
   ]
