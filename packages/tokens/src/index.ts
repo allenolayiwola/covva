@@ -9,13 +9,13 @@ export const colors = {
   ink: "#15343E",
   ink2: "#26434C",
   muted: "#486068",
-  subtle: "#6F858C",
+  subtle: "#5C737A", // was #6F858C (3.9:1 on white); darkened for WCAG AA small text
   line: "#DCE3E1",
   mint: "#DCEEE4",
   mint2: "#E7F3ED",
   mist: "#F1F7F3",
   white: "#FFFFFF",
-  amber: "#966E28",
+  amber: "#85601F", // was #966E28 (4.1:1 on amberBg); darkened for WCAG AA small text
   amberBg: "#FFF0D6",
   gold: "#D9B36A",
   danger: "#B42318",

@@ -184,7 +184,9 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] Diaspora page; Business/SME page refresh; Claims page; Verify-a-policy page (+ public verify API); Embedded-partner page; Learn hub (English now, Twi/Ga/Ewe switcher shows "coming soon"); referral page; waitlist + "launch partner" forms; press kit.
 - [x] Renewal-reminder sign-up (pre-purchase lead capture); WhatsApp button (env-gated); language and currency switchers.
 - [ ] Headless CMS (pages, articles, FAQs, testimonials, partner logos) — proposal: Sanity or Payload; decision needed.
-- [~] Act 843 consent banner + consent-gated GA4 done; Meta/TikTok pixels, A/B testing hooks and a Lighthouse run still to do.
+- [x] Act 843 consent banner with separate analytics / marketing choices and "change your choices" on the cookie notice; consent-gated GA4 (Consent Mode v2), Meta and TikTok pixels (`NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_TIKTOK_PIXEL_ID`); conversion events (`quote_start`, `generate_lead`, `app_store_click`, `whatsapp_click`) through one `track()` helper. (`components/marketing/analytics.ts`, docs: `docs/MARKETING_SITE.md`.)
+- [x] A/B testing hooks: experiment registry, sticky `covva_exp` assignment, `NEXT_PUBLIC_EXPERIMENTS` switch, `?exp=` QA override, exposure events; first experiment `home_hero_headline` registered (off by default). (`components/marketing/experiments.ts`, `experiment.tsx`.)
+- [x] Lighthouse run on the production build (mobile): results and follow-ups in `docs/MARKETING_SITE.md`.
 - [ ] Imagery: real Ghanaian photography + custom "how it works" illustrations (assets needed from you).
 
 ### Cross-cutting (every phase)

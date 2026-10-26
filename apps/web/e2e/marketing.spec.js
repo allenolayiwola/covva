@@ -126,6 +126,49 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("region", { name: "Cookie consent" })).toHaveCount(0);
   });
 
+  test("consent banner: 'Choose for me' saves analytics-only and the cookie notice can reset it", async ({ page }) => {
+    await page.goto("/about");
+    const region = page.getByRole("region", { name: "Cookie consent" });
+    await region.getByRole("button", { name: "Choose for me" }).click();
+    // Strictly necessary is always on and cannot be unticked.
+    await expect(region.getByRole("checkbox", { name: /Strictly necessary/ })).toBeDisabled();
+    await expect(region.getByRole("checkbox", { name: /Analytics/ })).toBeChecked();
+    await region.getByRole("button", { name: "Save choices" }).click();
+    await expect(region).toBeHidden();
+    let cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "covva_consent")?.value).toBe("analytics");
+    // Without a GA4 id configured, nothing is injected even after consent.
+    await expect(page.locator("script#ga4-src")).toHaveCount(0);
+    await expect(page.locator("script#meta-pixel-src")).toHaveCount(0);
+    // The cookie notice lets the visitor change their mind: the banner comes back.
+    await page.goto("/legal/cookies");
+    await expect(page.getByRole("status")).toContainText("analytics only");
+    await page.getByRole("button", { name: "Change your cookie choices" }).click();
+    await expect(page.getByRole("region", { name: "Cookie consent" })).toBeVisible();
+    cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "covva_consent")).toBeUndefined();
+  });
+
+  test("A/B hooks: control by default, ?exp= override is sticky and limited to known variants", async ({ page }) => {
+    await page.goto("/");
+    const h1 = page.getByRole("heading", { level: 1 });
+    await expect(h1).toContainText("Compare, buy and manage insurance");
+    await expect(h1.locator("[data-experiment='home_hero_headline']")).toHaveAttribute("data-variant", "control");
+    expect((await page.context().cookies()).find((c) => c.name === "covva_exp")).toBeUndefined();
+    // QA override forces a variant and persists it for the browser.
+    await page.goto("/?exp=home_hero_headline:instant");
+    await expect(h1.locator("[data-experiment='home_hero_headline']")).toHaveAttribute("data-variant", "instant");
+    await expect(h1).toContainText("Pay by MoMo");
+    expect(decodeURIComponent((await page.context().cookies()).find((c) => c.name === "covva_exp")?.value ?? "")).toBe("home_hero_headline:instant");
+    await page.goto("/");
+    await expect(h1.locator("[data-experiment='home_hero_headline']")).toHaveAttribute("data-variant", "instant");
+    // Unknown variants are ignored and the stored assignment is kept.
+    await page.goto("/?exp=home_hero_headline:nope");
+    await expect(h1.locator("[data-experiment='home_hero_headline']")).toHaveAttribute("data-variant", "instant");
+    await page.goto("/?exp=home_hero_headline:control");
+    await expect(h1).toContainText("Compare, buy and manage insurance");
+  });
+
   test("header navigation exposes the Insurance and Partners menus to the keyboard", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");

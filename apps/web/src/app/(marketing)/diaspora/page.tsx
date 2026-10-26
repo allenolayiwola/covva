@@ -212,7 +212,7 @@ export default async function DiasporaPage() {
         title="Look after your family in Ghana from anywhere."
         body="Get a quote for a parent, the family car or the house you are building. Pay in your currency; they get the policy in theirs."
         primary={{ label: "Get a quote", href: "/get-started?category=life-funeral" }}
-        secondary={{ label: "Learn more", href: "/learn/insurance-for-diaspora-families" }}
+        secondary={{ label: "Read the diaspora guide", href: "/learn/insurance-for-diaspora-families" }}
       />
     </>
   );

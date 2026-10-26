@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowRight } from "lucide-react";
 import { Field, Input, Select, buttonClass, cn } from "@im/ui";
 import { CategoryIcon } from "./category-icon";
+import { track } from "./analytics";
 
 export interface QuoteCategory { slug: string; name: string; icon: string | null; availability: "integrated" | "broker_assisted" | "planned" }
 
@@ -46,6 +47,10 @@ export function QuoteWidget({
     <form
       action="/get-started"
       method="get"
+      onSubmit={(e) => {
+        const reg = (e.currentTarget.elements.namedItem("reg") as HTMLInputElement | null)?.value.trim();
+        track("quote_start", { category: slug, has_reg: !!reg, placement: compact ? "product_page" : "hero" });
+      }}
       aria-labelledby={id("title")}
       className={cn("rounded-[24px] border border-line bg-white p-5 shadow-float sm:p-6", className)}
     >

@@ -35,6 +35,7 @@ import { Testimonials } from "@/components/marketing/testimonials";
 import { PartnerCtaStrip } from "@/components/marketing/partner-cta-strip";
 import { RenewalReminderForm } from "@/components/marketing/renewal-reminder-form";
 import { Reveal } from "@/components/marketing/reveal";
+import { Experiment } from "@/components/marketing/experiment";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { HOME_FAQ_IDS, KEY_BENEFITS, STATS, TESTIMONIALS, findFaq } from "@/components/marketing/content";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
@@ -83,7 +84,13 @@ export default async function HomePage() {
           <div className="motion-safe:animate-fade-up">
             <Eyebrow>Insurance for Ghana and the diaspora</Eyebrow>
             <h1 id="hero-title" className="mt-5 text-balance text-[42px] leading-[1.02] tracking-[-0.04em] text-ink sm:text-[58px] lg:text-[64px]">
-              Compare, buy and manage insurance <span className="text-brand">in minutes.</span>
+              <Experiment
+                name="home_hero_headline"
+                variants={{
+                  control: <>Compare, buy and manage insurance <span className="text-brand">in minutes.</span></>,
+                  instant: <>Insured <span className="text-brand">in minutes.</span> Pay by MoMo, get your policy instantly.</>,
+                }}
+              />
             </h1>
             <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-muted sm:text-xl">
               Motor, home, health, travel, life and business cover from licensed insurers. Pay with MoMo or card, get your policy instantly, and keep it in a wallet that works offline.

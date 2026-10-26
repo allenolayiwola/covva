@@ -134,9 +134,9 @@ the privileged journey is skipped, request creation in the browser test takes th
 
 ## Known limitations
 
-- **Contrast (product issue):** `--color-subtle` (`#6F858C`) on white is ≈4.1:1, below the 4.5:1 WCAG AA threshold for small text
-  (PLAN.md asks for 4.5:1). axe flags it on 20 web pages and the admin portal, so `color-contrast` is allowlisted until the token is
-  darkened. Also allowlisted: `scrollable-region-focusable` (the sample `<pre>` on `/insurers`), `link-in-text-block` (admin overview
+- **Contrast:** `--color-subtle` (now `#5C737A`, 5.0:1 on white) and `--color-amber` (now `#85601F`, 5.1:1 on its background) were
+  darkened to pass WCAG AA for small text. `color-contrast` stays allowlisted for the remaining findings: tiny labels inside the
+  illustrative phone and broker-queue mock-ups on the marketing site and dense tables in the apps, still to be reviewed. Also allowlisted: `scrollable-region-focusable` (the sample `<pre>` on `/insurers`), `link-in-text-block` (admin overview
   inline link) and `aria-meter-name` (the admin `<Meter>` on `/categories`). Set `E2E_AXE_ALLOWLIST=""` to make them fail.
 - Required text fields on the request form report zod's generic "Invalid input: expected string, received undefined" instead of the
   labelled "… is required" message, because empty values are omitted from the payload before validation.
