@@ -112,7 +112,7 @@ export default async function ClaimsPage() {
           <FeatureCard icon={<Hospital />} title="Hospital networks">Health plans pay the hospital directly: show your digital membership card at a network hospital. The network list will be searchable in the app and on this page.</FeatureCard>
           <FeatureCard icon={<PhoneCall />} title="Roadside and assistance">Towing, roadside help and 24-hour travel assistance lines, where your policy includes them, one tap from your wallet.</FeatureCard>
         </div>
-        <p className="mt-6 text-[14px] text-muted">Network directories are published as each insurer confirms them. Until then, your broker tells you where to go when you report a claim.</p>
+        <p className="mt-6 text-[14px] text-muted">Network directories are published as each insurer confirms them — <Link href="/claims/network" className={textLinkClass}>browse the approved partner network by region</Link>. Until a partner is listed near you, your broker tells you where to go when you report a claim.</p>
       </Section>
 
       <Section tone="mist" labelledBy="app-claims-title">

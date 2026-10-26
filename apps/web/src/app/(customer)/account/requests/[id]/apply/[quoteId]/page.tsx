@@ -11,9 +11,12 @@ import { getFlags, getSetting } from "@/lib/catalog";
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite } from "../../../../_lib/data";
-import { BankTransferPanel, DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting, type BankTransferDetail } from "./checkout-steps";
+import { BankTransferPanel, DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting, type BankTransferDetail, type CheckoutCurrency } from "./checkout-steps";
 import { declarationsFor } from "./declarations";
 import { feeBreakdownForQuoteId } from "@/server/commercial";
+import { fxSettings, getRates } from "@/server/fx";
+import { applePayEnabled } from "@/server/env";
+import { SUPPORTED_DISPLAY_CURRENCIES, fxMargin, parseDisplayCurrency } from "@im/core";
 
 export const metadata: Metadata = { title: "Apply" };
 
@@ -126,6 +129,15 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
   } else if (waitingPaymentId || (payment && ["pending", "processing"].includes(payment.status) && !payment.authorization_url)) {
     body = <PaymentWaiting paymentId={waitingPaymentId ?? payment!.id} requestId={id} retryHref={`/account/requests/${id}/apply/${quoteId}?retry=1`} />;
   } else {
+    // Diaspora: display currencies (indicative rates after the platform margin) and the sponsor option.
+    const [rates, fxConf] = await Promise.all([getRates(), fxSettings()]);
+    const currencies: CheckoutCurrency[] = SUPPORTED_DISPLAY_CURRENCIES.flatMap((code) => {
+      const r = rates[code];
+      return r ? [{ code, rate: code === "GHS" ? 1 : fxMargin(r.rate, fxConf.marginPct), source: r.source, quotedAt: r.fetchedAt, manual: r.manual }] : [];
+    });
+    const prof = (profile ?? {}) as { preferred_currency?: string | null; is_sponsor?: boolean | null };
+    const defaultCurrency = parseDisplayCurrency(prof.preferred_currency) ?? "GHS";
+    const insurerSettings = (quote.insurer?.settings ?? {}) as { instalments_allowed?: boolean };
     body = (
       <>
         {payment && ["pending", "processing"].includes(payment.status) && payment.authorization_url && !sp.retry && (
@@ -141,6 +153,11 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           insurer={insurerName}
           defaultPhone={profile?.phone ?? ""}
           failure={failure}
+          currencies={currencies}
+          defaultCurrency={defaultCurrency}
+          marginPct={fxConf.marginPct}
+          applePay={applePayEnabled()}
+          sponsor={{ offered: prof.is_sponsor !== false, billingPeriod: quote.billing_period, instalmentsAllowed: insurerSettings.instalments_allowed === true }}
         />
       </>
     );

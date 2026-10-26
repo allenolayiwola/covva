@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { UpdateProfileInput, parseActiveWorkspace } from "@im/core";
+import { UpdateProfileInput, currencyForCountry, parseActiveWorkspace, timezoneForCountry } from "@im/core";
 import type { Update } from "@im/db";
 import { getFlags, getSetting } from "@/lib/catalog";
 import { check, must, parseJson, withApi } from "@/server/api-auth";
@@ -25,6 +25,11 @@ export const GET = withApi(
     const latest: Record<string, { version: string; granted: boolean; at: string }> = {};
     for (const c of consents ?? []) latest[c.type] ??= { version: c.version, granted: c.granted, at: c.created_at };
     const { ghana_card_number, ...rest } = profile;
+    // Diaspora: the sponsor's household (family group) and how many family members they look after.
+    const [{ data: household }, { count: beneficiaryCount }] = await Promise.all([
+      sb.from("households").select("id, name, created_at").eq("owner_user_id", auth.userId).maybeSingle(),
+      sb.from("beneficiaries").select("id", { count: "exact", head: true }).eq("sponsor_user_id", auth.userId),
+    ]);
     const workspaces = buildWorkspaces(memberships ?? [], client);
     const activeWorkspace = resolveActiveWorkspace(parseActiveWorkspace(profile.active_workspace), workspaces);
     // Remember which platform this account last used (non-blocking; a GET must not wait on a write).
@@ -35,6 +40,11 @@ export const GET = withApi(
     }
     return {
       profile: { ...rest, ghana_card_last4: ghana_card_number ? ghana_card_number.slice(-4) : null },
+      country: profile.country_code ?? "GH",
+      currency: profile.preferred_currency ?? "GHS",
+      timezone: profile.timezone ?? null,
+      isSponsor: !!profile.is_sponsor || (beneficiaryCount ?? 0) > 0,
+      household: household ? { ...household, beneficiaries: beneficiaryCount ?? 0 } : null,
       memberships: memberships ?? [],
       isPartner: (memberships ?? []).some((m) => ["broker", "insurer"].includes((m.org as unknown as { type: string } | null)?.type ?? "")),
       workspaces,
@@ -65,6 +75,14 @@ export const PATCH = withApi(
     if (input.city !== undefined) patch.city = input.city;
     if (input.locale !== undefined) patch.locale = input.locale;
     if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl;
+    if (input.countryCode !== undefined) {
+      patch.country_code = input.countryCode;
+      patch.is_sponsor = input.countryCode !== "GH" ? true : undefined;
+      if (input.preferredCurrency === undefined) patch.preferred_currency = currencyForCountry(input.countryCode);
+      if (input.timezone === undefined) patch.timezone = timezoneForCountry(input.countryCode);
+    }
+    if (input.preferredCurrency !== undefined) patch.preferred_currency = input.preferredCurrency;
+    if (input.timezone !== undefined) patch.timezone = input.timezone;
     if (input.onboarded) patch.onboarded_at = new Date().toISOString();
     if (input.notificationPrefs) {
       const { data: cur } = await auth.supabase.from("profiles").select("notification_prefs").eq("id", auth.userId).single();
@@ -73,7 +91,7 @@ export const PATCH = withApi(
       if (typeof input.notificationPrefs.whatsapp === "boolean") patch.whatsapp_opt_in = input.notificationPrefs.whatsapp;
     }
     if (!Object.keys(patch).length) return { updated: false };
-    const res = await auth.supabase.from("profiles").update(patch).eq("id", auth.userId).select("id, full_name, preferred_name, phone, account_type, business_name, region, city, locale, avatar_url, notification_prefs, onboarded_at, kyc_status").single();
+    const res = await auth.supabase.from("profiles").update(patch).eq("id", auth.userId).select("id, full_name, preferred_name, phone, account_type, business_name, region, city, locale, avatar_url, notification_prefs, onboarded_at, kyc_status, country_code, preferred_currency, timezone, is_sponsor").single();
     check(res);
     return { updated: true, profile: res.data };
   },

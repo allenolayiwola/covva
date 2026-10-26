@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { useActionState } from "react";
-import { GHANA_REGIONS } from "@im/core";
+import { COUNTRY_OPTIONS, GHANA_REGIONS, SPONSOR_CURRENCIES } from "@im/core";
 import { Button, Field, Input, Select } from "@im/ui";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
@@ -19,6 +19,9 @@ export interface ProfileValues {
   business_name: string;
   ghana_card: string;
   kyc_status: string;
+  country_code: string;
+  preferred_currency: string;
+  timezone: string;
 }
 
 export function ProfileForm({ values }: { values: ProfileValues }) {
@@ -41,7 +44,24 @@ export function ProfileForm({ values }: { values: ProfileValues }) {
         <Field label="Mobile number" htmlFor="phone" error={fe.phone}>
           <Input id="phone" name="phone" type="tel" inputMode="tel" defaultValue={values.phone} autoComplete="tel" aria-invalid={!!fe.phone} />
         </Field>
-        <Field label="Region" htmlFor="region" error={fe.region}>
+        <Field label="Country of residence" htmlFor="country_code" error={fe.country_code} hint="Abroad? You can pay for family cover in your currency.">
+          <Select id="country_code" name="country_code" defaultValue={values.country_code || "GH"} aria-invalid={!!fe.country_code}>
+            {COUNTRY_OPTIONS.map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Show prices in" htmlFor="preferred_currency" error={fe.preferred_currency} hint="Premiums always settle in cedis; the conversion is shown before you pay.">
+          <Select id="preferred_currency" name="preferred_currency" defaultValue={values.preferred_currency || "GHS"} aria-invalid={!!fe.preferred_currency}>
+            {SPONSOR_CURRENCIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={<>Time zone <span className="font-normal text-subtle">(optional)</span></>} htmlFor="timezone" error={fe.timezone} hint="For reminders, e.g. Europe/London. Blank = Ghana time.">
+          <Input id="timezone" name="timezone" defaultValue={values.timezone} placeholder="Africa/Accra" autoComplete="off" aria-invalid={!!fe.timezone} />
+        </Field>
+        <Field label="Region in Ghana" htmlFor="region" error={fe.region}>
           <Select id="region" name="region" defaultValue={values.region} aria-invalid={!!fe.region}>
             <option value="">Choose…</option>
             {GHANA_REGIONS.map((r) => (

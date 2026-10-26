@@ -133,6 +133,14 @@ test.describe("customer account", () => {
     const empty = page.getByText("No claims");
     await expect(rows.first().or(empty)).toBeVisible();
     await expect(page.getByText(/insurer (assesses|decides)/i).first()).toBeVisible();
+    // Claim detail: the journey with expected times, the thread and the files list (Phase 2 claims completion).
+    if (await rows.first().isVisible().catch(() => false)) {
+      await rows.first().click();
+      await page.waitForURL(/\/account\/claims\/[0-9a-f-]{36}/);
+      await expect(page.getByRole("heading", { level: 2, name: "Timeline" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: "Messages" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: /Files you/ })).toBeVisible();
+    }
   });
 
   test("profile: change the preferred name and revert it", async ({ page }) => {

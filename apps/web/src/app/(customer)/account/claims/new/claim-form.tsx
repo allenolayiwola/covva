@@ -24,6 +24,7 @@ import { CLAIM_DISCLAIMER } from "@im/core";
 import { Button, Field, Input, Notice, Textarea, cn } from "@im/ui";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { MultiUpload } from "@/components/customer/upload";
+import { VideoUpload } from "@/components/customer/video-upload";
 import { initialActionState } from "@/components/customer/utils";
 import { reportClaim } from "../actions";
 
@@ -59,6 +60,8 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
   const [date, setDate] = React.useState("");
   const [time, setTime] = React.useState("");
   const [location, setLocation] = React.useState("");
+  const [gps, setGps] = React.useState<{ lat: number; lng: number; accuracy: number | null } | null>(null);
+  const [gpsState, setGpsState] = React.useState<"idle" | "busy" | "denied">("idle");
   const [description, setDescription] = React.useState("");
   const [amount, setAmount] = React.useState("");
   const [thirdParty, setThirdParty] = React.useState("");
@@ -96,6 +99,8 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
     <form action={action} noValidate>
       <input type="hidden" name="policyId" value={policyId} />
       <input type="hidden" name="incidentType" value={incident} />
+      <input type="hidden" name="lat" value={gps?.lat ?? ""} />
+      <input type="hidden" name="lng" value={gps?.lng ?? ""} />
 
       <div className="mb-6 flex items-center justify-between text-sm">
         <Link href={policy ? `/account/policies/${policy.id}` : "/account/claims"} className="font-medium text-brand hover:underline">Cancel</Link>
@@ -176,9 +181,35 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
           </div>
         </div>
         {fe.incidentDate && <p className="mt-2 text-xs text-danger">{fe.incidentDate}</p>}
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 font-medium text-brand hover:underline disabled:opacity-60"
+            disabled={gpsState === "busy"}
+            onClick={() => {
+              if (!("geolocation" in navigator)) return setGpsState("denied");
+              setGpsState("busy");
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  setGps({ lat: Number(pos.coords.latitude.toFixed(6)), lng: Number(pos.coords.longitude.toFixed(6)), accuracy: pos.coords.accuracy ? Math.round(pos.coords.accuracy) : null });
+                  setGpsState("idle");
+                },
+                () => setGpsState("denied"),
+                { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+              );
+            }}
+          >
+            <MapPin aria-hidden className="size-3.5" /> {gpsState === "busy" ? "Finding your location…" : gps ? "Update my location" : "Use my current location"}
+          </button>
+          {gps && <span>Pinned {gps.lat}, {gps.lng}{gps.accuracy ? ` (±${gps.accuracy} m)` : ""} · <button type="button" className="underline" onClick={() => setGps(null)}>remove</button></span>}
+          {gpsState === "denied" && <span>Location not available — type the address instead.</span>}
+        </div>
 
         <div className="mt-6">
           <MultiUpload userId={userId} scope="claims" name="evidence" label="Photos and evidence" tiles max={10} hint="Photos, police report, receipts · PDF, JPG or PNG · up to 10 MB each" />
+        </div>
+        <div className="mt-5">
+          <VideoUpload userId={userId} name="video" />
         </div>
         <Notice tone="neutral" icon={<Info className="size-4" />} className="mt-6">{CLAIM_DISCLAIMER}</Notice>
       </section>

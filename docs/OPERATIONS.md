@@ -38,7 +38,8 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `PAYSTACK_DVA_ENABLED`, `PAYSTACK_DVA_BANK` | no | no | `true` creates a Paystack dedicated virtual account per customer for bank transfers (auto-confirmed by `charge.success`) |
 | `VEHICLE_LOOKUP_PROVIDER`, `DVLA_API_URL`, `DVLA_API_KEY` | **yes** (key) | no | Registration lookup for motor quotes: `cache` (default) \| `dvla` \| `manual`. Unset → the form asks for make/model/year |
 | `IDENTITY_PROVIDER`, `NIA_API_URL`, `NIA_API_KEY` | **yes** (key) | no | Ghana Card verification: `manual` (default, admin review) \| `nia` (provider; manual review stays the fallback) |
-| `WHATSAPP_PROVIDER`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_TEMPLATE_*` | **yes** (token) | no | WhatsApp Cloud API (`meta`) for opted-in customers; `log` (default) only logs. Renewal reminders go WhatsApp first, SMS as fallback |
+| `WHATSAPP_PROVIDER`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_BUSINESS_ID`, `WHATSAPP_TEMPLATE_*` | **yes** (token) | **yes** (support console replies) | WhatsApp Cloud API (`meta`) for opted-in customers and the conversation channel; `log` (default) only logs. Renewal reminders go WhatsApp first, SMS as fallback. See "WhatsApp Business" below |
+| `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | **yes** | no | Inbound webhook `/api/webhooks/whatsapp`: signature check and Meta's subscription verification |
 | `LOG_LEVEL` | no | no | `debug` for verbose logs |
 | `NIC_MOTOR_DB_MODE` | no | no | How delegated motor policies reach the NIC motor insurance database: `manual` (default — an insurer task "Register policy … on the NIC motor database" is created and the insurer records the reference in Issuance → Delegated issuance) or `api` (through the insurer's connector adapter; only the `simulator` adapter exists, selected by `organizations.settings.connector = "simulator"`; falls back to the manual hand-off when the insurer has none). Status is tracked in `issuance_jobs.nic_registration`. |
 | `PARTNER_MFA_REQUIRED` | no | no | TOTP two-step verification for broker/insurer users in `/partner`. Defaults to `true` in production builds and `false` elsewhere. Set `false` only for local demos and e2e (`apps/web/playwright.config.js` does). Customers are never gated. |
@@ -171,6 +172,132 @@ Migration `20261028100300_quoting_payments.sql` adds `vehicle_lookups`, `quote_s
   below 85% once (`policies.underinsurance_flag`, notification `policy.underinsured`), clearing the flag when fixed.
 * **Share links**: `/q/<token>` (public, noindex) renders quote summaries only from `quote_shares` (14-day expiry,
   view count); no customer identity is exposed.
+
+### WhatsApp Business: setup, webhook, templates, 24-hour window, opt-out (Phase 2)
+
+Migration `20261029100300_whatsapp.sql` adds `wa_contacts`, `wa_conversations`, `wa_messages`, `wa_templates`
+(seeded) and `wa_handoffs`. Code: `packages/core/src/whatsapp.ts` (pure helpers, classifier, template registry,
+webhook parser), `apps/web/src/server/whatsapp/*` (webhook → router → assistant/sender → handoff),
+`apps/web/src/server/providers/whatsapp.ts` (Cloud API adapter), admin console `/whatsapp` (+ `/templates`,
+`/contacts`), partner workspace `/partner/whatsapp`, marketing "Chat with us" drawer (`/api/ai/faq`).
+
+**Setup (Meta Business Manager → WhatsApp)**
+
+1. Create (or claim) the WhatsApp Business Account; note `WHATSAPP_BUSINESS_ID` and the phone number's
+   `WHATSAPP_PHONE_NUMBER_ID`. Create a system user with `whatsapp_business_messaging` +
+   `whatsapp_business_management` and a permanent token → `WHATSAPP_ACCESS_TOKEN`.
+2. App → Settings → Basic → App secret → `WHATSAPP_APP_SECRET`. Choose any random string for
+   `WHATSAPP_VERIFY_TOKEN`.
+3. App → WhatsApp → Configuration → Webhooks: callback URL `https://<web>/api/webhooks/whatsapp`, verify
+   token = `WHATSAPP_VERIFY_TOKEN`, subscribe to the **messages** field. Meta GETs the URL with
+   `hub.challenge`; the route echoes it when the token matches.
+4. Set `WHATSAPP_PROVIDER=meta` on **both** Vercel projects (the admin console sends support replies with
+   the same credentials). `NEXT_PUBLIC_WHATSAPP_NUMBER` (digits) keeps the marketing button and the
+   "Talk to a human" link pointing at the business number.
+5. Feature flag `ai_assistant` + the AI Gateway must be on for the bot to answer FAQs; otherwise it sends
+   a safe canned reply and offers a human.
+
+**Webhook.** `POST /api/webhooks/whatsapp` verifies `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with
+the app secret; in non-production with the `log` provider and no secret, unsigned calls are accepted so the
+flow can be exercised locally), rate-limits per IP, parses with `parseWebhookPayload()` and always answers
+200 once the signature is valid. Every inbound message is stored with its Meta `wa_message_id` (unique) so
+retries are no-ops; delivery statuses (`sent → delivered → read`, `failed`) update the outbound row. The
+router then: honours STOP, confirms consent codes (6 digits → `confirm_beneficiary_consent`, guarded while
+the diaspora function does not exist), redeems Accept/Decline buttons (`accept:<token>` →
+`accept_order_offer(p_token)` as the service role), links quote / renewal / claim / documents / checkout
+pages for the intents the keyword classifier recognises, and otherwise runs the FAQ assistant. After three
+bot replies every answer offers "Talk to a human / My broker". Advice, suitability and claims help are
+handed to the customer's **broker of record** (`wa_handoffs` + notification to the broker's advisers;
+reply from Partner workspace → WhatsApp); complaints, payment problems and "human" go to **support**
+(Admin → WhatsApp; a complaint row is opened for known customers, a callback lead for unknown numbers).
+Contacts are linked to accounts by phone (`profiles.phone`, any spelling); staff can link by email.
+
+**Templates.** `wa_templates` is the registry (seeded: `renewal_reminder`, `policy_documents_ready`,
+`claim_status_update`, `quote_ready`, `payment_link`, `broker_new_offer` with Accept/Decline quick-reply
+buttons, `consent_request`, `otp_code`, `info_request`). Each must be submitted in Business Manager →
+Message templates (Admin → WhatsApp → Templates → **Copy for Meta submission** gives the body, variables and
+sample values) and marked `approved` in the registry once Meta approves it; the live provider refuses
+unapproved templates (the `log` provider only logs). `notify()` picks a template from the notification kind
+(`offer.new` → `broker_new_offer`, `renewal.*` → `renewal_reminder`, `claim.*` → `claim_status_update`,
+`quote.ready`, `policy.issued` → `policy_documents_ready`) or from `data.template` + `data.template_params`;
+other kinds fall back to the Phase 1 generic template. Broker offers are sent on WhatsApp to opted-in
+brokers whenever the SMS channel is requested, with SMS as the fallback.
+
+**24-hour window.** Meta only delivers free-form text, interactive buttons and media within 24 hours of the
+contact's last inbound message (`wa_contacts.last_inbound_at`, stamped by trigger). `canSend()` in
+`@im/core` enforces it everywhere: outside the window only approved templates go out (the console and the
+partner page switch to the template form automatically). Meta error 131047 on a send means the window had
+closed on their side.
+
+**Opt-out.** STOP / unsubscribe / opt out (`isOptOut()`) sets `opted_out_at`, closes the conversation and
+sends one confirmation; **nothing** is sent to an opted-out contact afterwards, templates included, until the
+contact messages again (which opts them back in). Staff can opt a contact out from Admin → WhatsApp →
+Contacts (e.g. a request made by phone) but never opt anyone back in. `profiles.whatsapp_opt_in` still gates
+the notification channel; the conversation channel is opt-in by the customer messaging us.
+
+**Retention and privacy.** Inbound text is stored redacted of Ghana Card numbers, emails, phones and card
+numbers (`redactPII`); media is referenced by Meta id only, never downloaded. The bot never quotes prices or
+advises (`FAQ_SYSTEM_PROMPT`), and usage is logged to `ai_usage` (`whatsapp_faq`, `web_faq`).
+
+### Diaspora payments: currencies, FX, sponsor subscriptions, bundles, property cover (Phase 2 / 4)
+
+Migration `20261029100100_diaspora_payments.sql` adds `fx_rates`, `payment_methods`, `sponsor_subscriptions` +
+`subscription_charges`, `product_bundles` (+ `requests.bundle_id`), `property_inspections`, `property_updates`,
+`remittance_partners`, the `payments.display_*`, `fx_*` and `psp` columns, and the settings `fx` and
+`payments.grace_days`. The money rule is unchanged: **`payments.amount` / `currency` stay the GHS contract amount
+the insurer receives**; foreign-currency figures are a display only.
+
+* **Pay in GBP / USD / EUR / CAD.** Checkout shows "You pay ≈ £X (indicative) · Insurer receives GH₵ Y" with the
+  rate, its source and time (`@im/core` `fxQuote` / `fxDisclosure`). The payment row stores `display_currency`,
+  `display_amount`, `fx_rate`, `fx_source`, `fx_quoted_at`; the ledger stays GHS with an `fx:` memo. Foreign currency
+  is **card only** (mobile money and bank transfer are GHS rails).
+* **PSP (`DIASPORA_PSP`, default `paystack_intl`).** Paystack international cards are charged the GHS amount
+  (`currency: GHS`) and settle to the insurer's subaccount like any card; the issuer converts. Enable international
+  cards on the Paystack business. `psp` on the payment records `paystack_intl`. **Apple Pay / Google Pay**: set
+  `PAYSTACK_APPLE_PAY=true` once the channel is enabled on the Paystack business — checkout then passes
+  `channels: ["card", "apple_pay"]`.
+* **Stripe (`server/providers/stripe.ts`) is OFF and must stay off until a legal view exists.** A Stripe
+  Checkout Session in the payer's currency settles to Covva's Stripe balance before the insurer is paid — a
+  collection-on-behalf arrangement that conflicts with "Covva never holds client funds" unless structured and
+  approved (roadmap Part 3 "Diaspora card PSP"). `DIASPORA_PSP=stripe` without `STRIPE_SECRET_KEY` **and**
+  `STRIPE_SETTLEMENT_APPROVED=true` logs `stripe.not_used` and falls back to Paystack international. The webhook
+  (`/api/webhooks/stripe`, `STRIPE_WEBHOOK_SECRET`) applies results by the Covva reference in `metadata`.
+* **FX rates.** `fx_rates` is append-only (GHS per 1 unit). Seeded with the marketing site's October 2026 indicative
+  table, `source = manual` — replace before launch. Cron `/api/cron/fx-rates` (hourly, :20) fetches from
+  `FX_PROVIDER` / `platform_settings.fx.provider`: `openexchangerates` (`OPENEXCHANGERATES_APP_ID`, USD base → GHS per
+  unit), `bog` (Bank of Ghana — stub, not integrated), `manual` (no-op). Admin → **FX rates** shows the history,
+  appends manual overrides (audited, flagged "set by operations" to payers) and sets `fx.margin_pct` (display buffer
+  for the PSP's spread, default 0, max 10 %; shown to the payer, never collected). Reads are cached for 60 s.
+* **Sponsor subscriptions.** "Pay monthly / yearly as a sponsor" at checkout makes the first card payment with
+  `saveMethod` (Paystack returns a reusable `authorization_code`; only the token, brand, last4, expiry and country are
+  stored in `payment_methods`) and creates a `sponsor_subscriptions` row after `charge.success`. Monthly on a yearly
+  quote needs `organizations.settings.instalments_allowed = true` on the insurer (the instalment is annual ÷ 12, taxes
+  and fees pro rata). Cron `/api/cron/sponsor-collections` (daily 03:00) charges due rows through Paystack
+  `charge_authorization` (GHS, insurer subaccount / split) or the simulator, creating a `payments` row per charge
+  (`raw_event.subscription_id`, idempotency `sub:<id>:<n>:<attempt>`) with the normal ledger entries. Failures retry
+  after 1, 3 and 7 days, then `past_due` with notifications to the sponsor (email/SMS/push) and the insurer/broker;
+  `platform_settings.payments.grace_days` (default 14) is the grace period quoted — **the insurer decides on lapses**,
+  Covva never cancels cover. `PAYSTACK_MANAGED_SUBSCRIPTIONS=true` creates a Paystack plan + subscription instead
+  (`psp_subscription_ref`); the webhook handles `subscription.create`, `subscription.disable`, `invoice.payment_failed`
+  and `charge.success` for charges Covva did not initiate. Sponsors manage everything under Account → Payments
+  (pause / resume / cancel, saved cards — revoked, never deleted); Admin → **Sponsor subscriptions** lists past-due rows
+  and can retry / pause / cancel.
+* **Bundles.** `product_bundles` (Admin → Bundles; seed: Parents' Care Pack, published, items optional) get a marketing
+  page `/bundles/<slug>` and `/get-started?bundle=<slug>` → `/account/requests/new?bundle=`: the first item is a normal
+  request tagged `bundle_id`; the other items are saved as **draft** requests for the customer to complete. The bundle
+  discount is indicative until the insurer confirms it on the binding quotes.
+* **Property cover.** Home/property policies get a "Property updates" card: photo updates (`property_updates`, private
+  documents bucket, uploaded by the customer or sponsor) and inspection requests (`property_inspections`). Admin →
+  **Inspections** assigns an inspection partner — an organisation with `settings.inspection_partner = true` (set from
+  Organisations); the partner sees **Inspections** in its workspace (`/partner/inspections`) to accept, schedule and
+  file the report + photos. The insurer and broker are notified; **the insurer decides what a report means for cover.**
+* **Remittance / diaspora-bank partners.** `remittance_partners` (kinds `remittance`, `diaspora_bank`,
+  `embedded_partner`) is a placeholder: rows are created by engineering with the service key once an agreement exists
+  (`api_key_hash` = sha256 of the issued key, never the key); Admin → Partnerships → Remittance partners lists them.
+  No quoting/collection API is live yet.
+* **Mobile:** `GET /api/v1/fx`, `displayCurrency` / `saveMethod` / `sponsorSubscription` on `POST /payments`,
+  `GET|POST /subscriptions`, `POST /subscriptions/{id}/pause|cancel`, `GET /bundles`, `GET|POST /property/{policyId}/updates|inspections`
+  (docs/MOBILE_INTEGRATION.md §16). Tests: `apps/web/tests/diaspora-payments-rules.test.mjs`.
 
 ## 3. Supabase Auth settings
 

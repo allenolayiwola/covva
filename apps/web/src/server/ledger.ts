@@ -116,7 +116,14 @@ export async function recordPaymentLedger(svc: Svc, payment: Row<"payments">): P
     const ref = payment.provider_reference ?? payment.id;
     const base = { payment_id: payment.id, policy_id: payment.policy_id, currency: payment.currency, reference: ref };
     const entries: LedgerEntryInput[] = [
-      { ...base, entry_type: "premium_received", org_id: payment.payee_org_id, amount: Number(payment.amount), memo: `Premium received from customer (${s.source}-sourced)` },
+      {
+        ...base,
+        entry_type: "premium_received",
+        org_id: payment.payee_org_id,
+        amount: Number(payment.amount),
+        // Diaspora: the ledger is always GHS (the insurer's amount); the payer's display currency is a memo only.
+        memo: `Premium received from customer (${s.source}-sourced)${payment.display_currency && payment.display_currency !== "GHS" ? ` · fx: shown as ${payment.display_currency} ${Number(payment.display_amount ?? 0).toFixed(2)} at ${Number(payment.fx_rate ?? 0)} GHS/${payment.display_currency} (${payment.fx_source ?? "unknown"}, indicative)` : ""}`,
+      },
     ];
     if (s.broker_org_id && s.broker_commission > 0) {
       entries.push({ ...base, entry_type: "broker_commission", org_id: s.broker_org_id, counterparty_org_id: s.insurer_org_id, amount: s.broker_commission, memo: `Broker commission ${s.terms.brokerCommissionPct}% of net premium, paid by the insurer` });

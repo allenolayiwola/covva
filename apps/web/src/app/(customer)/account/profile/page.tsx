@@ -78,6 +78,9 @@ async function Body() {
             business_name: profile?.business_name ?? "",
             ghana_card: profile?.ghana_card_number ?? "",
             kyc_status: profile?.kyc_status ?? "unverified",
+            country_code: profile?.country_code ?? "GH",
+            preferred_currency: profile?.preferred_currency ?? "GHS",
+            timezone: profile?.timezone ?? "",
           }}
         />
       </section>

@@ -1,17 +1,19 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, FileText, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, type LucideIcon } from "lucide-react";
+import { Camera, FileText, HeartHandshake, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@im/ui";
 
 export const ACCOUNT_NAV: { href: string; label: string; icon: LucideIcon; mobile?: string }[] = [
   { href: "/account", label: "Overview", icon: LayoutGrid, mobile: "My cover" },
   { href: "/account/policies", label: "My policies", icon: Shield },
+  { href: "/account/family", label: "Family", icon: HeartHandshake },
   { href: "/account/requests", label: "Requests", icon: ScrollText, mobile: "Requests" },
   { href: "/account/messages", label: "Messages", icon: MessageSquare, mobile: "Messages" },
   { href: "/account/documents", label: "Documents", icon: FileText },
   { href: "/account/claims", label: "Claims", icon: Camera, mobile: "Claims" },
   { href: "/account/complaints", label: "Complaints", icon: Megaphone },
+  { href: "/account/payments", label: "Payments", icon: Wallet },
   { href: "/account/profile", label: "Profile", icon: User, mobile: "Account" },
 ];
 
@@ -68,7 +70,7 @@ export function TabBarList({ pathname }: { pathname: string | null }) {
           const active =
             isActive(pathname, item.href) ||
             (item.href === "/account" && !!pathname?.startsWith("/account/policies")) ||
-            (item.href === "/account/profile" && !!pathname && ["/account/documents", "/account/complaints"].some((p) => pathname.startsWith(p)));
+            (item.href === "/account/profile" && !!pathname && ["/account/documents", "/account/complaints", "/account/payments"].some((p) => pathname.startsWith(p)));
           return (
             <li key={item.href}>
               <Link
