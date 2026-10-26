@@ -153,10 +153,16 @@ describe("customer as sponsor", () => {
       assert.notEqual(pending.body[0].code_hash, code, "the plaintext code is never stored");
 
       const wrong = code === "000000" ? "111111" : "000000";
+      // Wrong codes return a status (the attempt counter must persist, which a raised error would roll back).
       for (let i = 1; i <= 4; i++) {
-        expectRule(await db.rpc("confirm_beneficiary_consent", { p_beneficiary_id: beneficiaryId, p_kind: "data_sharing", p_code: wrong }), new RegExp(`${5 - i} attempt`));
+        const r = await db.rpc("confirm_beneficiary_consent", { p_beneficiary_id: beneficiaryId, p_kind: "data_sharing", p_code: wrong });
+        expectOk(r);
+        assert.equal(r.body.status, "invalid");
+        assert.equal(r.body.attempts_left, 5 - i);
       }
-      expectRule(await db.rpc("confirm_beneficiary_consent", { p_beneficiary_id: beneficiaryId, p_kind: "data_sharing", p_code: wrong }), /Too many incorrect codes/);
+      const fifth = await db.rpc("confirm_beneficiary_consent", { p_beneficiary_id: beneficiaryId, p_kind: "data_sharing", p_code: wrong });
+      expectOk(fifth);
+      assert.equal(fifth.body.status, "locked");
       // Locked: even the right code is refused until a new one is issued.
       expectRule(await db.rpc("confirm_beneficiary_consent", { p_beneficiary_id: beneficiaryId, p_kind: "data_sharing", p_code: code }), /Too many incorrect codes/);
 

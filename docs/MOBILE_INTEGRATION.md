@@ -671,8 +671,9 @@ POST /api/v1/family/beneficiaries/{id}/consent/confirm  { "kind": "data_sharing"
 → { "status": "granted", "grantedAt": "…", "beneficiary": { …, "consent_status": "granted" } }
 ```
 
-or taps the link. Wrong codes return `422 business_rule` ("That code is not right. 3 attempt(s) left."); after
-5 the code locks ("Too many incorrect codes…") until a new one is sent. Codes expire after 15 minutes.
+or taps the link. A wrong code returns `400 invalid_input` ("That code is not right. 3 attempt(s) left."); the
+fifth wrong code locks it (`422 business_rule`, "Too many incorrect codes…") until a new one is sent. Codes
+expire after 15 minutes (`422`, "That code has expired").
 Kinds: `data_sharing` (needed before any quote for them), `proxy_claims` (claims on their behalf),
 `policy_purchase`. Show `consent_status` with the labels in `CONSENT_STATUS` (`@im/core`).
 

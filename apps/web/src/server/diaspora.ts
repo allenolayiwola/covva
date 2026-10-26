@@ -247,7 +247,9 @@ export async function sendConsentCode(db: Db, userId: string, beneficiaryId: str
 export async function confirmConsent(db: Db, beneficiaryId: string, kind: ConsentKind, code: string): Promise<{ status: "granted"; grantedAt: string | null }> {
   const { data, error } = await db.rpc("confirm_beneficiary_consent", { p_beneficiary_id: beneficiaryId, p_kind: kind, p_code: code.replace(/\D/g, "") });
   if (error) fail(error, "We couldn't confirm that code.");
-  const r = (data ?? {}) as { status?: string; granted_at?: string | null };
+  // Wrong / expired / locked codes come back as a status (so the attempt counter persists) rather than an error.
+  const r = (data ?? {}) as { status?: string; granted_at?: string | null; message?: string; attempts_left?: number };
+  if (r.status !== "granted") throw new BusinessRuleError(r.message ?? "That code is not right.", r.status === "locked" ? "business_rule" : "invalid_input");
   return { status: "granted", grantedAt: r.granted_at ?? null };
 }
 

@@ -254,7 +254,7 @@ async function confirmConsent(svc: Svc, contact: WaContact, code: string): Promi
   try {
     // The function is owned by the diaspora migration and may not exist yet: call it untyped.
     const untyped = svc as unknown as { rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }> };
-    const { data, error } = await untyped.rpc("confirm_beneficiary_consent", { p_phone: contact.phone, p_code: code });
+    const { data, error } = await untyped.rpc("confirm_beneficiary_consent_by_phone", { p_phone: contact.phone, p_code: code });
     if (error) {
       if (error.code === "PGRST202" || /could not find the function|does not exist/i.test(error.message ?? "")) {
         log.warn("whatsapp.consent_rpc_missing");
@@ -263,10 +263,11 @@ async function confirmConsent(svc: Svc, contact: WaContact, code: string): Promi
       log.info("whatsapp.consent_rejected", { code: error.code, message: error.message });
       return { ok: false, reply: error.code === "P0001" && error.message ? error.message : "That code didn't match or has expired. Ask the person arranging your cover to send a new one." };
     }
-    const ok = data === true || (data && typeof data === "object" && (data as { ok?: boolean }).ok !== false);
-    return ok
-      ? { ok: true, reply: "Thank you — your consent is confirmed. The person arranging your cover can now continue. You'll receive your policy documents here and in the Covva app once the insurer issues them." }
-      : { ok: false, reply: "That code didn't match or has expired. Ask the person arranging your cover to send a new one." };
+    const result = (data && typeof data === "object" ? data : {}) as { status?: string; message?: string };
+    if (result.status === "granted") {
+      return { ok: true, reply: "Thank you — your consent is confirmed. The person arranging your cover can now continue. You'll receive your policy documents here and in the Covva app once the insurer issues them." };
+    }
+    return { ok: false, reply: result.message ?? "That code didn't match or has expired. Ask the person arranging your cover to send a new one." };
   } catch (err) {
     log.warn("whatsapp.consent_error", { err });
     return { ok: false, reply: "Sorry, we couldn't check that code right now. Please try again in a few minutes." };
