@@ -22,7 +22,7 @@ import { getFlags } from "@/lib/catalog";
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { RealtimeRefresh } from "@/components/customer/realtime-refresh";
-import { ORG_COLS, account, getRequestOr404, type OrgLite } from "../../../_lib/data";
+import { ORG_COLS, account, getRequestOr404, requestTime, type OrgLite } from "../../../_lib/data";
 import { NotifyButton } from "./notify-button";
 
 export const metadata: Metadata = { title: "Compare quotes" };
@@ -66,7 +66,7 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
   ]);
   const rows = (quotesRes.data ?? []) as unknown as QuoteRow[];
   const application = appRes.data?.[0] ?? null;
-  const now = Date.now();
+  const now = requestTime();
   const expired = (q: QuoteRow) => !!q.valid_until && new Date(q.valid_until).getTime() < now;
 
   const risk = (request.risk_data ?? {}) as Record<string, unknown>;
@@ -92,7 +92,6 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
   }));
   const cmp = compareQuotes(comparable);
   const byId = new Map(rows.map((q) => [q.id, q]));
-  const scoredById = new Map(cmp.ranked.map((s) => [s.quote.id, s]));
   const ordered = [...cmp.ranked].sort((a, b) => {
     if (sort === "cover") return b.coverageCount - a.coverageCount || (b.quote.sumInsured ?? 0) - (a.quote.sumInsured ?? 0) || a.quote.premium - b.quote.premium;
     if (sort === "excess") return (a.quote.excess ?? Infinity) - (b.quote.excess ?? Infinity) || a.quote.premium - b.quote.premium;

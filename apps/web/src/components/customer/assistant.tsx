@@ -26,13 +26,7 @@ export function Assistant() {
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState("");
   const ctx = contextFromPath(pathname);
-  const ctxRef = React.useRef(ctx);
-  ctxRef.current = ctx;
-
-  const transport = React.useMemo(
-    () => new DefaultChatTransport({ api: "/api/ai/assistant", body: () => ({ ...ctxRef.current }) }),
-    [],
-  );
+  const transport = React.useMemo(() => new DefaultChatTransport({ api: "/api/ai/assistant" }), []);
   const { messages, sendMessage, status, error, stop, clearError } = useChat({ transport });
   const busy = status === "submitted" || status === "streaming";
   const endRef = React.useRef<HTMLDivElement>(null);
@@ -49,7 +43,8 @@ export function Assistant() {
     const t = text.trim();
     if (!t || busy) return;
     if (error) clearError();
-    void sendMessage({ text: t });
+    // Page context (request/policy being viewed) goes in the request body.
+    void sendMessage({ text: t }, { body: { ...ctx } });
     setInput("");
   }
 

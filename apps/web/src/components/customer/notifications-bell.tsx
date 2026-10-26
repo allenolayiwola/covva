@@ -53,8 +53,12 @@ export function NotificationsBell() {
     };
   }, [load]);
 
-  // Close on navigation and outside click / Escape.
-  React.useEffect(() => setOpen(false), [pathname]);
+  // Close on navigation; outside click / Escape below. (adjust state during render rather than in an effect).
+  const [lastPath, setLastPath] = React.useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
   React.useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {

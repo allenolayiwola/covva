@@ -67,10 +67,12 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
   const fe = { ...state.fieldErrors, ...errors };
   const today = new Date().toISOString().slice(0, 10);
 
-  React.useEffect(() => {
+  const [seenState, setSeenState] = React.useState(state);
+  if (seenState !== state) {
+    setSeenState(state);
     if (state.fieldErrors?.incidentType || state.fieldErrors?.incidentDate) setStep(2);
     else if (state.fieldErrors?.description || state.fieldErrors?.amountClaimed) setStep(3);
-  }, [state]);
+  }
 
   function next() {
     const e: Record<string, string> = {};

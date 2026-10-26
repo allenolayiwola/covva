@@ -81,4 +81,9 @@ export function coverLabel(categoryName: string | undefined, risk: Record<string
   return [categoryName, pretty ? pretty.replace(/^\w/, (c) => c.toUpperCase()) : null].filter(Boolean).join(" · ");
 }
 
+/** Request-time clock for server components (called only after `account()` → `connection()`). */
+export function requestTime(): number {
+  return Date.now();
+}
+
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -11,7 +11,7 @@ export const POST = withApi(
       user_id: auth.userId,
       type: c.type,
       granted: c.granted,
-      version: c.version ?? (c.type === "terms" ? terms : c.type === "privacy" ? privacy : null) ?? "unversioned",
+      version: c.version ?? (c.type === "terms" ? terms : privacy) ?? "unversioned",
       context: c.context ?? (auth.via === "bearer" ? "mobile" : "web"),
       ip_address: ip === "unknown" ? null : ip,
       user_agent: req.headers.get("user-agent")?.slice(0, 300) ?? null,

@@ -10,7 +10,7 @@ import { getProfile } from "@/lib/auth";
 import { getFlags, getSetting } from "@/lib/catalog";
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
-import { ORG_COLS, UUID_RE, account, getRequestOr404, type OrgLite } from "../../../../_lib/data";
+import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite } from "../../../../_lib/data";
 import { DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting } from "./checkout-steps";
 import { declarationsFor } from "./declarations";
 
@@ -82,7 +82,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
     if (payment?.status === "succeeded") redirect(`/account/requests/${id}/confirmation`);
   }
 
-  const expired = !!quote.valid_until && new Date(quote.valid_until).getTime() < Date.now();
+  const expired = !!quote.valid_until && new Date(quote.valid_until).getTime() < requestTime();
   const benefits = (Array.isArray(quote.optional_benefits) ? quote.optional_benefits : []) as { key: string; label: string; premium?: number }[];
   const chosenBenefits = application ? ((Array.isArray(application.selected_benefits) ? application.selected_benefits : []) as string[]) : [];
   const amount =

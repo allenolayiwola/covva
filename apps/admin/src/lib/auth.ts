@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import type { Enum } from "@im/db";
 import { createClient } from "@/lib/supabase/server";
 import { STAFF_ROLES, type StaffRole } from "@/lib/roles";
@@ -37,6 +38,9 @@ const isStaffRole = (r: Enum<"member_role">): r is StaffRole => (STAFF_ROLES as 
  * Staff = active membership of an organisation of type `platform` with a staff role.
  */
 export const resolveStaff = cache(async (): Promise<Resolution> => {
+  // Admin data is always request-time (live operational data, current time for SLAs);
+  // never part of a prerendered/prefetched shell.
+  await connection();
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;

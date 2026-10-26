@@ -26,8 +26,12 @@ export function categoryIcon(key: string | null | undefined): LucideIcon {
 }
 
 /** Rounded mint tile with the category's icon (policy and request rows in the mockups). */
+function iconElement(key: string | null | undefined, className: string) {
+  const Icon = categoryIcon(key);
+  return <Icon className={className} />;
+}
+
 export function CategoryIcon({ icon, className, size = "md" }: { icon?: string | null; className?: string; size?: "sm" | "md" }) {
-  const Icon = categoryIcon(icon);
   return (
     <span
       aria-hidden
@@ -37,7 +41,7 @@ export function CategoryIcon({ icon, className, size = "md" }: { icon?: string |
         className,
       )}
     >
-      <Icon className={size === "md" ? "size-5" : "size-4"} />
+      {iconElement(icon, size === "md" ? "size-5" : "size-4")}
     </span>
   );
 }

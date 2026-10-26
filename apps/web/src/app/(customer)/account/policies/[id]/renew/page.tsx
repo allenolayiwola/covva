@@ -6,7 +6,7 @@ import { daysUntil, formatDate, humanize } from "@im/core";
 import { Notice } from "@im/ui";
 import { getProfile } from "@/lib/auth";
 import { PageSkeleton } from "@/components/customer/skeletons";
-import { account, getPolicyOr404 } from "../../../_lib/data";
+import { account, getPolicyOr404, requestTime } from "../../../_lib/data";
 import { RenewForm, type RenewToggle } from "./renew-form";
 
 export const metadata: Metadata = { title: "Renew your cover" };
@@ -84,7 +84,7 @@ async function Renew({ params }: Pick<PageProps<"/account/policies/[id]/renew">,
   const { id } = await params;
   const { supabase } = await account(`/account/policies/${id}/renew`);
   const [policy, profile] = await Promise.all([getPolicyOr404(supabase, id), getProfile()]);
-  const yearAgo = new Date(Date.now() - 365 * 86_400_000).toISOString();
+  const yearAgo = new Date(requestTime() - 365 * 86_400_000).toISOString();
   const [{ count: claims }, riskRes, openRenewal] = await Promise.all([
     supabase.from("claims").select("id", { count: "exact", head: true }).eq("policy_id", id).gte("created_at", yearAgo).neq("status", "withdrawn"),
     policy.request_id ? supabase.from("requests").select("risk_data").eq("id", policy.request_id).maybeSingle() : Promise.resolve({ data: null }),

@@ -180,6 +180,7 @@ function RiskForm({
       const raw = localStorage.getItem(key);
       if (raw) {
         const draft = JSON.parse(raw) as { values?: Values; note?: string };
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring from localStorage (external store) after hydration
         if (draft.values) setValues((prev) => ({ ...prev, ...draft.values }));
         if (draft.note) setNote(draft.note);
         setSaved("restored");
@@ -215,7 +216,12 @@ function RiskForm({
   const set = (k: string, v: Value) => {
     dirty.current = true;
     setValues((prev) => ({ ...prev, [k]: v }));
-    if (errors[k]) setErrors(({ [k]: _, ...rest }) => rest);
+    if (errors[k])
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[k];
+        return next;
+      });
   };
 
   function riskPayload() {

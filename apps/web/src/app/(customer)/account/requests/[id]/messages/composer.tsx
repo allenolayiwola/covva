@@ -21,6 +21,7 @@ export function Composer({ requestId, userId }: { requestId: string; userId: str
   React.useEffect(() => {
     try {
       const d = localStorage.getItem(draftKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring a draft from localStorage after hydration
       if (d) setBody(d);
     } catch {}
   }, [draftKey]);

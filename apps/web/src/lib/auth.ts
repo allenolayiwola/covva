@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import type { Enum, Row } from "@im/db";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,6 +11,9 @@ export type Membership = Pick<Row<"memberships">, "id" | "org_id" | "role" | "te
 
 /** Current auth user (verified with Supabase Auth), deduped per request. */
 export const getUser = cache(async () => {
+  // Session handling reads the clock (token expiry); mark this as request-time work so
+  // prerendering doesn't trip "unstable value Date.now()" under Cache Components.
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   return data.user ?? null;

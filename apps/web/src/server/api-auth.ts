@@ -96,6 +96,9 @@ function toApiError(err: unknown): ApiError {
     return new ApiError(code, err.message);
   }
   if (err instanceof z.ZodError) return invalid("Some of the details provided are not valid.", issues(err));
+  if (err instanceof Error && /SUPABASE_SECRET_KEY is not configured/.test(err.message)) {
+    return new ApiError("unavailable", "This service isn't configured on this environment.");
+  }
   if (err && typeof err === "object" && "code" in err && typeof (err as PgError).code === "string" && "message" in err) {
     return dbError(err as PgError);
   }

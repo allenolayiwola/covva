@@ -13,7 +13,12 @@ export function AccountMenu() {
   const pathname = usePathname();
   const ref = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => setOpen(false), [pathname]);
+  // Close on navigation (adjust state during render rather than in an effect).
+  const [lastPath, setLastPath] = React.useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
   React.useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
