@@ -1,9 +1,58 @@
 # Ghana Insurance Marketplace — Build Plan
 
-Source spec: *Ghana Insurance Marketplace — Strategy & Operating Model* (Aug 2026).
-Scope of this repo: marketing site, SaaS backend, customer/broker/insurer web app,
-platform administration portal, AI layer. **Mobile app is built by a separate agent**;
-this repo provides everything it needs (shared types, API, auth, push hooks).
+Sources:
+1. *Ghana Insurance Marketplace — Strategy & Operating Model* (Aug 2026)
+2. *Insurance Marketplace — Partnership Proposal* (PDF, 20 Oct 2026)
+3. *Insurance Marketplace — Presentation* (21 slides, 20 Oct 2026)
+
+Design references: `docs/design/mockups/` (web home, compare, account, request
+tracking, broker request queue, and the mobile screens).
+
+Scope of this repo: marketing site, SaaS backend, customer web app, broker
+"Partner workspace", insurer portal, platform administration portal, AI layer.
+**Mobile app (iOS + Android) is built by a separate agent**; this repo provides
+everything it needs (shared types, API, auth, push hooks, design tokens).
+
+---
+
+## 0. Design system (from the proposal mockups)
+
+| Token | Value | Use |
+|---|---|---|
+| `brand` | `#00796E` | primary buttons, accents, "Move forward." headline, active nav |
+| `brand-deep` | `#0F514D` / `#10665E` | policy hero cards, hover |
+| `ink` | `#15343E` | headings |
+| `ink-2` | `#26434C` | body strong |
+| `muted` | `#486068` / `#6F858C` | body, captions |
+| `line` | `#DCE3E1` | borders |
+| `mint` | `#DCEEE4` / `#E7F3ED` / `#F1F7F3` | chips, secondary buttons, section backgrounds |
+| `amber-bg` / `amber` | `#FFF0D6` / `#966E28` (`#D9B36A` accent) | "Awaiting document", "Renewal approaching", "At risk" |
+
+* Type: clean grotesk sans (mockups render in an SF/Inter-like face) → **Inter** for UI,
+  tight letter-spacing on large headlines.
+* Logo: rounded-square teal tile with white "i" (shield variant in web nav).
+* Shapes: 12–16px radii cards, 1px `line` borders, soft shadows only on floating cards.
+* Status pills: mint = ok/active/ready, amber = waiting/at risk, grey = planned.
+* Every demo surface carries "Illustrative only · Demo data" until live insurer agreements exist.
+
+## 0.1 Product rules added by the proposal
+
+* **Request is the core object.** Every request has an owner, category, required info, due date
+  and visible status: `awaiting_customer_info → adviser_action → insurer_response →
+  payment_confirmation → policy_documents → complete`. Overdue items escalate to named supervisors.
+* **Quote states** shown to customers: `estimate`, `awaiting_underwriting`, `ready_to_accept`.
+* **Category availability:** `integrated` (pilot, can compare & pay), `broker_assisted`
+  (structured request + named adviser, no instant purchase), `planned` (labelled, not sold).
+  A category goes live only when insurer panel, product-data owner, approved wording,
+  quote method, payment route, issuance process and claims procedure are all recorded.
+* **Fulfilment checkpoints:** confirm choice → verify payment → insurer issue → deliver documents.
+  Payment confirmation alone never marks a policy active.
+* **Uploads ≠ insurer notification** until delivery is confirmed; claim reporting ≠ approval.
+* **Switch requests** start a review; existing cover is never cancelled before replacement
+  acceptance, effective date and payment are confirmed.
+* **Renewal review**: confirm what changed; renewal price range always labelled as estimate.
+* **Broker messaging** is threaded per request, with documents in context.
+* Health products need a separate product/regulatory assessment before being offered.
 
 ---
 
@@ -67,7 +116,9 @@ Catalogue: `product_categories`, `products`, `product_versions` (approved wordin
 rates, limits, excesses, exclusions, waiting periods — versioned, approval required),
 `broker_routing_rules`, `insurer_broker_appointments`.
 
-Transaction flow: `needs_assessments`, `recommendation_runs`, `quote_requests`
+Transaction flow: `needs_assessments`, `recommendation_runs`, `requests` (owner, status,
+due_at, SLA), `request_messages`, `request_tasks` (e.g. "vehicle document needed"),
+`switch_requests`, `quote_requests`
 (risk data in common internal format), `broker_disclosures`, `insurer_submissions`
 (dedupe registry), `quotes` (binding/estimate, valid_until), `applications`
 (declarations, acceptance), `payments` (provider refs, status, reconciliation),
