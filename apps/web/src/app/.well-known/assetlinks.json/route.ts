@@ -11,7 +11,7 @@ export function GET() {
     [
       {
         relation: ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
-        target: { namespace: "android_app", package_name: process.env.ANDROID_PACKAGE_NAME ?? "com.insurancemarketplace.app", sha256_cert_fingerprints: fingerprints },
+        target: { namespace: "android_app", package_name: process.env.ANDROID_PACKAGE_NAME ?? "com.covva.app", sha256_cert_fingerprints: fingerprints },
       },
     ],
     { headers: { "cache-control": "public, max-age=3600" } },

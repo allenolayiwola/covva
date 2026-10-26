@@ -1,4 +1,6 @@
-# Ghana Insurance Marketplace — Build Plan
+# COVVA — Build Plan
+
+_Formerly "Insurance Marketplace" (working name in the source documents)._
 
 Sources:
 1. *Ghana Insurance Marketplace — Strategy & Operating Model* (Aug 2026)

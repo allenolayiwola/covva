@@ -15,7 +15,7 @@ export const KNOWN_SETTINGS: Record<string, { schema: z.ZodType; hint: string; e
       })
       .passthrough(),
     hint: "Platform name and support contacts shown across the apps.",
-    example: { name: "Insurance Marketplace", tagline: "…", support_email: "support@example.com", support_phone: "+233…" },
+    example: { name: "COVVA", tagline: "…", support_email: "support@example.com", support_phone: "+233…" },
   },
   disclosure_template: {
     schema: z

@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-/** Apple touch icon: full-bleed teal tile with a white "i" (iOS applies its own corner mask). */
+/** Apple touch icon: full-bleed teal tile with a white "C" (iOS applies its own corner mask). */
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -22,7 +22,7 @@ export default function AppleIcon() {
           fontFamily: "sans-serif",
         }}
       >
-        i
+        C
       </div>
     ),
     size,

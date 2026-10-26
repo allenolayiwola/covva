@@ -18,8 +18,8 @@ honour. The API contract is `docs/api/openapi.yaml` (also served at `GET /api/v1
 
 Never ship `SUPABASE_SECRET_KEY`, Paystack secret keys or `AI_GATEWAY_API_KEY` in the app.
 
-App config (`app.json` / `app.config.ts`): `scheme: "insurancemarketplace"`, iOS
-`bundleIdentifier` / Android `package` = `com.insurancemarketplace.app` (or whatever is set in
+App config (`app.json` / `app.config.ts`): `scheme: "covva"`, iOS
+`bundleIdentifier` / Android `package` = `com.covva.app` (or whatever is set in
 `IOS_BUNDLE_ID` / `ANDROID_PACKAGE_NAME` on the web project), iOS `associatedDomains:
 ["applinks:<web-host>", "webcredentials:<web-host>"]`, Android `intentFilters` with
 `autoVerify: true` for `https://<web-host>/account/*` and `/auth/callback`.
@@ -81,7 +81,7 @@ Flows:
 * **Email + password** — `signUp({ email, password, options: { data: { full_name, phone, account_type } } })`
   (the `handle_new_user` trigger copies these into `profiles`), `signInWithPassword`.
 * **Phone OTP** — `signInWithOtp({ phone: "+233…" })` → `verifyOtp({ phone, token, type: "sms" })`.
-* **Email OTP / magic link** — `signInWithOtp({ email, options: { emailRedirectTo: "insurancemarketplace://auth/callback" } })`.
+* **Email OTP / magic link** — `signInWithOtp({ email, options: { emailRedirectTo: "covva://auth/callback" } })`.
   Handle the deep link: parse `code` → `exchangeCodeForSession(code)` (PKCE), or `token_hash` + `type` →
   `verifyOtp({ token_hash, type })`. Universal link `https://<host>/auth/callback` also opens the app.
 * Sign-out: `DELETE /api/v1/devices/{token}` first, then `supabase.auth.signOut()`.
@@ -186,9 +186,9 @@ Copy must say uploads go to the broker — **uploading is not the same as notify
 1. Before applying: show the disclosure from `GET /requests/{id}` (`disclosure`) and call `POST /requests/{id}/disclosure`.
 2. `POST /applications { quoteId, declarations, selectedBenefits, acceptTerms: true }`.
 3. `POST /payments { applicationId, channel, callbackUrl: "<SITE_URL>/api/payments/return" }`.
-   * `authorizationUrl` present → `WebBrowser.openAuthSessionAsync(authorizationUrl, "insurancemarketplace://payments/return")`.
+   * `authorizationUrl` present → `WebBrowser.openAuthSessionAsync(authorizationUrl, "covva://payments/return")`.
      After checkout Paystack redirects to `/api/payments/return`, which verifies and redirects to
-     `insurancemarketplace://payments/return?reference=…&status=…&requestId=…&paymentId=…`, closing the browser.
+     `covva://payments/return?reference=…&status=…&requestId=…&paymentId=…`, closing the browser.
    * Direct MoMo prompt: pass `momo: { phone, provider: "mtn" | "vod" | "atl" }`; `authorizationUrl` is null —
      show `displayText` ("Approve the prompt on your phone").
 4. Poll `GET /payments/{id}` every 3–5 s (max ~2 min, then "We'll notify you") until `final` is true.
@@ -214,23 +214,23 @@ tokens that Expo reports as `DeviceNotRegistered`. Users control channels with
 
 ## 10. Deep links
 
-Scheme `insurancemarketplace://` plus universal/app links on the web host
+Scheme `covva://` plus universal/app links on the web host
 (`/.well-known/apple-app-site-association`, `/.well-known/assetlinks.json`, driven by
 `APPLE_TEAM_ID`, `IOS_BUNDLE_ID`, `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_CERT_FINGERPRINTS`).
 `webPathToDeepLink()` in `@im/core` implements this map (it strips `/account`):
 
 | Web path | App link |
 |---|---|
-| `/account` | `insurancemarketplace://home` |
-| `/account/requests/{id}` (and `/confirmation`) | `insurancemarketplace://requests/{id}` |
-| `/account/requests/{id}/quotes` | `insurancemarketplace://requests/{id}/quotes` |
-| `/account/policies/{id}` | `insurancemarketplace://policies/{id}` |
-| `/account/claims/{id}` | `insurancemarketplace://claims/{id}` |
-| `/account/complaints/{id}` | `insurancemarketplace://complaints/{id}` |
-| `/account/notifications` | `insurancemarketplace://notifications` |
-| `/auth/callback?…` | `insurancemarketplace://auth/callback?…` |
-| (payment return) | `insurancemarketplace://payments/return?reference=&status=&requestId=&paymentId=` |
-| `/partner/*`, anything else | `insurancemarketplace://notifications` (web-only) |
+| `/account` | `covva://home` |
+| `/account/requests/{id}` (and `/confirmation`) | `covva://requests/{id}` |
+| `/account/requests/{id}/quotes` | `covva://requests/{id}/quotes` |
+| `/account/policies/{id}` | `covva://policies/{id}` |
+| `/account/claims/{id}` | `covva://claims/{id}` |
+| `/account/complaints/{id}` | `covva://complaints/{id}` |
+| `/account/notifications` | `covva://notifications` |
+| `/auth/callback?…` | `covva://auth/callback?…` |
+| (payment return) | `covva://payments/return?reference=&status=&requestId=&paymentId=` |
+| `/partner/*`, anything else | `covva://notifications` (web-only) |
 
 Expo Router file names should mirror the right-hand column.
 

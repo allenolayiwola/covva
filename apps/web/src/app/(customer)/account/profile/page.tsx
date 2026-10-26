@@ -43,7 +43,7 @@ async function Body() {
   ]);
   const latest = new Map<string, NonNullable<typeof consents>[number]>();
   for (const c of consents ?? []) if (!latest.has(c.type)) latest.set(c.type, c);
-  const support = brand?.support_email ?? "support@insurance-marketplace.example";
+  const support = brand?.support_email ?? "support@covva.com.gh";
   const prefs = (profile?.notification_prefs ?? {}) as Record<string, boolean>;
   const exportSubject = encodeURIComponent("Data export request");
   const exportBody = encodeURIComponent(`Please send me a copy of the personal data you hold about me.\n\nAccount email: ${user.email ?? ""}\nAccount ID: ${user.id}`);

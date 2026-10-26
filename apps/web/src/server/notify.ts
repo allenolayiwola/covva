@@ -188,7 +188,7 @@ export function emailHtml(n: Pick<Inserted, "title" | "body" | "link">, name?: s
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F7F3;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #DCE3E1;border-radius:16px;overflow:hidden">
 <tr><td style="background:#00796E;padding:20px 24px;color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.2px">
-<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;background:#ffffff;color:#00796E;border-radius:8px;margin-right:10px;font-weight:800">i</span>Insurance Marketplace</td></tr>
+<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;background:#ffffff;color:#00796E;border-radius:8px;margin-right:10px;font-weight:800">i</span>COVVA</td></tr>
 <tr><td style="padding:28px 24px 8px">
 ${name ? `<p style="margin:0 0 12px;font-size:15px">Hello ${escapeHtml(name)},</p>` : ""}
 <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#15343E">${escapeHtml(n.title)}</h1>
@@ -217,7 +217,7 @@ export async function sendEmail(msg: { to: string; subject: string; html: string
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM ?? "Insurance Marketplace <no-reply@insurance-marketplace.example>",
+        from: process.env.EMAIL_FROM ?? "COVVA <no-reply@covva.com.gh>",
         to: [msg.to],
         subject: msg.subject,
         html: msg.html,
@@ -259,7 +259,7 @@ export function normaliseGhanaPhone(phone: string): string {
 export async function sendSms(phone: string, message: string): Promise<Record<string, unknown>> {
   const provider = (process.env.SMS_PROVIDER ?? "log").toLowerCase();
   const to = normaliseGhanaPhone(phone);
-  const sender = (process.env.SMS_SENDER_ID ?? "InsureMkt").slice(0, 11);
+  const sender = (process.env.SMS_SENDER_ID ?? "COVVA").slice(0, 11);
   try {
     if (provider === "arkesel") {
       const key = process.env.SMS_API_KEY;

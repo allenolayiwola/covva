@@ -56,7 +56,7 @@ export default async function BrokersPage() {
         breadcrumb={[{ label: "For brokers" }]}
         eyebrow="For brokers"
         title={<>More customers. <span className="text-brand">Less chasing.</span></>}
-        lede="Insurance Marketplace gives licensed brokers a digital front door and a workspace built around the request — so your advisers spend their time advising, not collecting information."
+        lede="COVVA gives licensed brokers a digital front door and a workspace built around the request — so your advisers spend their time advising, not collecting information."
         actions={
           <>
             <Link href="#enquire" className={buttonClass("primary", "lg")}>Become a partner broker</Link>

@@ -22,7 +22,7 @@ export default function NoAccessPage() {
         <div className="rounded-card border border-line bg-white p-6 sm:p-8">
           <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">You don’t have partner access yet</h1>
           <p className="mt-2 text-[15px] text-muted">
-            The Partner workspace is for staff of licensed brokers and insurers that work with Insurance Marketplace.
+            The Partner workspace is for staff of licensed brokers and insurers that work with COVVA.
             Your account is signed in, but it isn’t linked to a partner organisation.
           </p>
           <h2 className="mt-6 text-lg font-semibold text-ink">How to get access</h2>

@@ -4,7 +4,7 @@ import { getFlags, getSetting } from "@/lib/catalog";
 
 /**
  * Brand details are config-driven (`platform_settings.brand`) because
- * "Insurance Marketplace" is a working name. Every read goes through the
+ * "COVVA" is the brand name (configurable in platform settings). Every read goes through the
  * cached catalogue helpers so marketing pages stay prerenderable.
  */
 export interface Brand {
@@ -16,11 +16,11 @@ export interface Brand {
 }
 
 const DEFAULT_BRAND: Brand = {
-  name: "Insurance Marketplace",
+  name: "COVVA",
   tagline: "Insurance made clearer. Human help built in.",
-  supportEmail: "support@insurance-marketplace.example",
+  supportEmail: "support@covva.com.gh",
   supportPhone: null,
-  workingName: true,
+  workingName: false,
 };
 
 type BrandSetting = Partial<{ name: string; tagline: string; support_email: string; support_phone: string; working_name: boolean }>;
@@ -34,7 +34,7 @@ export async function getBrand(): Promise<Brand> {
     tagline: s.tagline || DEFAULT_BRAND.tagline,
     supportEmail: s.support_email || DEFAULT_BRAND.supportEmail,
     supportPhone: phone,
-    workingName: s.working_name ?? true,
+    workingName: s.working_name ?? false,
   };
 }
 

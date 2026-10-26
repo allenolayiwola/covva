@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Insurance Marketplace API
+  title: COVVA API
   version: 1.0.0
-  summary: REST API for the Insurance Marketplace mobile app and partner (broker/insurer) integrations.
+  summary: REST API for the COVVA mobile app and partner (broker/insurer) integrations.
   description: |
-    Insurance Marketplace is a **technology platform**. It is not an insurer or broker, does not
+    COVVA is a **technology platform**. It is not an insurer or broker, does not
     give advice in its own name and never holds premiums. Every response that concerns a
     transaction carries the information needed to show the mandatory disclosure.
 
@@ -42,12 +42,12 @@ info:
     * AI output is labelled as AI-assisted and is never a suitability or claim decision.
   contact:
     name: Platform engineering
-    email: support@insurance-marketplace.example
+    email: support@covva.com.gh
 servers:
   - url: https://{host}/api/v1
     variables:
       host:
-        default: insurance-marketplace.example
+        default: covva.com.gh
   - url: http://localhost:3000/api/v1
 security:
   - bearerAuth: []
@@ -320,7 +320,7 @@ paths:
         Revalidates the quote at checkout. Premiums settle to the insurer's Paystack subaccount.
         Open `authorizationUrl` in an in-app browser; for a direct MoMo prompt (`momo` given) `authorizationUrl`
         is null — show `displayText` and poll `GET /payments/{id}`. Pass `callbackUrl` =
-        `https://<host>/api/payments/return` from the app to be redirected to `insurancemarketplace://payments/return`.
+        `https://<host>/api/payments/return` from the app to be redirected to `covva://payments/return`.
         In test environments without Paystack keys a **sandbox simulator** page is returned instead.
       requestBody:
         required: true

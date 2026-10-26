@@ -14,12 +14,12 @@ export function LogoMark({ size = 32, className }: { size?: number; className?: 
       className={clsx("inline-grid place-items-center rounded-[9px] bg-brand text-white font-bold leading-none shadow-card", className)}
       style={{ width: size, height: size, fontSize: size * 0.55 }}
     >
-      i
+      C
     </span>
   );
 }
 
-export function Logo({ name = "Insurance Marketplace", size = 32, className, suffix }: { name?: string; size?: number; className?: string; suffix?: React.ReactNode }) {
+export function Logo({ name = "COVVA", size = 32, className, suffix }: { name?: string; size?: number; className?: string; suffix?: React.ReactNode }) {
   return (
     <span className={clsx("inline-flex items-center gap-2.5", className)}>
       <LogoMark size={size} />

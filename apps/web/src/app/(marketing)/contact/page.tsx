@@ -9,7 +9,7 @@ import { LeadForm } from "@/components/marketing/lead-form";
 
 export const metadata: Metadata = {
   title: "Contact us",
-  description: "Get in touch with the Insurance Marketplace team — customers, brokers, insurers, businesses and press.",
+  description: "Get in touch with the COVVA team — customers, brokers, insurers, businesses and press.",
   alternates: { canonical: "/contact" },
 };
 

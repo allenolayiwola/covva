@@ -6,7 +6,7 @@ import { log } from "@/server/log";
 
 /**
  * GET /api/payments/return?reference=… — use as `callbackUrl` from the mobile app.
- * Verifies the payment, then redirects to `insurancemarketplace://payments/return?…`
+ * Verifies the payment, then redirects to `covva://payments/return?…`
  * so an in-app auth session (expo-web-browser openAuthSessionAsync) can close.
  */
 export async function GET(req: NextRequest) {

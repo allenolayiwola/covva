@@ -5,9 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: { default: "Admin · Insurance Marketplace", template: "%s · Admin · Insurance Marketplace" },
-  description: "Platform administration portal for Insurance Marketplace staff.",
-  applicationName: "Insurance Marketplace Admin",
+  title: { default: "Admin · COVVA", template: "%s · Admin · COVVA" },
+  description: "Platform administration portal for COVVA staff.",
+  applicationName: "COVVA Admin",
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
 };
 

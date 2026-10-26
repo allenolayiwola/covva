@@ -172,7 +172,7 @@ export async function initiatePayment(args: {
   }
 
   const { data: profile } = await svc.from("profiles").select("email, phone").eq("id", callerId).maybeSingle();
-  const email = profile?.email ?? `customer-${callerId.slice(0, 8)}@payments.insurance-marketplace.example`;
+  const email = profile?.email ?? `customer-${callerId.slice(0, 8)}@payments.covva.com.gh`;
   const reference = newReference();
   const callbackUrl = args.callbackUrl ?? `${siteUrl()}/account/requests/${request.id}/confirmation`;
   const init = { callback_url: callbackUrl, channel: args.channel, momo_provider: args.momo?.provider ?? null, started_at: new Date().toISOString() };

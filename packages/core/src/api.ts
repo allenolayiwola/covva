@@ -253,11 +253,11 @@ export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 // ---------------------------------------------------------------------------
 // Deep links (web path → mobile app). Shared by push notifications and the app.
 // ---------------------------------------------------------------------------
-export const DEEP_LINK_SCHEME = "insurancemarketplace";
+export const DEEP_LINK_SCHEME = "covva";
 
 /**
  * Maps a customer web path (as stored in notifications.link) to the mobile deep link.
- * `/account/requests/123/quotes` → `insurancemarketplace://requests/123/quotes`.
+ * `/account/requests/123/quotes` → `covva://requests/123/quotes`.
  * Partner/admin paths have no mobile screen and fall back to the notifications inbox.
  */
 export function webPathToDeepLink(path: string | null | undefined): { url: string; path: string } {

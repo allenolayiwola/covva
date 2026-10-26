@@ -37,7 +37,7 @@ import { HOME_FAQ_IDS, REGULATION, findFaq } from "@/components/marketing/conten
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
 export const metadata: Metadata = {
-  title: { absolute: "Insurance Marketplace — Find cover. Understand it. Move forward." },
+  title: { absolute: "COVVA — Find cover. Understand it. Move forward." },
   description:
     "A clearer way to explore insurance in Ghana. Compare cover from participating licensed insurers, with a named broker by your side from first question to policy delivery.",
   alternates: { canonical: "/" },

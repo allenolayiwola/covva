@@ -4,20 +4,20 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Insurance Marketplace — Find cover. Understand it. Move forward.",
-    template: "%s · Insurance Marketplace",
+    default: "COVVA — Find cover. Understand it. Move forward.",
+    template: "%s · COVVA",
   },
   description:
     "Compare cover from participating licensed insurers in Ghana, with a named broker by your side from first question to policy delivery. Keep every policy in one wallet and get help with renewals and claims.",
-  applicationName: "Insurance Marketplace",
+  applicationName: "COVVA",
   openGraph: {
     type: "website",
-    siteName: "Insurance Marketplace",
+    siteName: "COVVA",
     locale: "en_GH",
   },
   twitter: { card: "summary_large_image" },

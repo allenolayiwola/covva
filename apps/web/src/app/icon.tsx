@@ -3,7 +3,7 @@ import { ImageResponse } from "next/og";
 export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 
-/** Favicon: teal rounded tile with a white "i" (brand mark). */
+/** Favicon: teal rounded tile with a white "C" (brand mark). */
 export default function Icon() {
   return new ImageResponse(
     (
@@ -23,7 +23,7 @@ export default function Icon() {
           fontFamily: "sans-serif",
         }}
       >
-        i
+        C
       </div>
     ),
     size,

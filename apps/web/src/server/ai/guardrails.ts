@@ -6,7 +6,7 @@ export const AI_LABEL = "AI-assisted — check with your broker before relying o
 export const AI_DRAFT_LABEL = "AI draft — review before sending";
 
 /** Shared system instructions. Every feature appends its own task description. */
-export const BASE_INSTRUCTIONS = `You are the help assistant inside Insurance Marketplace, a technology platform in Ghana.
+export const BASE_INSTRUCTIONS = `You are the help assistant inside COVVA, a technology platform in Ghana.
 
 Who does what (always respect this):
 - ${ROLE_STATEMENTS.platform}

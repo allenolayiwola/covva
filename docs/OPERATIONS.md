@@ -21,11 +21,11 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `PAYMENTS_SIMULATOR` | no | no | `true` enables the sandbox simulator even in production builds (staging only!). `false` disables it in dev. |
 | `PAYMENTS_SIMULATOR_SECRET` | yes | no | HMAC key for simulator links (defaults to `SUPABASE_SECRET_KEY`) |
 | `RESEND_API_KEY` | **yes** | prod | Email delivery. Unset → emails are logged, not sent |
-| `EMAIL_FROM` | no | prod | e.g. `Insurance Marketplace <no-reply@your-domain>` (verified Resend domain) |
+| `EMAIL_FROM` | no | prod | e.g. `COVVA <no-reply@your-domain>` (verified Resend domain) |
 | `SMS_PROVIDER` | no | prod | `log` (default) \| `arkesel` \| `hubtel` |
 | `SMS_API_KEY` | **yes** | if SMS | Arkesel API key, or `clientId:clientSecret` for Hubtel |
 | `HUBTEL_CLIENT_ID` / `HUBTEL_CLIENT_SECRET` | **yes** | if Hubtel | Preferred over `SMS_API_KEY` for Hubtel |
-| `SMS_SENDER_ID` | no | if SMS | Registered sender id, ≤ 11 chars (default `InsureMkt`) |
+| `SMS_SENDER_ID` | no | if SMS | Registered sender id, ≤ 11 chars (default `COVVA`) |
 | `EXPO_ACCESS_TOKEN` | **yes** | optional | Required only if Expo push security is enabled for the project |
 | `AI_GATEWAY_API_KEY` | **yes** | local | Vercel AI Gateway. On Vercel deployments OIDC is used automatically (a key, if set, wins) |
 | `AI_DEFAULT_MODEL` / `AI_FAST_MODEL` / `AI_VISION_MODEL` | no | no | Gateway model ids; overridden by `platform_settings.ai_models` |
@@ -67,7 +67,7 @@ been pasted into chat, logs or tickets.
    both test and live modes. Signature: `x-paystack-signature` = HMAC-SHA512(raw body, secret key).
    Handled events: `charge.success`, `charge.failed`, `refund.processed` (others are acknowledged).
 4. **Callback URL**: set per transaction (web: `/account/requests/{id}/confirmation`; mobile:
-   `/api/payments/return`, which redirects to `insurancemarketplace://payments/return`).
+   `/api/payments/return`, which redirects to `covva://payments/return`).
 5. Mobile money channels must be enabled on the Paystack business (GHS). Direct MoMo prompts use `POST /charge`.
 6. Reconciliation: `payments.provider_reference` = Paystack reference; `raw_event` keeps the last
    provider event; `GET /api/v1/payments/{id}` re-verifies pending payments with `/transaction/verify`.
@@ -84,7 +84,7 @@ same `applyPaymentResult` code path. Never enable it on a production domain.
 
 * **Site URL**: `https://<web-host>`.
 * **Redirect URLs**: `https://<web-host>/auth/callback`, `https://<web-host>/**` (previews:
-  `https://*-<team>.vercel.app/**`), `insurancemarketplace://auth/callback`, `exp://**` (Expo Go dev only),
+  `https://*-<team>.vercel.app/**`), `covva://auth/callback`, `exp://**` (Expo Go dev only),
   admin host `https://<admin-host>/auth/callback`.
 * **Providers**: Email (confirm email on; OTP length 6), Phone with an SMS provider (Twilio/MessageBird/Vonage
   or a Send-SMS hook to Arkesel/Hubtel) for phone OTP; set OTP expiry ≤ 10 minutes.

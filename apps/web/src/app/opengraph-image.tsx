@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Insurance Marketplace — Find cover. Understand it. Move forward.";
+export const alt = "COVVA — Find cover. Understand it. Move forward.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -37,7 +37,7 @@ export default function OpengraphImage() {
           >
             i
           </div>
-          <div style={{ fontSize: 34, fontWeight: 600, color: "#15343E" }}>Insurance Marketplace</div>
+          <div style={{ fontSize: 34, fontWeight: 600, color: "#15343E" }}>COVVA</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 22, letterSpacing: 4, fontWeight: 600, color: "#00796E", marginBottom: 20 }}>

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Insurance Marketplace",
+    name: "COVVA",
     short_name: "Insurance",
     description: "Find cover. Understand it. Move forward. Insurance made clearer, with human help built in.",
     start_url: "/",

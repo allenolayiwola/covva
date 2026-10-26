@@ -3,7 +3,7 @@
  * Static (prerendered at build) — redeploy after changing the env vars.
  */
 export function GET() {
-  const appId = `${process.env.APPLE_TEAM_ID ?? "TEAMID_PLACEHOLDER"}.${process.env.IOS_BUNDLE_ID ?? "com.insurancemarketplace.app"}`;
+  const appId = `${process.env.APPLE_TEAM_ID ?? "TEAMID_PLACEHOLDER"}.${process.env.IOS_BUNDLE_ID ?? "com.covva.app"}`;
   return Response.json(
     {
       applinks: {

@@ -6,7 +6,7 @@ import { LegalPage } from "@/components/marketing/legal-page";
 
 export const metadata: Metadata = {
   title: "Terms of use",
-  description: "The terms that apply when you use the Insurance Marketplace website and apps. Draft — subject to legal review.",
+  description: "The terms that apply when you use the COVVA website and apps. Draft — subject to legal review.",
   alternates: { canonical: "/legal/terms" },
 };
 
@@ -27,7 +27,7 @@ export default async function TermsPage() {
           body: (
             <>
               <p>
-                {n} (“we”, “us”) is a working name for a technology platform operated by [legal entity name], a company registered in Ghana under registration number [number], with its registered office at [address].
+                {n} (“we”, “us”) is the brand name of a technology platform operated by [legal entity name], a company registered in Ghana under registration number [number], with its registered office at [address].
               </p>
               <p>
                 We provide technology that helps you explore, compare and manage insurance. <strong>We are not an insurer and not an insurance broker.</strong> We do not give insurance advice in our own name, we do not underwrite risks, we do not decide claims and we never hold your premium.

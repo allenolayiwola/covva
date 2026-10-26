@@ -12,7 +12,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         id: "what-is",
-        q: "What is Insurance Marketplace?",
+        q: "What is COVVA?",
         a: "We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker, we do not give insurance advice in our own name, and we never hold your premium.",
       },
       {
