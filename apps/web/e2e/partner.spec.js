@@ -36,6 +36,39 @@ test.describe("broker workspace", () => {
     await expect(page.locator("table").or(page.getByText(/No open requests|No requests match these filters/))).toBeVisible();
   });
 
+  test("dashboard KPIs and charts render for the demo broker", async ({ page }) => {
+    await page.goto("/partner?days=7");
+    await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
+    const panel = page.getByTestId("broker-analytics");
+    await expect(panel).toBeVisible({ timeout: 30_000 });
+    for (const label of ["Leads received", "Requests", "Quotes sent", "Conversions", "Policies issued", "Renewals due (30 days)", "Lapses (90 days)", "Open claims", "Response targets met"]) {
+      await expect(panel.getByText(label, { exact: true }).first()).toBeVisible();
+    }
+    await expect(panel.getByRole("img", { name: "Requests, quotes and conversions per day" })).toBeVisible();
+    await expect(panel.getByRole("img", { name: "Policies issued per day" })).toBeVisible();
+    const range = panel.getByRole("navigation", { name: "Tabs" });
+    await expect(range.getByRole("link", { name: "Last 7 days" })).toHaveAttribute("aria-current", "page");
+    await range.getByRole("link", { name: "Last 30 days" }).click();
+    await expect(page).toHaveURL(/days=30/);
+  });
+
+  test("reports export returns CSV for the analytics datasets", async ({ page }) => {
+    await page.goto("/partner/reports");
+    await expect(page.getByRole("heading", { level: 1, name: "Reports" })).toBeVisible();
+    await expect(page.getByTestId("broker-analytics")).toBeVisible({ timeout: 30_000 });
+    for (const type of ["sales", "renewals", "claims"]) {
+      const res = await page.request.get(`/partner/reports/export?type=${type}&days=30`);
+      expect(res.status(), `${type} export`).toBe(200);
+      expect(res.headers()["content-type"]).toContain("text/csv");
+      const body = await res.text();
+      expect(body.split("\n")[0]).toContain(type === "sales" ? "day,requests,quotes" : type === "renewals" ? "policy_reference" : "reference,status");
+    }
+    const sales = await (await page.request.get("/partner/reports/export?type=sales&days=7")).text();
+    expect(sales.trim().split("\n")).toHaveLength(8); // header + 7 days
+    const bad = await page.request.get("/partner/reports/export?type=nope");
+    expect(bad.status()).toBe(400);
+  });
+
   test("team settings tabs", async ({ page }) => {
     await page.goto("/partner/settings");
     await expect(page.getByRole("heading", { level: 1, name: "Team settings" })).toBeVisible();
@@ -66,6 +99,23 @@ test.describe("insurer portal", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
     await expect(page.getByText(/Level 1 partner portal/)).toBeVisible();
     for (const label of ["Submissions awaiting response", "Policies to issue", "Open claims", "Product changes pending"]) await expect(page.getByText(label, { exact: true })).toBeVisible();
+  });
+
+  test("insurer dashboard shows sales, renewals, lapses, claims, SLA and settlements", async ({ page }) => {
+    await page.goto("/partner?days=30");
+    const panel = page.getByTestId("insurer-analytics");
+    await expect(panel).toBeVisible({ timeout: 30_000 });
+    for (const label of ["Sales (premium)", "Submissions received", "Quotes", "Conversions", "Policies issued", "Renewals due (30 days)", "Lapses (90 days)", "Open claims", "SLA performance"]) {
+      await expect(panel.getByText(label, { exact: true }).first()).toBeVisible();
+    }
+    await expect(panel.getByRole("img", { name: "Submissions, quotes and conversions per day" })).toBeVisible();
+    await expect(panel.getByRole("meter", { name: "Submissions answered within target" })).toBeVisible();
+    await expect(panel.getByText("Renewals due", { exact: true })).toBeVisible();
+    // Insurer users never see customer contact details on the renewals panel.
+    await expect(panel.getByText(/@/)).toHaveCount(0);
+    const res = await page.request.get("/partner/reports/export?type=renewals&days=30");
+    expect(res.status()).toBe(200);
+    expect((await res.text()).split("\n")[0]).not.toContain("email");
   });
 
   test("submissions inbox with response buckets", async ({ page }) => {

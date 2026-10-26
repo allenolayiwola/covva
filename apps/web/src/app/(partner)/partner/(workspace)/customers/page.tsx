@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Avatar, DemoBadge, EmptyState, Input, PageHeader, Pill, Table, Td, Th, THead } from "@im/ui";
+import { Avatar, DemoBadge, EmptyState, Input, PageHeader, Pill, Table, Td, Th, THead, buttonClass } from "@im/ui";
 import { OPEN_REQUEST_STATUSES, formatDate, humanize } from "@im/core";
 import { requireKind } from "../../_lib/context";
 import { fullName, getCustomers } from "../../_lib/data";
@@ -12,7 +12,11 @@ export const metadata: Metadata = { title: "Customers" };
 export default function CustomersPage({ searchParams }: PageProps<"/partner/customers">) {
   return (
     <>
-      <PageHeader title="Customers" description="Customers whose requests or policies are routed to your organisation." />
+      <PageHeader
+        title="Customers"
+        description="Customers whose requests or policies are routed to your organisation."
+        actions={<Link href="/partner/customers/import" className={buttonClass("outline", "sm")}>Import existing clients</Link>}
+      />
       <Suspense fallback={<PageSkeleton stats={0} />}>
         <Customers searchParams={searchParams} />
       </Suspense>

@@ -147,17 +147,24 @@ export function preferredInsurerFromRisk(risk: Record<string, unknown>): string 
 }
 
 /** Runs the engine against live data without writing anything (used by the request flow and simulators). */
-export async function decideForRequest(svc: Svc, req: RequestLite, category: Category): Promise<RoutingEngineDecision> {
+export async function decideForRequest(svc: Svc, req: RequestLite, category: Category, opts: { excludeInsurerIds?: string[]; fixedBrokerOrgId?: string | null } = {}): Promise<RoutingEngineDecision> {
   const risk = (req.risk_data ?? {}) as Record<string, unknown>;
-  const [settings, assignment, integrations, brokers] = await Promise.all([
+  const excluded = new Set(opts.excludeInsurerIds ?? []);
+  const [settings, assignment, allIntegrations, brokers, fixed] = await Promise.all([
     routingSettings(svc),
     svc.from("customer_broker_assignments").select("broker_org_id, source, broker:organizations!customer_broker_assignments_broker_org_id_fkey(name, status)").eq("customer_id", req.customer_id).eq("active", true).maybeSingle(),
     loadLineIntegrations(svc, category.id),
     loadBrokerCandidates(svc, category.id),
+    opts.fixedBrokerOrgId ? svc.from("organizations").select("id, name, status").eq("id", opts.fixedBrokerOrgId).eq("type", "broker").maybeSingle() : Promise.resolve({ data: null }),
   ]);
-  const standing = assignment.data && (assignment.data.broker as unknown as { status: string } | null)?.status === "active"
+  // A broker of record carried over (a renewal keeps the policy's broker) wins over the standing assignment.
+  const carried = fixed.data && fixed.data.status === "active" ? { brokerOrgId: fixed.data.id, brokerName: fixed.data.name, source: "renewal" } : null;
+  const standing = carried ?? (assignment.data && (assignment.data.broker as unknown as { status: string } | null)?.status === "active"
     ? { brokerOrgId: assignment.data.broker_org_id, brokerName: (assignment.data.broker as unknown as { name: string }).name, source: assignment.data.source }
-    : null;
+    : null);
+  // Re-route after an SLA breach: the breached insurer is left out (and no longer preferred).
+  const integrations = excluded.size ? allIntegrations.filter((i) => !excluded.has(i.insurerOrgId)) : allIntegrations;
+  const preferred = preferredInsurerFromRisk(risk);
   return decideRouting({
     request: {
       categorySlug: category.slug,
@@ -165,7 +172,7 @@ export async function decideForRequest(svc: Svc, req: RequestLite, category: Cat
       region: typeof risk.region === "string" ? risk.region : undefined,
       talkToExpert: !!req.talk_to_expert || risk.talk_to_expert === true,
       risk,
-      preferredInsurerOrgId: preferredInsurerFromRisk(risk),
+      preferredInsurerOrgId: preferred && excluded.has(preferred) ? null : preferred,
     },
     customerAssignment: standing,
     integrations,
@@ -197,10 +204,10 @@ export interface RoutingResult {
  * `requests.routing_mode`, timeline event), and either assigns the fixed broker, offers the
  * request to the first batch of eligible brokers, hands it to the insurer, or holds it for ops.
  */
-export async function routeNewRequest(svc: Svc, req: RequestLite, opts: { category?: Category } = {}): Promise<RoutingResult> {
+export async function routeNewRequest(svc: Svc, req: RequestLite, opts: { category?: Category; excludeInsurerIds?: string[]; fixedBrokerOrgId?: string | null } = {}): Promise<RoutingResult> {
   const category = opts.category ?? (await svc.from("product_categories").select("id, slug, name, segment").eq("id", req.category_id).single()).data;
   if (!category) throw new Error("Unknown category for routing");
-  const decision = await decideForRequest(svc, req, category);
+  const decision = await decideForRequest(svc, req, category, { excludeInsurerIds: opts.excludeInsurerIds, fixedBrokerOrgId: opts.fixedBrokerOrgId });
   const now = new Date();
   const offered: string[] = [];
 
@@ -248,6 +255,7 @@ export async function routeNewRequest(svc: Svc, req: RequestLite, opts: { catego
   if (decision.mode === "broker_pool") {
     offered.push(...(await offerRound(svc, req, { ...decision, routingId: routing.id }, 1, category)));
   } else if (decision.mode === "insurer_direct" && decision.insurerOrgId) {
+    await createDirectSubmission(svc, req, decision.insurerOrgId);
     await notifyOrg(decision.insurerOrgId, {
       kind: "request.new",
       title: `New direct ${category.name.toLowerCase()} order ${req.reference}`,
@@ -334,6 +342,34 @@ async function offerRound(svc: Svc, req: RequestLite, ctx: RoundCtx, round: numb
     );
   }
   return plan.brokerOrgIds;
+}
+
+/**
+ * Insurer-direct order (Addendum 2 D): a submission with no broker of record so the insurer's
+ * queue shows it (the submissions guard allows a null broker only for insurer_direct routing),
+ * plus the insurer's response SLA timer. Duplicate (same risk, same insurer) is a no-op.
+ */
+async function createDirectSubmission(svc: Svc, req: RequestLite, insurerOrgId: string) {
+  try {
+    const [{ data: line }, { data: full }] = await Promise.all([
+      svc.from("insurer_line_integrations").select("sla_hours").eq("insurer_org_id", insurerOrgId).eq("category_id", req.category_id).maybeSingle(),
+      svc.from("requests").select("risk_fingerprint").eq("id", req.id).maybeSingle(),
+    ]);
+    const now = Date.now();
+    const dueAt = new Date(now + (line?.sla_hours ?? 24) * 3_600_000);
+    const { data: sub, error } = await svc
+      .from("insurer_submissions")
+      .insert({ request_id: req.id, insurer_org_id: insurerOrgId, broker_org_id: null, risk_fingerprint: full?.risk_fingerprint ?? `direct:${req.id}`, channel: "portal", status: "sent", sent_at: new Date(now).toISOString(), response_due_at: dueAt.toISOString(), idempotency_key: `${req.id}:${insurerOrgId}:direct` })
+      .select("id")
+      .single();
+    if (error && error.code !== "23505") throw error;
+    if (sub) {
+      const { startTimer } = await import("@/server/sla");
+      await startTimer(svc, { type: "submission", id: sub.id }, dueAt, { insurerOrgId });
+    }
+  } catch (err) {
+    log.error("routing.direct_submission_failed", { requestId: req.id, insurerOrgId, err });
+  }
 }
 
 async function holdForOps(svc: Svc, req: RequestLite, routingId: string, round: number, reason: string) {

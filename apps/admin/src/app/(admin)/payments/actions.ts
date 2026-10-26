@@ -21,6 +21,16 @@ export async function setReconciled(_: ActionState, fd: FormData): Promise<Actio
   const { supabase, staff } = auth;
   const reconciled = parsed.data.value === "true";
 
+  // Bank transfers stay `pending` until someone confirms the credit on the insurer's statement:
+  // reconciling one asks the web app to apply the payment (same idempotent path as a webhook).
+  if (reconciled) {
+    const { data: pending } = await supabase.from("payments").select("id, provider, status").eq("id", parsed.data.paymentId).maybeSingle();
+    if (pending?.provider === "bank_transfer" && (pending.status === "pending" || pending.status === "processing")) {
+      const confirmed = await confirmBankTransferOnWeb(pending.id, staff.userId, parsed.data.reason);
+      if (!confirmed.ok) return fail(confirmed.error);
+    }
+  }
+
   const { data: p, error } = await supabase
     .from("payments")
     .update(
@@ -44,4 +54,24 @@ export async function setReconciled(_: ActionState, fd: FormData): Promise<Actio
     data: { payment_id: p.id, amount: p.amount },
   });
   return done(reconciled ? "Payment marked reconciled." : "Payment marked unreconciled.");
+}
+
+async function confirmBankTransferOnWeb(paymentId: string, actorId: string, note: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!site || !secret) return { ok: false, error: "Cannot confirm a bank transfer: NEXT_PUBLIC_SITE_URL / REVALIDATE_SECRET are not set on the admin app." };
+  try {
+    const res = await fetch(new URL("/api/payments/confirm-transfer", site), {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-revalidate-secret": secret },
+      body: JSON.stringify({ paymentId, actorId, note }),
+      signal: AbortSignal.timeout(10_000),
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: { message?: string } };
+    if (!res.ok || !json.ok) return { ok: false, error: json.error?.message ?? "The web app could not confirm the bank transfer." };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "The web app could not be reached to confirm the bank transfer." };
+  }
 }

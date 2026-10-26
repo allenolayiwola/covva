@@ -190,7 +190,7 @@ async function insurerReport({ supabase: sb, orgId, days }: ReportScope, names: 
     metrics,
     weekly: weeks(s.map((x) => x.created_at)),
     breakdowns: [
-      { title: "Submissions by broker", items: countBy(s, (x) => names.orgs?.get(x.broker_org_id) ?? "Broker") },
+      { title: "Submissions by broker", items: countBy(s, (x) => (x.broker_org_id ? names.orgs?.get(x.broker_org_id) ?? "Broker" : "Direct (no broker)")) },
       { title: "Submissions by status", items: countBy(s, (x) => x.status) },
       { title: "Claims by status", items: countBy(c, (x) => x.status.replace(/_/g, " ")) },
     ],
@@ -198,7 +198,7 @@ async function insurerReport({ supabase: sb, orgId, days }: ReportScope, names: 
       metrics: { header: ["metric", "value", "detail"], rows: metrics.map((m) => [m.label, m.value, m.detail ?? ""]) },
       submissions: {
         header: ["submission_id", "request_id", "broker", "status", "channel", "sent_at", "responded_at", "response_due_at"],
-        rows: s.map((x) => [x.id, x.request_id, names.orgs?.get(x.broker_org_id) ?? x.broker_org_id, x.status, x.channel, x.sent_at, x.responded_at, x.response_due_at]),
+        rows: s.map((x) => [x.id, x.request_id, x.broker_org_id ? names.orgs?.get(x.broker_org_id) ?? x.broker_org_id : "direct", x.status, x.channel, x.sent_at, x.responded_at, x.response_due_at]),
       },
       policies: {
         header: ["policy_id", "policy_number", "status", "category", "created_at", "issued_at"],

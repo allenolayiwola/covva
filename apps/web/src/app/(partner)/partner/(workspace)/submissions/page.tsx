@@ -81,7 +81,7 @@ async function Inbox({ searchParams }: { searchParams: Promise<Record<string, st
                           <Link href={`/partner/submissions/${s.id}`} className="font-semibold text-ink hover:text-brand">{r?.reference ?? "Request"}</Link>
                           <p className="text-xs text-muted">{cats.get(r?.category_id ?? "")?.name} · {humanize(r?.type ?? "")}</p>
                         </Td>
-                        <Td>{brokers.get(s.broker_org_id) ?? "Broker"}</Td>
+                        <Td>{s.broker_org_id ? brokers.get(s.broker_org_id) ?? "Broker" : <Pill tone="info">Direct order</Pill>}</Td>
                         <Td>{humanize(s.channel)}</Td>
                         <Td><Pill tone={s.status === "quoted" ? "ok" : s.status === "declined" ? "danger" : "wait"}>{humanize(s.status)}</Pill></Td>
                         <Td className="text-xs text-muted">{formatDateTime(s.created_at)}</Td>
@@ -104,7 +104,7 @@ async function Inbox({ searchParams }: { searchParams: Promise<Record<string, st
                 return (
                   <tr key={q.id}>
                     <Td>{info ? <Link href={`/partner/submissions/${info.subId}`} className="font-semibold text-ink hover:text-brand">{info.ref}</Link> : "—"}</Td>
-                    <Td>{brokers.get(q.broker_org_id ?? "") ?? "—"}</Td>
+                    <Td>{q.broker_org_id ? brokers.get(q.broker_org_id) ?? "—" : "Direct"}</Td>
                     <Td><StatusPill meta={QUOTE_STATUS[q.status]} /></Td>
                     <Td className="tabular-nums">{formatGHS(Number(q.premium))}</Td>
                     <Td className="font-medium text-amber">{formatDate(q.valid_until)}</Td>

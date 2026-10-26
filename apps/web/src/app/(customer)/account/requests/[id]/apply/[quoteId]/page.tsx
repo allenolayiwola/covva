@@ -11,7 +11,7 @@ import { getFlags, getSetting } from "@/lib/catalog";
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite } from "../../../../_lib/data";
-import { DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting } from "./checkout-steps";
+import { BankTransferPanel, DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting, type BankTransferDetail } from "./checkout-steps";
 import { declarationsFor } from "./declarations";
 import { feeBreakdownForQuoteId } from "@/server/commercial";
 
@@ -71,11 +71,11 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
     insurer: { name: insurerName },
   });
 
-  let payment: Pick<Row<"payments">, "id" | "status" | "failure_reason" | "authorization_url" | "amount"> | null = null;
+  let payment: Pick<Row<"payments">, "id" | "status" | "failure_reason" | "authorization_url" | "amount" | "provider" | "channel_detail"> | null = null;
   if (application) {
     const { data } = await supabase
       .from("payments")
-      .select("id, status, failure_reason, authorization_url, amount")
+      .select("id, status, failure_reason, authorization_url, amount, provider, channel_detail")
       .eq("application_id", application.id)
       .order("created_at", { ascending: false })
       .limit(1);
@@ -121,6 +121,8 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
         })}
       />
     );
+  } else if (payment && payment.status === "pending" && payment.provider === "bank_transfer" && payment.channel_detail && !sp.retry) {
+    body = <BankTransferPanel detail={payment.channel_detail as unknown as BankTransferDetail} requestId={id} retryHref={`/account/requests/${id}/apply/${quoteId}?retry=1`} />;
   } else if (waitingPaymentId || (payment && ["pending", "processing"].includes(payment.status) && !payment.authorization_url)) {
     body = <PaymentWaiting paymentId={waitingPaymentId ?? payment!.id} requestId={id} retryHref={`/account/requests/${id}/apply/${quoteId}?retry=1`} />;
   } else {

@@ -1,5 +1,5 @@
 import "server-only";
-import { compareQuotes } from "@im/core";
+import { compareQuotes, declaredValue, underinsuranceCheck } from "@im/core";
 import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { notify, notifyOrg } from "@/server/notify";
@@ -9,6 +9,8 @@ import { log } from "@/server/log";
 import { retryDueDeliveries } from "@/server/webhooks";
 import { expireAndRerouteOffers } from "@/server/routing";
 import { buildStatementsForPeriod, previousMonth } from "@/server/ledger";
+import { expireReviewWindows, retryIssuanceJobs } from "@/server/issuance";
+import { escalateTimers } from "@/server/sla";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -64,9 +66,11 @@ const renewalReminders: CronJob = async (svc) => {
       userId: p.customer_id,
       kind: "renewal.reminder",
       title: `${name} cover ends ${when}`,
-      body: `Policy ${p.policy_number ?? p.internal_reference} ends on ${p.cover_end}. Review what has changed and ask your broker about renewal. Any renewal price is an estimate until the insurer confirms it.`,
-      link: `/account/policies/${p.id}`,
+      body: `Policy ${p.policy_number ?? p.internal_reference} ends on ${p.cover_end}. Review what has changed and renew in one tap with refreshed quotes. Any renewal price is an estimate until the insurer confirms it.`,
+      link: `/account/policies/${p.id}/renew`,
       data: { policy_id: p.id, days },
+      // WhatsApp first (opt-in + phone), SMS only when WhatsApp did not reach the phone (see notify()).
+      channels: ["in_app", "push", "email", "whatsapp", "sms"],
     });
     if (p.broker_org_id) {
       await notifyOrg(p.broker_org_id, {
@@ -129,7 +133,10 @@ const slaMonitor: CronJob = async (svc) => {
       );
     }
   }
-  return { checked: overdue?.length ?? 0, breached };
+  // SLA timers with escalation (insurer contacts → Covva ops → customer choice) and L2 review windows.
+  const timers = await escalateTimers(svc);
+  const reviews = await expireReviewWindows(svc);
+  return { checked: overdue?.length ?? 0, breached, timers, review_windows_closed: reviews.closed };
 };
 
 // ---------------------------------------------------------------------------
@@ -198,8 +205,56 @@ const policyLifecycle: CronJob = async (svc) => {
       channels: ["in_app", "push", "email"],
     });
   }
-  return { expired: ended?.length ?? 0 };
+  const nudged = await underinsuranceNudges(svc);
+  return { expired: ended?.length ?? 0, ...nudged };
 };
+
+/**
+ * Underinsurance nudges: for motor / home / business-property policies compare the sum insured
+ * with the value the customer declared (and, for motor, the latest estimate's sum insured when
+ * higher). Flags once (`policies.underinsurance_flag`) and notifies; clears the flag when fixed.
+ */
+async function underinsuranceNudges(svc: Svc): Promise<{ underinsurance_flagged: number; underinsurance_cleared: number }> {
+  const { data: policies } = await svc
+    .from("policies")
+    .select("id, customer_id, sum_insured, underinsurance_flag, policy_number, internal_reference, request_id, category:product_categories!inner(slug, name), request:requests!policies_request_id_fkey(risk_data)")
+    .eq("status", "active")
+    .eq("external_source", false)
+    .not("sum_insured", "is", null)
+    .in("category.slug", ["motor", "home", "sme-property"])
+    .limit(2000);
+  let flagged = 0;
+  let cleared = 0;
+  for (const p of policies ?? []) {
+    const category = p.category as unknown as { slug: string; name: string } | null;
+    if (!category) continue;
+    const risk = ((p.request as unknown as { risk_data: Json | null } | null)?.risk_data ?? {}) as Record<string, unknown>;
+    const declared = declaredValue(category.slug, risk);
+    if (!declared) continue;
+    const check = underinsuranceCheck(Number(p.sum_insured), declared);
+    const already = !!p.underinsurance_flag;
+    if (check.underinsured && !already) {
+      const flag = { reason: check.reason, suggested_sum_insured: check.suggestedSumInsured, current_value: declared, ratio: check.ratio, at: new Date().toISOString() };
+      const { data: claimed } = await svc.from("policies").update({ underinsurance_flag: flag as Json }).eq("id", p.id).is("underinsurance_flag", null).select("id");
+      if (!claimed?.length) continue;
+      flagged++;
+      const thing = category.slug === "motor" ? "car" : category.slug === "home" ? "home" : "business property";
+      await notify({
+        userId: p.customer_id,
+        kind: "policy.underinsured",
+        title: `Your ${thing} may be insured for less than it's worth`,
+        body: `${check.reason} Ask your broker about raising the sum insured on policy ${p.policy_number ?? p.internal_reference}.`,
+        link: `/account/policies/${p.id}`,
+        data: { policy_id: p.id, suggested_sum_insured: check.suggestedSumInsured },
+        channels: ["in_app", "push", "email"],
+      });
+    } else if (!check.underinsured && already) {
+      await svc.from("policies").update({ underinsurance_flag: null }).eq("id", p.id);
+      cleared++;
+    }
+  }
+  return { underinsurance_flagged: flagged, underinsurance_cleared: cleared };
+}
 
 // ---------------------------------------------------------------------------
 const usageMetering: CronJob = async (svc) => {
@@ -287,6 +342,19 @@ const settlementStatements: CronJob = async (svc) => {
   return { period_start: start, period_end: end, orgs: r.orgs, statements: r.statements.length };
 };
 
+// ---------------------------------------------------------------------------
+/**
+ * Daily (02:30): NIC licence tracking (Addendum 3 B1/C1). Flags organisations whose licence
+ * expires within 30 days, and suspends active brokers/insurers whose licence has lapsed
+ * (status → suspended, suspended_reason licence_lapsed) with notifications to their admins and
+ * platform staff (public.refresh_licence_status → private.refresh_licence_status).
+ */
+const licenceStatus: CronJob = async (svc) => {
+  const { data, error } = await svc.rpc("refresh_licence_status");
+  if (error) throw error;
+  return (data ?? {}) as Record<string, unknown>;
+};
+
 export const CRON_JOBS: Record<string, CronJob> = {
   "renewal-reminders": renewalReminders,
   "sla-monitor": slaMonitor,
@@ -298,6 +366,9 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "offer-expiry": offerExpiry,
   "price-schedule": priceSchedule,
   "settlement-statements": settlementStatements,
+  "licence-status": licenceStatus,
+  // Delegated / API issuance jobs left queued or failed (adapter outage, missing number block) are re-run.
+  "issuance-retry": (svc) => retryIssuanceJobs(svc),
 };
 
 export async function runCron(job: string) {

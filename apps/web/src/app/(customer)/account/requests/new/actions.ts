@@ -12,6 +12,7 @@ const Input = z.object({
   policy: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
   risk: z.string().max(20_000),
   note: z.string().trim().max(4000).optional(),
+  talk_to_expert: z.string().optional(),
 });
 
 export async function submitRequest(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -40,7 +41,7 @@ export async function submitRequest(_prev: ActionState, formData: FormData): Pro
   let requestId: string;
   try {
     const result = await createRequest(
-      { categorySlug: v.category, risk, type: v.type, relatedPolicyId: v.policy, source: "web" },
+      { categorySlug: v.category, risk, type: v.type, relatedPolicyId: v.policy, source: "web", talkToExpert: v.talk_to_expert === "on" },
       { supabase },
     );
     requestId = result.request.id;

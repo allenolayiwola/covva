@@ -1,5 +1,7 @@
 "use server";
 import { headers } from "next/headers";
+import { createServiceClient } from "@/lib/supabase/server";
+import { runIdentityCheck } from "@/server/lookups";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { GHANA_REGIONS } from "@im/core";
@@ -57,7 +59,15 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
     .eq("id", user.id);
   if (error) return { ok: false, error: dbError(error, "We couldn't save your details.") };
   if (card && card !== current?.ghana_card_number) {
-    await supabase.from("kyc_verifications").insert({ user_id: user.id, method: "ghana_card", id_number: card, status: "pending" });
+    const { data: kyc } = await supabase.from("kyc_verifications").insert({ user_id: user.id, method: "ghana_card", id_number: card, status: "pending", provider: "manual" }).select("id").single();
+    // Identity provider hook (NIA when configured); manual admin review stays the fallback.
+    if (kyc?.id) {
+      try {
+        await runIdentityCheck(createServiceClient(), kyc.id);
+      } catch (err) {
+        console.error("identity check failed; left for manual review", err);
+      }
+    }
   }
   revalidatePath("/account", "layout");
   return { ok: true, message: "Your details have been saved." };
@@ -72,7 +82,8 @@ export async function updateNotificationPrefs(_prev: ActionState, formData: Form
     push: formData.get("push") === "on",
     whatsapp: formData.get("whatsapp") === "on",
   };
-  const { error } = await supabase.from("profiles").update({ notification_prefs: prefs }).eq("id", user.id);
+  // WhatsApp is an explicit opt-in (profiles.whatsapp_opt_in) as well as a preference; both move together.
+  const { error } = await supabase.from("profiles").update({ notification_prefs: prefs, whatsapp_opt_in: prefs.whatsapp }).eq("id", user.id);
   if (error) return { ok: false, error: dbError(error, "We couldn't save your preferences.") };
   revalidatePath("/account/profile");
   return {

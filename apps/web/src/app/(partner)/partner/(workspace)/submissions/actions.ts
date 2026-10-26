@@ -26,7 +26,7 @@ export async function acknowledgeSubmission(_prev: ActionState, formData: FormDa
     if (!["pending", "sent"].includes(sub.status)) return { ok: false, error: "This submission has already been acknowledged or answered." };
     const { error } = await ctx.supabase.from("insurer_submissions").update({ status: "acknowledged" }).eq("id", sub.id);
     if (error) return { ok: false, error: dbMessage(error) };
-    await notifyOrg(sub.broker_org_id, { kind: "submission.acknowledged", title: `${ctx.orgName} acknowledged ${sub.request?.reference ?? "your submission"}`, link: `/partner/requests/${sub.request_id}` });
+    if (sub.broker_org_id) await notifyOrg(sub.broker_org_id, { kind: "submission.acknowledged", title: `${ctx.orgName} acknowledged ${sub.request?.reference ?? "your submission"}`, link: `/partner/requests/${sub.request_id}` });
     refresh();
     return { ok: true, message: "Acknowledged. The broker has been told." };
   });
@@ -48,7 +48,7 @@ export async function declineSubmission(_prev: ActionState, formData: FormData):
       .eq("request_id", sub.request_id)
       .eq("insurer_org_id", ctx.orgId)
       .in("status", ["estimate", "awaiting_underwriting"]);
-    await notifyOrg(sub.broker_org_id, { kind: "submission.declined", title: `${ctx.orgName} declined ${sub.request?.reference ?? "a submission"}`, body: input.reason, link: `/partner/requests/${sub.request_id}` });
+    if (sub.broker_org_id) await notifyOrg(sub.broker_org_id, { kind: "submission.declined", title: `${ctx.orgName} declined ${sub.request?.reference ?? "a submission"}`, body: input.reason, link: `/partner/requests/${sub.request_id}` });
     refresh();
     return { ok: true, message: "Declined. Any open estimate from you on this request is marked declined." };
   });
@@ -134,12 +134,13 @@ export async function respondWithQuote(_prev: ActionState, formData: FormData): 
           submission_id: sub.id,
           insurer_org_id: ctx.orgId,
           broker_org_id: sub.broker_org_id,
-          commission_disclosure: "The broker of record may receive commission from the insurer. Ask your broker for details.",
+          // Insurer-direct orders have no broker of record (Addendum 2 D): the disclosure says so.
+          commission_disclosure: sub.broker_org_id ? "The broker of record may receive commission from the insurer. Ask your broker for details." : "Issued directly by the insurer. There is no broker of record and no broker commission on this quote.",
         });
     if (error) return { ok: false, error: dbMessage(error, "We couldn't save the quote.") };
 
     await ctx.supabase.from("insurer_submissions").update({ status: "quoted", responded_at: new Date().toISOString() }).eq("id", sub.id);
-    await notifyOrg(sub.broker_org_id, {
+    if (sub.broker_org_id) await notifyOrg(sub.broker_org_id, {
       kind: "quote.insurer_response",
       title: `${ctx.orgName} quoted ${sub.request?.reference ?? ""}: ${QUOTE_STATUS[q.status].label}`,
       link: `/partner/requests/${sub.request_id}#quotes`,

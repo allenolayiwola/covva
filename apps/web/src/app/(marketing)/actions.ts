@@ -140,7 +140,9 @@ export async function submitLead(_prev: LeadState, formData: FormData): Promise<
     category_slug: v.category_slug ?? null,
     message,
     source_page: v.source_page ?? null,
-    utm,
+    utm, // kept for backwards compatibility (older admin views read utm.tags / utm.metadata)
+    tags: v.tag ? [v.tag] : [],
+    metadata,
     status: "new",
   });
 

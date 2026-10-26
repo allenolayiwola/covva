@@ -9,7 +9,8 @@ import { log } from "@/server/log";
 import { paystackKey, simulatorEnabled, simulatorSignature, siteUrl } from "@/server/env";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 import { persistPaymentSplits, splitForPayment } from "@/server/commercial";
-import { recordPaymentLedger } from "@/server/ledger";
+import { recordPaymentLedger, recordRefundLedger } from "@/server/ledger";
+import { hubtelEnabled, hubtelInitiate, hubtelVerify } from "@/server/providers/hubtel";
 
 /**
  * Payment service (owner: Backend stream). Premiums are paid through Paystack and
@@ -27,6 +28,35 @@ export interface InitiatePaymentResult {
   status: Enum<"payment_status">;
   /** Provider instructions for direct mobile-money prompts (e.g. "Approve the prompt on your phone"). */
   displayText?: string | null;
+  /** Which provider took the payment: paystack | hubtel | simulator | bank_transfer. */
+  provider?: PaymentProvider;
+  /** Bank transfer: where to send the money and the reference to quote. Null for other channels. */
+  bankTransfer?: BankTransferInstructions | null;
+}
+
+export type PaymentProvider = "paystack" | "hubtel" | "simulator" | "bank_transfer";
+
+export interface BankTransferInstructions {
+  bank: string;
+  accountName: string;
+  accountNumber: string;
+  /** Unique reference the customer must quote on the transfer (matched at reconciliation). */
+  reference: string;
+  /** `insurer_account` = the insurer's own settlement account; `paystack_dva` = a Paystack dedicated virtual account (auto-confirms by webhook). */
+  kind: "insurer_account" | "paystack_dva";
+  amount: number;
+  currency: string;
+  instructions: string;
+}
+
+/**
+ * Which hosted provider an insurer's payments go through: `organizations.settings.payment_provider`
+ * wins, then `PAYMENT_PROVIDER` (default paystack). Hubtel is only used when its credentials are set.
+ */
+export function paymentProviderFor(insurerSettings: Json | null | undefined): "paystack" | "hubtel" {
+  const org = (asObject(insurerSettings).payment_provider as string | undefined)?.toLowerCase();
+  const wanted = org === "paystack" || org === "hubtel" ? org : (process.env.PAYMENT_PROVIDER ?? "paystack").toLowerCase();
+  return wanted === "hubtel" && hubtelEnabled() ? "hubtel" : "paystack";
 }
 
 type Svc = ReturnType<typeof createServiceClient>;
@@ -131,7 +161,7 @@ export async function initiatePayment(args: {
 
   const { data: insurer } = await svc
     .from("organizations")
-    .select("id, name, type, status, paystack_subaccount_code, paystack_split_code")
+    .select("id, name, type, status, paystack_subaccount_code, paystack_split_code, settings")
     .eq("id", quote.insurer_org_id)
     .single();
   if (!insurer || insurer.type !== "insurer" || insurer.status !== "active") {
@@ -141,6 +171,12 @@ export async function initiatePayment(args: {
   const idempotencyKey = `app:${app.id}`;
   const { data: existing } = await svc.from("payments").select("*").eq("idempotency_key", idempotencyKey).maybeSingle();
   if (existing?.status === "succeeded") throw new BusinessRuleError("This application has already been paid.", "conflict");
+
+  // A pending bank transfer keeps its instructions (the customer may take a day to pay).
+  if (existing && existing.status === "pending" && existing.provider === "bank_transfer" && args.channel === "bank_transfer" && existing.channel_detail) {
+    const bt = bankTransferFromDetail(existing);
+    if (bt) return { paymentId: existing.id, reference: existing.provider_reference!, authorizationUrl: null, status: existing.status, displayText: bt.instructions, provider: "bank_transfer", bankTransfer: bt };
+  }
 
   // Same live attempt (e.g. the app retried the call) → return it instead of starting another.
   if (
@@ -162,8 +198,20 @@ export async function initiatePayment(args: {
   if (!(amount > 0)) throw new BusinessRuleError("The amount due could not be calculated.");
 
   const key = paystackKey();
-  let provider: "paystack" | "simulator";
-  if (key) {
+  const insurerSettings = asObject(insurer.settings);
+  let provider: PaymentProvider;
+  let bankTransfer: BankTransferInstructions | null = null;
+  const hubtelMerchant = typeof insurerSettings.hubtel_merchant_account === "string" ? insurerSettings.hubtel_merchant_account : process.env.HUBTEL_MERCHANT_ACCOUNT ?? null;
+  if (args.channel === "bank_transfer") {
+    // Bank transfer: money goes to the insurer's own account (or a Paystack dedicated virtual account);
+    // the payment stays pending until the webhook / admin reconciliation confirms the credit.
+    provider = "bank_transfer";
+  } else if (paymentProviderFor(insurer.settings) === "hubtel") {
+    if (!hubtelMerchant) {
+      throw new BusinessRuleError(`${insurer.name}'s payment route isn't set up yet, so we can't take payment. Your broker will contact you.`);
+    }
+    provider = "hubtel";
+  } else if (key) {
     if (!insurer.paystack_subaccount_code) {
       throw new BusinessRuleError(`${insurer.name}'s payment route isn't set up yet, so we can't take payment. Your broker will contact you.`);
     }
@@ -182,6 +230,9 @@ export async function initiatePayment(args: {
   // Three-party split (insurer / broker commission / platform fee) — see server/commercial.ts.
   // Paystack settles one subaccount per transaction unless a split group is configured.
   const commercial = await splitForPayment(svc, { amount, quote, request, insurer, provider });
+  if (provider === "bank_transfer") {
+    bankTransfer = await bankTransferInstructions(svc, { insurer: { id: insurer.id, name: insurer.name, settings: insurer.settings }, customerId: callerId, email, reference, amount, currency: quote.currency });
+  }
 
   const base = {
     application_id: app.id,
@@ -195,9 +246,11 @@ export async function initiatePayment(args: {
     provider_reference: reference,
     channel: args.channel as Enum<"payment_channel">,
     status: "pending" as const,
-    settlement_subaccount: insurer.paystack_subaccount_code ?? (provider === "simulator" ? "SIMULATED" : null),
+    settlement_subaccount:
+      provider === "hubtel" ? hubtelMerchant : provider === "bank_transfer" ? bankTransfer?.accountNumber ?? null : insurer.paystack_subaccount_code ?? (provider === "simulator" ? "SIMULATED" : null),
     authorization_url: null,
     failure_reason: null,
+    channel_detail: bankTransfer ? ({ ...bankTransfer, kind: bankTransfer.kind } as unknown as Json) : null,
     raw_event: { initialize: init, split: commercial.summary } as unknown as Json,
   };
 
@@ -224,6 +277,26 @@ export async function initiatePayment(args: {
 
   if (provider === "simulator") {
     authorizationUrl = `${siteUrl()}/api/payments/simulate?reference=${encodeURIComponent(reference)}&sig=${simulatorSignature(reference)}`;
+  } else if (provider === "bank_transfer") {
+    displayText = bankTransfer?.instructions ?? null;
+  } else if (provider === "hubtel") {
+    const res = await hubtelInitiate({
+      amount,
+      description: `Premium for ${request.reference} (${insurer.name})`,
+      clientReference: reference,
+      callbackUrl: `${siteUrl()}/api/webhooks/hubtel${process.env.HUBTEL_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET)}` : ""}`,
+      returnUrl: callbackUrl,
+      cancellationUrl: callbackUrl,
+      customerPhone: args.momo?.phone ?? profile?.phone ?? null,
+      customerEmail: email,
+      merchantAccount: hubtelMerchant,
+    });
+    if (!res.ok || !res.checkoutUrl) {
+      await markFailed(svc, payment, res.message ?? "Checkout could not be started", { initialize_error: res } as unknown as Json, false);
+      log.error("hubtel.initialize_failed", { status: res.status, message: res.message, paymentId: payment.id });
+      throw new BusinessRuleError("We couldn't start the payment. Please try again.");
+    }
+    authorizationUrl = res.checkoutUrl;
   } else if (args.channel === "mobile_money" && args.momo) {
     const res = await paystack<{ status?: string; display_text?: string; reference?: string }>("/charge", {
       method: "POST",
@@ -284,7 +357,7 @@ export async function initiatePayment(args: {
     actor_id: callerId,
     actor_party: "customer",
     event: "payment_initiated",
-    note: `Payment of ${quote.currency} ${amount.toFixed(2)} started (${provider === "simulator" ? "sandbox simulator" : args.channel.replace(/_/g, " ")}).`,
+    note: `Payment of ${quote.currency} ${amount.toFixed(2)} started (${provider === "simulator" ? "sandbox simulator" : provider === "hubtel" ? `Hubtel ${args.channel.replace(/_/g, " ")}` : args.channel.replace(/_/g, " ")}).`,
     data: { payment_id: payment.id, reference, provider } as Json,
   });
 
@@ -293,7 +366,112 @@ export async function initiatePayment(args: {
     const v = await verifyPayment(reference);
     status = v.status;
   }
-  return { paymentId: payment.id, reference, authorizationUrl, status, displayText };
+  return { paymentId: payment.id, reference, authorizationUrl, status, displayText, provider, bankTransfer };
+}
+
+// ---------------------------------------------------------------------------
+// Bank transfer instructions
+// ---------------------------------------------------------------------------
+function bankTransferFromDetail(p: Pick<PaymentRow, "channel_detail" | "amount" | "currency" | "provider_reference">): BankTransferInstructions | null {
+  const d = asObject(p.channel_detail);
+  if (typeof d.accountNumber !== "string" || typeof d.bank !== "string") return null;
+  return {
+    bank: d.bank,
+    accountName: String(d.accountName ?? ""),
+    accountNumber: d.accountNumber,
+    reference: String(d.reference ?? p.provider_reference ?? ""),
+    kind: d.kind === "paystack_dva" ? "paystack_dva" : "insurer_account",
+    amount: Number(p.amount),
+    currency: p.currency,
+    instructions: String(d.instructions ?? ""),
+  };
+}
+
+interface BankTransferSetting { bank?: string; account_name?: string; account_number?: string; reference_prefix?: string }
+
+/**
+ * Where a bank transfer goes. Never a Covva account: either a Paystack **dedicated virtual account**
+ * for the customer (`PAYSTACK_DVA_ENABLED=true`; Paystack credits it and `charge.success` confirms
+ * the payment automatically, settling to the insurer's subaccount) or the INSURER's own bank account
+ * (`organizations.settings.bank_account`), in which case the insurer/admin reconciles the credit by
+ * reference. `platform_settings.payments.bank_transfer` only supplies the reference prefix and
+ * fallback labels — if its account is not an insurer's, it is not used.
+ */
+async function bankTransferInstructions(
+  svc: Svc,
+  args: { insurer: { id: string; name: string; settings: Json | null }; customerId: string; email: string; reference: string; amount: number; currency: string },
+): Promise<BankTransferInstructions> {
+  const { data: setting } = await svc.from("platform_settings").select("value").eq("key", "payments.bank_transfer").maybeSingle();
+  const platform = asObject(setting?.value) as BankTransferSetting;
+  const prefix = (platform.reference_prefix ?? "COVVA").replace(/[^A-Z0-9-]/gi, "").toUpperCase().slice(0, 12) || "COVVA";
+  const reference = `${prefix}-${args.reference}`;
+  const amountText = `${args.currency} ${args.amount.toFixed(2)}`;
+
+  if (process.env.PAYSTACK_DVA_ENABLED === "true" && paystackKey()) {
+    const dva = await ensureDedicatedAccount(svc, args.customerId, args.email);
+    if (dva) {
+      return {
+        bank: dva.bank_name ?? "Bank",
+        accountName: dva.account_name ?? args.insurer.name,
+        accountNumber: dva.account_number,
+        reference,
+        kind: "paystack_dva",
+        amount: args.amount,
+        currency: args.currency,
+        instructions: `Transfer exactly ${amountText} to ${dva.bank_name ?? "the bank"} account ${dva.account_number} (${dva.account_name ?? "Covva collections"}) and quote reference ${reference}. This account is unique to you; the payment is confirmed automatically, usually within minutes, and settles to ${args.insurer.name}.`,
+      };
+    }
+  }
+
+  const insurerAccount = asObject(asObject(args.insurer.settings).bank_account as Json);
+  const bank = typeof insurerAccount.bank === "string" ? insurerAccount.bank : null;
+  const accountNumber = typeof insurerAccount.account_number === "string" ? insurerAccount.account_number : null;
+  if (!bank || !accountNumber) {
+    throw new BusinessRuleError(`${args.insurer.name} hasn't set up bank transfers yet. Please pay by mobile money or card, or ask your broker.`);
+  }
+  const accountName = typeof insurerAccount.account_name === "string" ? insurerAccount.account_name : args.insurer.name;
+  return {
+    bank,
+    accountName,
+    accountNumber,
+    reference,
+    kind: "insurer_account",
+    amount: args.amount,
+    currency: args.currency,
+    instructions: `Transfer exactly ${amountText} to ${bank} account ${accountNumber} (${accountName}) and quote reference ${reference}. The money goes straight to ${args.insurer.name}. Your payment shows as pending until ${args.insurer.name} confirms the credit — usually within one working day.`,
+  };
+}
+
+/** Paystack dedicated virtual account for a customer (created once, stored in payment_accounts). */
+async function ensureDedicatedAccount(svc: Svc, customerId: string, email: string): Promise<Row<"payment_accounts"> | null> {
+  const { data: existing } = await svc.from("payment_accounts").select("*").eq("customer_id", customerId).eq("provider", "paystack").eq("active", true).maybeSingle();
+  if (existing) return existing;
+  const { data: profile } = await svc.from("profiles").select("full_name, phone").eq("id", customerId).maybeSingle();
+  const [firstName, ...rest] = (profile?.full_name ?? "Covva Customer").trim().split(/\s+/);
+  const customer = await paystack<{ customer_code: string }>("/customer", { method: "POST", body: { email, first_name: firstName, last_name: rest.join(" ") || firstName, phone: profile?.phone ?? undefined } });
+  if (!customer.ok || !customer.json.data?.customer_code) {
+    log.warn("paystack.dva_customer_failed", { status: customer.status, message: customer.json.message });
+    return null;
+  }
+  const dva = await paystack<{ account_number: string; account_name: string; bank: { name: string }; currency: string }>("/dedicated_account", {
+    method: "POST",
+    body: { customer: customer.json.data.customer_code, preferred_bank: process.env.PAYSTACK_DVA_BANK ?? undefined },
+  });
+  if (!dva.ok || !dva.json.data?.account_number) {
+    log.warn("paystack.dva_create_failed", { status: dva.status, message: dva.json.message });
+    return null;
+  }
+  const d = dva.json.data;
+  const { data: saved, error } = await svc
+    .from("payment_accounts")
+    .upsert(
+      { customer_id: customerId, provider: "paystack", provider_customer_code: customer.json.data.customer_code, account_number: d.account_number, account_name: d.account_name, bank_name: d.bank?.name ?? null, currency: (d.currency ?? "GHS").slice(0, 3), active: true, raw: d as unknown as Json },
+      { onConflict: "customer_id,provider" },
+    )
+    .select("*")
+    .single();
+  if (error) log.warn("payment_accounts.save_failed", { err: error });
+  return saved ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +487,7 @@ export interface PaymentOutcome {
   subaccountCode?: string | null;
   failureReason?: string | null;
   event?: unknown;
-  source: "webhook" | "verify" | "simulator";
+  source: "webhook" | "verify" | "simulator" | "admin";
 }
 
 async function markFailed(svc: Svc, payment: PaymentRow, reason: string, event: Json, notifyCustomer = true, status: Enum<"payment_status"> = "failed") {
@@ -494,6 +672,17 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
   await emitEvent(quote.insurer_org_id, "payment.succeeded", paid);
   await emitRequestStatus(request.broker_org_id, request, "payment_confirmation", "policy_documents");
 
+  // Issuance engine (Addendum 2 A): delegated L2 issues instantly, L1 starts the insurer's SLA
+  // timer, L3 queues for the adapter. Lazy import: issuance → policies → payments is a cycle.
+  if (policyId) {
+    try {
+      const { startIssuance } = await import("@/server/issuance");
+      await startIssuance(svc, policyId);
+    } catch (err) {
+      log.error("issuance.start_failed", { policyId, paymentId: payment.id, err });
+    }
+  }
+
   return { status: "succeeded", policyId };
 }
 
@@ -503,9 +692,22 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
 /** Verify a payment with the provider and apply the result (idempotent). */
 export async function verifyPayment(reference: string): Promise<{ status: Enum<"payment_status"> }> {
   const svc = createServiceClient();
-  const { data: payment } = await svc.from("payments").select("id, status, provider, created_at").eq("provider_reference", reference).maybeSingle();
+  const { data: payment } = await svc.from("payments").select("id, status, provider, created_at, settlement_subaccount").eq("provider_reference", reference).maybeSingle();
   if (!payment) throw new BusinessRuleError("Payment not found.", "not_found");
   if (!["pending", "processing"].includes(payment.status)) return { status: payment.status };
+  if (payment.provider === "hubtel") {
+    const h = await hubtelVerify(reference, payment.settlement_subaccount);
+    if (!h.ok) return { status: payment.status };
+    if (h.status === "succeeded") {
+      const r = await applyPaymentResult(reference, { status: "succeeded", amountMinor: h.amount !== undefined ? Math.round(h.amount * 100) : undefined, paidAt: h.paidAt, channel: hubtelChannel(h.paymentMethod), event: { source: "verify", data: h.raw }, source: "verify" });
+      return { status: r.status ?? "succeeded" };
+    }
+    if (h.status === "failed") {
+      const r = await applyPaymentResult(reference, { status: "failed", failureReason: "Declined or cancelled at Hubtel", event: { source: "verify", data: h.raw }, source: "verify" });
+      return { status: r.status ?? "failed" };
+    }
+    return { status: payment.status };
+  }
   if (payment.provider !== "paystack" || !paystackKey()) return { status: payment.status };
 
   const res = await paystack<{
@@ -545,6 +747,37 @@ export async function verifyPayment(reference: string): Promise<{ status: Enum<"
     return { status: r.status ?? "abandoned" };
   }
   return { status: payment.status };
+}
+
+/** Hubtel payment methods → our channel enum. */
+export function hubtelChannel(method: string | null | undefined): string | null {
+  const m = (method ?? "").toLowerCase();
+  if (!m) return null;
+  if (/momo|mobile|mtn|vodafone|telecel|airtel|tigo/.test(m)) return "mobile_money";
+  if (/card|visa|master/.test(m)) return "card";
+  if (/bank|transfer|ghqr|gh-qr/.test(m)) return "bank_transfer";
+  return null;
+}
+
+/**
+ * Admin / insurer reconciliation of a bank transfer: the credit was seen on the insurer's statement, so
+ * the pending payment is applied as succeeded (same idempotent path as the webhook). Authorisation is
+ * the caller's job — this is a system write.
+ */
+export async function confirmBankTransfer(paymentId: string, args: { actorId?: string | null; note?: string | null; paidAt?: string | null } = {}): Promise<{ status: Enum<"payment_status"> | null; policyId?: string | null }> {
+  const svc = createServiceClient();
+  const { data: payment } = await svc.from("payments").select("id, status, provider, provider_reference, request_id").eq("id", paymentId).maybeSingle();
+  if (!payment || !payment.provider_reference) throw new BusinessRuleError("Payment not found.", "not_found");
+  if (payment.provider !== "bank_transfer") throw new BusinessRuleError("Only bank transfers are confirmed by hand; other providers confirm by webhook.");
+  if (payment.status !== "pending" && payment.status !== "processing") return { status: payment.status };
+  const r = await applyPaymentResult(payment.provider_reference, {
+    status: "succeeded",
+    paidAt: args.paidAt ?? new Date().toISOString(),
+    channel: "bank_transfer",
+    event: { source: "admin", actor_id: args.actorId ?? null, note: args.note ?? null },
+    source: "admin",
+  });
+  return r;
 }
 
 // ---------------------------------------------------------------------------
@@ -587,6 +820,10 @@ export async function refundPayment(paymentId: string, reason: string): Promise<
     }
     refund = { status: "requested", provider_refund_id: res.json.data?.id ?? null, provider_status: res.json.data?.status ?? null, requested_at: new Date().toISOString(), reason: note };
     result = "requested";
+  } else if (payment.provider === "hubtel" || payment.provider === "bank_transfer") {
+    // No refund API we can drive: the insurer (or Hubtel merchant) returns the money and ops records it.
+    refund = { status: "requested", manual: true, provider: payment.provider, requested_at: new Date().toISOString(), reason: note };
+    result = "requested";
   } else {
     // Simulator / no provider key: nothing was really charged, so the refund is immediate.
     refund = { status: "processed", provider: payment.provider, requested_at: new Date().toISOString(), processed_at: new Date().toISOString(), reason: note };
@@ -598,6 +835,8 @@ export async function refundPayment(paymentId: string, reason: string): Promise<
     .eq("id", payment.id)
     .eq("status", "succeeded");
   if (error) throw new BusinessRuleError(ruleMessage(error, "The refund was requested but could not be recorded. Check the payment in the admin portal."));
+  // Ledger: reverse the premium, commission and fee entries (idempotent; never blocks the refund).
+  await recordRefundLedger(svc, { ...payment, status: "refunded" }, note);
   await svc.from("request_events").insert({
     request_id: payment.request_id,
     actor_party: "system",

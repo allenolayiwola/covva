@@ -1,9 +1,9 @@
 "use client";
 import * as React from "react";
 import { useActionState } from "react";
-import { ArrowLeft, Check, CloudOff, Save } from "lucide-react";
-import { CATEGORY_AVAILABILITY, GHANA_REGIONS, riskSchemaToZod, type RiskField } from "@im/core";
-import { Field, Input, Notice, Pill, Select, Textarea, cn } from "@im/ui";
+import { ArrowLeft, Check, ChevronDown, CloudOff, Save, Search } from "lucide-react";
+import { CATEGORY_AVAILABILITY, GHANA_REGIONS, normaliseRegistration, prefillFromLookup, quickQuoteFields, riskSchemaToZod, type RiskField, type VehicleData } from "@im/core";
+import { Button, Checkbox, Field, Input, Notice, Pill, Select, Textarea, cn } from "@im/ui";
 import { CategoryIcon } from "@/components/customer/category-icon";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
@@ -160,6 +160,10 @@ function RiskForm({
   onBack?: () => void;
 }) {
   const fields = category.risk_schema;
+  // "Motor quote in under 2 minutes": registration + use + value first; the rest is prefilled from a
+  // registration lookup (DVLA / cache) and collapsed under "Check details" when the lookup succeeds.
+  const { quick, rest } = quickQuoteFields(fields);
+  const hasQuick = quick.length > 0;
   const key = draftKey(category.slug, type, policyId);
   const [state, formAction] = useActionState(submitRequest, initialActionState);
   const [values, setValues] = React.useState<Values>(() => {
@@ -173,6 +177,37 @@ function RiskForm({
   const hydrated = React.useRef(false);
   const dirty = React.useRef(false);
   const copy = TYPE_COPY[type];
+  const [detailsOpen, setDetailsOpen] = React.useState(true);
+  const [lookup, setLookup] = React.useState<{ state: "idle" | "searching" | "found" | "none" | "error"; data?: VehicleData }>({ state: "idle" });
+
+  async function findVehicle() {
+    const reg = normaliseRegistration(typeof values.registration_number === "string" ? values.registration_number : "");
+    if (reg.length < 4) {
+      setErrors((prev) => ({ ...prev, registration_number: "Enter the registration number, e.g. GR 1234-23" }));
+      document.getElementById("f-registration_number")?.focus();
+      return;
+    }
+    setLookup({ state: "searching" });
+    try {
+      const res = await fetch("/api/v1/lookups/vehicle", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ registration: reg }) });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; data?: { found?: boolean; data?: VehicleData; registration?: string } } | null;
+      if (!res.ok || !json?.ok) throw new Error("lookup failed");
+      dirty.current = true;
+      if (json.data?.found && json.data.data) {
+        const data = json.data.data;
+        setValues((prev) => prefillFromLookup({ ...prev, registration_number: json.data?.registration ?? reg }, data));
+        setLookup({ state: "found", data });
+        setDetailsOpen(false);
+      } else {
+        setValues((prev) => ({ ...prev, registration_number: json.data?.registration ?? reg }));
+        setLookup({ state: "none" });
+        setDetailsOpen(true);
+      }
+    } catch {
+      setLookup({ state: "error" });
+      setDetailsOpen(true);
+    }
+  }
 
   // Restore a saved draft (resumable forms for low-bandwidth / interrupted sessions).
   React.useEffect(() => {
@@ -244,7 +279,8 @@ function RiskForm({
     setErrors(errs);
     if (Object.keys(errs).length) {
       const first = fields.find((f) => errs[f.key])?.key ?? (errs.__note ? "note" : undefined);
-      if (first) document.getElementById(`f-${first}`)?.focus();
+      setDetailsOpen(true); // collapsed "Check details" fields must be visible to fix
+      if (first) setTimeout(() => document.getElementById(`f-${first}`)?.focus(), 0);
       return false;
     }
     return true;
@@ -306,11 +342,75 @@ function RiskForm({
       )}
       {category.regulatory_note && <Notice tone="wait">{category.regulatory_note}</Notice>}
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        {fields.map((f) => (
-          <RiskInput key={f.key} field={f} value={values[f.key] ?? ""} error={errors[f.key] ?? state.fieldErrors?.[f.key]} onChange={(v) => set(f.key, v)} />
-        ))}
-      </div>
+      {hasQuick ? (
+        <>
+          <section aria-labelledby="quick-start" className="rounded-card border border-brand/30 bg-mint-2/30 p-4 sm:p-5">
+            <h3 id="quick-start" className="font-semibold text-ink">Start with three details</h3>
+            <p className="mt-0.5 text-sm text-muted">Registration, use and value. We look up the make, model and year for you — a motor quote in under two minutes.</p>
+            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+              {quick.map((f) => (
+                <RiskInput key={f.key} field={f} value={values[f.key] ?? ""} error={errors[f.key] ?? state.fieldErrors?.[f.key]} onChange={(v) => set(f.key, v)} />
+              ))}
+              <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                <Button type="button" variant="secondary" size="sm" loading={lookup.state === "searching"} onClick={findVehicle}>
+                  <Search aria-hidden className="size-4" /> Find my vehicle
+                </Button>
+                <p aria-live="polite" className="text-sm text-muted">
+                  {lookup.state === "found"
+                    ? `Found: ${[lookup.data?.make, lookup.data?.model, lookup.data?.year].filter(Boolean).join(" ")}. Check the details below.`
+                    : lookup.state === "none"
+                      ? "We couldn't find that registration — no problem, fill in the details below."
+                      : lookup.state === "error"
+                        ? "Lookup isn't available right now. Fill in the details below."
+                        : "Optional. Skip it and fill in the details yourself."}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="check-details">
+            <button
+              type="button"
+              id="check-details"
+              onClick={() => setDetailsOpen((v) => !v)}
+              aria-expanded={detailsOpen}
+              aria-controls="check-details-panel"
+              className="flex w-full items-center justify-between rounded-xl border border-line px-4 py-3 text-left font-semibold text-ink hover:bg-mist"
+            >
+              <span>
+                Check details
+                {!detailsOpen && lookup.state === "found" && (
+                  <span className="ml-2 font-normal text-muted">{[values.vehicle_make, values.vehicle_model, values.vehicle_year].filter(Boolean).join(" ")} · prefilled from the registration</span>
+                )}
+              </span>
+              <ChevronDown aria-hidden className={cn("size-4 transition-transform", detailsOpen && "rotate-180")} />
+            </button>
+            <div id="check-details-panel" hidden={!detailsOpen} className="mt-4 grid gap-5 sm:grid-cols-2">
+              {rest.map((f) => (
+                <RiskInput key={f.key} field={f} value={values[f.key] ?? ""} error={errors[f.key] ?? state.fieldErrors?.[f.key]} onChange={(v) => set(f.key, v)} />
+              ))}
+            </div>
+          </section>
+        </>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2">
+          {fields.map((f) => (
+            <RiskInput key={f.key} field={f} value={values[f.key] ?? ""} error={errors[f.key] ?? state.fieldErrors?.[f.key]} onChange={(v) => set(f.key, v)} />
+          ))}
+        </div>
+      )}
+
+      {type !== "endorsement" && (
+        <Checkbox
+          name="talk_to_expert"
+          label={
+            <span>
+              <span className="font-medium text-ink">Talk to an expert first</span>
+              <span className="block text-sm text-muted">A licensed broker calls you before any quote is prepared — useful if you&apos;re not sure what cover you need. It doesn&apos;t cost you anything.</span>
+            </span>
+          }
+        />
+      )}
 
       {(copy.noteLabel || type === "new_cover") && (
         <Field

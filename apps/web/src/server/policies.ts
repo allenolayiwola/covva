@@ -222,5 +222,9 @@ export async function issuePolicyForInsurer(args: { insurerOrgId: string; policy
     await svc.from("applications").update({ status: "accepted", decided_at: new Date().toISOString(), decision_note: "Accepted and issued by the insurer." }).eq("request_id", policy.request_id).eq("quote_id", policy.quote_id).eq("status", "submitted");
   }
   await onPolicyIssued(policy.id);
+  // Level 1: render the schedule / certificate / sticker / receipt with the QR code now that the
+  // insurer has entered the number (never throws; the insurer can still upload its own files).
+  const { afterInsurerIssued } = await import("@/server/issuance");
+  await afterInsurerIssued(policy.id);
   return updated;
 }

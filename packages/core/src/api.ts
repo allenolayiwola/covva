@@ -222,6 +222,16 @@ export const RenewalInput = z.object({
   changes: z.string().trim().max(2000).optional(),
 });
 
+/** POST /lookups/vehicle — prefill a motor quote from a Ghana registration number. */
+export const VehicleLookupInput = z.object({ registration: z.string().trim().min(4, "Enter the registration number").max(20) });
+
+/** POST /requests/{id}/share — save & share a comparison (link, WhatsApp or email). */
+export const ShareQuotesInput = z.object({
+  channel: z.enum(["link", "whatsapp", "email"]).default("link"),
+  /** Required for `email` unless the account email should be used. */
+  email: z.string().trim().email().optional(),
+});
+
 export const WithdrawClaimInput = z.object({ reason: z.string().trim().max(500).optional() });
 
 export const MarkNotificationsReadInput = z
@@ -254,7 +264,7 @@ export const PartnerClaimStatusInput = z.object({
 export const IssuePolicyBody = IssuePolicyInput.omit({ policyId: true });
 
 /** Scopes for partner API keys (`x-api-key`). `*` grants all. */
-export const API_KEY_SCOPES = ["requests:read", "quotes:write", "policies:issue", "claims:write"] as const;
+export const API_KEY_SCOPES = ["requests:read", "quotes:write", "policies:issue", "claims:write", "policies:read", "claims:read", "finance:read"] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 // ---------------------------------------------------------------------------
@@ -288,3 +298,100 @@ export function webPathToDeepLink(path: string | null | undefined): { url: strin
   rest = rest.replace(/^\/requests\/([^/?]+)\/confirmation/, "/requests/$1");
   return { url: `${DEEP_LINK_SCHEME}:/${rest}`, path: rest };
 }
+
+// ---------------------------------------------------------------------------
+// Broker workspace on mobile (Addendum 4 §2) — `/api/v1/partner/*` contracts.
+// ---------------------------------------------------------------------------
+/** Organisation selector for dual-membership users: `?orgId=` / `X-Covva-Org`; falls back to `profiles.active_workspace`. */
+export const PartnerOrgQuery = z.object({ orgId: uuid.optional() });
+
+export const PartnerDashboardQuery = PartnerOrgQuery.extend({ days: z.coerce.number().int().min(7).max(90).default(30) });
+
+export const PartnerRenewalsQuery = PartnerOrgQuery.extend({ days: z.coerce.number().int().min(1).max(365).default(30) });
+
+export const PartnerCommissionQuery = PartnerOrgQuery.extend({
+  period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Period must look like YYYY-MM").optional(),
+});
+
+export const PartnerClaimsQuery = PartnerOrgQuery.extend({
+  status: z.enum(["draft", "reported", "delivered_to_insurer", "acknowledged", "under_assessment", "info_requested", "approved", "partially_approved", "rejected", "paid", "closed", "withdrawn"]).optional(),
+  /** open = not draft/paid/closed/withdrawn/rejected. */
+  view: z.enum(["open", "decided", "all"]).default("open"),
+  policyId: uuid.optional(),
+  customerId: uuid.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  before: z.string().datetime({ offset: true }).optional(),
+});
+
+/**
+ * Broker claim update: a status step the broker may record while the insurer hasn't acted
+ * (deliver / acknowledge / assess / request info) or a plain note on the claim timeline.
+ * Decisions (approve / reject / pay) are insurer-only and are never accepted here.
+ */
+export const PartnerClaimUpdateInput = z
+  .object({
+    status: z.enum(["delivered_to_insurer", "acknowledged", "under_assessment", "info_requested"]).optional(),
+    note: z.string().trim().max(2000).optional(),
+    visibleToCustomer: z.boolean().default(true),
+  })
+  .refine((v) => !!v.status || !!v.note, { message: "Give a status or a note", path: ["note"] });
+export type PartnerClaimUpdateInput = z.infer<typeof PartnerClaimUpdateInput>;
+
+export const PartnerCustomersQuery = PartnerOrgQuery.extend({
+  q: z.string().trim().max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const PartnerMessagesQuery = PartnerOrgQuery.extend({
+  request_id: uuid,
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  before: z.string().datetime({ offset: true }).optional(),
+});
+
+/** `POST /partner/messages` — a message on a request thread; `internal` notes are hidden from the customer. */
+export const PartnerMessageInput = z.object({
+  requestId: uuid,
+  body: z.string().trim().min(1).max(4000),
+  attachments: z.array(z.object({ documentId: uuid, name: z.string().max(200) })).max(10).default([]),
+  internal: z.boolean().default(false),
+});
+export type PartnerMessageInput = z.infer<typeof PartnerMessageInput>;
+
+/**
+ * `POST /partner/documents` (JSON): a file captured on the phone, base64-encoded, linked to a
+ * request, policy or claim the organisation services. Multipart form-data with a `file` part and the
+ * same field names is accepted too.
+ */
+export const PartnerDocumentUploadInput = z.object({
+  fileName: z.string().trim().min(1).max(200),
+  mimeType: z.enum(ALLOWED_UPLOAD_MIME),
+  kind: DocumentKind.default("other"),
+  /** Base64 (plain or data: URL) file contents. */
+  content: z.string().min(1),
+  requestId: uuid.optional(),
+  policyId: uuid.optional(),
+  claimId: uuid.optional(),
+  taskId: uuid.optional(),
+  /** Mark the upload as already delivered to the insurer (policy schedules/certificates the broker holds). */
+  deliveredToInsurer: z.boolean().default(false),
+}).refine((v) => !!v.requestId || !!v.policyId || !!v.claimId, { message: "Link the document to a request, policy or claim", path: ["requestId"] });
+export type PartnerDocumentUploadInput = z.infer<typeof PartnerDocumentUploadInput>;
+
+/** `PATCH /partner/profile` — contact fields only (owner/admin). Licence and legal details change through registration/admin. */
+export const UpdatePartnerProfileInput = z
+  .object({
+    contactEmail: z.string().trim().email().max(200).nullable(),
+    contactPhone: z.string().trim().regex(/^\+?\d{9,15}$/, "Enter a valid phone number").nullable(),
+    website: z.string().trim().url().max(200).nullable(),
+    address: z.string().trim().max(400).nullable(),
+    region: z.string().trim().max(100).nullable(),
+    description: z.string().trim().max(2000).nullable(),
+  })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: "Nothing to update" });
+export type UpdatePartnerProfileInput = z.infer<typeof UpdatePartnerProfileInput>;
+
+/** Push notification kinds the broker app must handle (see docs/MOBILE_INTEGRATION.md §15). */
+export const BROKER_PUSH_KINDS = ["offer.new", "message.new", "claim.status", "claim.reported", "claim.delivered", "renewal.due", "document.uploaded", "request.created"] as const;
+export type BrokerPushKind = (typeof BROKER_PUSH_KINDS)[number];

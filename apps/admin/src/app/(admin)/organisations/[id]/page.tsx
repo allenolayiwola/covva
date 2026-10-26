@@ -15,13 +15,22 @@ import { ActionForm, ConfirmAction, ToggleForm } from "@/components/ui/forms";
 import { AuditTable } from "@/components/AuditTable";
 import { OrgFields } from "../OrgForm";
 import {
-  addMember, changeMemberRole, saveDueDiligence, setDemoFlag, setMemberActive, setOrganisationStatus, updateOrganisation, verifyLicence,
+  addMember, changeMemberRole, saveDueDiligence, setDemoFlag, setMemberActive, setOrganisationStatus, toggleChecklistItem, updateOrganisation, verifyLicence,
 } from "../actions";
 import { toggleAppointment } from "../../appointments/actions";
 import { toggleRoutingRule } from "../../routing/actions";
 import { saveSubscription } from "../../subscriptions/actions";
 
 const TABS = ["profile", "members", "appointments", "routing", "subscription", "diligence", "activity"] as const;
+const LICENCE_TONE: Record<string, "ok" | "wait" | "danger" | "neutral"> = { verified: "ok", expiring: "wait", lapsed: "danger", unverified: "neutral" };
+const CHECKLIST = [
+  { key: "documents", label: "Documents received" },
+  { key: "verification", label: "NIC licence verified" },
+  { key: "agreement", label: "Partner agreement signed" },
+  { key: "products", label: "Products / appointments set up" },
+  { key: "test_quote", label: "Test quote completed" },
+  { key: "go_live", label: "Go-live" },
+] as const;
 type Tab = (typeof TABS)[number];
 
 export default function OrganisationPage({ params, searchParams }: PageProps<"/organisations/[id]">) {
@@ -120,6 +129,8 @@ async function OrgDetail({ params, searchParams }: { params: Promise<{ id: strin
                     { label: "Class", value: org.nic_licence_class ?? "—" },
                     { label: "Expires", value: formatDate(org.nic_licence_expires_on) },
                     { label: "Verified", value: org.licence_verified_at ? `${formatDateTime(org.licence_verified_at)} by ${personName(verifiedBy, "staff")}` : <Pill tone="wait">Not verified</Pill> },
+                    { label: "Licence status", value: <Pill tone={LICENCE_TONE[org.licence_status] ?? "neutral"}>{org.licence_status.replace(/_/g, " ")}</Pill> },
+                    ...(org.suspended_reason ? [{ label: "Suspended reason", value: <span className="text-danger">{org.suspended_reason.replace(/_/g, " ")}</span> }] : []),
                   ]}
                 />
                 <ol className="mt-4 list-decimal space-y-1 pl-5 text-xs text-muted">
@@ -146,6 +157,24 @@ async function OrgDetail({ params, searchParams }: { params: Promise<{ id: strin
                     body={org.licence_verified_at ? "Removing verification will block activation until it is verified again." : `I have checked ${org.nic_licence_number ?? "the licence"} on the NIC register and the details match.`}
                   />
                 </div>
+              </Panel>
+            )}
+            {isPartner && (
+              <Panel title="Onboarding checklist" description="Documents → verification → agreement → products → test quote → go-live. Shown to the partner on their workspace home.">
+                <ul className="divide-y divide-line">
+                  {CHECKLIST.map((item) => {
+                    const entry = ((org.onboarding_checklist as Record<string, { done?: boolean; at?: string } | undefined> | null) ?? {})[item.key];
+                    return (
+                      <li key={item.key} className="flex items-center justify-between gap-3 py-2">
+                        <div>
+                          <p className="text-sm font-medium text-ink">{item.label}</p>
+                          {entry?.done && entry.at && <p className="text-xs text-muted">Done {formatDateTime(entry.at)}</p>}
+                        </div>
+                        <ToggleForm action={toggleChecklistItem} fields={{ orgId: org.id, item: item.key }} checked={entry?.done === true} label={`${item.label} done`} disabled={!canNetwork} />
+                      </li>
+                    );
+                  })}
+                </ul>
               </Panel>
             )}
             <Panel title="Settings">

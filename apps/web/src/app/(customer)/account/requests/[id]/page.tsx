@@ -18,6 +18,7 @@ import { PARTY_LABEL, REQUEST_TYPE_LABEL } from "../../_lib/labels";
 import { attachRequestDocument } from "./actions";
 import { BrokerChangeForm } from "./broker-change-form";
 import { CancelRequestForm } from "./cancel-form";
+import { SlaChoiceForm } from "./sla-choice-form";
 
 export const metadata: Metadata = { title: "Request" };
 
@@ -38,7 +39,7 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
   const { user, supabase } = await account(`/account/requests/${id}`);
   const request = await getRequestOr404(supabase, id);
 
-  const [eventsRes, tasksRes, quotesRes, docsRes, othersRes, lastMsgRes, unreadRes] = await Promise.all([
+  const [eventsRes, tasksRes, quotesRes, docsRes, othersRes, lastMsgRes, unreadRes, policiesRes] = await Promise.all([
     supabase.from("request_events").select("id, event, from_status, to_status, note, actor_party, created_at, data").eq("request_id", id).order("created_at", { ascending: true }),
     supabase.from("request_tasks").select("*").eq("request_id", id).order("created_at", { ascending: true }),
     supabase.from("quotes").select("id, status, premium, insurer_org_id, valid_until, product_version_id, insurer:organizations!quotes_insurer_org_id_fkey(name, nic_licence_number, settings)").eq("request_id", id),
@@ -52,7 +53,21 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
       .limit(4),
     supabase.from("request_messages").select("body, sender_party, created_at").eq("request_id", id).neq("sender_party", "customer").order("created_at", { ascending: false }).limit(1),
     supabase.from("request_messages").select("id", { count: "exact", head: true }).eq("request_id", id).neq("sender_party", "customer").is("read_by_customer_at", null),
+    supabase.from("policies").select("id, status, insurer:organizations!policies_insurer_org_id_fkey(name)").eq("request_id", id),
   ]);
+  // Stage + expected time (Addendum 2 A): the open SLA timer for this request or its pending policy.
+  const pendingPolicies = (policiesRes.data ?? []) as unknown as { id: string; status: string; insurer: { name: string } | null }[];
+  const policyIds = pendingPolicies.map((p) => p.id);
+  const { data: timerRows } = await supabase
+    .from("sla_timers")
+    .select("subject_type, subject_id, due_at, escalation_level, breached_at, insurer_org_id")
+    .is("resolved_at", null)
+    .or(policyIds.length ? `and(subject_type.eq.request,subject_id.eq.${id}),and(subject_type.eq.issuance,subject_id.in.(${policyIds.join(",")}))` : `and(subject_type.eq.request,subject_id.eq.${id})`)
+    .order("due_at", { ascending: true })
+    .limit(2);
+  const issuanceTimer = (timerRows ?? []).find((t) => t.subject_type === "issuance") ?? null;
+  const breachedTimer = (timerRows ?? []).find((t) => t.escalation_level >= 3) ?? null;
+  const pendingInsurerName = pendingPolicies.find((p) => p.status === "pending_issuance")?.insurer?.name ?? null;
 
   const events = eventsRes.data ?? [];
   const tasks = (tasksRes.data ?? []) as Row<"request_tasks">[];
@@ -179,8 +194,14 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
     });
     steps.push({
       title: "Policy issued",
-      detail: status === "completed" ? "Documents are in My cover" : "Cover starts once the insurer confirms and issues documents",
+      detail:
+        status === "completed"
+          ? "Documents are in My cover"
+          : issuanceTimer
+            ? `${pendingInsurerName ?? "The insurer"} is issuing your policy · Expected by ${formatDateTime(issuanceTimer.due_at)}${issuanceTimer.escalation_level > 0 ? " (overdue — escalated)" : ""}`
+            : "Cover starts once the insurer confirms and issues documents",
       state: status === "completed" ? "done" : status === "policy_documents" ? "current" : "upcoming",
+      action: breachedTimer && !isClosed && status !== "completed" ? <SlaChoiceForm requestId={request.id} insurerName={pendingInsurerName} dueAt={formatDateTime(breachedTimer.due_at)} /> : undefined,
     });
   } else {
     steps.push({
@@ -348,7 +369,7 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
           <div>
             <DefinitionList
               items={[
-                ...(due ? [{ label: "Next update target", value: due.overdue ? "Your broker is on it" : due.label }] : []),
+                ...(issuanceTimer && status !== "completed" ? [{ label: "Policy expected by", value: formatDateTime(issuanceTimer.due_at) }] : due ? [{ label: "Next update target", value: due.overdue ? "Your broker is on it" : due.label }] : []),
                 { label: "Opened", value: formatDate(request.created_at) },
                 { label: "Reference", value: request.reference },
               ]}

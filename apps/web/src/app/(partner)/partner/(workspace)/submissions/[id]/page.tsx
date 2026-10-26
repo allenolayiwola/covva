@@ -64,7 +64,7 @@ async function Submission({ params }: { params: Promise<{ id: string }> }) {
         <div>
           <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">{req.reference} · {requestKind(category?.name, req.type)}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-            From {brokers.get(sub.broker_org_id) ?? "broker"} (broker of record) · {humanize(sub.channel)} · received {formatDateTime(sub.created_at)}
+            {sub.broker_org_id ? `From ${brokers.get(sub.broker_org_id) ?? "broker"} (broker of record)` : "Direct order — issued directly by the insurer, no broker of record"} · {humanize(sub.channel)} · received {formatDateTime(sub.created_at)}
             <Pill tone={sub.status === "quoted" ? "ok" : closed ? "danger" : "wait"}>{humanize(sub.status)}</Pill>
           </p>
         </div>

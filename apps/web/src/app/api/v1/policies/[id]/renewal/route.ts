@@ -1,10 +1,12 @@
-import { OPEN_REQUEST_STATUSES, RenewalInput } from "@im/core";
+import { OPEN_REQUEST_STATUSES, RenewalInput, renewalOptions, type RenewalEstimate } from "@im/core";
 import { conflict, invalid, must, parseJson, rule, uuidParam, withApi } from "@/server/api-auth";
 import { createRequest } from "@/server/requests";
 
 /**
- * POST /api/v1/policies/{id}/renewal — start a renewal review (platform policy) or a switch
- * review (policy added from elsewhere). Existing cover is never cancelled by this.
+ * POST /api/v1/policies/{id}/renewal — one-tap renewal: a renewal request for the same risk with
+ * refreshed estimates, the policy's broker kept as broker of record; `renewal` holds the
+ * "renew with the same insurer" offer, alternatives and savings. External policies start a switch
+ * review instead. Existing cover is never cancelled by this.
  */
 export const POST = withApi(
   async ({ auth, req }, route: RouteContext<"/api/v1/policies/[id]/renewal">) => {
@@ -12,7 +14,7 @@ export const POST = withApi(
     const input = await parseJson(req, RenewalInput);
     const sb = auth.supabase;
     const policy = must(
-      await sb.from("policies").select("id, status, customer_id, request_id, external_source, category:product_categories(slug)").eq("id", id).maybeSingle(),
+      await sb.from("policies").select("id, status, customer_id, request_id, external_source, broker_org_id, insurer_org_id, premium, sum_insured, category:product_categories(slug)").eq("id", id).maybeSingle(),
       "Policy not found.",
     );
     if (policy.customer_id !== auth.userId) throw rule("Only the policyholder can start a renewal.");
@@ -31,14 +33,31 @@ export const POST = withApi(
     const slug = (policy.category as unknown as { slug: string } | null)?.slug;
     if (!slug) throw rule("Unknown category for this policy.");
     const result = await createRequest(
-      { categorySlug: slug, risk, type: policy.external_source ? "switch" : "renewal", relatedPolicyId: id, source: "mobile", submit: true },
+      { categorySlug: slug, risk, type: policy.external_source ? "switch" : "renewal", relatedPolicyId: id, source: "mobile", submit: true, brokerOfRecordId: policy.broker_org_id },
       { supabase: sb, userId: auth.userId },
+    );
+    const { data: quotes } = await sb
+      .from("quotes")
+      .select("id, status, premium, sum_insured, insurer_org_id, product:products(name), insurer:organizations!quotes_insurer_org_id_fkey(name)")
+      .eq("request_id", result.request.id);
+    const estimates: RenewalEstimate[] = (quotes ?? []).map((q) => ({
+      quoteId: q.id,
+      insurerOrgId: q.insurer_org_id,
+      insurerName: (q.insurer as unknown as { name: string } | null)?.name ?? "Insurer",
+      productName: (q.product as unknown as { name: string } | null)?.name ?? null,
+      premium: Number(q.premium),
+      status: q.status as RenewalEstimate["status"],
+      sumInsured: q.sum_insured == null ? null : Number(q.sum_insured),
+    }));
+    const renewal = renewalOptions(
+      { insurerOrgId: policy.insurer_org_id ?? "", premium: policy.premium == null ? null : Number(policy.premium), sumInsured: policy.sum_insured == null ? null : Number(policy.sum_insured), brokerOrgId: policy.broker_org_id },
+      estimates,
     );
     if (input.changes) {
       await sb.from("request_messages").insert({ request_id: result.request.id, sender_id: auth.userId, sender_party: "customer", body: `What has changed: ${input.changes}` });
     }
     return Response.json(
-      { ok: true, data: { request: result.request, note: "Renewal prices are estimates until the insurer confirms them. Your current cover stays in place." } },
+      { ok: true, data: { request: result.request, renewal, note: "Renewal prices are estimates until the insurer confirms them. Your current cover stays in place." } },
       { status: 201 },
     );
   },

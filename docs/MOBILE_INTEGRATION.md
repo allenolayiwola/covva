@@ -139,7 +139,8 @@ confirm, AI) must go through `/api/v1`.
 | Apply / declarations | `POST /applications` |
 | Pay | `POST /payments` → in-app browser → `GET /payments/{id}` |
 | Confirmation | `GET /requests/{id}` + `GET /payments/{id}` (`coverActive` false until issued) |
-| Policy wallet | `GET /policies`, `GET /policies/{id}`, `PATCH /policies/{id}`, `GET /documents/{id}/url` |
+| Policy wallet | `GET /policies`, `GET /policies/{id}`, `PATCH /policies/{id}`, `GET /policies/{id}/documents`, `GET /documents/{id}/url` |
+| Verify a policy (scanner) | `GET /verify?code=…` (public) |
 | Add a policy bought elsewhere | `GET /catalog/insurers`, `POST /policies/external` |
 | Renewal | `POST /policies/{id}/renewal` |
 | Claims | `GET/POST /claims`, `GET /claims/{id}`, `POST /claims/{id}/withdraw`, `POST /api/ai/claim-completeness { claimId }` |
@@ -187,6 +188,25 @@ labels, disclosure text and hides internal fields). Remove channels when screens
    (labelled AI-extracted, never "verified").
 
 Copy must say uploads go to the broker — **uploading is not the same as notifying the insurer**.
+
+## 7a. Policy documents and verification
+
+* `GET /policies/{id}/documents` returns every document on the policy with a 15-minute signed URL. Documents
+  the platform generated on the insurer's behalf (`generated: true` — `policy_schedule`, `certificate`,
+  `sticker` for motor, `receipt`) carry a `sha256`; cache them locally and re-fetch when the hash changes
+  (an insurer endorsement can regenerate them). The sticker is an A6 PDF meant to be shown at road checks.
+* Every generated document embeds a QR code pointing at `verifyUrl` (`<SITE_URL>/verify?q=<verificationCode>`).
+  Show the same QR in the wallet (encode `verifyUrl` with any QR library) with the text "Anyone can scan this
+  to confirm the policy is valid — they never see your details".
+* Scanner / "check a policy" screen: `GET /verify?code=<10-char code>` or
+  `GET /verify?insurer=<slug>&policyNumber=…` — public, no token, rate-limited. The response is deliberately
+  minimal (`valid`, `status`, `insurerName`, `categoryName`, `coverStart`, `coverEnd`, `policyNumberMasked`).
+  Copy for a negative result: "Not found is not proof of no insurance — the policy may have been bought
+  outside Covva."
+* Issuance stage and expected time: `GET /requests/{id}` keeps `next_step` current ("Expected to be issued by
+  …") and the timeline event `issuance_queued` / `issuance_referred` carries `due_at`. After a final SLA breach
+  the event `sla_final_breach` (visible to the customer) means the app must offer the choice — call the web
+  request page (`/account/requests/{id}`) or `POST` the Server Action equivalent once exposed in the API.
 
 ## 8. Payment flow
 
@@ -395,3 +415,131 @@ workspace. The mobile app does not enforce MFA for the broker workspace in this 
 accounts should enable it on the web (Settings → Security), and the app can read
 `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` to show a reminder. Customers use phone OTP
 and optional biometrics (device-local) — never TOTP.
+
+## 15. Broker workspace (mobile) — Addendum 4 §2
+
+Everything the broker workspace needs on the phone lives under `/api/v1/partner/*` and works with the
+broker user's bearer token (RLS applies; the database analytics functions also check membership).
+Send `X-Covva-Client: mobile` and, for users who belong to several organisations, the organisation
+with `?orgId=` or the `X-Covva-Org` header (otherwise the stored `activeWorkspace` from `/me` is used,
+then the only partner membership). An insurer workspace is refused on mobile with
+`details.reason = "insurer_web_only"` (§14). The same endpoints serve the web partner workspace and
+partner API keys (scopes `requests:read`, `policies:read`, `claims:read`, `finance:read`).
+
+| Screen | Endpoint | Notes |
+|---|---|---|
+| Home | `GET /partner/dashboard?days=30` | KPIs, sparkline series, open counts, renewals due, claims, SLA, commission (finance roles) |
+| Orders (offers) | `GET /partner/offers`, `POST /partner/offers/{id}` | §10a — accept / decline, one-tap deep link |
+| Order details | `GET /requests/{id}`, `GET /requests/{id}/quotes` | Customer identity only after accepting |
+| Documents (camera) | `POST /partner/documents` | One call, base64 or multipart; links to a request / policy / claim |
+| Client messaging | `GET/POST /partner/messages?request_id=` | Push to the customer; `internal: true` for team notes |
+| Claims | `GET /partner/claims`, `POST /partner/claims/{id}/updates` | Steps a broker may record; decisions are insurer-only |
+| Clients | `GET /partner/customers`, `GET /partner/customers/{id}` | Brokers only |
+| Renewals | `GET /partner/renewals?days=30` | With contact-permission flags |
+| Commission & statements | `GET /partner/commission?period=YYYY-MM`, `GET /partner/statements`, `GET /partner/statements/{id}` | Owners, admins, finance |
+| Profile & insurer links | `GET /partner/profile`, `PATCH /partner/profile` | Appointments per product line; contact fields editable by owners/admins |
+
+The full request/response shapes are in `docs/api/openapi.yaml` (`/partner/*`) and the zod contracts
+in `packages/core/src/api.ts` (`PartnerDashboardQuery`, `PartnerClaimUpdateInput`, `PartnerMessageInput`,
+`PartnerDocumentUploadInput`, `UpdatePartnerProfileInput`).
+
+### 15.1 Dashboard
+
+```http
+GET /api/v1/partner/dashboard?days=30
+Authorization: Bearer <token>
+X-Covva-Client: mobile
+```
+
+```jsonc
+{
+  "ok": true,
+  "data": {
+    "org": { "id": "…", "name": "Demo Broker", "type": "broker", "role": "adviser" },
+    "range": { "days": 30, "from": "2026-09-27", "to": "2026-10-26" },
+    "kpis": { "requests": 42, "quotes": 61, "conversions": 18, "policiesIssued": 15, "premium": 48250, "platformFee": 0, "brokerCommission": 6031.25,
+              "conversionRate": 29.5, "change": { "requests": 12.5, "quotes": -3.2, "conversions": null, "policiesIssued": 7.1, "premium": 9.8, "platformFee": null, "brokerCommission": 4 } },
+    "series": [{ "day": "2026-09-27", "requests": 2, "quotes": 3, "conversions": 1, "policies_issued": 1, "premium": 1200, "platform_fee": 0, "broker_commission": 150 }, "…"],
+    "open": { "offers": 3, "requests": 11, "submissions": 0, "claims": 2 },
+    "renewals": { "count": 6, "windowDays": 30, "next": ["… first 10 partner_renewals rows …"] },
+    "claims": { "byStatus": { "reported": 1, "under_assessment": 1, "paid": 4 }, "total": 6, "open": 2, "decided": 4, "avgDaysToDecision": 5.5, "staleOpen": 0, "openSlaBreaches": null },
+    "sla": { "requests_measured": 30, "requests_on_time": 27, "requests_breached": 3, "requests_open_overdue": 1, "submissions_measured": 20, "submissions_on_time": 18, "submissions_late": 2, "submissions_open_overdue": 0, "on_time_rate": 90.0 },
+    "lapses": { "lapsed": 1, "cancelled": 0, "expired": 2, "renewed": 9, "active": 120, "ended": 12, "lapse_rate": 25.0 },
+    "commission": { "period": "2026-10", "earned": 6031.25, "paid": 0, "outstanding": 6031.25, "revenue_share": 1206.25, "platform_fee": 0, "entries": 15, "statement_id": null, "statement_status": null, "statement_net_due": null, "currency": "GHS", "period_start": "2026-10-01", "period_end": "2026-10-31" },
+    "commissionVisible": true,
+    "period": "2026-10"
+  }
+}
+```
+
+`commission` is `null` and `commissionVisible` is `false` for advisers and viewers — hide the tile rather
+than showing zeros. `change` values are percentages versus the previous window (`null` = nothing to compare).
+
+### 15.2 Renewals
+
+`GET /partner/renewals?days=30` → `{ windowDays, count, items: [...] }`. Each item:
+
+```jsonc
+{ "policyId": "…", "reference": "POL-2026-000123", "policyNumber": "CG/MTR/2026/0123", "category": { "id": "…", "name": "Motor" },
+  "coverEnd": "2026-11-12", "daysLeft": 17, "premium": 1450, "currency": "GHS", "status": "active",
+  "customer": { "id": "…", "name": "Ama Mensah", "email": "ama@…", "phone": "+233…" },
+  "contactAllowed": true, "marketingAllowed": false,
+  "renewalRequest": null, "remindersSent": 1 }
+```
+
+Only contact the customer when `contactAllowed` is true (latest `data_sharing_broker` consent). Start
+the renewal with `POST /policies/{id}/renewal` on behalf of the customer only through the web request
+form; from the app, message the customer (`POST /partner/messages`) and let them confirm. Any renewal
+price is an estimate until the insurer confirms it.
+
+### 15.3 Claims updates
+
+```http
+POST /api/v1/partner/claims/{id}/updates
+{ "status": "delivered_to_insurer", "note": "Photos and police report sent to Coastline.", "visibleToCustomer": true }
+```
+
+Allowed `status` values for brokers: `delivered_to_insurer` (from `reported`), then `acknowledged`,
+`under_assessment`, `info_requested` — but only while the insurer has not recorded anything on the
+claim; afterwards the call returns `422 business_rule` and you should send a note only (`{ "note": "…" }`).
+Approve / reject / pay never come from the broker app. Response `201 { claim: { id, reference, status, statusLabel }, event }`.
+
+### 15.4 Documents from the camera
+
+```http
+POST /api/v1/partner/documents
+Content-Type: application/json
+{ "fileName": "schedule.jpg", "mimeType": "image/jpeg", "kind": "policy_schedule", "policyId": "…",
+  "content": "data:image/jpeg;base64,/9j/4AAQ…", "deliveredToInsurer": false }
+```
+
+or `multipart/form-data` with a `file` part and the same fields. Response `201 { document: { id, kind, file_name, … } }`.
+Link every upload to exactly the record it belongs to (`requestId`, `policyId` or `claimId`); the server
+checks the organisation services it. Files over 20 MB must use the two-step flow in §7.
+
+### 15.5 Messaging
+
+`GET /partner/messages?request_id=…` returns the thread oldest-first, including `internal` notes the
+customer never sees, and marks the customer's messages as read by the broker.
+`POST /partner/messages { "requestId", "body", "attachments": [{ "documentId", "name" }], "internal": false }`
+sends a push + in-app + email to the customer (`message.new`). Subscribe to `request_messages` over
+Realtime (§6) for live updates.
+
+### 15.6 Push notification payloads the broker app must handle
+
+Every push has `data = { url, path, kind, notificationId, webLink, …ids }` (§9). Partner web paths map to
+`covva://notifications` (`url`), so **route by `kind` and the ids** instead of `url` for these:
+
+| `kind` | When | `data` | Open |
+|---|---|---|---|
+| `offer.new` | A request was offered to the broker (claim model) | `{ offer_id, request_id, round, responds_by, accept_url, deep_link }` + `url = covva://offers/accept/{token}` | Offer screen (one-tap accept) |
+| `request.created` / `request.assigned` | A request was routed / assigned to you | `{ request_id }` | Order details |
+| `message.new` | The customer sent a message | `{ request_id, message_id }` | Thread |
+| `document.uploaded` | The customer uploaded a document | `{ request_id, document_id }` | Order documents |
+| `claim.reported` | A customer reported a claim on a policy you service | `{ claim_id }` | Claim |
+| `claim.status` | The insurer (or your team) changed a claim's status | `{ claim_id, status }` | Claim |
+| `renewal.due` | The renewals cron found policies ending soon (per policy, at the configured reminder days) | `{ policy_id, days }`, `webLink = /partner/renewals` | Renewals list |
+| `submission.*`, `quote.*`, `policy.issued`, `payment.succeeded` | Progress on an order | `{ request_id, … }` | Order details |
+
+Mark the notification read with `POST /notifications/read { ids: [notificationId] }` after navigating.
+`BROKER_PUSH_KINDS` in `@im/core` lists the kinds above.

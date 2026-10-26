@@ -140,6 +140,39 @@ export async function recordPaymentLedger(svc: Svc, payment: Row<"payments">): P
   }
 }
 
+/**
+ * Post the reversal entries for a refunded premium payment (idempotent). One `refund` row credits
+ * the insurer with −premium; the commission / fee / revenue-share rows are reversed as `adjustment`
+ * rows (negative amounts, same parties) referenced `<payment reference>:refund`. Never throws into
+ * the refund flow — failures are logged and the call can be repeated.
+ */
+export async function recordRefundLedger(svc: Svc, payment: Row<"payments">, reason?: string | null): Promise<{ posted: number; skipped: number } | null> {
+  try {
+    const { data: existing } = await svc
+      .from("ledger_entries")
+      .select("id, entry_type, org_id, counterparty_org_id, amount, memo, reference")
+      .eq("payment_id", payment.id)
+      .limit(50);
+    const rows = existing ?? [];
+    if (rows.some((r) => r.entry_type === "refund")) return { posted: 0, skipped: rows.length };
+    const premium = rows.find((r) => r.entry_type === "premium_received");
+    const ref = `${payment.provider_reference ?? payment.id}:refund`;
+    const why = reason ? ` — ${reason}` : "";
+    const base = { payment_id: payment.id, policy_id: payment.policy_id, currency: payment.currency, reference: ref };
+    const entries: LedgerEntryInput[] = [
+      { ...base, entry_type: "refund", org_id: payment.payee_org_id, amount: -Math.abs(Number(premium?.amount ?? payment.amount)), memo: `Premium refunded to the customer${why}` },
+    ];
+    for (const r of rows) {
+      if (r.entry_type !== "broker_commission" && r.entry_type !== "platform_fee" && r.entry_type !== "revenue_share") continue;
+      entries.push({ ...base, entry_type: "adjustment", org_id: r.org_id, counterparty_org_id: r.counterparty_org_id, amount: -Math.abs(Number(r.amount)), memo: `Reversal of ${r.entry_type.replace(/_/g, " ")} (refund)` });
+    }
+    return await recordLedgerEntries(svc, entries);
+  } catch (err) {
+    log.error("ledger.record_refund_failed", { paymentId: payment.id, err });
+    return null;
+  }
+}
+
 /** Build (or refresh while draft) an organisation's settlement statement for a period. Returns its id. */
 export async function buildSettlementStatement(svc: Svc, orgId: string, periodStart: string, periodEnd: string): Promise<string> {
   const { data, error } = await svc.rpc("build_settlement_statement", { p_org: orgId, p_start: periodStart, p_end: periodEnd });

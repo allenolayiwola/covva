@@ -24,6 +24,7 @@ import { PageSkeleton } from "@/components/customer/skeletons";
 import { RealtimeRefresh } from "@/components/customer/realtime-refresh";
 import { ORG_COLS, account, getRequestOr404, requestTime, type OrgLite } from "../../../_lib/data";
 import { NotifyButton } from "./notify-button";
+import { ShareQuotes } from "./share-quotes";
 
 export const metadata: Metadata = { title: "Compare quotes" };
 
@@ -52,7 +53,7 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
   const sp = await searchParams;
   const sort: SortKey = sp.sort === "cover" || sp.sort === "excess" ? sp.sort : "price";
   const diffOnly = sp.diff === "1";
-  const { supabase } = await account(`/account/requests/${id}/quotes`);
+  const { user, supabase } = await account(`/account/requests/${id}/quotes`);
   const [request, flags] = await Promise.all([getRequestOr404(supabase, id), getFlags()]);
 
   const [quotesRes, appRes] = await Promise.all([
@@ -223,6 +224,12 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
               .filter(Boolean)
               .join(" · ")}
           </p>
+          {rows.length > 0 && (
+            <p className="mt-1 text-sm text-ink-2">
+              <span className="font-semibold">{respondedInsurers} insurer{respondedInsurers === 1 ? "" : "s"} compared</span>
+              {respondedInsurers === 1 ? " — we show every licensed insurer that quoted for this risk. Nothing is hidden; your broker can ask others to quote." : " — every licensed insurer that quoted for this risk."}
+            </p>
+          )}
         </div>
         {rows.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
@@ -351,6 +358,8 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
           </ul>
 
           <p className="mt-4 text-sm text-muted">Fictional terms. Full policy wording applies. Your broker confirms eligibility and the final quote.</p>
+
+          <ShareQuotes requestId={id} defaultEmail={user.email} className="mt-6" />
 
           <div className="mt-8 grid gap-4 lg:grid-cols-2">
             <Card className="p-5">

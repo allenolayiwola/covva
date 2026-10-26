@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ChevronLeft } from "lucide-react";
-import { daysUntil, formatDate, humanize } from "@im/core";
-import { Notice } from "@im/ui";
+import { ArrowLeftRight, ChevronLeft, RefreshCw } from "lucide-react";
+import { daysUntil, formatDate, formatGHS, humanize, renewalOptions, type RenewalEstimate } from "@im/core";
+import { Card, Notice, Pill, buttonClass } from "@im/ui";
 import { getProfile } from "@/lib/auth";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { account, getPolicyOr404, requestTime } from "../../../_lib/data";
@@ -11,11 +11,11 @@ import { RenewForm, type RenewToggle } from "./renew-form";
 
 export const metadata: Metadata = { title: "Renew your cover" };
 
-export default function RenewPage({ params }: PageProps<"/account/policies/[id]/renew">) {
+export default function RenewPage({ params, searchParams }: PageProps<"/account/policies/[id]/renew">) {
   return (
     <div className="max-w-xl">
       <Suspense fallback={<PageSkeleton rows={5} />}>
-        <Renew params={params} />
+        <Renew params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -80,19 +80,42 @@ function togglesFor(slug: string | undefined, risk: Record<string, unknown>, dri
   }
 }
 
-async function Renew({ params }: Pick<PageProps<"/account/policies/[id]/renew">, "params">) {
+async function Renew({ params, searchParams }: Pick<PageProps<"/account/policies/[id]/renew">, "params" | "searchParams">) {
   const { id } = await params;
+  const sp = await searchParams;
   const { supabase } = await account(`/account/policies/${id}/renew`);
   const [policy, profile] = await Promise.all([getPolicyOr404(supabase, id), getProfile()]);
   const yearAgo = new Date(requestTime() - 365 * 86_400_000).toISOString();
   const [{ count: claims }, riskRes, openRenewal] = await Promise.all([
     supabase.from("claims").select("id", { count: "exact", head: true }).eq("policy_id", id).gte("created_at", yearAgo).neq("status", "withdrawn"),
     policy.request_id ? supabase.from("requests").select("risk_data").eq("id", policy.request_id).maybeSingle() : Promise.resolve({ data: null }),
-    supabase.from("requests").select("id, reference").eq("related_policy_id", id).eq("type", "renewal").not("status", "in", "(cancelled,closed_no_cover,completed)").limit(1),
+    supabase.from("requests").select("id, reference, status").eq("related_policy_id", id).eq("type", "renewal").not("status", "in", "(cancelled,closed_no_cover,completed)").limit(1),
   ]);
   const risk = { ...((policy.insured_items ?? {}) as Record<string, unknown>), ...((riskRes.data?.risk_data ?? {}) as Record<string, unknown>) };
   const days = daysUntil(policy.cover_end);
   const existing = openRenewal.data?.[0];
+
+  // One-tap renewal: refreshed estimates for the same risk → "Renew with <insurer>" or "Switch insurer".
+  let options: ReturnType<typeof renewalOptions> | null = null;
+  if (existing) {
+    const { data: quotes } = await supabase
+      .from("quotes")
+      .select("id, status, premium, sum_insured, insurer_org_id, product:products(name), insurer:organizations!quotes_insurer_org_id_fkey(name)")
+      .eq("request_id", existing.id);
+    const estimates: RenewalEstimate[] = (quotes ?? []).map((q) => ({
+      quoteId: q.id,
+      insurerOrgId: q.insurer_org_id,
+      insurerName: (q.insurer as unknown as { name: string } | null)?.name ?? "Insurer",
+      productName: (q.product as unknown as { name: string } | null)?.name ?? null,
+      premium: Number(q.premium),
+      status: q.status as RenewalEstimate["status"],
+      sumInsured: q.sum_insured == null ? null : Number(q.sum_insured),
+    }));
+    options = renewalOptions(
+      { insurerOrgId: policy.insurer_org_id ?? "", insurerName: policy.insurer?.name, premium: policy.premium == null ? null : Number(policy.premium), brokerOrgId: policy.broker_org_id },
+      estimates,
+    );
+  }
 
   return (
     <>
@@ -115,11 +138,65 @@ async function Renew({ params }: Pick<PageProps<"/account/policies/[id]/renew">,
         </div>
       )}
 
-      {existing ? (
-        <Notice tone="info" className="mt-8" title="Renewal already requested">
-          Your broker is working on renewal request {existing.reference}.{" "}
-          <Link href={`/account/requests/${existing.id}`} className="font-semibold underline">Track it</Link>
-        </Notice>
+      {existing && options ? (
+        <section aria-labelledby="renew-options" className="mt-8 space-y-4">
+          {sp.requested && <Notice tone="ok">Renewal request {existing.reference} sent. Here are your refreshed options.</Notice>}
+          <h2 id="renew-options" className="text-sm font-semibold uppercase tracking-[0.1em] text-muted">Your renewal options</h2>
+          {options.sameInsurer ? (
+            <Card className="border-brand p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-muted">Renew with</p>
+                  <p className="text-lg font-semibold text-ink">{options.sameInsurer.insurerName}</p>
+                  {options.sameInsurer.productName && <p className="text-sm text-muted">{options.sameInsurer.productName}</p>}
+                </div>
+                <Pill tone={options.sameInsurer.oneTap ? "ok" : "wait"}>{options.sameInsurer.oneTap ? "Ready to accept" : "Insurer confirming"}</Pill>
+              </div>
+              <p className="mt-3 text-[28px] font-bold leading-none tracking-tight text-ink">
+                {formatGHS(options.sameInsurer.premium)} <span className="text-sm font-normal text-muted">/ year</span>
+              </p>
+              {options.sameInsurer.deltaFromLastYear !== null && (
+                <p className="mt-1 text-sm text-muted">
+                  {options.sameInsurer.deltaFromLastYear === 0
+                    ? "Same as last year."
+                    : `${options.sameInsurer.deltaFromLastYear > 0 ? "+" : "−"}${formatGHS(Math.abs(options.sameInsurer.deltaFromLastYear))} (${options.sameInsurer.deltaPct! > 0 ? "+" : ""}${options.sameInsurer.deltaPct}%) vs last year.`}
+                </p>
+              )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                {options.sameInsurer.oneTap ? (
+                  <Link href={`/account/requests/${existing.id}/apply/${options.sameInsurer.quoteId}`} className={buttonClass("primary")}>
+                    <RefreshCw aria-hidden className="size-4" /> Renew with {options.sameInsurer.insurerName}
+                  </Link>
+                ) : (
+                  <Link href={`/account/requests/${existing.id}`} className={buttonClass("primary")}>Track the confirmation</Link>
+                )}
+                <Link href={`/account/requests/${existing.id}/quotes`} className={buttonClass("secondary")}>
+                  <ArrowLeftRight aria-hidden className="size-4" /> Switch insurer
+                </Link>
+              </div>
+              {!options.sameInsurer.oneTap && <p className="mt-2 text-xs text-subtle">An estimate until {options.sameInsurer.insurerName} confirms. We&apos;ll notify you — then it&apos;s one tap to pay.</p>}
+            </Card>
+          ) : (
+            <Notice tone="info" title={options.insurersCompared ? `${policy.insurer?.name ?? "Your insurer"} hasn't quoted yet` : "Your broker is preparing options"}>
+              Your broker is working on renewal request {existing.reference}.{" "}
+              <Link href={`/account/requests/${existing.id}`} className="font-semibold underline">Track it</Link>
+            </Notice>
+          )}
+          {options.savings && (
+            <Card className="p-5">
+              <p className="font-semibold text-ink">Switch and save {formatGHS(options.savings.amount)} ({options.savings.pct}%)</p>
+              <p className="mt-1 text-sm text-muted">{options.savings.insurerName} quoted less for the same risk. Compare the cover before you decide — cheaper isn&apos;t always better.</p>
+              <Link href={`/account/requests/${existing.id}/quotes`} className={buttonClass("secondary", "sm", "mt-3")}>Compare the cover</Link>
+            </Card>
+          )}
+          {options.insurersCompared > 0 && (
+            <p className="text-sm text-ink-2">
+              <span className="font-semibold">{options.insurersCompared} insurer{options.insurersCompared === 1 ? "" : "s"} compared</span>
+              {options.insurersCompared === 1 ? " — we show every licensed insurer that quoted for this risk." : "."}
+              {policy.broker?.name ? ` ${policy.broker.name} stays your broker of record.` : ""}
+            </p>
+          )}
+        </section>
       ) : (
         <div className="mt-8">
           <RenewForm

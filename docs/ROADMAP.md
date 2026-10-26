@@ -102,10 +102,10 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 **Insurer Level 1 and Level 2**
 - [x] Level 1 insurer portal (queue, approve/decline, upload documents, customer receives them).
-- [ ] Level 2 delegated issuance: policy-number blocks, approved templates, instant PDF generation (schedule, certificate, sticker), insurer review window with endorse/cancel, auto-refer outside rules.
-- [ ] NIC motor insurance database registration (API or hand-off) with status tracking.
-- [ ] SLA timers per insurer/product with escalation (insurer contacts → Covva ops) and the customer's choice of refund or re-route on final breach.
-- [ ] Stage + expected time always shown (no open-ended "processing").
+- [x] Level 2 delegated issuance: policy-number blocks, approved templates, instant PDF generation (schedule, certificate, sticker), insurer review window with endorse/cancel, auto-refer outside rules. (`20261028100200_issuance.sql`, `server/issuance.ts`, `server/pdf.ts`, partner Issuance → Delegated issuance + number blocks.)
+- [x] NIC motor insurance database registration (API or hand-off) with status tracking. (`NIC_MOTOR_DB_MODE`, `packages/core/src/connectors.ts`, `issuance_jobs.nic_registration`; only the simulator adapter exists.)
+- [x] SLA timers per insurer/product with escalation (insurer contacts → Covva ops) and the customer's choice of refund or re-route on final breach. (`sla_timers`, `server/sla.ts`, `sla-monitor` cron, request page choice.)
+- [x] Stage + expected time always shown (no open-ended "processing"). (Request tracker shows "Expected by …" from the open SLA timer.)
 
 **Payments**
 - [x] MTN MoMo, Telecel Cash, AirtelTigo Money, cards via Paystack; webhook; refunds; premiums settle to the insurer.
@@ -114,8 +114,8 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 **Policy wallet**
 - [x] All policies, documents, renewal dates, external policies, nickname, broker contact.
-- [ ] Generated PDFs (schedule, receipt, certificate) with QR; motor sticker in wallet.
-- [ ] Public **verify a policy** page (QR / policy number) and verification API.
+- [x] Generated PDFs (schedule, receipt, certificate) with QR; motor sticker in wallet.
+- [x] Public **verify a policy** page (QR / policy number) and verification API. (`verify_policy` RPC, `/verify`, `GET /api/v1/verify`.)
 - [ ] Family/household view (ties into diaspora model).
 
 **Renewals**

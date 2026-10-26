@@ -10,6 +10,8 @@
     { "path": "/api/cron/webhook-retry", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/offer-expiry", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/price-schedule", "schedule": "10 * * * *" },
-    { "path": "/api/cron/settlement-statements", "schedule": "0 2 1 * *" }
+    { "path": "/api/cron/settlement-statements", "schedule": "0 2 1 * *" },
+    { "path": "/api/cron/licence-status", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/issuance-retry", "schedule": "*/30 * * * *" }
   ]
 }

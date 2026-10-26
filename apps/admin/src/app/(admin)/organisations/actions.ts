@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { Enum, Json, Update } from "@im/db";
+import { licenceStatusFor } from "@im/core";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { DUE_DILIGENCE, ROLES_BY_ORG_TYPE } from "@/lib/org-meta";
 import { revalidateEverywhere } from "@/lib/revalidate";
@@ -117,7 +118,10 @@ export async function setOrganisationStatus(_: ActionState, fd: FormData): Promi
     status_reason: reason,
     status_history: [...history, { from: org.status, to: status, reason, by: auth.staff.userId, at: new Date().toISOString() }].slice(-20),
   };
-  const { error } = await auth.supabase.from("organizations").update({ status: status as Enum<"org_status">, settings: nextSettings }).eq("id", orgId);
+  const { error } = await auth.supabase
+    .from("organizations")
+    .update({ status: status as Enum<"org_status">, settings: nextSettings, suspended_reason: status === "suspended" ? reason : null })
+    .eq("id", orgId);
   if (error) return fail(dbMessage(error));
   await revalidateEverywhere(["catalog"]); // public partner directory
   return done(`Status changed to ${status}.`);
@@ -138,7 +142,11 @@ export async function verifyLicence(_: ActionState, fd: FormData): Promise<Actio
   if (verify && !org.nic_licence_expires_on) return fail("Record the licence expiry date shown on the NIC register first.");
   const { error } = await auth.supabase
     .from("organizations")
-    .update(verify ? { licence_verified_at: new Date().toISOString(), licence_verified_by: auth.staff.userId } : { licence_verified_at: null, licence_verified_by: null })
+    .update(
+      verify
+        ? { licence_verified_at: new Date().toISOString(), licence_verified_by: auth.staff.userId, licence_status: licenceStatusFor(org.nic_licence_expires_on) }
+        : { licence_verified_at: null, licence_verified_by: null, licence_status: "unverified" },
+    )
     .eq("id", parsed.data.orgId);
   if (error) return fail(dbMessage(error));
   await revalidateEverywhere(["catalog"]); // public partner directory
@@ -260,4 +268,26 @@ export async function setMemberActive(_: ActionState, fd: FormData): Promise<Act
   const { error } = await auth.supabase.from("memberships").update({ active }).eq("id", parsed.data.membershipId);
   if (error) return fail(dbMessage(error));
   return done(active ? "Membership reactivated." : "Membership deactivated. The person loses access to this organisation immediately.");
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding checklist (Addendum 3 D): documents → verification → agreement → products → test quote → go-live
+// ---------------------------------------------------------------------------
+const CHECKLIST_KEYS = ["documents", "verification", "agreement", "products", "test_quote", "go_live"] as const;
+const Checklist = z.object({ orgId: z.string().uuid(), item: z.enum(CHECKLIST_KEYS), value: z.enum(["true", "false"]) });
+
+/** Staff toggle of one checklist item on organizations.onboarding_checklist (who/when recorded; audited). */
+export async function toggleChecklistItem(_: ActionState, fd: FormData): Promise<ActionState> {
+  const auth = await authorize("network");
+  if (!auth.ok) return fail(auth.error);
+  const parsed = Checklist.safeParse(formObject(fd));
+  if (!parsed.success) return zodError(parsed.error);
+  const { data: org } = await auth.supabase.from("organizations").select("type, onboarding_checklist").eq("id", parsed.data.orgId).single();
+  if (!org || (org.type !== "broker" && org.type !== "insurer")) return fail("The onboarding checklist applies to brokers and insurers.");
+  const current = (org.onboarding_checklist as Record<string, Json> | null) ?? {};
+  const isDone = parsed.data.value === "true";
+  const next = { ...current, [parsed.data.item]: isDone ? { done: true, at: new Date().toISOString(), by: auth.staff.userId } : { done: false } };
+  const { error } = await auth.supabase.from("organizations").update({ onboarding_checklist: next }).eq("id", parsed.data.orgId);
+  if (error) return fail(dbMessage(error));
+  return done(isDone ? "Checklist item marked done." : "Checklist item reopened.");
 }

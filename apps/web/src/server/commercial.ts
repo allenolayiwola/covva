@@ -97,7 +97,7 @@ export async function splitForPayment(
     quote: { id: string; premium: number; taxes: number; fees: number; currency: string; insurer_org_id: string; broker_org_id: string | null };
     request: { broker_org_id: string | null; source_broker_org_id: string | null };
     insurer: { id: string; name: string; paystack_subaccount_code: string | null; paystack_split_code?: string | null };
-    provider: "paystack" | "simulator";
+    provider: "paystack" | "simulator" | "hubtel" | "bank_transfer";
   },
 ): Promise<PaymentSplit> {
   const brokerOrgId = args.request.broker_org_id ?? args.quote.broker_org_id ?? null;

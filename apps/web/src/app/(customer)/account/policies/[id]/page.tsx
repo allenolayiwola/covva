@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowLeftRight, Camera, Check, FileText, Mail, PenLine, Phone, RefreshCw, X } from "lucide-react";
-import { CLAIM_STATUS, POLICY_STATUS, buildDisclosure, daysUntil, formatDate, formatGHS, humanize } from "@im/core";
+import { ArrowLeftRight, Camera, Check, FileText, Mail, PenLine, Phone, QrCode as QrIcon, RefreshCw, TrendingUp, X } from "lucide-react";
+import { CLAIM_STATUS, POLICY_STATUS, buildDisclosure, daysUntil, formatDate, formatGHS, humanize, verifyUrl } from "@im/core";
 import type { Row } from "@im/db";
 import { Card, DefinitionList, DemoBadge, DisclosureBlock, Notice, Pill, StatusPill, buttonClass } from "@im/ui";
 import { getFlags } from "@/lib/catalog";
@@ -11,6 +11,7 @@ import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { UploadDropzone } from "@/components/customer/upload";
 import { formatBytes } from "@/components/customer/utils";
+import { QrCode } from "@/components/marketing/qr-code";
 import { TransactionParties } from "@/components/transaction-parties";
 import { account, coverLabel, getPolicyOr404, policyTitle, signUrls } from "../../_lib/data";
 import { attachPolicyDocument } from "../actions";
@@ -63,7 +64,12 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
     ? buildDisclosure({ broker: { name: broker.name, licence: broker.nic_licence_number }, insurer: insurer ? { name: insurer.name } : null })
     : null;
   const title = policyTitle(policy);
+  // Generated documents (schedule / certificate / sticker / receipt) live under policies/<id>/ and carry the verification QR.
+  const generated = docs.filter((d) => d.storage_path.startsWith(`policies/${policy.id}/`));
+  const sticker = generated.find((d) => d.kind === "sticker");
+  const verifyLink = policy.verification_code && !policy.external_source ? verifyUrl(process.env.NEXT_PUBLIC_SITE_URL ?? "", policy.verification_code) : null;
   const messageHref = policy.request_id ? `/account/requests/${policy.request_id}/messages` : "/account/messages";
+  const underinsured = (policy.underinsurance_flag ?? null) as { reason?: string; suggested_sum_insured?: number; current_value?: number } | null;
 
   return (
     <div>
@@ -148,6 +154,24 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
             </Card>
           )}
 
+          {underinsured && policy.status === "active" && (
+            <Card className="flex flex-wrap items-center gap-4 border-amber/40 p-5" aria-label="Underinsurance notice">
+              <span className="grid size-11 place-items-center rounded-xl bg-amber-bg text-amber">
+                <TrendingUp aria-hidden className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-ink">
+                  Your {policy.category?.slug === "motor" ? "car" : policy.category?.slug === "home" ? "home" : "property"} may be insured for less than it&apos;s worth
+                </p>
+                <p className="text-sm text-muted">
+                  {underinsured.reason ?? "The sum insured is below the value you declared."}
+                  {underinsured.suggested_sum_insured ? ` Consider raising it to about ${formatGHS(underinsured.suggested_sum_insured)}.` : ""} The insurer confirms any change.
+                </p>
+              </div>
+              <Link href={`/account/requests/new?type=endorsement&policy=${policy.id}`} className={buttonClass("secondary", "sm")}>Ask to raise it</Link>
+            </Card>
+          )}
+
           <section aria-labelledby="cover">
             <h2 id="cover" className="text-lg font-semibold text-ink">What&apos;s covered</h2>
             {coverage.length ? (
@@ -206,7 +230,7 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
                       )}
                       <span className="block text-xs text-subtle">{[humanize(d.kind), formatBytes(d.size_bytes), formatDate(d.created_at)].filter(Boolean).join(" · ")}</span>
                     </span>
-                    {d.uploaded_by_party === "insurer" && <Pill tone="ok">From insurer</Pill>}
+                    {d.storage_path.startsWith(`policies/${policy.id}/`) ? <Pill tone="ok">Issued · QR verified</Pill> : d.uploaded_by_party === "insurer" && <Pill tone="ok">From insurer</Pill>}
                   </li>
                 ))}
               </ul>
@@ -331,6 +355,24 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
             <Card className="p-5">
               <p className="font-semibold text-ink">How to claim</p>
               <p className="mt-1 text-sm text-ink-2">{version.claims_process}</p>
+            </Card>
+          )}
+          {verifyLink && policy.status === "active" && (
+            <Card className="p-5">
+              <div className="flex items-start gap-4">
+                <QrCode value={verifyLink} size={96} label={`QR code: verify policy ${policy.policy_number ?? policy.internal_reference}`} className="shrink-0 rounded-lg border border-line" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink">{sticker ? "Motor insurance sticker" : "Verify this policy"}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    {sticker ? "Show this QR code at a road check. " : ""}Anyone can scan it to confirm the policy is valid — they see the insurer, cover dates and type of cover, never your details.
+                  </p>
+                  <p className="mt-2 font-mono text-xs text-subtle">Code {policy.verification_code}{policy.sticker_number ? ` · Sticker ${policy.sticker_number}` : ""}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    <Link href={`/verify?q=${encodeURIComponent(policy.verification_code!)}`} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline"><QrIcon aria-hidden className="size-4" /> Verify this policy</Link>
+                    {sticker && urls[sticker.storage_path] && <a href={urls[sticker.storage_path]} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">Download sticker (PDF)</a>}
+                  </div>
+                </div>
+              </div>
             </Card>
           )}
           <TransactionParties

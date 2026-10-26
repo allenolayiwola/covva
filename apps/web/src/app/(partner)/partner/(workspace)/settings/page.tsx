@@ -48,12 +48,13 @@ async function Settings({ searchParams }: { searchParams: Promise<Record<string,
     { key: "developer", label: "Developer" },
     ...(ctx.kind === "insurer" ? [{ key: "connector", label: "Connector" }] : []),
     { key: "security", label: "Security" },
+    ...(can(ctx, ROLES.orgAdmin) ? [{ key: "activity", label: "Activity" }] : []),
   ];
   const tab = tabs.find((t) => t.key === sp.tab)?.key ?? "team";
 
   return (
     <>
-      <Tabs className="mb-6 w-fit max-w-full" active={tab} items={tabs.map((t) => ({ ...t, href: t.key === "security" ? "/partner/settings/security" : `/partner/settings?tab=${t.key}` }))} />
+      <Tabs className="mb-6 w-fit max-w-full" active={tab} items={tabs.map((t) => ({ ...t, href: t.key === "security" ? "/partner/settings/security" : t.key === "activity" ? "/partner/settings/activity" : `/partner/settings?tab=${t.key}` }))} />
       {tab === "team" && <TeamTab ctx={ctx} />}
       {tab === "organisation" && <OrgTab ctx={ctx} />}
       {tab === "licence" && <LicenceTab ctx={ctx} />}

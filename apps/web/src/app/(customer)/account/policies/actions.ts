@@ -135,7 +135,7 @@ export async function requestRenewal(policyId: string, _prev: ActionState, formD
   if (!uuid.safeParse(policyId).success) return { ok: false, error: "Unknown policy." };
   const { data: policy } = await supabase
     .from("policies")
-    .select("id, policy_number, internal_reference, request_id, insured_items, category:product_categories(slug, name)")
+    .select("id, policy_number, internal_reference, request_id, insured_items, broker_org_id, category:product_categories(slug, name)")
     .eq("id", policyId)
     .eq("customer_id", user.id)
     .maybeSingle();
@@ -165,7 +165,8 @@ export async function requestRenewal(policyId: string, _prev: ActionState, formD
 
   let requestId: string;
   try {
-    const res = await createRequest({ categorySlug: category.slug, type: "renewal", relatedPolicyId: policy.id, risk, source: "web" }, { supabase });
+    // One-tap renewal: refreshed estimates for the same risk, with the policy's broker kept as broker of record.
+    const res = await createRequest({ categorySlug: category.slug, type: "renewal", relatedPolicyId: policy.id, risk, source: "web", brokerOfRecordId: policy.broker_org_id }, { supabase });
     requestId = res.request.id;
   } catch (err) {
     if (err instanceof BusinessRuleError && err.code === "invalid_input") redirect(formHref);
@@ -180,5 +181,6 @@ export async function requestRenewal(policyId: string, _prev: ActionState, formD
   ];
   await supabase.from("request_messages").insert({ request_id: requestId, sender_id: user.id, sender_party: "customer", body: lines.join("\n\n") });
   revalidatePath("/account", "layout");
-  redirect(`/account/requests/${requestId}?new=1`);
+  // Back to the renewal page: it shows "Renew with <insurer>" / "Switch insurer" from the refreshed estimates.
+  redirect(`/account/policies/${policy.id}/renew?requested=1`);
 }

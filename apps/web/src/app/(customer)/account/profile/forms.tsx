@@ -87,7 +87,7 @@ export function NotificationsForm({ prefs }: { prefs: Record<string, boolean> })
     { k: "email", label: "Email", body: "Quotes, documents and renewal reminders." },
     { k: "sms", label: "Text message (SMS)", body: "Short alerts when something needs you." },
     { k: "push", label: "App notifications", body: "On the mobile app, when installed." },
-    { k: "whatsapp", label: "WhatsApp", body: "Coming soon where your broker supports it." },
+    { k: "whatsapp", label: "WhatsApp", body: "Renewal reminders, quote links and payment links on your phone number. We message you only about your cover — never marketing." },
   ];
   return (
     <form action={action} className="space-y-3">

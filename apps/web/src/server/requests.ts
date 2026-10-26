@@ -238,6 +238,8 @@ export interface CreateRequestArgs {
   submit?: boolean;
   /** "Talk to an expert": always routed to a broker, whatever the insurer's integration. */
   talkToExpert?: boolean;
+  /** Keep this broker of record (renewals / switches stay with the policy's broker): routed `broker_fixed`. */
+  brokerOfRecordId?: string | null;
 }
 
 export async function createRequest(
@@ -308,7 +310,7 @@ export async function createRequest(
 
   // Routing engine (Addendum 2 D): fixed broker, broker offers, direct to insurer, or ops hold.
   // Writes order_routing (+ offers), requests.routing_mode/broker_org_id and the timeline event.
-  const routing = await routeNewRequest(svc, { ...request, talk_to_expert: args.talkToExpert ?? false }, { category });
+  const routing = await routeNewRequest(svc, { ...request, talk_to_expert: args.talkToExpert ?? false }, { category, fixedBrokerOrgId: args.brokerOfRecordId ?? null });
   request.broker_org_id = routing.brokerOrgId;
   request.routing_mode = routing.mode;
 

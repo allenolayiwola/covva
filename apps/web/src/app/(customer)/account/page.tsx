@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Compass, FileText, Plus, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowRight, Bookmark, Compass, FileText, Plus, RefreshCw, Sparkles } from "lucide-react";
 import { OPEN_REQUEST_STATUSES, POLICY_STATUS, REQUEST_STATUS, daysUntil, formatDate, formatGHS } from "@im/core";
 import { Card, EmptyState, Notice, Pill, StatusPill, buttonClass } from "@im/ui";
 import { getProfile } from "@/lib/auth";
@@ -69,6 +69,8 @@ async function Overview({ searchParams }: Pick<PageProps<"/account">, "searchPar
   const requests = (requestsRes.data ?? []) as unknown as OpenRequest[];
   const tasks = (tasksRes.data ?? []) as unknown as OpenTask[];
   const openRequests = requests.filter((r) => (OPEN_REQUEST_STATUSES as string[]).includes(r.status));
+  // "Resume later": a saved request with quotes ready is the saved comparison.
+  const savedQuotes = requests.find((r) => r.status === "quotes_ready") ?? null;
 
   const live = policies.filter((p) => p.status === "active" || p.status === "pending_issuance");
   const active = policies.filter((p) => p.status === "active");
@@ -195,9 +197,16 @@ async function Overview({ searchParams }: Pick<PageProps<"/account">, "searchPar
         <section aria-labelledby="my-policies">
           <div className="flex items-end justify-between border-b border-line pb-3">
             <h2 id="my-policies" className="text-[22px] font-semibold tracking-tight text-ink">My policies</h2>
-            <Link href="/account/requests/new" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
-              <Plus aria-hidden className="size-4" /> Get a new quote
-            </Link>
+            <div className="flex flex-wrap items-center gap-4">
+              {savedQuotes && (
+                <Link href={`/account/requests/${savedQuotes.id}/quotes`} className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+                  <Bookmark aria-hidden className="size-4" /> Saved quotes
+                </Link>
+              )}
+              <Link href="/account/requests/new" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+                <Plus aria-hidden className="size-4" /> Get a new quote
+              </Link>
+            </div>
           </div>
           <ul className="divide-y divide-line">
             {live.map((p) => (

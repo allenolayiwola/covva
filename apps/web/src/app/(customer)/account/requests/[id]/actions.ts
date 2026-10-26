@@ -4,6 +4,8 @@ import { z } from "zod";
 import { buildDisclosure } from "@im/core";
 import type { Enum } from "@im/db";
 import { notifyOrg } from "@/server/notify";
+import { BusinessRuleError } from "@/server/requests";
+import { shareQuotes as shareQuotesService } from "@/server/shares";
 import { emitRequestStatus } from "@/server/webhooks";
 import { isOwnUpload, type ActionState, type UploadedFile } from "@/components/customer/utils";
 import { SIGNED_OUT, actionContext, dbError } from "../../_lib/action";
@@ -259,4 +261,55 @@ export async function declineBrokerChange(_prev: ActionState, formData: FormData
   }
   revalidatePath(`/account/requests/${request.id}`);
   return { ok: true, message: "Noted. Your current broker stays in charge of this request." };
+}
+
+// ---------------------------------------------------------------------------
+// Save & share quotes (link / WhatsApp / email). The public page never shows who you are.
+// ---------------------------------------------------------------------------
+export async function shareQuotes(requestId: string, channel: "link" | "whatsapp" | "email", email?: string | null): Promise<ActionState> {
+  const { supabase, user, request } = await loadRequest(requestId);
+  if (!user) return SIGNED_OUT;
+  if (!request) return { ok: false, error: "We couldn't find that request." };
+  try {
+    const share = await shareQuotesService(supabase, user.id, request.id, channel, { email: email ?? user.email ?? null });
+    return {
+      ok: true,
+      message: channel === "email" ? (share.emailSent ? "Sent. Check your inbox for the link." : "Saved — we couldn't send the email just now, but the link below works.") : "Link ready. It works for 14 days.",
+      data: { url: share.url, whatsappUrl: share.whatsappUrl, text: share.text, expiresAt: share.expiresAt },
+    };
+  } catch (err) {
+    if (err instanceof BusinessRuleError) return { ok: false, error: err.message };
+    console.error("shareQuotes failed", err);
+    return { ok: false, error: "We couldn't create a share link just now. Please try again." };
+  }
+}
+
+const SlaChoiceInput = z.object({ requestId: id, choice: z.enum(["refund", "reroute"]) });
+
+/**
+ * After a final SLA breach (Addendum 2 A) the customer chooses an automatic refund or a re-route
+ * to another insurer/broker. Ownership is checked through RLS here; the system writes (refund,
+ * cancel the pending policy, re-run routing) happen in `applySlaChoice` with the service client.
+ */
+export async function chooseSlaOutcome(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = SlaChoiceInput.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  const { user, request } = await loadRequest(parsed.data.requestId);
+  if (!user) return SIGNED_OUT;
+  if (!request) return { ok: false, error: "We couldn't find that request." };
+  try {
+    const { applySlaChoice } = await import("@/server/sla");
+    const r = await applySlaChoice(request.id, parsed.data.choice, user.id);
+    revalidatePath("/account", "layout");
+    return {
+      ok: true,
+      message:
+        parsed.data.choice === "refund"
+          ? r.refunded ? "Your premium is being refunded to the payment method you used (usually 5–10 working days)." : "No cover was arranged and nothing further is owed."
+          : `${r.refunded ? "Your premium is being refunded and we" : "We"} are finding you another insurer${r.mode === "insurer_direct" ? "" : " or broker"}. You'll be notified at each step.`,
+    };
+  } catch (err) {
+    if (err instanceof Error && /SUPABASE_SECRET_KEY/.test(err.message)) return { ok: false, error: "This action isn't available on this environment. Please contact support." };
+    return { ok: false, error: err instanceof Error ? err.message : "We couldn't record your choice. Please try again." };
+  }
 }

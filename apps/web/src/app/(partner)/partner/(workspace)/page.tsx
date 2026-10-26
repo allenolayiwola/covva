@@ -2,27 +2,43 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { DemoBadge, PageHeader, Pill, StatCard, StatusPill, Table, Td, Th, THead, buttonClass } from "@im/ui";
 import { CLAIM_STATUS, OPEN_REQUEST_STATUSES, REQUEST_STATUS, formatDate, formatDateTime, humanize, type ClaimStatus } from "@im/core";
-import { getPartnerContext, type PartnerContext } from "../_lib/context";
+import { can, getPartnerContext, ROLES, type PartnerContext } from "../_lib/context";
 import { nowMs, DAY, getCategoryMap, getCustomers, getOrgNames, isAtRisk, requestKind, shortName } from "../_lib/data";
 import { Bars, DueCell, Empty, PageSkeleton, Section, TitleSkeleton } from "@/components/partner/ui";
+import { BrokerAnalytics, InsurerAnalytics } from "@/components/partner/analytics-panels";
+import { OnboardingChecklist } from "@/components/partner/onboarding-checklist";
+import { parseRange, type DashboardRange } from "@/server/partner-analytics";
 
-export default function OverviewPage() {
+export default function OverviewPage({ searchParams }: PageProps<"/partner">) {
   return (
     <Suspense fallback={<><TitleSkeleton /><PageSkeleton stats={3} /></>}>
-      <Overview />
+      <Overview searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Overview() {
-  const ctx = await getPartnerContext();
-  return ctx.kind === "insurer" ? <InsurerOverview ctx={ctx} /> : <BrokerOverview ctx={ctx} />;
+async function Overview({ searchParams }: Pick<PageProps<"/partner">, "searchParams">) {
+  const [ctx, sp] = await Promise.all([getPartnerContext(), searchParams]);
+  const days = parseRange(sp.days);
+  return ctx.kind === "insurer" ? <InsurerOverview ctx={ctx} days={days} /> : <BrokerOverview ctx={ctx} days={days} />;
+}
+
+/** Analytics panels stream in after the queue counters (they run several aggregate RPCs). */
+function AnalyticsSlot({ ctx, days }: { ctx: PartnerContext; days: DashboardRange }) {
+  const scope = { supabase: ctx.supabase, orgId: ctx.orgId, kind: ctx.kind, canSeeMoney: can(ctx, ROLES.billing) };
+  return (
+    <div className="mt-8">
+      <Suspense fallback={<PageSkeleton stats={5} rows={3} />}>
+        {ctx.kind === "insurer" ? <InsurerAnalytics scope={scope} days={days} /> : <BrokerAnalytics scope={scope} days={days} />}
+      </Suspense>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Broker
 // ---------------------------------------------------------------------------
-async function BrokerOverview({ ctx }: { ctx: PartnerContext }) {
+async function BrokerOverview({ ctx, days }: { ctx: PartnerContext; days: DashboardRange }) {
   const sb = ctx.supabase;
   const now = nowMs();
   const in30 = new Date(now + 30 * DAY).toISOString().slice(0, 10);
@@ -65,6 +81,7 @@ async function BrokerOverview({ ctx }: { ctx: PartnerContext }) {
         description={`${ctx.orgName} · What needs attention today. Clear ownership at every step.`}
         actions={<Link href="/partner/requests" className={buttonClass("primary", "md")}>Open request queue</Link>}
       />
+      <OnboardingChecklist ctx={ctx} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map((k) => (
           <Link key={k.label} href={k.href} className="rounded-card focus-visible:ring-2 focus-visible:ring-brand">
@@ -143,6 +160,7 @@ async function BrokerOverview({ ctx }: { ctx: PartnerContext }) {
           </Section>
         </div>
       </div>
+      <AnalyticsSlot ctx={ctx} days={days} />
       {ctx.isDemo && <DemoBadge className="mt-8" />}
     </>
   );
@@ -151,7 +169,7 @@ async function BrokerOverview({ ctx }: { ctx: PartnerContext }) {
 // ---------------------------------------------------------------------------
 // Insurer
 // ---------------------------------------------------------------------------
-async function InsurerOverview({ ctx }: { ctx: PartnerContext }) {
+async function InsurerOverview({ ctx, days }: { ctx: PartnerContext; days: DashboardRange }) {
   const sb = ctx.supabase;
   const soon = new Date(nowMs() + 3 * DAY).toISOString();
   const nowIso = new Date().toISOString();
@@ -176,6 +194,7 @@ async function InsurerOverview({ ctx }: { ctx: PartnerContext }) {
   return (
     <>
       <PageHeader title="Overview" description={`${ctx.orgName} · Level 1 partner portal: submissions, issuance, claims and product data.`} />
+      <OnboardingChecklist ctx={ctx} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <Link href="/partner/submissions"><StatCard label="Submissions awaiting response" value={String(subRows.length).padStart(2, "0")} tone={subRows.some((s) => isAtRisk(s.response_due_at)) ? "warn" : "default"} className="h-full" /></Link>
         <Link href="/partner/submissions?view=quotes"><StatCard label="Quotes expiring in 3 days" value={String(expiring.data?.length ?? 0).padStart(2, "0")} className="h-full" /></Link>
@@ -200,7 +219,7 @@ async function InsurerOverview({ ctx }: { ctx: PartnerContext }) {
                         <Link href={`/partner/submissions/${s.id}`} className="font-semibold text-ink hover:text-brand">{req?.reference ?? "Request"}</Link>
                         <p className="text-xs text-muted">{cats.get(req?.category_id ?? "")?.name ?? ""}</p>
                       </Td>
-                      <Td>{brokers.get(s.broker_org_id) ?? "Broker"}</Td>
+                      <Td>{s.broker_org_id ? brokers.get(s.broker_org_id) ?? "Broker" : "Direct order"}</Td>
                       <Td><Pill tone={s.status === "acknowledged" ? "info" : "wait"}>{humanize(s.status)}</Pill></Td>
                       <Td><DueCell dueAt={s.response_due_at} /></Td>
                     </tr>
@@ -231,6 +250,7 @@ async function InsurerOverview({ ctx }: { ctx: PartnerContext }) {
           <p className="text-xs text-subtle">Updated {formatDate(new Date(), "long")}. Only the insurer activates cover and decides claims.</p>
         </div>
       </div>
+      <AnalyticsSlot ctx={ctx} days={days} />
       {ctx.isDemo && <DemoBadge className="mt-8" />}
     </>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DemoBadge, EmptyState, Field, Input, Notice, PageHeader, Pill, StatusPill, Textarea } from "@im/ui";
+import Link from "next/link";
+import { DemoBadge, EmptyState, Field, Input, Notice, PageHeader, Pill, StatusPill, Tabs, Textarea } from "@im/ui";
 import { PAYMENT_STATUS, POLICY_STATUS, formatDate, formatDateTime, formatGHS, humanize } from "@im/core";
 import { can, requireKind, ROLES } from "../../_lib/context";
 import { nowMs, DAY, getCategoryMap, getCustomers, getOrgNames, shortName } from "../../_lib/data";
@@ -9,6 +10,7 @@ import { DocumentUpload } from "@/components/partner/document-upload";
 import { RealtimeRefresh } from "@/components/partner/realtime-refresh";
 import { Empty, KV, PageSkeleton, Section } from "@/components/partner/ui";
 import { declineIssuance, issuePolicy, recordPolicyDocuments } from "./actions";
+import { DelegatedIssuance, JobStatusPill } from "./delegated";
 
 export const metadata: Metadata = { title: "Issuance" };
 
@@ -20,20 +22,41 @@ const DOC_KINDS = [
   { value: "other", label: "Other" },
 ];
 
-export default function IssuancePage() {
+export default function IssuancePage({ searchParams }: PageProps<"/partner/issuance">) {
   return (
     <>
-      <PageHeader title="Issuance" description="Payment confirmation never activates cover. Review, accept the risk and issue — only you can make a policy active." />
+      <PageHeader title="Issuance" description="Payment confirmation never activates cover. Review, accept the risk and issue — only you can make a policy active. Delegated (Level 2) policies are issued on your behalf within your rules and shown for review." />
       <Suspense fallback={<PageSkeleton stats={0} rows={4} />}>
-        <Issuance />
+        <Issuance searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Issuance() {
+async function Issuance({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await requireKind("insurer");
   const sb = ctx.supabase;
+  const sp = await searchParams;
+  const tab = (Array.isArray(sp.tab) ? sp.tab[0] : sp.tab) === "delegated" ? "delegated" : "queue";
+  const [{ count: pendingCount }, { count: reviewCount }] = await Promise.all([
+    sb.from("policies").select("id", { count: "exact", head: true }).eq("insurer_org_id", ctx.orgId).eq("status", "pending_issuance"),
+    sb.from("issuance_jobs").select("id", { count: "exact", head: true }).eq("insurer_org_id", ctx.orgId).eq("status", "review_window"),
+  ]);
+  const tabs = (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <Tabs active={tab} items={[{ key: "queue", label: "Insurer queue", href: "/partner/issuance", count: pendingCount ?? 0 }, { key: "delegated", label: "Delegated issuance", href: "/partner/issuance?tab=delegated", count: reviewCount ?? 0 }]} />
+      <Link href="/partner/issuance/number-blocks" className="text-sm font-semibold text-brand hover:underline">Policy number blocks</Link>
+    </div>
+  );
+  if (tab === "delegated") {
+    return (
+      <>
+        {tabs}
+        <DelegatedIssuance ctx={ctx} />
+        {ctx.isDemo && <DemoBadge className="mt-8" />}
+      </>
+    );
+  }
   const since = new Date(nowMs() - 30 * DAY).toISOString();
   const [{ data: pending }, { data: recent }] = await Promise.all([
     sb.from("policies").select("*").eq("insurer_org_id", ctx.orgId).eq("status", "pending_issuance").order("created_at"),
@@ -42,21 +65,24 @@ async function Issuance() {
   const all = [...(pending ?? []), ...(recent ?? [])];
   const ids = all.map((p) => p.id);
   const reqIds = all.map((p) => p.request_id).filter((x): x is string => !!x);
-  const [cats, customers, brokers, { data: payments }, { data: docs }, { data: requests }] = await Promise.all([
+  const [cats, customers, brokers, { data: payments }, { data: docs }, { data: requests }, { data: jobs }] = await Promise.all([
     getCategoryMap(),
     getCustomers(ctx, all.map((p) => p.customer_id)),
     getOrgNames(ctx, all.map((p) => p.broker_org_id)),
     ids.length ? sb.from("payments").select("id, policy_id, request_id, status, amount, channel, provider, provider_reference, paid_at, reconciled").or(`policy_id.in.(${ids.join(",")})${reqIds.length ? `,request_id.in.(${reqIds.join(",")})` : ""}`) : Promise.resolve({ data: [] }),
     ids.length ? sb.from("documents").select("id, policy_id, file_name, kind, created_at").in("policy_id", ids) : Promise.resolve({ data: [] }),
     reqIds.length ? sb.from("requests").select("id, reference, status").in("id", reqIds) : Promise.resolve({ data: [] }),
+    ids.length ? sb.from("issuance_jobs").select("policy_id, mode, status, underwriting_outcome, error").in("policy_id", ids) : Promise.resolve({ data: [] }),
   ]);
   const reqOf = new Map((requests ?? []).map((r) => [r.id, r]));
+  const jobOf = new Map((jobs ?? []).map((j) => [j.policy_id, j]));
   const canAct = can(ctx, ROLES.underwrite);
   const today = new Date().toISOString().slice(0, 10);
   const nextYear = new Date(nowMs() + 364 * DAY).toISOString().slice(0, 10);
 
   return (
     <>
+      {tabs}
       <div className="mb-4 flex justify-end"><RealtimeRefresh table="policies" filter={`insurer_org_id=eq.${ctx.orgId}`} channel={`issuance-${ctx.orgId}`} /></div>
       {(pending ?? []).length === 0 ? (
         <EmptyState title="No policies awaiting issuance" body="When a customer's payment is confirmed, the policy appears here for you to accept and issue." />
@@ -66,13 +92,20 @@ async function Issuance() {
             const pay = (payments ?? []).filter((x) => x.policy_id === p.id || (p.request_id && x.request_id === p.request_id));
             const confirmed = pay.find((x) => x.status === "succeeded");
             const req = p.request_id ? reqOf.get(p.request_id) : undefined;
+            const job = jobOf.get(p.id);
+            const outcome = (job?.underwriting_outcome ?? null) as { outcome?: string; reason?: string; referred_because?: string } | null;
             return (
               <Section
                 key={p.id}
                 title={`${p.internal_reference} · ${shortName(customers.get(p.customer_id))}`}
-                description={`${cats.get(p.category_id)?.name ?? ""} · broker of record ${brokers.get(p.broker_org_id ?? "") ?? "—"}${req ? ` · request ${req.reference}` : ""}`}
-                actions={<StatusPill meta={POLICY_STATUS[p.status]} />}
+                description={`${cats.get(p.category_id)?.name ?? ""} · ${p.broker_org_id ? `broker of record ${brokers.get(p.broker_org_id) ?? "—"}` : "direct order (no broker of record)"}${req ? ` · request ${req.reference}` : ""}`}
+                actions={<><StatusPill meta={POLICY_STATUS[p.status]} />{job && <JobStatusPill status={job.status} />}</>}
               >
+                {job?.status === "referred" && (
+                  <Notice tone="wait" className="mb-4" title="Referred from delegated issuance">
+                    {outcome?.referred_because ?? outcome?.reason ?? job.error ?? "Outside the delegated rules."} Review the risk, then issue or decline below.
+                  </Notice>
+                )}
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                   <div>
                     <h3 className="text-sm font-semibold text-ink">Payment confirmation</h3>

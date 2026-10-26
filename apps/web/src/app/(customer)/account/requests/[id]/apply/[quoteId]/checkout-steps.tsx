@@ -3,7 +3,7 @@ import * as React from "react";
 import { useActionState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CreditCard, Smartphone } from "lucide-react";
+import { Building2, Copy, CreditCard, Smartphone } from "lucide-react";
 import { PAYMENT_STATUS, formatGHS, type FeeBreakdown, type PaymentStatus } from "@im/core";
 import { FeeBreakdownBlock } from "@/components/customer/fee-breakdown";
 import { Button, Checkbox, DisclosureBlock, Field, Input, Notice, Spinner, buttonClass, cn } from "@im/ui";
@@ -136,6 +136,7 @@ const METHODS = [
   { value: "vod", label: "Telecel Cash", short: "Telecel", icon: Smartphone },
   { value: "atl", label: "AirtelTigo Money", short: "AirtelTigo", icon: Smartphone },
   { value: "card", label: "Debit or credit card", short: "Card", icon: CreditCard },
+  { value: "bank_transfer", label: "Bank transfer", short: "Bank", icon: Building2 },
 ] as const;
 
 export function PaymentStep({
@@ -188,12 +189,14 @@ export function PaymentStep({
           ))}
         </div>
       </fieldset>
-      {method !== "card" ? (
+      {method === "card" ? (
+        <p className="text-sm text-muted">You&apos;ll be taken to the payment provider&apos;s secure page to enter your card details.</p>
+      ) : method === "bank_transfer" ? (
+        <p className="text-sm text-muted">We&apos;ll show you the insurer&apos;s account details and a reference to quote. Your payment shows as pending until the transfer is confirmed.</p>
+      ) : (
         <Field label="Mobile money number" htmlFor="phone" error={fe.phone} hint="You'll get a prompt on this phone to approve the payment with your PIN.">
           <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={defaultPhone} placeholder="024 123 4567" aria-invalid={!!fe.phone} />
         </Field>
-      ) : (
-        <p className="text-sm text-muted">You&apos;ll be taken to the payment provider&apos;s secure page to enter your card details.</p>
       )}
       <div className="flex items-baseline justify-between rounded-card bg-mist p-4">
         <span className="text-sm text-muted">Amount due to {insurer}</span>
@@ -205,6 +208,64 @@ export function PaymentStep({
       </SubmitButton>
       <p className="text-xs text-subtle">Paying does not activate cover on its own. Your cover starts once {insurer} confirms acceptance and issues your documents.</p>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+export interface BankTransferDetail { bank: string; accountName: string; accountNumber: string; reference: string; amount: number; currency: string; kind: "insurer_account" | "paystack_dva"; instructions: string }
+
+/** Bank transfer: the insurer's account (or a dedicated virtual account) and the reference to quote. */
+export function BankTransferPanel({ detail, requestId, retryHref }: { detail: BankTransferDetail; requestId: string; retryHref: string }) {
+  const [copied, setCopied] = React.useState<string | null>(null);
+  const copy = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+    } catch {
+      setCopied(null);
+    }
+  };
+  const rows = [
+    { label: "Bank", value: detail.bank },
+    { label: "Account name", value: detail.accountName },
+    { label: "Account number", value: detail.accountNumber },
+    { label: "Amount", value: `${detail.currency} ${detail.amount.toFixed(2)}` },
+    { label: "Reference", value: detail.reference },
+  ];
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-semibold text-ink">Pay by bank transfer</h2>
+        <p className="mt-1 text-[15px] text-muted">
+          {detail.kind === "paystack_dva"
+            ? "This account number is unique to you. Transfer the exact amount and we confirm it automatically — usually within minutes."
+            : "Transfer the exact amount to the insurer's account below and quote the reference. The insurer confirms the credit, usually within one working day."}
+        </p>
+      </div>
+      <dl className="divide-y divide-line rounded-card border border-line">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+            <dt className="text-muted">{r.label}</dt>
+            <dd className="flex items-center gap-2 font-medium text-ink">
+              <span className={r.label === "Reference" || r.label === "Account number" ? "font-mono" : ""}>{r.value}</span>
+              {(r.label === "Reference" || r.label === "Account number") && (
+                <button type="button" onClick={() => copy(r.label, r.value)} aria-label={`Copy ${r.label.toLowerCase()}`} className="rounded p-1 text-brand hover:bg-mist">
+                  <Copy aria-hidden className="size-4" />
+                </button>
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p aria-live="polite" className={copied ? "text-xs text-ink-2" : "sr-only"}>{copied ? `${copied} copied.` : ""}</p>
+      <Notice tone="wait" title="Pending until the transfer is confirmed">
+        Your application is saved. We&apos;ll notify you when the payment is confirmed; no cover starts until the insurer accepts your application and issues documents.
+      </Notice>
+      <div className="flex flex-wrap gap-3">
+        <Link href={`/account/requests/${requestId}`} className={buttonClass("primary")}>Back to request</Link>
+        <Link href={retryHref} className={buttonClass("secondary")}>Use a different payment method</Link>
+      </div>
+    </div>
   );
 }
 

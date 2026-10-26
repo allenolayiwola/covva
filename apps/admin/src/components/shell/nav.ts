@@ -1,6 +1,6 @@
 import {
-  Activity, BadgeCheck, Banknote, Bot, Building2, ClipboardList, FileCheck2, Flag, Gauge, Handshake,
-  HeartPulse, Inbox, LayoutGrid, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
+  Activity, BadgeCheck, Banknote, Bot, Building2, ChartNoAxesColumn, ClipboardList, FileCheck2, FileSignature, Flag, Gauge, Handshake,
+  HeartPulse, Inbox, Kanban, LayoutGrid, ListChecks, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
   Tags, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 
@@ -15,6 +15,7 @@ export const NAV: NavGroup[] = [
       { href: "/requests", label: "Requests", icon: Inbox, keywords: "queue sla reassign" },
       { href: "/payments", label: "Payments", icon: Wallet, keywords: "reconciliation exceptions paystack" },
       { href: "/policies", label: "Policies", icon: FileCheck2, keywords: "book issued" },
+      { href: "/issuance", label: "Issuance", icon: FileCheck2, keywords: "delegated L2 jobs sla timers escalation retry nic" },
       { href: "/claims", label: "Claims", icon: HeartPulse, keywords: "insurer decisions" },
       { href: "/complaints", label: "Complaints", icon: MessageSquareWarning, keywords: "nic escalation sla" },
       { href: "/kyc", label: "KYC review", icon: BadgeCheck, keywords: "ghana card verify identity" },
@@ -46,6 +47,16 @@ export const NAV: NavGroup[] = [
       { href: "/commercial", label: "Commercial terms", icon: Scale, keywords: "revenue share commission ledger settlement statements splits" },
       { href: "/usage", label: "Usage", icon: Activity, keywords: "metering events" },
       { href: "/leads", label: "Leads", icon: Banknote, keywords: "marketing inbox contact" },
+    ],
+  },
+  {
+    label: "Partnerships",
+    items: [
+      { href: "/partners/crm", label: "CRM", icon: Kanban, keywords: "pipeline accounts insurers brokers embedded partners groups stages" },
+      { href: "/partners/crm/tasks", label: "Tasks", icon: ListChecks, keywords: "follow-ups reminders overdue my tasks" },
+      { href: "/partners/crm/dashboard", label: "Dashboard", icon: ChartNoAxesColumn, keywords: "pipeline time to go-live partners live revenue by partner rep" },
+      { href: "/partners/applications", label: "Applications", icon: FileSignature, keywords: "registration self-service insurer broker verify nic licence approve return reject agreement" },
+      { href: "/partners/appointments", label: "Appointment requests", icon: Handshake, keywords: "appointment letter broker insurer not on covva admin review" },
     ],
   },
   {

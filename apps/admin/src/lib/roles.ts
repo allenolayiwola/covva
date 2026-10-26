@@ -31,6 +31,12 @@ export const PERMS = {
   commercial: ["platform_admin"],
   /** Marketing leads. */
   leads: ["platform_admin", "platform_ops"],
+  /**
+   * Partnerships CRM (accounts, notes, tasks, meetings, assisted onboarding).
+   * Members of the partnerships team (memberships.team = 'partnerships') may also
+   * write regardless of role — see lib/crm.ts authorizeCrm().
+   */
+  crm: ["platform_admin", "platform_ops"],
   /** Feature flags, platform settings, AI model settings, user invitations. */
   platform: ["platform_admin"],
   /** Running the audit chain verification. */

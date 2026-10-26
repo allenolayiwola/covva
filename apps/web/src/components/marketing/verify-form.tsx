@@ -6,7 +6,10 @@ import { CircleCheck, CircleX, Search, ShieldQuestion } from "lucide-react";
 import { Button, Field, Input, Notice, Select, cn } from "@im/ui";
 
 export interface VerifyInsurer { slug: string; name: string }
-interface VerifyResult { valid: boolean; status?: string; insurerName?: string; coverStart?: string | null; coverEnd?: string | null; categoryName?: string; message?: string }
+interface VerifyResult { valid: boolean; status?: string; insurerName?: string; coverStart?: string | null; coverEnd?: string | null; categoryName?: string; policyNumberMasked?: string | null; message?: string }
+
+/** 10-character wallet/QR verification code (Crockford base32) vs. an insurer policy number. */
+const isCode = (s: string) => /^[0-9A-HJKMNP-TV-Z]{10}$/i.test(s.trim());
 
 function fmt(d: string | null | undefined) {
   if (!d) return "—";
@@ -15,9 +18,10 @@ function fmt(d: string | null | undefined) {
 }
 
 /**
- * Public policy verification form. POSTs to /api/public/verify-policy, which returns only
- * { valid, status, insurerName, coverStart, coverEnd, categoryName } — never customer data.
- * `?q=<policy number>` (from a wallet QR code) prefills the number.
+ * Public policy verification form. POSTs to /api/public/verify-policy (the `verify_policy` RPC),
+ * which returns only { valid, status, insurerName, coverStart, coverEnd, categoryName,
+ * policyNumberMasked } — never customer data. `?q=` (from a wallet QR code) prefills the field:
+ * a 10-character verification code is looked up on its own, anything else as insurer + number.
  */
 export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[]; className?: string }) {
   const params = useSearchParams();
@@ -41,7 +45,7 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
       const res = await fetch("/api/public/verify-policy", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ insurer, policyNumber: number }),
+        body: JSON.stringify(isCode(number) ? { code: number.toUpperCase() } : { insurer, policyNumber: number }),
       });
       if (res.status === 429) {
         setState({ kind: "error", error: "Too many checks in a short time. Please wait a moment and try again." });
@@ -69,8 +73,8 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
               ))}
             </Select>
           </Field>
-          <Field label="Policy number" htmlFor={id("num")} error={state.kind === "error" ? state.error : undefined}>
-            <Input id={id("num")} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} autoComplete="off" placeholder="e.g. CG-MTR-2026-001234" maxLength={60} aria-invalid={state.kind === "error"} />
+          <Field label="Policy number" htmlFor={id("num")} hint={isCode(policyNumber) ? "Verification code recognised — the insurer is read from the code." : undefined} error={state.kind === "error" ? state.error : undefined}>
+            <Input id={id("num")} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} autoComplete="off" placeholder="Policy number or 10-character code" maxLength={60} aria-invalid={state.kind === "error"} />
           </Field>
         </div>
         <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -91,6 +95,7 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
                 <div><dt className="text-xs uppercase tracking-wider text-muted">Cover</dt><dd className="font-medium text-ink">{r.categoryName}</dd></div>
                 <div><dt className="text-xs uppercase tracking-wider text-muted">Cover start</dt><dd className="font-medium text-ink">{fmt(r.coverStart)}</dd></div>
                 <div><dt className="text-xs uppercase tracking-wider text-muted">Cover end</dt><dd className="font-medium text-ink">{fmt(r.coverEnd)}</dd></div>
+                {r.policyNumberMasked && <div><dt className="text-xs uppercase tracking-wider text-muted">Policy number</dt><dd className="font-mono font-medium text-ink">{r.policyNumberMasked}</dd></div>}
               </dl>
               <p className="mt-4 text-[13px] text-muted">Status: {r.status}. Checked just now against the insurer’s issued record on Covva.</p>
             </div>

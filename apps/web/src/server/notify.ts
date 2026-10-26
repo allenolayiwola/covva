@@ -4,6 +4,7 @@ import { ROLE_STATEMENTS, webPathToDeepLink } from "@im/core";
 import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { log, mask } from "@/server/log";
+import { sendWhatsApp, whatsAppLive } from "@/server/providers/whatsapp";
 
 /**
  * Notification fan-out (owner: Backend stream): in-app row + email + SMS + push
@@ -19,7 +20,7 @@ export interface NotifyInput {
   body?: string;
   link?: string;           // web path; mobile maps it to a deep link
   data?: Record<string, unknown>;
-  channels?: ("in_app" | "email" | "sms" | "push")[];
+  channels?: ("in_app" | "email" | "sms" | "push" | "whatsapp")[];
 }
 
 type Channel = NonNullable<NotifyInput["channels"]>[number];
@@ -141,7 +142,7 @@ interface Prefs { email?: boolean; sms?: boolean; push?: boolean; whatsapp?: boo
 async function deliver(svc: Svc, rows: Inserted[]) {
   const userIds = [...new Set(rows.map((r) => r.user_id))];
   const [{ data: profiles }, { data: devices }] = await Promise.all([
-    svc.from("profiles").select("id, email, phone, full_name, preferred_name, notification_prefs").in("id", userIds),
+    svc.from("profiles").select("id, email, phone, full_name, preferred_name, notification_prefs, whatsapp_opt_in").in("id", userIds),
     svc.from("device_tokens").select("token, user_id, provider").in("user_id", userIds),
   ]);
   const byUser = new Map((profiles ?? []).map((p) => [p.id, p]));
@@ -160,8 +161,23 @@ async function deliver(svc: Svc, rows: Inserted[]) {
         else if (!p?.email) delivered.email = { skipped: "no_address" };
         else delivered.email = await sendEmail({ to: p.email, subject: n.title, html: emailHtml(n, p.preferred_name || p.full_name), text: emailText(n) });
       }
+      // WhatsApp first (opt-in + phone), SMS as the fallback when WhatsApp did not reach a phone
+      // (not opted in, no live provider, or the send failed). Both channels must be requested for the
+      // fallback to apply; a plain "sms" request behaves as before.
+      let whatsappDelivered = false;
+      if (want.has("whatsapp")) {
+        const optedIn = p?.whatsapp_opt_in === true || prefs.whatsapp === true;
+        if (!optedIn) delivered.whatsapp = { skipped: "not_opted_in" };
+        else if (!p?.phone) delivered.whatsapp = { skipped: "no_number" };
+        else {
+          const r = await sendWhatsApp({ to: p.phone, kind: n.kind, title: n.title, body: n.body, link: absoluteLink(n.link) });
+          delivered.whatsapp = r;
+          whatsappDelivered = r.ok && r.provider === "meta" && whatsAppLive();
+        }
+      }
       if (want.has("sms")) {
-        if (prefs.sms === false) delivered.sms = { skipped: "opted_out" };
+        if (whatsappDelivered) delivered.sms = { skipped: "whatsapp_delivered" };
+        else if (prefs.sms === false) delivered.sms = { skipped: "opted_out" };
         else if (!p?.phone) delivered.sms = { skipped: "no_number" };
         else delivered.sms = await sendSms(p.phone, smsText(n));
       }

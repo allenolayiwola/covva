@@ -3,6 +3,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { IssuePolicyInput } from "@im/core";
 import { notify, notifyOrg } from "@/server/notify";
+import { afterInsurerIssued, cancelDelegatedPolicy, endorseDelegatedPolicy, markMotorRegistered } from "@/server/issuance";
 import { declinePendingPolicy } from "@/server/policies";
 import { BusinessRuleError } from "@/server/requests";
 import { emitEvent } from "@/server/webhooks";
@@ -67,8 +68,10 @@ export async function issuePolicy(_prev: ActionState, formData: FormData): Promi
     const issued = { policy_id: policy.id, internal_reference: policy.internal_reference, policy_number: input.policyNumber.trim(), request_id: policy.request_id, status: "active", cover_start: input.coverStart, cover_end: input.coverEnd };
     await emitEvent(policy.broker_org_id, "policy.issued", issued);
     await emitEvent(ctx.orgId, "policy.issued", issued);
+    // Generate the schedule / certificate / receipt (and motor sticker) with the verification QR.
+    const generated = await afterInsurerIssued(policy.id);
     refresh();
-    return { ok: true, message: `Policy ${input.policyNumber.trim()} is active. Upload the schedule and certificate below.` };
+    return { ok: true, message: generated.length ? `Policy ${input.policyNumber.trim()} is active. ${generated.length} documents were generated with a verification QR code; you can add your own files below.` : `Policy ${input.policyNumber.trim()} is active. Upload the schedule and certificate below.` };
   });
 }
 
@@ -139,5 +142,65 @@ export async function recordPolicyDocuments(_prev: ActionState, formData: FormDa
     }
     refresh();
     return { ok: true, message: `${files.length} document${files.length === 1 ? "" : "s"} uploaded.` };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Delegated issuance (Level 2): review window endorse / cancel, NIC registration
+// ---------------------------------------------------------------------------
+function serviceUnavailable(err: unknown): ActionState | null {
+  if (err instanceof Error && /SUPABASE_SECRET_KEY/.test(err.message)) return { ok: false, error: "This action needs the platform's service key on this environment. Ask platform support." };
+  return null;
+}
+
+/** Endorse a delegated policy: add notes and optionally regenerate the documents. Replacement files are recorded through `recordPolicyDocuments`. */
+export async function endorseDelegated(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return run(async () => {
+    const ctx = await actionContext({ kind: "insurer", roles: ROLES.underwrite });
+    const input = z.object({ policyId: uuid, notes: z.string().trim().min(5, "Describe the endorsement").max(2000), regenerate: z.string().optional() }).parse(Object.fromEntries(formData));
+    const policy = await loadPolicy(ctx, input.policyId);
+    if (!policy) return { ok: false, error: "Policy not found." };
+    try {
+      await endorseDelegatedPolicy({ insurerOrgId: ctx.orgId, policyId: policy.id, notes: input.notes, actorId: ctx.userId, regenerate: input.regenerate === "on" });
+    } catch (err) {
+      return serviceUnavailable(err) ?? { ok: false, error: err instanceof Error ? err.message : "We couldn't record the endorsement." };
+    }
+    refresh();
+    return { ok: true, message: "Endorsement recorded. The customer has been told." };
+  });
+}
+
+/** Cancel a delegated policy inside the review window: cover ends, the premium is refunded. */
+export async function cancelDelegated(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return run(async () => {
+    const ctx = await actionContext({ kind: "insurer", roles: ROLES.underwrite });
+    const input = z.object({ policyId: uuid, reason: z.string().trim().min(10, "Explain the cancellation so the customer understands").max(2000) }).parse(Object.fromEntries(formData));
+    const policy = await loadPolicy(ctx, input.policyId);
+    if (!policy) return { ok: false, error: "Policy not found." };
+    let result: Awaited<ReturnType<typeof cancelDelegatedPolicy>>;
+    try {
+      result = await cancelDelegatedPolicy({ insurerOrgId: ctx.orgId, policyId: policy.id, reason: input.reason, actorId: ctx.userId, insurerName: ctx.orgName });
+    } catch (err) {
+      return serviceUnavailable(err) ?? { ok: false, error: err instanceof Error ? err.message : "We couldn't cancel the policy." };
+    }
+    refresh();
+    return { ok: true, message: result.refund === "processed" ? "Policy cancelled and the premium refunded." : result.refund ? "Policy cancelled; a refund has been requested from the payment provider." : "Policy cancelled." };
+  });
+}
+
+/** Records the NIC motor database reference after a manual hand-off. */
+export async function recordNicRegistration(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return run(async () => {
+    const ctx = await actionContext({ kind: "insurer", roles: ROLES.underwrite });
+    const input = z.object({ policyId: uuid, reference: z.string().trim().min(3, "Enter the NIC reference or sticker number").max(80) }).parse(Object.fromEntries(formData));
+    const policy = await loadPolicy(ctx, input.policyId);
+    if (!policy) return { ok: false, error: "Policy not found." };
+    try {
+      await markMotorRegistered({ insurerOrgId: ctx.orgId, policyId: policy.id, reference: input.reference, actorId: ctx.userId });
+    } catch (err) {
+      return serviceUnavailable(err) ?? { ok: false, error: err instanceof Error ? err.message : "We couldn't record the registration." };
+    }
+    refresh();
+    return { ok: true, message: "NIC registration recorded on the policy." };
   });
 }

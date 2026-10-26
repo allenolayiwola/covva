@@ -152,11 +152,11 @@ const PayInput = z
     requestId: uuid,
     quoteId: uuid,
     applicationId: uuid,
-    method: z.enum(["mtn", "vod", "atl", "card"], { error: "Choose how you'd like to pay" }),
+    method: z.enum(["mtn", "vod", "atl", "card", "bank_transfer"], { error: "Choose how you'd like to pay" }),
     phone: z.string().optional(),
   })
   .superRefine((v, ctx) => {
-    if (v.method !== "card" && !normaliseGhanaPhone(v.phone)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter the mobile money number to charge, e.g. 024 123 4567" });
+    if (v.method !== "card" && v.method !== "bank_transfer" && !normaliseGhanaPhone(v.phone)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter the mobile money number to charge, e.g. 024 123 4567" });
   });
 
 async function origin() {
@@ -189,8 +189,8 @@ export async function startPayment(_prev: ActionState, formData: FormData): Prom
   try {
     result = await initiatePayment({
       applicationId: app.id,
-      channel: v.method === "card" ? "card" : "mobile_money",
-      momo: v.method === "card" ? undefined : { phone: normaliseGhanaPhone(v.phone)!, provider: v.method },
+      channel: v.method === "card" ? "card" : v.method === "bank_transfer" ? "bank_transfer" : "mobile_money",
+      momo: v.method === "card" || v.method === "bank_transfer" ? undefined : { phone: normaliseGhanaPhone(v.phone)!, provider: v.method },
       callbackUrl: `${await origin()}/account/requests/${v.requestId}/confirmation`,
     });
   } catch (err) {
