@@ -99,8 +99,9 @@ test.describe("customer account", () => {
       await cards.first().click();
       await page.waitForURL(/\/account\/policies\/[0-9a-f-]{36}/);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      // Platform-arranged policies carry the mandatory disclosure; policies bought elsewhere say so instead.
-      await expect(page.getByText(/Technology provided by/).first().or(page.getByText("Added by you").first())).toBeVisible();
+      // Every policy names its parties (insurer, broker of record or "issued directly", issuance, complaints contacts).
+      await expect(page.getByRole("heading", { level: 2, name: "Who's who on this policy" })).toBeVisible();
+      await expect(page.getByText(/Technology provided by|We provide the technology/).first()).toBeVisible();
     }
   });
 

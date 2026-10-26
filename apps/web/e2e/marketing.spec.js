@@ -70,7 +70,8 @@ test.describe("marketing site", () => {
     await expect(page.getByText(/GH₵ \d+/).first()).toBeVisible();
     await expect(page.getByText("Indicative").first()).toBeVisible();
     await expect(page.getByRole("form", { name: /Motor quotes/ })).toBeVisible();
-    await expect(page.locator("script[type='application/ld+json']").filter({ hasText: '"Product"' })).toHaveCount(1);
+    const ld = await page.locator("script[type='application/ld+json']").allTextContents();
+    expect(ld.filter((t) => t.includes('"Product"'))).toHaveLength(1);
   });
 
   test("unknown product line renders the not-found page (noindex)", async ({ page }) => {
@@ -104,7 +105,9 @@ test.describe("marketing site", () => {
 
   test("learn hub language switcher is honest about translations", async ({ page }) => {
     await page.goto("/learn/third-party-vs-comprehensive");
-    await expect(page.locator("script[type='application/ld+json']").filter({ hasText: '"Article"' }).first()).toBeAttached();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const ld = await page.locator("script[type='application/ld+json']").allTextContents();
+    expect(ld.some((t) => t.includes('"Article"'))).toBe(true);
     await page.getByLabel("Language").selectOption("tw");
     await expect(page.getByRole("status")).toContainText(/Twi translations are coming soon/);
     const cookies = await page.context().cookies();
