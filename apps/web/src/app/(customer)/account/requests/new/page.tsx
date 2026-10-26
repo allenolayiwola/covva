@@ -37,7 +37,14 @@ async function Body({ searchParams }: Pick<PageProps<"/account/requests/new">, "
   const type: ReqType = TYPES.includes(sp.type as ReqType) ? (sp.type as ReqType) : "new_cover";
   const policyParam = typeof sp.policy === "string" && UUID_RE.test(sp.policy) ? sp.policy : undefined;
 
-  const [categories, profile] = await Promise.all([getCategories(), getProfile()]);
+  const [categories, profile, { data: beneficiaryRows }] = await Promise.all([
+    getCategories(),
+    getProfile(),
+    // Diaspora: family members the sponsor can request cover for (consent granted).
+    supabase.from("beneficiaries").select("id, full_name, relationship, consent_status, region").eq("sponsor_user_id", user.id).order("created_at"),
+  ]);
+  const beneficiaries = (beneficiaryRows ?? []).map((b) => ({ id: b.id, full_name: b.full_name, relationship: b.relationship, consent_status: b.consent_status, region: b.region }));
+  const beneficiaryParam = typeof sp.beneficiary === "string" && UUID_RE.test(sp.beneficiary) && beneficiaries.some((b) => b.id === sp.beneficiary) ? sp.beneficiary : undefined;
 
   let slug = typeof sp.category === "string" ? sp.category : undefined;
   let initialRisk: Record<string, unknown> | undefined;
@@ -88,6 +95,8 @@ async function Body({ searchParams }: Pick<PageProps<"/account/requests/new">, "
         policyLabel={policyLabel}
         initialRisk={initialRisk}
         defaultRegion={profile?.region ?? undefined}
+        beneficiaries={type === "new_cover" || !policyId ? beneficiaries : []}
+        initialBeneficiaryId={beneficiaryParam}
       />
     </>
   );

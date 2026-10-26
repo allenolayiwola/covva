@@ -53,6 +53,14 @@ function toFormValue(f: RiskField, v: unknown): Value {
   return v === undefined || v === null ? "" : String(v);
 }
 
+export interface BeneficiaryOption {
+  id: string;
+  full_name: string;
+  relationship: string;
+  consent_status: string;
+  region: string | null;
+}
+
 export function RequestForm({
   categories,
   initialSlug,
@@ -61,6 +69,9 @@ export function RequestForm({
   policyLabel,
   initialRisk,
   defaultRegion,
+  beneficiaries = [],
+  initialBeneficiaryId,
+  bundle,
 }: {
   categories: CategoryOption[];
   initialSlug?: string;
@@ -69,6 +80,11 @@ export function RequestForm({
   policyLabel?: string;
   initialRisk?: Record<string, unknown>;
   defaultRegion?: string;
+  /** Diaspora: family members in Ghana the sponsor can request cover for. */
+  beneficiaries?: BeneficiaryOption[];
+  initialBeneficiaryId?: string;
+  /** Product bundle slug (diaspora packs): the pack's other items are saved as drafts on submit. */
+  bundle?: string;
 }) {
   const [slug, setSlug] = React.useState<string | undefined>(
     initialSlug && categories.some((c) => c.slug === initialSlug && c.availability !== "planned") ? initialSlug : undefined,
@@ -87,6 +103,9 @@ export function RequestForm({
       policyLabel={policyLabel}
       initialRisk={initialRisk}
       defaultRegion={defaultRegion}
+      beneficiaries={beneficiaries}
+      initialBeneficiaryId={initialBeneficiaryId}
+      bundle={bundle}
       onBack={policyId ? undefined : () => setSlug(undefined)}
     />
   );
@@ -149,7 +168,10 @@ function RiskForm({
   policyLabel,
   initialRisk,
   defaultRegion,
+  beneficiaries = [],
+  initialBeneficiaryId,
   onBack,
+  bundle,
 }: {
   category: CategoryOption;
   type: RequestType;
@@ -157,7 +179,10 @@ function RiskForm({
   policyLabel?: string;
   initialRisk?: Record<string, unknown>;
   defaultRegion?: string;
+  beneficiaries?: BeneficiaryOption[];
+  initialBeneficiaryId?: string;
   onBack?: () => void;
+  bundle?: string;
 }) {
   const fields = category.risk_schema;
   // "Motor quote in under 2 minutes": registration + use + value first; the rest is prefilled from a
@@ -179,6 +204,11 @@ function RiskForm({
   const copy = TYPE_COPY[type];
   const [detailsOpen, setDetailsOpen] = React.useState(true);
   const [lookup, setLookup] = React.useState<{ state: "idle" | "searching" | "found" | "none" | "error"; data?: VehicleData }>({ state: "idle" });
+  // "Who is this cover for?" — myself, or a family member in Ghana (diaspora sponsor).
+  const [coverFor, setCoverFor] = React.useState<"self" | "family">(initialBeneficiaryId ? "family" : "self");
+  const [beneficiaryId, setBeneficiaryId] = React.useState(initialBeneficiaryId ?? "");
+  const beneficiary = beneficiaries.find((b) => b.id === beneficiaryId);
+  const showCoverFor = type === "new_cover" && !policyId;
 
   async function findVehicle() {
     const reg = normaliseRegistration(typeof values.registration_number === "string" ? values.registration_number : "");
@@ -276,9 +306,13 @@ function RiskForm({
     const res = riskSchemaToZod(fields).safeParse(riskPayload());
     if (!res.success) for (const i of res.error.issues) errs[String(i.path[0])] ??= i.message;
     if (type === "endorsement" && note.trim().length < 5) errs.__note = "Tell your broker what you'd like to change";
+    if (showCoverFor && coverFor === "family") {
+      if (!beneficiaryId) errs.__beneficiary = "Choose the family member this cover is for";
+      else if (beneficiary && beneficiary.consent_status !== "granted") errs.__beneficiary = `${beneficiary.full_name} hasn't given consent yet`;
+    }
     setErrors(errs);
     if (Object.keys(errs).length) {
-      const first = fields.find((f) => errs[f.key])?.key ?? (errs.__note ? "note" : undefined);
+      const first = fields.find((f) => errs[f.key])?.key ?? (errs.__note ? "note" : errs.__beneficiary ? "beneficiary" : undefined);
       setDetailsOpen(true); // collapsed "Check details" fields must be visible to fix
       if (first) setTimeout(() => document.getElementById(`f-${first}`)?.focus(), 0);
       return false;
@@ -308,6 +342,8 @@ function RiskForm({
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="policy" value={policyId ?? ""} />
       <input type="hidden" name="risk" value={JSON.stringify(riskPayload())} />
+      <input type="hidden" name="beneficiary" value={showCoverFor && coverFor === "family" ? beneficiaryId : ""} />
+      <input type="hidden" name="bundle" value={bundle ?? ""} />
 
       <div className="flex flex-wrap items-center gap-3">
         {onBack && (
@@ -341,6 +377,54 @@ function RiskForm({
         </Notice>
       )}
       {category.regulatory_note && <Notice tone="wait">{category.regulatory_note}</Notice>}
+
+      {showCoverFor && (
+        <fieldset className="rounded-card border border-line p-4 sm:p-5" aria-describedby="cover-for-hint">
+          <legend className="px-1 font-semibold text-ink">Who is this cover for?</legend>
+          <p id="cover-for-hint" className="mb-3 text-sm text-muted">Living abroad? You can arrange and pay for cover for family in Ghana. They are named on the policy; you are the payer.</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Who is this cover for?">
+            {(
+              [
+                { v: "self", l: "Myself" },
+                { v: "family", l: "A family member in Ghana" },
+              ] as const
+            ).map((o) => (
+              <label
+                key={o.v}
+                className={cn(
+                  "inline-flex cursor-pointer items-center rounded-xl border px-4 py-2.5 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand",
+                  coverFor === o.v ? "border-brand bg-mint-2 text-brand-deep" : "border-line text-ink-2 hover:bg-mist",
+                )}
+              >
+                <input type="radio" name="ui-cover-for" value={o.v} checked={coverFor === o.v} onChange={() => { setCoverFor(o.v); setErrors((prev) => { const n = { ...prev }; delete n.__beneficiary; return n; }); }} className="sr-only" />
+                {o.l}
+              </label>
+            ))}
+          </div>
+          {coverFor === "family" && (
+            <div className="mt-4">
+              {beneficiaries.length ? (
+                <Field label="Family member" htmlFor="f-beneficiary" error={errors.__beneficiary} hint="Only family members who have given consent can be covered.">
+                  <Select id="f-beneficiary" value={beneficiaryId} onChange={(e) => { setBeneficiaryId(e.target.value); setErrors((prev) => { const n = { ...prev }; delete n.__beneficiary; return n; }); }} aria-invalid={!!errors.__beneficiary}>
+                    <option value="">Choose…</option>
+                    {beneficiaries.map((b) => (
+                      <option key={b.id} value={b.id} disabled={b.consent_status !== "granted"}>
+                        {b.full_name} · {b.relationship.replace(/^\w/, (c) => c.toUpperCase())}{b.consent_status !== "granted" ? " (awaiting consent)" : ""}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : (
+                <p className="text-sm text-muted" id="f-beneficiary">
+                  You haven&apos;t added any family members yet.{" "}
+                  <a href={`/account/family/beneficiaries/new?next=${encodeURIComponent(`/account/requests/new?category=${category.slug}`)}`} className="font-medium text-brand hover:underline">Add a family member</a> — they confirm by SMS code, then you can request cover for them.
+                </p>
+              )}
+              {errors.__beneficiary && !beneficiaries.length && <p className="mt-1.5 text-xs text-danger">{errors.__beneficiary}</p>}
+            </div>
+          )}
+        </fieldset>
+      )}
 
       {hasQuick ? (
         <>

@@ -4,7 +4,7 @@ import { requestClaimInfo } from "@/server/claims";
 import { PARTNER_ROLES, requireRole, resolvePartnerOrg } from "@/server/partner-mobile";
 
 /** GET /api/v1/partner/claims/{id}/info-requests — requests raised on the claim and their fulfilment. */
-export const GET = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
+export const GET = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]/info-requests">>(
   async ({ auth, req, client }, route) => {
     const id = uuidParam((await route.params).id, "claim");
     const p = await resolvePartnerOrg(auth, req, client);
@@ -22,7 +22,7 @@ export const GET = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
  * information or an inspection slot. Notifies the requested party (customer: in-app, push, email and SMS).
  * Insurers may pass `setStatus: true` to move the claim to `info_requested` at the same time.
  */
-export const POST = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
+export const POST = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]/info-requests">>(
   async ({ auth, req, client }, route) => {
     const id = uuidParam((await route.params).id, "claim");
     const input = await parseJson(req, ClaimInfoRequestInput);

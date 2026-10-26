@@ -30,3 +30,4 @@ export * from "./claims-flow";
 export * from "./fx";
 export * from "./subscriptions";
 export * from "./bundles";
+export * from "./diaspora";

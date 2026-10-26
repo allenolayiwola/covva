@@ -35,18 +35,19 @@ export function saveMethodRequested(payment: Pick<Row<"payments">, "raw_event">)
 export async function savePaymentMethodFromOutcome(svc: Svc, payment: Row<"payments">, event: unknown): Promise<string | null> {
   if (!saveMethodRequested(payment)) return null;
   try {
-    const data = asObject(asObject(event).data);
-    const auth = asObject(data.authorization);
-    const customer = asObject(data.customer);
+    const evtData = asObject(asObject(event).data);
+    const auth = asObject(evtData.authorization);
+    const customer = asObject(evtData.customer);
+    const token = typeof auth.authorization_code === "string" ? auth.authorization_code : null;
     let row: Omit<Row<"payment_methods">, "id" | "created_at" | "updated_at" | "is_default" | "status"> | null = null;
     if (payment.provider === "simulator") {
       row = { user_id: payment.customer_id, psp: "simulator", provider_customer_ref: null, provider_token_ref: `SIM-${randomBytes(6).toString("hex").toUpperCase()}`, brand: "Sandbox card", last4: "4242", exp_month: 12, exp_year: new Date().getUTCFullYear() + 3, billing_country: payment.display_currency === "GBP" ? "GB" : payment.display_currency === "USD" ? "US" : payment.display_currency === "EUR" ? "DE" : payment.display_currency === "CAD" ? "CA" : "GH", currency: payment.display_currency ?? "GHS" };
-    } else if (payment.provider === "paystack" && typeof auth.authorization_code === "string" && auth.reusable === true && (auth.channel === "card" || payment.channel === "card")) {
+    } else if (payment.provider === "paystack" && token && auth.reusable === true && (auth.channel === "card" || payment.channel === "card")) {
       row = {
         user_id: payment.customer_id,
         psp: payment.psp === "paystack_intl" ? "paystack_intl" : "paystack",
         provider_customer_ref: typeof customer.customer_code === "string" ? customer.customer_code : null,
-        provider_token_ref: auth.authorization_code,
+        provider_token_ref: token,
         brand: typeof auth.brand === "string" ? auth.brand.slice(0, 40) : typeof auth.card_type === "string" ? auth.card_type.slice(0, 40) : null,
         last4: typeof auth.last4 === "string" && /^\d{4}$/.test(auth.last4) ? auth.last4 : null,
         exp_month: Number(auth.exp_month) || null,

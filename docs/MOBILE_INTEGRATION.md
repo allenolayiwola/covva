@@ -455,6 +455,55 @@ accounts should enable it on the web (Settings → Security), and the app can re
 `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` to show a reminder. Customers use phone OTP
 and optional biometrics (device-local) — never TOTP.
 
+## 14a. Claims: messaging, info requests, video, partner network
+
+Everything a claim screen needs beyond `GET /claims/{id}` (Roadmap Phase 2). Reporting a claim is still not
+approval — only the insurer decides — and the screens must say so (`disclaimer`).
+
+**Report with location and a police report**
+
+```http
+POST /api/v1/claims
+{ "policyId": "…", "incidentType": "accident", "incidentAt": "2026-10-20T08:30:00Z",
+  "location": { "lat": 5.6037, "lng": -0.187, "accuracy": 12, "address": "Spintex Road, Accra" },
+  "description": "…", "amountClaimed": 1500, "policeReportDocumentId": "…" }
+```
+
+`location` may still be a plain string. Upload the police report first with `POST /documents` (kind `police_report`)
+and pass its id; photos go through `/documents` with `claimId`.
+
+**Timeline with expected times** — `GET /claims/{id}/timeline` returns `stages[]`
+(`reported → acknowledged → assessing → decision → payment`) with `state` done | current | upcoming, `at` when reached,
+or `expectedBy` / `expectedLabel` (acknowledged within 24 h, assessment about 5 working days, payment within 10 working
+days of approval) and `overdue`. Show `next.message` under the status; never an open-ended "processing".
+
+**Thread** — `GET /claims/{id}/messages` (oldest first; `canMessage` false once the claim is closed) and
+`POST /claims/{id}/messages { "body", "attachments": [{ "documentId", "name" }] }`. Customers never receive internal
+partner notes. Subscribe to `claim_messages` (`claim_id=eq.<id>`) over Realtime (§6) for live updates. Push kind `claim.message`.
+
+**Information requests** — `GET /claims/{id}/info-requests` lists what the insurer or broker asked for (`kind`
+document | information | inspection, `message`, `due_at`). Answer with
+`POST /claims/{id}/info-requests/{reqId}/fulfil { "documentId"?: "…", "response"?: "…" }` (upload the file with
+`/documents` first). Push/SMS kind `claim.info_requested` carries `info_request_id`; deep link to the claim screen and
+open the request.
+
+**Video** — `POST /claims/{id}/video` as `multipart/form-data` with a `file` part (`fileName`, `mimeType`,
+`durationSeconds`, `caption`) or JSON with base64 `content`. Limits: 90 seconds, 50 MB, MP4/WebM/QuickTime
+(`MAX_VIDEO_SECONDS`, `MAX_VIDEO_BYTES`, `validateClaimVideo` in `@im/core`). Read the duration from the picker and
+check it before uploading; the server rejects longer clips with `400 invalid_input`. The video appears in
+`GET /claims/{id}` documents as kind `claim_video` with `duration_seconds`.
+
+**Partner network** — `GET /service-partners?kind=garage&region=Greater%20Accra&insurerOrgId=<claim.insurer_org_id>`
+(public) lists approved garages, towing, hospitals, clinics, pharmacies and assessors; `directBilling: true` means the
+partner settles with that insurer and the customer pays nothing upfront — show "Direct billing — you don't pay upfront".
+Use `partnerKindsFor(categorySlug, incidentType)` from `@im/core` to choose the kinds for a claim.
+`GET /claims/{id}/jobs` shows the repair/towing/treatment jobs the broker or insurer arranged (`status`
+requested → accepted → in_progress → completed, partner contact details, `direct_billing`, `directBillingNote`).
+Push kind `claim.job`.
+
+Broker app: `POST /partner/claims/{id}/info-requests` and `POST|PATCH /partner/claims/{id}/jobs` (see §15.3).
+Fraud indicators exist for the insurer's claims team and platform staff only; the API never returns them to customers or brokers.
+
 ## 15. Broker workspace (mobile) — Addendum 4 §2
 
 Everything the broker workspace needs on the phone lives under `/api/v1/partner/*` and works with the
@@ -542,6 +591,11 @@ Allowed `status` values for brokers: `delivered_to_insurer` (from `reported`), t
 `under_assessment`, `info_requested` — but only while the insurer has not recorded anything on the
 claim; afterwards the call returns `422 business_rule` and you should send a note only (`{ "note": "…" }`).
 Approve / reject / pay never come from the broker app. Response `201 { claim: { id, reference, status, statusLabel }, event }`.
+
+Information requests and partner jobs: `POST /partner/claims/{id}/info-requests { "kind": "document", "requestedParty": "customer", "message": "…", "dueAt"? }`
+notifies the customer (push, in-app, email, SMS). `POST /partner/claims/{id}/jobs { "servicePartnerId", "kind": "repair", "directBilling": true, "estimate"?, "scheduledFor"?, "notes"? }`
+assigns an approved partner from `GET /service-partners?insurerOrgId=` (direct billing only where the partner direct-bills the claim's insurer);
+`PATCH /partner/claims/{id}/jobs { "jobId", "status" }` tracks it. Both also work for insurer users on the web.
 
 ### 15.4 Documents from the camera
 

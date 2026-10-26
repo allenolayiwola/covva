@@ -43,7 +43,10 @@ export function insurerNav(): NavItem[] {
 /** Left nav (needs the org type, so it streams). */
 export async function SideNav() {
   const ctx = await getPartnerContext();
-  return <NavLinks items={ctx.kind === "insurer" ? insurerNav() : brokerNav()} />;
+  const items = ctx.kind === "insurer" ? insurerNav() : brokerNav();
+  // Inspection partners (organizations.settings.inspection_partner = true) also see property inspections.
+  if ((ctx.membership.org.settings as { inspection_partner?: boolean } | null)?.inspection_partner === true) items.splice(items.length - 1, 0, { href: "/partner/inspections", label: "Inspections" });
+  return <NavLinks items={items} />;
 }
 
 export function SideNavSkeleton() {

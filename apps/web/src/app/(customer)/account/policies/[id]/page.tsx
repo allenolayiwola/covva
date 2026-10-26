@@ -16,6 +16,8 @@ import { TransactionParties } from "@/components/transaction-parties";
 import { account, coverLabel, getPolicyOr404, policyTitle, signUrls } from "../../_lib/data";
 import { attachPolicyDocument } from "../actions";
 import { RenameForm } from "./rename-form";
+import { PropertyUpdatesCard } from "@/components/customer/property-updates";
+import { isPropertyCategory } from "@/server/property";
 
 export const metadata: Metadata = { title: "Policy" };
 
@@ -35,7 +37,9 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
   const { user, supabase } = await account(`/account/policies/${id}`);
   const policy = await getPolicyOr404(supabase, id);
 
-  const [docsRes, quoteRes, versionRes, claimsRes, flags] = await Promise.all([
+  // Diaspora: the policy may be paid for by a sponsor abroad (beneficiary side) or cover a family member (sponsor side).
+  const sponsored = !!policy.sponsor_user_id && policy.sponsor_user_id !== user.id;
+  const [docsRes, quoteRes, versionRes, claimsRes, flags, sponsorNameRes, sponsorshipRes, beneficiaryRes] = await Promise.all([
     supabase.from("documents").select("id, file_name, storage_path, kind, size_bytes, created_at, uploaded_by_party").eq("policy_id", id).order("created_at", { ascending: false }),
     policy.quote_id
       ? supabase.from("quotes").select("coverage, exclusions, key_exclusion, limits, excesses, waiting_period_days").eq("id", policy.quote_id).maybeSingle()
@@ -45,7 +49,13 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
       : Promise.resolve({ data: null }),
     supabase.from("claims").select("id, reference, status, incident_type, created_at").eq("policy_id", id).order("created_at", { ascending: false }),
     getFlags(),
+    sponsored ? supabase.rpc("policy_sponsor_name", { p_policy_id: id }) : Promise.resolve({ data: null as string | null }),
+    policy.sponsor_user_id ? supabase.from("sponsorships").select("id, gift, gift_revealed_at, sponsor_user_id").eq("policy_id", id).maybeSingle() : Promise.resolve({ data: null }),
+    policy.beneficiary_id && policy.sponsor_user_id === user.id ? supabase.from("beneficiaries").select("id, full_name").eq("id", policy.beneficiary_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
+  const sponsorFirstName = sponsorNameRes.data ?? null;
+  const sponsorship = sponsorshipRes.data as { id: string; gift: boolean; gift_revealed_at: string | null; sponsor_user_id: string } | null;
+  const beneficiary = beneficiaryRes.data as { id: string; full_name: string } | null;
   const docs = docsRes.data ?? [];
   const terms = (quoteRes.data ?? versionRes.data) as Partial<Row<"quotes">> | null;
   const version = versionRes.data as (Partial<Row<"product_versions">> & { claims_process?: string | null }) | null;
@@ -132,6 +142,23 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
         )}
       </div>
 
+      {sponsored && (
+        <Notice tone="info" className="mt-6" title={sponsorship?.gift ? `A gift from ${sponsorFirstName ?? "a family member"}` : `Paid for by ${sponsorFirstName ?? "a family member"}`}>
+          {sponsorship?.gift && !sponsorship.gift_revealed_at ? (
+            <>
+              There is a message waiting for you. <Link href={`/account/gifts/${sponsorship.id}`} className="font-medium text-brand hover:underline">Open your gift</Link>
+            </>
+          ) : (
+            <>Your sponsor pays the premium and gets the same reminders and documents. You are the person covered and can report claims yourself.</>
+          )}
+        </Notice>
+      )}
+      {beneficiary && (
+        <Notice tone="info" className="mt-6" title={`Covers ${beneficiary.full_name}`}>
+          You pay for this policy for a family member in Ghana. Manage consent, gifts and claims on their behalf under{" "}
+          <Link href={`/account/family/beneficiaries/${beneficiary.id}`} className="font-medium text-brand hover:underline">Family</Link>.
+        </Notice>
+      )}
       {policy.status === "pending_issuance" && <Notice tone="wait" className="mt-6" title="Not active yet">{POLICY_STATUS.pending_issuance.customerHint}</Notice>}
       {policy.external_source && (
         <Notice tone="info" className="mt-6" title="Added by you">
@@ -214,6 +241,8 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
               <p className="mt-2 text-xs text-subtle">Key exclusions only. The full policy wording applies.</p>
             </section>
           )}
+
+          {isPropertyCategory(policy.category?.slug) && !policy.external_source && <PropertyUpdatesCard policyId={policy.id} userId={user.id} supabase={supabase} />}
 
           <section id="documents" aria-labelledby="docs-h" className="scroll-mt-24">
             <h2 id="docs-h" className="text-lg font-semibold text-ink">Documents</h2>

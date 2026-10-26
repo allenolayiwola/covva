@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { runIdentityCheck } from "@/server/lookups";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { GHANA_REGIONS } from "@im/core";
+import { GHANA_REGIONS, SPONSOR_CURRENCIES, isSponsorCountry } from "@im/core";
 import { getSetting } from "@/lib/catalog";
 import { normaliseGhanaCard, normaliseGhanaPhone, type ActionState } from "@/components/customer/utils";
 import { SIGNED_OUT, actionContext, dbError } from "../_lib/action";
@@ -20,6 +20,15 @@ const Profile = z
     account_type: z.enum(["individual", "business"]),
     business_name: z.string().trim().max(160).optional(),
     ghana_card: z.string().trim().max(20).optional(),
+    country_code: z.string().trim().regex(/^[A-Za-z]{2}$/, "Choose your country").transform((v) => v.toUpperCase()).default("GH"),
+    preferred_currency: z.enum(SPONSOR_CURRENCIES, { error: "Choose a currency" }).default("GHS"),
+    timezone: z
+      .string()
+      .trim()
+      .max(60)
+      .regex(/^[A-Za-z_]+(\/[A-Za-z_+\-0-9]+)*$/, "Use an IANA name like Europe/London")
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
   })
   .refine((v) => v.account_type === "individual" || (v.business_name?.length ?? 0) >= 2, { message: "Enter your business name", path: ["business_name"] });
 
@@ -54,6 +63,10 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
       date_of_birth: v.date_of_birth ?? null,
       account_type: v.account_type,
       business_name: v.account_type === "business" ? v.business_name ?? null : null,
+      country_code: v.country_code,
+      preferred_currency: v.preferred_currency,
+      timezone: v.timezone ?? null,
+      ...(isSponsorCountry(v.country_code) ? { is_sponsor: true } : {}),
       ...(card && card !== current?.ghana_card_number ? { ghana_card_number: card, kyc_status: "pending" as const } : {}),
     })
     .eq("id", user.id);

@@ -353,6 +353,148 @@ export type Database = {
         }
         Relationships: []
       }
+      beneficiaries: {
+        Row: {
+          address: string | null
+          consent_channel: string | null
+          consent_code_hash: string | null
+          consent_expires_at: string | null
+          consent_granted_at: string | null
+          consent_sent_at: string | null
+          consent_status: string
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          ghana_card_number: string | null
+          household_id: string | null
+          id: string
+          linked_user_id: string | null
+          notes: string | null
+          phone: string
+          region: string | null
+          relationship: string
+          sponsor_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          consent_channel?: string | null
+          consent_code_hash?: string | null
+          consent_expires_at?: string | null
+          consent_granted_at?: string | null
+          consent_sent_at?: string | null
+          consent_status?: string
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          ghana_card_number?: string | null
+          household_id?: string | null
+          id?: string
+          linked_user_id?: string | null
+          notes?: string | null
+          phone: string
+          region?: string | null
+          relationship?: string
+          sponsor_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          consent_channel?: string | null
+          consent_code_hash?: string | null
+          consent_expires_at?: string | null
+          consent_granted_at?: string | null
+          consent_sent_at?: string | null
+          consent_status?: string
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          ghana_card_number?: string | null
+          household_id?: string | null
+          id?: string
+          linked_user_id?: string | null
+          notes?: string | null
+          phone?: string
+          region?: string | null
+          relationship?: string
+          sponsor_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficiaries_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beneficiary_consents: {
+        Row: {
+          attempts: number
+          beneficiary_id: string
+          channel: string | null
+          code_hash: string | null
+          created_at: string
+          declined_at: string | null
+          expires_at: string | null
+          granted: boolean
+          granted_at: string | null
+          id: string
+          kind: string
+          locked_at: string | null
+          requested_at: string | null
+          requested_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          beneficiary_id: string
+          channel?: string | null
+          code_hash?: string | null
+          created_at?: string
+          declined_at?: string | null
+          expires_at?: string | null
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          kind: string
+          locked_at?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          beneficiary_id?: string
+          channel?: string | null
+          code_hash?: string | null
+          created_at?: string
+          declined_at?: string | null
+          expires_at?: string | null
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          kind?: string
+          locked_at?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficiary_consents_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broker_disclosures: {
         Row: {
           acknowledged_at: string
@@ -751,8 +893,10 @@ export type Database = {
           location_gps: Json | null
           paid_at: string | null
           policy_id: string
+          proxy_consent_id: string | null
           reference: string
           reported_at: string | null
+          reported_by_user_id: string | null
           required_evidence: Json
           status: Database["public"]["Enums"]["claim_status"]
           third_parties: Json
@@ -782,8 +926,10 @@ export type Database = {
           location_gps?: Json | null
           paid_at?: string | null
           policy_id: string
+          proxy_consent_id?: string | null
           reference?: string
           reported_at?: string | null
+          reported_by_user_id?: string | null
           required_evidence?: Json
           status?: Database["public"]["Enums"]["claim_status"]
           third_parties?: Json
@@ -813,8 +959,10 @@ export type Database = {
           location_gps?: Json | null
           paid_at?: string | null
           policy_id?: string
+          proxy_consent_id?: string | null
           reference?: string
           reported_at?: string | null
+          reported_by_user_id?: string | null
           required_evidence?: Json
           status?: Database["public"]["Enums"]["claim_status"]
           third_parties?: Json
@@ -847,6 +995,13 @@ export type Database = {
             columns: ["policy_id"]
             isOneToOne: false
             referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_proxy_consent_id_fkey"
+            columns: ["proxy_consent_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiary_consents"
             referencedColumns: ["id"]
           },
         ]
@@ -1666,6 +1821,72 @@ export type Database = {
         }
         Relationships: []
       }
+      household_members: {
+        Row: {
+          beneficiary_id: string | null
+          created_at: string
+          household_id: string
+          id: string
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          beneficiary_id?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Update: {
+          beneficiary_id?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       insurer_broker_appointments: {
         Row: {
           active: boolean
@@ -2293,6 +2514,7 @@ export type Database = {
           kind: string
           link: string | null
           read_at: string | null
+          recipient_role: string | null
           title: string
           user_id: string
         }
@@ -2306,6 +2528,7 @@ export type Database = {
           kind: string
           link?: string | null
           read_at?: string | null
+          recipient_role?: string | null
           title: string
           user_id: string
         }
@@ -2319,6 +2542,7 @@ export type Database = {
           kind?: string
           link?: string | null
           read_at?: string | null
+          recipient_role?: string | null
           title?: string
           user_id?: string
         }
@@ -3137,6 +3361,7 @@ export type Database = {
       }
       policies: {
         Row: {
+          beneficiary_id: string | null
           billing_period: string
           broker_org_id: string | null
           cancellation_reason: string | null
@@ -3164,6 +3389,7 @@ export type Database = {
           renewal_reminders_sent: Json
           request_id: string | null
           source: string
+          sponsor_user_id: string | null
           status: Database["public"]["Enums"]["policy_status"]
           sticker_number: string | null
           sum_insured: number | null
@@ -3173,6 +3399,7 @@ export type Database = {
           verification_code: string | null
         }
         Insert: {
+          beneficiary_id?: string | null
           billing_period?: string
           broker_org_id?: string | null
           cancellation_reason?: string | null
@@ -3200,6 +3427,7 @@ export type Database = {
           renewal_reminders_sent?: Json
           request_id?: string | null
           source?: string
+          sponsor_user_id?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           sticker_number?: string | null
           sum_insured?: number | null
@@ -3209,6 +3437,7 @@ export type Database = {
           verification_code?: string | null
         }
         Update: {
+          beneficiary_id?: string | null
           billing_period?: string
           broker_org_id?: string | null
           cancellation_reason?: string | null
@@ -3236,6 +3465,7 @@ export type Database = {
           renewal_reminders_sent?: Json
           request_id?: string | null
           source?: string
+          sponsor_user_id?: string | null
           status?: Database["public"]["Enums"]["policy_status"]
           sticker_number?: string | null
           sum_insured?: number | null
@@ -3245,6 +3475,13 @@ export type Database = {
           verification_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "policies_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "policies_broker_org_id_fkey"
             columns: ["broker_org_id"]
@@ -3634,12 +3871,14 @@ export type Database = {
           avatar_url: string | null
           business_name: string | null
           city: string | null
+          country_code: string
           created_at: string
           date_of_birth: string | null
           email: string | null
           full_name: string | null
           ghana_card_number: string | null
           id: string
+          is_sponsor: boolean
           kyc_status: Database["public"]["Enums"]["kyc_status"]
           kyc_verified_at: string | null
           last_seen_platform: string | null
@@ -3647,8 +3886,10 @@ export type Database = {
           notification_prefs: Json
           onboarded_at: string | null
           phone: string | null
+          preferred_currency: string
           preferred_name: string | null
           region: string | null
+          timezone: string | null
           updated_at: string
           whatsapp_opt_in: boolean
         }
@@ -3659,12 +3900,14 @@ export type Database = {
           avatar_url?: string | null
           business_name?: string | null
           city?: string | null
+          country_code?: string
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
           ghana_card_number?: string | null
           id: string
+          is_sponsor?: boolean
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           kyc_verified_at?: string | null
           last_seen_platform?: string | null
@@ -3672,8 +3915,10 @@ export type Database = {
           notification_prefs?: Json
           onboarded_at?: string | null
           phone?: string | null
+          preferred_currency?: string
           preferred_name?: string | null
           region?: string | null
+          timezone?: string | null
           updated_at?: string
           whatsapp_opt_in?: boolean
         }
@@ -3684,12 +3929,14 @@ export type Database = {
           avatar_url?: string | null
           business_name?: string | null
           city?: string | null
+          country_code?: string
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
           ghana_card_number?: string | null
           id?: string
+          is_sponsor?: boolean
           kyc_status?: Database["public"]["Enums"]["kyc_status"]
           kyc_verified_at?: string | null
           last_seen_platform?: string | null
@@ -3697,8 +3944,10 @@ export type Database = {
           notification_prefs?: Json
           onboarded_at?: string | null
           phone?: string | null
+          preferred_currency?: string
           preferred_name?: string | null
           region?: string | null
+          timezone?: string | null
           updated_at?: string
           whatsapp_opt_in?: boolean
         }
@@ -4414,6 +4663,7 @@ export type Database = {
       requests: {
         Row: {
           assigned_to: string | null
+          beneficiary_id: string | null
           broker_org_id: string | null
           bundle_id: string | null
           business_org_id: string | null
@@ -4439,6 +4689,7 @@ export type Database = {
           sla_choice_at: string | null
           source: Database["public"]["Enums"]["request_source"]
           source_broker_org_id: string | null
+          sponsor_user_id: string | null
           status: Database["public"]["Enums"]["request_status"]
           submitted_at: string | null
           talk_to_expert: boolean
@@ -4449,6 +4700,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          beneficiary_id?: string | null
           broker_org_id?: string | null
           bundle_id?: string | null
           business_org_id?: string | null
@@ -4474,6 +4726,7 @@ export type Database = {
           sla_choice_at?: string | null
           source?: Database["public"]["Enums"]["request_source"]
           source_broker_org_id?: string | null
+          sponsor_user_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           submitted_at?: string | null
           talk_to_expert?: boolean
@@ -4484,6 +4737,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          beneficiary_id?: string | null
           broker_org_id?: string | null
           bundle_id?: string | null
           business_org_id?: string | null
@@ -4509,6 +4763,7 @@ export type Database = {
           sla_choice_at?: string | null
           source?: Database["public"]["Enums"]["request_source"]
           source_broker_org_id?: string | null
+          sponsor_user_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           submitted_at?: string | null
           talk_to_expert?: boolean
@@ -4518,6 +4773,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "requests_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "requests_broker_org_id_fkey"
             columns: ["broker_org_id"]
@@ -4910,6 +5172,86 @@ export type Database = {
           },
           {
             foreignKeyName: "sponsor_subscriptions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sponsorships: {
+        Row: {
+          beneficiary_id: string
+          created_at: string
+          ended_at: string | null
+          gift: boolean
+          gift_message: string | null
+          gift_revealed_at: string | null
+          id: string
+          notify_beneficiary: boolean
+          policy_id: string | null
+          request_id: string | null
+          sponsor_user_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          beneficiary_id: string
+          created_at?: string
+          ended_at?: string | null
+          gift?: boolean
+          gift_message?: string | null
+          gift_revealed_at?: string | null
+          id?: string
+          notify_beneficiary?: boolean
+          policy_id?: string | null
+          request_id?: string | null
+          sponsor_user_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          beneficiary_id?: string
+          created_at?: string
+          ended_at?: string | null
+          gift?: boolean
+          gift_message?: string | null
+          gift_revealed_at?: string | null
+          id?: string
+          notify_beneficiary?: boolean
+          policy_id?: string | null
+          request_id?: string | null
+          sponsor_user_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsorships_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorships_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "partner_renewal_pipeline"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "sponsorships_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsorships_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "requests"
@@ -5717,6 +6059,10 @@ export type Database = {
           to_broker_org_id: string
         }[]
       }
+      confirm_beneficiary_consent: {
+        Args: { p_beneficiary_id: string; p_code: string; p_kind: string }
+        Returns: Json
+      }
       crm_lead_to_account: { Args: { p_lead_id: string }; Returns: string }
       crm_move_stage: {
         Args: {
@@ -5764,6 +6110,10 @@ export type Database = {
           request_id: string
           status: string
         }[]
+      }
+      decide_beneficiary_consent_link: {
+        Args: { p_beneficiary_id: string; p_granted: boolean; p_kind: string }
+        Returns: Json
       }
       decline_order_offer: {
         Args: { p_offer_id: string; p_reason?: string }
@@ -5914,9 +6264,14 @@ export type Database = {
           submissions_open_overdue: number
         }[]
       }
+      policy_sponsor_name: { Args: { p_policy_id: string }; Returns: string }
       refresh_licence_status: { Args: never; Returns: Json }
       reject_partner_application: {
         Args: { p_id: string; p_note: string }
+        Returns: string
+      }
+      request_beneficiary_consent: {
+        Args: { p_beneficiary_id: string; p_channel?: string; p_kind: string }
         Returns: string
       }
       request_routing_mode: { Args: { p_request: string }; Returns: string }
@@ -5924,6 +6279,7 @@ export type Database = {
         Args: { p_id: string; p_note: string }
         Returns: string
       }
+      reveal_gift: { Args: { p_sponsorship_id: string }; Returns: Json }
       revoke_my_session: { Args: { p_session_id: string }; Returns: boolean }
       run_claim_fraud_checks: { Args: { p_claim_id: string }; Returns: Json }
       set_commercial_terms: {

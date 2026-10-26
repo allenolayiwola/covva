@@ -10,7 +10,7 @@ async function ownClaim(auth: { supabase: Parameters<typeof listClaimJobs>[0] },
 }
 
 /** GET /api/v1/partner/claims/{id}/jobs — jobs arranged on the claim. */
-export const GET = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
+export const GET = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]/jobs">>(
   async ({ auth, req, client }, route) => {
     const id = uuidParam((await route.params).id, "claim");
     const p = await resolvePartnerOrg(auth, req, client);
@@ -25,7 +25,7 @@ export const GET = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
  * POST /api/v1/partner/claims/{id}/jobs — assign an approved service partner (garage, towing, hospital…) to the claim.
  * `directBilling: true` is only accepted when the partner direct-bills the claim's insurer. Notifies the customer.
  */
-export const POST = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
+export const POST = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]/jobs">>(
   async ({ auth, req, client }, route) => {
     const id = uuidParam((await route.params).id, "claim");
     const input = await parseJson(req, ClaimJobInput);
@@ -39,7 +39,7 @@ export const POST = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>
 );
 
 /** PATCH /api/v1/partner/claims/{id}/jobs — update a job (`jobId` + status/estimate/invoice/schedule/notes). */
-export const PATCH = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]">>(
+export const PATCH = withApi<"user", RouteContext<"/api/v1/partner/claims/[id]/jobs">>(
   async ({ auth, req, client }, route) => {
     const id = uuidParam((await route.params).id, "claim");
     const input = await parseJson(req, UpdateClaimJobInput);

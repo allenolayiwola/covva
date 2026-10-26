@@ -1,7 +1,7 @@
 import {
-  Activity, BadgeCheck, Banknote, Bot, Building2, ChartNoAxesColumn, ClipboardList, FileCheck2, FileSignature, Flag, Gauge, Handshake,
+  Activity, BadgeCheck, Banknote, Bot, Building2, ChartNoAxesColumn, ClipboardList, FileCheck2, FileSignature, Flag, Gauge, Globe2, Handshake,
   HeartPulse, Inbox, Kanban, LayoutGrid, ListChecks, MessageCircle, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
-  Tags, Users, Wallet, type LucideIcon,
+  Tags, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem { href: string; label: string; icon: LucideIcon; keywords?: string }
@@ -17,8 +17,11 @@ export const NAV: NavGroup[] = [
       { href: "/policies", label: "Policies", icon: FileCheck2, keywords: "book issued" },
       { href: "/issuance", label: "Issuance", icon: FileCheck2, keywords: "delegated L2 jobs sla timers escalation retry nic" },
       { href: "/claims", label: "Claims", icon: HeartPulse, keywords: "insurer decisions" },
+      { href: "/claims/fraud", label: "Claim fraud review", icon: ShieldCheck, keywords: "fraud flags duplicate identity late report review" },
+      { href: "/service-partners", label: "Service partners", icon: Wrench, keywords: "garages towing hospitals clinics direct billing network" },
       { href: "/complaints", label: "Complaints", icon: MessageSquareWarning, keywords: "nic escalation sla" },
       { href: "/kyc", label: "KYC review", icon: BadgeCheck, keywords: "ghana card verify identity" },
+      { href: "/diaspora", label: "Diaspora", icon: Globe2, keywords: "sponsors beneficiaries consent gifts family abroad" },
       { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, keywords: "support inbox conversations bot handoff templates contacts opt-out" },
     ],
   },

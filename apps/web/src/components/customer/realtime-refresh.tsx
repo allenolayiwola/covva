@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export interface RealtimeWatch {
-  table: "requests" | "request_tasks" | "request_messages" | "quotes" | "policies" | "claims" | "notifications";
+  table: "requests" | "request_tasks" | "request_messages" | "quotes" | "policies" | "claims" | "claim_messages" | "notifications";
   /** Postgres-changes filter, e.g. `request_id=eq.<uuid>` */
   filter?: string;
 }

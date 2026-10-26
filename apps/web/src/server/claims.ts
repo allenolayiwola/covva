@@ -288,8 +288,10 @@ export async function createClaim(db: Db, input: CreateClaimInput): Promise<Crea
   const claim = inserted.data;
   const uploader = input.reportedByUserId ?? input.customerId;
 
+  // Evidence may sit in the customer's folder or, for proxy reports, the sponsor's own folder.
+  const folders = [input.customerId, input.reportedByUserId].filter(Boolean).map((u) => `${u}/`);
   for (const f of input.evidence ?? []) {
-    if (!f.path.startsWith(`${input.customerId}/`) || f.path.includes("..")) continue;
+    if (!folders.some((prefix) => f.path.startsWith(prefix)) || f.path.includes("..")) continue;
     const { error } = await db.from("documents").insert({
       owner_id: input.customerId,
       uploaded_by: uploader,

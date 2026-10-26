@@ -570,6 +570,101 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Ok" }
 
+  /claims/{id}/timeline:
+    get:
+      tags: [Claims]
+      summary: Customer-facing journey with expected times
+      description: |
+        Stages `reported → acknowledged (within 24 h) → assessing (about 5 working days) → decision → payment (within
+        10 working days of approval)`, each with `at` (reached) or `expectedBy` / `expectedLabel`, plus `next` (what to expect,
+        `overdue`) and the raw events. Never implies approval.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /claims/{id}/messages:
+    get:
+      tags: [Claims]
+      summary: The claim thread (customer, broker, insurer)
+      description: Oldest first. Internal partner notes are never returned to customers. `canMessage` says whether the caller may post.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { in: query, name: limit, schema: { type: integer, default: 50, maximum: 100 } }
+        - { in: query, name: before, schema: { type: string, format: date-time } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Claims]
+      summary: Send a message in the claim thread
+      description: Attachments reference documents already uploaded with `POST /documents` (`claimId`). Notifies the other parties (push, in-app, email).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ClaimMessageInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /claims/{id}/info-requests:
+    get:
+      tags: [Claims]
+      summary: Information the insurer or broker has asked for
+      description: "`items[]` of `claim_info_requests` (open first): `kind` document | information | inspection, `message`, `due_at`, `fulfilled_at`, `document_id`, `response`."
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /claims/{id}/info-requests/{reqId}/fulfil:
+    post:
+      tags: [Claims]
+      summary: Answer an information request
+      description: Link a document uploaded with `POST /documents` (`claimId`) and/or reply in writing. The requester is notified.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { in: path, name: reqId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FulfilInfoRequestInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /claims/{id}/video:
+    post:
+      tags: [Claims]
+      summary: Upload a short video of the damage or scene
+      description: |
+        ≤ 90 seconds and ≤ 50 MB; MP4, WebM or QuickTime. JSON with base64 `content`, or `multipart/form-data` with a `file`
+        part and the same field names. Measure `durationSeconds` on the device (the server rejects longer clips).
+        Stored as a `claim_video` document under `documents/{customerId}/claims/{claimId}/video-….`
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/ClaimVideoUploadInput" } }
+          multipart/form-data: { schema: { type: object, properties: { file: { type: string, format: binary }, durationSeconds: { type: integer }, caption: { type: string } } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+  /claims/{id}/jobs:
+    get:
+      tags: [Claims]
+      summary: Repairs, towing and treatment arranged on the claim
+      description: Each job carries the partner's name, address and phone, `status` (requested → accepted → in_progress → completed | cancelled) and `direct_billing` (the insurer settles with the partner; the customer pays nothing upfront).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /service-partners:
+    get:
+      tags: [Claims]
+      summary: Approved post-claim partner directory (public)
+      description: Garages, towing, hospitals, clinics, pharmacies and assessors by `kind` and `region`. Pass `insurerOrgId` to get `directBilling` per partner.
+      security: []
+      parameters:
+        - { in: query, name: kind, schema: { type: string, enum: [garage, towing, hospital, clinic, pharmacy, assessor] } }
+        - { in: query, name: region, schema: { type: string } }
+        - { in: query, name: insurerOrgId, schema: { type: string, format: uuid } }
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, default: 100, maximum: 200 } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
   /complaints:
     get:
       tags: [Complaints]
@@ -861,6 +956,61 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /partner/claims/{id}/info-requests:
+    get:
+      tags: [Partner API]
+      summary: Information requests on a claim the organisation services
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Partner API]
+      summary: Ask the customer (or the broker) for a document, information or an inspection slot
+      description: |
+        Brokers (owner/admin/supervisor/adviser) and insurer claims teams. The requested party is notified (customers by push,
+        in-app, email and SMS) and can answer from the claim page or `POST /claims/{id}/info-requests/{reqId}/fulfil`.
+        Insurers may set `setStatus: true` to move the claim to `info_requested` in the same call.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ClaimInfoRequestInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/claims/{id}/jobs:
+    get:
+      tags: [Partner API]
+      summary: Jobs arranged on a claim
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Partner API]
+      summary: Assign an approved service partner to the claim
+      description: "`directBilling: true` is only accepted when the partner direct-bills the claim's insurer (`GET /service-partners?insurerOrgId=`). The customer is notified with the partner's contact details."
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ClaimJobInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Partner API]
+      summary: Track a job (status, estimate, invoice, schedule)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateClaimJobInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
   /partner/customers:
     get:
       tags: [Partner API]
@@ -1566,9 +1716,14 @@ components:
         policyId: { type: string, format: uuid }
         incidentType: { type: string, example: Accident }
         incidentAt: { type: string, format: date-time }
-        location: { type: string, maxLength: 300 }
+        location:
+          description: Free text, or the phone's location
+          oneOf:
+            - { type: string, maxLength: 300 }
+            - { type: object, properties: { lat: { type: number }, lng: { type: number }, accuracy: { type: number }, address: { type: string, maxLength: 300 } } }
         description: { type: string, minLength: 10, maxLength: 5000 }
         amountClaimed: { type: number }
+        policeReportDocumentId: { type: string, format: uuid, description: A police report already uploaded with POST /documents }
     FileComplaintInput:
       type: object
       required: [subject, description, category]
@@ -1837,3 +1992,55 @@ components:
         address: { type: [string, "null"], maxLength: 400 }
         region: { type: [string, "null"], maxLength: 100 }
         description: { type: [string, "null"], maxLength: 2000 }
+    ClaimMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        attachments: { type: array, maxItems: 10, items: { type: object, required: [name], properties: { documentId: { type: string, format: uuid }, storagePath: { type: string }, name: { type: string, maxLength: 200 } } } }
+        internal: { type: boolean, default: false, description: Partner/staff-only note; rejected for customers }
+    ClaimInfoRequestInput:
+      type: object
+      required: [message]
+      properties:
+        kind: { type: string, enum: [document, information, inspection], default: document }
+        requestedParty: { type: string, enum: [customer, broker], default: customer }
+        message: { type: string, minLength: 3, maxLength: 2000 }
+        dueAt: { type: string, format: date-time }
+        setStatus: { type: boolean, default: false, description: Insurers only — also move the claim to info_requested }
+    FulfilInfoRequestInput:
+      type: object
+      description: Give a documentId, a response, or both.
+      properties:
+        documentId: { type: string, format: uuid }
+        response: { type: string, maxLength: 2000 }
+    ClaimVideoUploadInput:
+      type: object
+      required: [fileName, mimeType, content]
+      properties:
+        fileName: { type: string, maxLength: 200 }
+        mimeType: { type: string, enum: [video/mp4, video/webm, video/quicktime] }
+        durationSeconds: { type: integer, minimum: 0, description: Measured on the device; max 90 }
+        content: { type: string, description: Base64 (plain or data URL); max 50 MB decoded }
+        caption: { type: string, maxLength: 300 }
+    ClaimJobInput:
+      type: object
+      required: [servicePartnerId]
+      properties:
+        servicePartnerId: { type: string, format: uuid }
+        kind: { type: string, enum: [repair, towing, treatment, assessment, replacement, other], default: repair }
+        directBilling: { type: boolean, default: false }
+        estimate: { type: number, minimum: 0 }
+        scheduledFor: { type: string, format: date-time }
+        notes: { type: string, maxLength: 2000 }
+    UpdateClaimJobInput:
+      type: object
+      required: [jobId]
+      properties:
+        jobId: { type: string, format: uuid }
+        status: { type: string, enum: [requested, accepted, in_progress, completed, cancelled] }
+        estimate: { type: number, minimum: 0 }
+        invoiceDocumentId: { type: string, format: uuid }
+        scheduledFor: { type: [string, "null"], format: date-time }
+        directBilling: { type: boolean }
+        notes: { type: string, maxLength: 2000 }

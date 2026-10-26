@@ -16,6 +16,8 @@ export const CreateRequestInput = z.object({
   submit: z.boolean().default(true),
   /** "Talk to an expert": route to a broker whatever the insurer's integration (Addendum 2 D3). */
   talkToExpert: z.boolean().default(false),
+  /** Diaspora: the family member in Ghana this cover is for (a beneficiary the caller added, consent granted). */
+  beneficiaryId: uuid.optional(),
 });
 export type CreateRequestInput = z.infer<typeof CreateRequestInput>;
 
@@ -32,14 +34,24 @@ export const ApplyInput = z.object({
 
 export const InitPaymentInput = z.object({ applicationId: uuid, channel: z.enum(["mobile_money", "card", "bank_transfer"]).default("mobile_money"), callbackUrl: z.string().url().optional() });
 
+export const ClaimLocation = z.object({
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  accuracy: z.number().nonnegative().optional(),
+  address: z.string().max(300).optional(),
+});
 export const ReportClaimInput = z.object({
   policyId: uuid,
   incidentType: z.string().min(1),
   incidentAt: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
-  location: z.string().max(300).optional(),
+  /** Free text, or `{ lat, lng, accuracy?, address? }` from the phone's location. */
+  location: z.union([z.string().max(300), ClaimLocation]).optional(),
   description: z.string().min(10).max(5000),
   amountClaimed: z.coerce.number().positive().optional(),
+  /** A police report already uploaded with `POST /documents` (kind police_report) to link to the claim. */
+  policeReportDocumentId: uuid.optional(),
 });
+export type ReportClaimInput = z.infer<typeof ReportClaimInput>;
 
 export const FileComplaintInput = z.object({
   subject: z.string().min(3).max(200),
@@ -127,6 +139,10 @@ export const UpdateProfileInput = z
     region: z.string().max(100).nullable(),
     city: z.string().max(100).nullable(),
     locale: z.string().max(10),
+    /** Diaspora sponsor fields: ISO-2 country of residence (GH = home), display currency, IANA time zone. */
+    countryCode: z.string().trim().regex(/^[A-Za-z]{2}$/, "Choose a country").transform((v) => v.toUpperCase()),
+    preferredCurrency: z.string().trim().regex(/^[A-Za-z]{3}$/, "Choose a currency").transform((v) => v.toUpperCase()),
+    timezone: z.string().trim().max(60).nullable(),
     avatarUrl: z.string().url().nullable(),
     notificationPrefs: z.object({ email: z.boolean(), sms: z.boolean(), push: z.boolean(), whatsapp: z.boolean() }).partial(),
     onboarded: z.literal(true),
@@ -533,3 +549,69 @@ export const RequestInspectionInput = z.object({
   notes: z.string().trim().max(2000).optional(),
 });
 export type RequestInspectionInput = z.infer<typeof RequestInspectionInput>;
+
+// ---------------------------------------------------------------------------
+// Diaspora: family, beneficiaries, consent, sponsorships, gifts, proxy claims (/family/*)
+// ---------------------------------------------------------------------------
+export const BENEFICIARY_RELATIONSHIPS = ["parent", "spouse", "child", "sibling", "other"] as const;
+export const CONSENT_KIND_VALUES = ["data_sharing", "proxy_claims", "policy_purchase"] as const;
+
+/** `POST /family/beneficiaries` — phone must be a Ghana number (normalised server-side to +233…). */
+export const CreateBeneficiaryInput = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  relationship: z.enum(BENEFICIARY_RELATIONSHIPS),
+  phone: z.string().trim().min(9).max(20),
+  email: z.string().trim().email().max(200).optional(),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  ghanaCardNumber: z.string().trim().max(20).optional(),
+  address: z.string().trim().max(300).optional(),
+  region: z.string().trim().max(60).optional(),
+  notes: z.string().trim().max(1000).optional(),
+});
+export type CreateBeneficiaryInput = z.infer<typeof CreateBeneficiaryInput>;
+
+/** `PATCH /family/beneficiaries/{id}` — any subset; `null` clears optional fields. Changing the phone resets consent. */
+export const UpdateBeneficiaryInput = CreateBeneficiaryInput.partial().refine((v) => Object.keys(v).length > 0, { message: "Nothing to update" });
+export type UpdateBeneficiaryInput = z.infer<typeof UpdateBeneficiaryInput>;
+
+/** `POST /family/beneficiaries/{id}/consent` — sends a 6-digit code (+ signed link) to the beneficiary's phone. */
+export const RequestConsentInput = z.object({
+  kind: z.enum(CONSENT_KIND_VALUES).default("data_sharing"),
+  channel: z.enum(["sms", "whatsapp"]).default("sms"),
+});
+export type RequestConsentInput = z.infer<typeof RequestConsentInput>;
+
+/** `POST /family/beneficiaries/{id}/consent/confirm` — the sponsor enters the code the beneficiary read out. */
+export const ConfirmConsentInput = z.object({
+  kind: z.enum(CONSENT_KIND_VALUES).default("data_sharing"),
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+export type ConfirmConsentInput = z.infer<typeof ConfirmConsentInput>;
+
+/** `POST /family/sponsorships` — link the payer to a beneficiary and a request or policy; optional gift. */
+export const CreateSponsorshipInput = z
+  .object({
+    beneficiaryId: uuid,
+    requestId: uuid.optional(),
+    policyId: uuid.optional(),
+    gift: z.boolean().default(false),
+    giftMessage: z.string().trim().max(500).optional(),
+    notifyBeneficiary: z.boolean().default(true),
+  })
+  .refine((v) => !!v.requestId || !!v.policyId, { message: "Link the sponsorship to a request or a policy", path: ["requestId"] });
+export type CreateSponsorshipInput = z.infer<typeof CreateSponsorshipInput>;
+
+export const UpdateSponsorshipInput = z
+  .object({ gift: z.boolean(), giftMessage: z.string().trim().max(500).nullable(), notifyBeneficiary: z.boolean() })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: "Nothing to update" });
+export type UpdateSponsorshipInput = z.infer<typeof UpdateSponsorshipInput>;
+
+/** `POST /family/claims` — a sponsor reports a claim on a policy they pay for (needs proxy_claims consent). */
+export const ProxyClaimInput = ReportClaimInput.extend({
+  evidence: z.array(z.object({ path: z.string().min(1), name: z.string().min(1).max(255), mime: z.string().max(100).optional(), size: z.number().int().nonnegative().optional() })).max(20).default([]),
+});
+export type ProxyClaimInput = z.infer<typeof ProxyClaimInput>;
+
+/** Push / in-app kinds the sponsor and beneficiary apps must handle for family cover. */
+export const FAMILY_PUSH_KINDS = ["consent.granted", "consent.declined", "gift.received", "policy.issued", "renewal.reminder", "claim.reported", "claim.status"] as const;

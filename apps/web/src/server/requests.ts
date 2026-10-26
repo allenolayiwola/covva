@@ -240,6 +240,11 @@ export interface CreateRequestArgs {
   talkToExpert?: boolean;
   /** Keep this broker of record (renewals / switches stay with the policy's broker): routed `broker_fixed`. */
   brokerOfRecordId?: string | null;
+  /**
+   * Diaspora: the cover is for a family member in Ghana (beneficiaries row owned by the caller, consent
+   * granted). The caller becomes `sponsor_user_id`; a draft sponsorship is created by the caller.
+   */
+  beneficiaryId?: string | null;
 }
 
 export async function createRequest(
@@ -296,6 +301,8 @@ export async function createRequest(
       needs_assessment_id: args.needsAssessmentId ?? null,
       needs_adviser_review: needsReview,
       talk_to_expert: args.talkToExpert ?? false,
+      beneficiary_id: args.beneficiaryId ?? null,
+      sponsor_user_id: args.beneficiaryId ? user.id : null,
       next_step: submit ? "We are routing your request." : "Finish and submit your request when you're ready.",
     })
     .select("*")

@@ -140,8 +140,8 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 ### Phase 2 — Claims, diaspora core, WhatsApp
 **Claims**
 - [x] In-app claim with photos, location, police report; routed to broker/insurer; status timeline; insurer-only decisions.
-- [ ] Video upload; in-claim messaging thread; notifications at every stage (exists for status changes; add info requests and documents).
-- [ ] Fraud checks: duplicate-claim detection, identity mismatch flags.
+- [x] Video upload (≤ 90 s); in-claim messaging thread with internal partner notes; information requests the customer fulfils; notifications at every stage (report, messages, info requests, evidence, jobs); customer timeline with expected times.
+- [x] Fraud checks: duplicate claim, document reuse, identity mismatch, policy inactive at incident, late report, repeat claimant — `claim_fraud_flags` + `run_claim_fraud_checks`, insurer/staff review (web claims desk, admin `/claims/fraud`).
 - [ ] Claims page on the marketing site (steps, timelines, partner network link).
 
 **Diaspora core (priority)**
@@ -163,7 +163,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [ ] SME & group: business accounts with multiple users, bulk member/vehicle upload, group health/life, fleet, property, liability; centralised billing; business admin dashboard.
 - [ ] Micro and on-demand insurance: daily/weekly/monthly periods, pay-as-you-go premiums (product model + rating + instalment engine).
 - [ ] Local language UI (English, Twi, Ga, Ewe) with a translation layer; language switcher on the site; voice-note capture with transcription for quote help and claims.
-- [ ] Post-claim partner network: garages, towing, clinics; direct billing where agreed; partner onboarding, ratings, job tracking.
+- [~] Post-claim partner network: directory (`service_partners`, admin CRUD + approval, public `/claims/network`), direct billing per insurer, job tracking (`claim_jobs`) — done; partner self-onboarding and ratings pending.
 - [ ] Endorsement workflows (change vehicle, add driver) as structured flows.
 - [ ] Accounting exports: statements per insurer, commission reports, VAT/levy handling.
 
