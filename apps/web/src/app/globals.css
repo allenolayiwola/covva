@@ -83,3 +83,13 @@
     bottom: 5.5rem;
   }
 }
+/* On flow pages with a sticky Back/Continue bar, the cookie bar and the WhatsApp pill sit above that bar. */
+body:has([data-sticky-bar]) [data-consent-banner],
+body:has([data-sticky-bar]) [data-whatsapp] {
+  bottom: 5.25rem;
+}
+@media (width < 40rem) {
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp] {
+    bottom: 11rem;
+  }
+}

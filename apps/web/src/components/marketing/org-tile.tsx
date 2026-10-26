@@ -27,7 +27,7 @@ export function OrgTile({ name, color, size = 36, className }: { name: string; c
     <span
       aria-hidden
       className={cn("inline-grid shrink-0 place-items-center rounded-[10px] font-semibold", whiteOk ? "text-white" : "text-ink", className)}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.36), backgroundColor: whiteOk ? bg : `color-mix(in srgb, ${bg} 22%, white)` }}
+      style={{ width: size, height: size, fontSize: Math.max(13, Math.round(size * 0.36)), backgroundColor: whiteOk ? bg : `color-mix(in srgb, ${bg} 22%, white)` }}
     >
       {letters}
     </span>

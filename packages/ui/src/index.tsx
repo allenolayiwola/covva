@@ -119,7 +119,7 @@ export function Avatar({ name, initials, size = 40, className }: { name?: string
   return (
     <span
       className={clsx("inline-grid shrink-0 place-items-center rounded-full bg-mint font-semibold text-brand-deep", className)}
-      style={{ width: size, height: size, fontSize: size * 0.36 }}
+      style={{ width: size, height: size, fontSize: Math.max(13, Math.round(size * 0.36)) }}
       aria-label={name}
     >
       {text}

@@ -335,7 +335,7 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
       </Container>
 
       {/* Sticky Back / Continue bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur print:hidden">
+      <div data-sticky-bar className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur print:hidden">
         <Container className="flex items-center justify-between gap-3 py-3">
           <button type="button" onClick={() => (index > 0 ? history.back() : router.push("/"))} className={buttonClass("outline", "md")}>
             <ArrowLeft aria-hidden className="size-4" /> Back

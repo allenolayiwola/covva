@@ -29,7 +29,7 @@ export function PhoneMock({ insurers, className }: { insurers: string[]; classNa
               <div className="absolute -bottom-12 right-6 size-24 rounded-full bg-white/[0.06]" />
               <div className="relative flex items-center justify-between">
                 <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-white/90">Motor · Comprehensive</p>
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-white/15 px-1.5 py-0.5 text-[13px] font-medium">
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-white px-1.5 py-0.5 text-[13px] font-medium text-brand-deep">
                   <Check className="size-2.5" strokeWidth={3} />
                   Active
                 </span>
