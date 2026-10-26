@@ -21,6 +21,7 @@ export const NAV: NavGroup[] = [
       { href: "/service-partners", label: "Service partners", icon: Wrench, keywords: "garages towing hospitals clinics direct billing network" },
       { href: "/complaints", label: "Complaints", icon: MessageSquareWarning, keywords: "nic escalation sla" },
       { href: "/kyc", label: "KYC review", icon: BadgeCheck, keywords: "ghana card verify identity" },
+      { href: "/inspections", label: "Inspections", icon: Building2, keywords: "property cover diaspora site inspection partner assign home being built" },
       { href: "/diaspora", label: "Diaspora", icon: Globe2, keywords: "sponsors beneficiaries consent gifts family abroad" },
       { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, keywords: "support inbox conversations bot handoff templates contacts opt-out" },
     ],
@@ -40,6 +41,7 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/categories", label: "Categories", icon: LayoutGrid, keywords: "launch gate risk schema availability" },
       { href: "/products", label: "Products", icon: Package, keywords: "versions approval review" },
+      { href: "/bundles", label: "Bundles", icon: Package, keywords: "diaspora parents care pack product bundle discount" },
     ],
   },
   {
@@ -47,6 +49,8 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/plans", label: "Plans", icon: Tags, keywords: "pricing saas" },
       { href: "/subscriptions", label: "Subscriptions", icon: ClipboardList, keywords: "trial billing" },
+      { href: "/subscriptions/sponsors", label: "Sponsor subscriptions", icon: Wallet, keywords: "diaspora recurring premium collections past due retry sponsor card" },
+      { href: "/fx", label: "FX rates", icon: Globe2, keywords: "diaspora exchange rate gbp usd eur cad manual override margin display currency" },
       { href: "/invoices", label: "Invoices", icon: Receipt, keywords: "billing generate" },
       { href: "/commercial", label: "Commercial terms", icon: Scale, keywords: "revenue share commission ledger settlement statements splits" },
       { href: "/usage", label: "Usage", icon: Activity, keywords: "metering events" },
@@ -61,6 +65,7 @@ export const NAV: NavGroup[] = [
       { href: "/partners/crm/dashboard", label: "Dashboard", icon: ChartNoAxesColumn, keywords: "pipeline time to go-live partners live revenue by partner rep" },
       { href: "/partners/applications", label: "Applications", icon: FileSignature, keywords: "registration self-service insurer broker verify nic licence approve return reject agreement" },
       { href: "/partners/appointments", label: "Appointment requests", icon: Handshake, keywords: "appointment letter broker insurer not on covva admin review" },
+      { href: "/partners/remittance", label: "Remittance partners", icon: Banknote, keywords: "diaspora bank remittance embedded partner api placeholder" },
     ],
   },
   {

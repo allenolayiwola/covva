@@ -23,13 +23,12 @@ export interface ConsentState {
  * Send a consent code by SMS/WhatsApp, then enter the code the beneficiary reads out. The code never
  * reaches the sponsor's screen; only the beneficiary's phone.
  */
-export function ConsentPanel({ beneficiaryId, beneficiaryName, kind, title, summary, state, disabled }: { beneficiaryId: string; beneficiaryName: string; kind: ConsentKind; title: string; summary: string; state: ConsentState; disabled?: boolean }) {
+export function ConsentPanel({ beneficiaryId, beneficiaryName, kind, title, summary, state, codeLive, disabled }: { beneficiaryId: string; beneficiaryName: string; kind: ConsentKind; title: string; summary: string; state: ConsentState; /** A code was sent, is unexpired and not locked (computed server-side). */ codeLive: boolean; disabled?: boolean }) {
   const [sending, startSending] = React.useTransition();
   const [sendResult, setSendResult] = React.useState<ActionState | null>(null);
   const [channel, setChannel] = React.useState<"sms" | "whatsapp">("sms");
   const [confirmState, confirmAction] = useActionState(confirmConsentCode, initialActionState);
   const pending = !state.granted && !!state.requestedAt && !!state.expiresAt;
-  const codeLive = pending && new Date(state.expiresAt!).getTime() > Date.now() && !state.locked;
   const [showCode, setShowCode] = React.useState(codeLive);
 
   function send() {
@@ -52,7 +51,7 @@ export function ConsentPanel({ beneficiaryId, beneficiaryName, kind, title, summ
         ) : state.declinedAt ? (
           <Pill tone="danger">Declined</Pill>
         ) : pending ? (
-          <Pill tone={codeLive ? "wait" : "warn"}>{state.locked ? "Locked — send a new code" : codeLive ? "Code sent" : "Code expired"}</Pill>
+          <Pill tone={codeLive ? "wait" : "neutral"}>{state.locked ? "Locked — send a new code" : codeLive ? "Code sent" : "Code expired"}</Pill>
         ) : (
           <Pill tone="neutral">Not asked yet</Pill>
         )}

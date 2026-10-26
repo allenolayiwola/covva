@@ -147,7 +147,8 @@ confirm, AI) must go through `/api/v1`.
 | Complaints | `GET/POST /complaints` |
 | Notifications | `GET /notifications`, `POST /notifications/read` |
 | Assistant | `POST /ai/assistant` (stream) |
-| Settings | `PATCH /me { notificationPrefs }`, `DELETE /devices/{token}` |
+| Settings | `PATCH /me { notificationPrefs, countryCode, preferredCurrency, timezone }`, `DELETE /devices/{token}` |
+| Family (diaspora) | `GET /family/dashboard`, `GET/POST /family/beneficiaries`, `GET/PATCH /family/beneficiaries/{id}`, `POST …/consent`, `POST …/consent/confirm`, `POST /family/sponsorships`, `POST /family/sponsorships/{id}/reveal`, `POST /family/claims` (§16) |
 
 The AI endpoints other than the assistant live at `/api/ai/*` (not `/api/v1`) and accept the same
 bearer token: `extract-document`, `claim-completeness`, `quote-summary`.
@@ -636,3 +637,139 @@ Every push has `data = { url, path, kind, notificationId, webLink, …ids }` (§
 
 Mark the notification read with `POST /notifications/read { ids: [notificationId] }` after navigating.
 `BROKER_PUSH_KINDS` in `@im/core` lists the kinds above.
+
+
+## 16. Diaspora: family, beneficiaries, consent, gifts, proxy claims
+
+Sponsors abroad (UK, US, Canada, EU, Australia) buy and manage cover for family in Ghana. `GET /me` now
+returns `country` (ISO-2, `GH` = home), `currency`, `timezone`, `isSponsor` and `household`
+(`{ id, name, beneficiaries }` or `null`). Sign-up asks for the country; `PATCH /me { countryCode }`
+changes it (currency and time zone follow the country unless given).
+
+### 16.1 Beneficiaries and consent
+
+```http
+POST /api/v1/family/beneficiaries
+{ "fullName": "Akua Mensah", "relationship": "parent", "phone": "024 123 4567", "dateOfBirth": "1958-03-02" }
+→ 201 { "beneficiary": { "id": "…", "consent_status": "pending", "ghana_card_masked": null, "has_account": false, … },
+        "nextStep": "Send a consent code…" }
+```
+
+Consent is captured **from the beneficiary**, never typed in by the sponsor:
+
+```http
+POST /api/v1/family/beneficiaries/{id}/consent        { "kind": "data_sharing", "channel": "sms" }
+→ { "sentTo": "+2332***567", "expiresAt": "…", "channel": "sms", "delivered": true, "message": "We sent a code to …" }
+```
+
+The beneficiary's phone receives a 6-digit code **and** a signed link (`/consent/{token}`, valid 7 days, no
+login) showing who is asking and what is shared with Accept / Decline. Either the beneficiary reads the code
+to the sponsor, who confirms it:
+
+```http
+POST /api/v1/family/beneficiaries/{id}/consent/confirm  { "kind": "data_sharing", "code": "123456" }
+→ { "status": "granted", "grantedAt": "…", "beneficiary": { …, "consent_status": "granted" } }
+```
+
+or taps the link. Wrong codes return `422 business_rule` ("That code is not right. 3 attempt(s) left."); after
+5 the code locks ("Too many incorrect codes…") until a new one is sent. Codes expire after 15 minutes.
+Kinds: `data_sharing` (needed before any quote for them), `proxy_claims` (claims on their behalf),
+`policy_purchase`. Show `consent_status` with the labels in `CONSENT_STATUS` (`@im/core`).
+
+If the beneficiary later signs up with the same phone number, their account is linked automatically
+(`linked_user_id`, `has_account: true`): they then see the policy in their own wallet with "Paid for by
+<sponsor first name>" and get in-app/push updates instead of SMS.
+
+### 16.2 Requesting cover for a family member
+
+`POST /requests` accepts `beneficiaryId`. The request carries `sponsor_user_id` (the caller) and
+`beneficiary_id`; create the sponsorship right after so gifts and dual notifications apply:
+
+```http
+POST /api/v1/family/sponsorships
+{ "beneficiaryId": "…", "requestId": "…", "gift": true, "giftMessage": "Happy birthday Mum ❤️", "notifyBeneficiary": true }
+→ 201 { "sponsorship": { "status": "draft", … } }
+```
+
+The sponsorship becomes `active` when the insurer issues the policy (`policy_id` set). Payment and currency
+choice are unchanged (§8); multi-currency checkout lives in the payments stream.
+
+### 16.3 Family dashboard
+
+`GET /family/dashboard` → `{ summary, beneficiaries[+consents], sponsorships, policies, claims, payments, subscriptions }`.
+`summary` = `{ activePolicies, pendingPolicies, nextRenewal: { policyId, coverEnd, days } | null,
+nextPaymentDue | null, openClaims, annualPremiumGHS, coverGaps: [{ beneficiaryId, name, reason }] }` —
+`reason` is `consent_pending`, `consent_declined` or `no_cover`; render each as a next-step card.
+Compute it offline with `familyDashboardSummary()` from `@im/core` if you cache rows.
+
+### 16.4 Gifts
+
+A gifted policy stays a surprise: the beneficiary is not told at issuance. The sponsor hands it over
+(web: "Hand over the gift now"; the beneficiary gets `gift.received` with `link = /account/gifts/{sponsorshipId}`).
+The beneficiary's app opens it with `POST /family/sponsorships/{id}/reveal` → `{ giftMessage, giftRevealedAt, policyId }`
+(the sponsor gets `422` here). Show `sponsorLine(firstName, gift)` ("A gift from Kofi" / "Paid for by Kofi")
+on the policy screen; the first name comes from the `policy_sponsor_name` RPC or `GET /policies/{id}`.
+
+### 16.5 Claims by proxy
+
+```http
+POST /api/v1/family/claims
+{ "policyId": "…", "incidentType": "hospital_admission", "incidentAt": "2026-10-20T09:00:00Z",
+  "description": "Mum was admitted to KATH with …", "evidence": [{ "path": "<sponsorId>/claims/…jpg", "name": "bill.jpg", "mime": "image/jpeg" }] }
+→ 201 { "claim": { "id", "reference", "status": "reported", … }, "beneficiary": { "id", "full_name" }, "reportedBy": "<sponsorId>",
+        "requiredEvidence": [...], "disclaimer": "…", "warnings": [] }
+```
+
+Requires an active sponsorship on that policy and the beneficiary's `proxy_claims` consent; otherwise
+`422 business_rule` with a message to show ("Ask your family member to consent…") or `403` when the caller does
+not pay for the policy. The claim belongs to the policyholder (`customer_id`) with `reported_by_user_id` = sponsor;
+both see it under `GET /claims/{id}` and both receive status updates.
+
+### 16.6 Dual notifications
+
+Every policy event (`policy.issued`, `renewal.reminder`, `claim.reported`, `claim.status`, `gift.received`,
+`consent.granted` / `consent.declined` for the sponsor) reaches the sponsor **and** the beneficiary. Rows carry
+`recipient_role` (`sponsor` | `beneficiary` | `customer`) and `data.recipient_role`; a beneficiary without an
+account gets SMS/WhatsApp instead. `FAMILY_PUSH_KINDS` in `@im/core` lists the kinds; route `consent.*` to the
+beneficiary's page (`data.beneficiary_id`) and `gift.received` to the gift screen (`data.policy_id` + link).
+
+## 16. Diaspora payments: currencies, subscriptions, bundles, property cover
+
+Rules first: the **GHS amount is the contract amount the insurer receives**. Anything in GBP/USD/EUR/CAD is an
+indicative display — always show the disclosure text the API returns and never a bare foreign figure.
+
+* **Currency selector.** `GET /fx?currency=GBP&amount=<GHS>` (no auth) → `rates` per currency (`rate` = GHS per
+  1 unit, `source`, `fetchedAt`, `manual` flag), `marginPct`, and `quote` (`displayAmount`, `disclosure`). Default the
+  selector to `profile.preferred_currency` when present, else GHS. Render the checkout line as
+  **"You pay ≈ £X (indicative) · Insurer receives GH₵ Y"** plus `quote.disclosure`. When `manual` is true add
+  "rate set by Covva operations — a guide only". `@im/core` has `convertFromGhs`, `fxQuote`, `fxDisclosure`,
+  `formatMoney` for offline formatting.
+* **Paying.** `POST /payments { applicationId, channel: "card", displayCurrency: "GBP", saveMethod?: true,
+  sponsorSubscription?: { cadence: "monthly" | "annual" } }`. Foreign currency and sponsor plans are **card only**
+  (`mobile_money` / `bank_transfer` → 400). The response adds `fx` (the quote stored on the payment), `psp`
+  (`paystack_intl` for foreign cards) and `sponsorSubscription` (`chargeAmount` = the first instalment, `quotedTotal`).
+  The hosted page is Paystack's: the card is charged the GHS amount and the issuer converts (Apple Pay / Google Pay
+  appear when the business has the channel enabled). `GET /payments/{id}` returns `display_currency`,
+  `display_amount`, `fx_rate`, `fx_source`, `psp` alongside the GHS `amount`.
+* **Sponsor subscriptions.** `GET /subscriptions` → `items[]` (with `summary.amountLabel`, `nextChargeLabel`,
+  `tone`) and `paymentMethods[]` (brand, last4, expiry — never a PAN). `POST /subscriptions { policyId, cadence,
+  displayCurrency, paymentMethodId? }` needs a saved method (pay once by card with `saveMethod: true`, or use
+  `sponsorSubscription` at checkout, which creates the subscription automatically after `charge.success`).
+  `POST /subscriptions/{id}/pause` and `/cancel { reason? }`. Statuses: `active`, `past_due` (collections failed after
+  1d/3d/7d retries — show "update your card"; the insurer keeps cover for its grace period and decides on lapses),
+  `paused`, `cancelled`. Notification kinds: `subscription.created`, `payment.succeeded` (each collection),
+  `payment.failed`, `subscription.past_due`, `subscription.paused`, `subscription.cancelled` → deep link
+  `/account/payments/subscriptions`. Copy to keep: "Pausing or cancelling does not cancel the policy — the insurer
+  decides on lapses."
+* **Bundles.** `GET /bundles` (no auth) → published packs with `items[]` (`category_slug`, `required`), `quote`
+  (indicative GHS `total`, `complete`, `missing[]`) and `getStartedUrl`. In the app, start a request for the first
+  item (`POST /requests`), then create the other items as requests when the customer is ready; the web flow does the
+  same with `?bundle=` (siblings saved as drafts). The discount is indicative until the insurer confirms it.
+* **Property cover (home being built).** For policies in a home/property category: upload a site photo with the
+  documents flow (`POST /documents/upload-url { scope: "policies", policyId }` → PUT), then
+  `POST /property/{policyId}/updates { storagePath, caption?, takenAt? }`; `GET …/updates` lists them (customer,
+  sponsor, broker and insurer can see them). `POST /property/{policyId}/inspections { address, gps?, notes? }` asks
+  for a partner site visit (one open inspection per policy → 409); `GET …/inspections` shows `status`
+  (`requested` → `assigned` → `scheduled` → `completed` | `failed`), `scheduled_for`, `report`, `photos`.
+  Notifications: `inspection.assigned`, `inspection.scheduled`, `inspection.completed`. Copy: "The insurer decides
+  what the report means for your cover."

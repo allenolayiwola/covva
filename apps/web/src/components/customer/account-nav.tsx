@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, FileText, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
+import { Camera, FileText, HeartHandshake, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@im/ui";
 
 export const ACCOUNT_NAV: { href: string; label: string; icon: LucideIcon; mobile?: string }[] = [

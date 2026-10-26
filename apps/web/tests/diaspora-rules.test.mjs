@@ -107,7 +107,11 @@ describe("customer as sponsor", () => {
     const r = await other.get(`beneficiaries?select=id&id=eq.${beneficiaryId}`);
     expectOk(r);
     assert.equal(r.body.length, 0);
-    expectRefused(await other.update(`beneficiaries?id=eq.${beneficiaryId}`, { full_name: "hijack" }));
+    // RLS hides the row: the update matches nothing (200 []) or is refused outright.
+    const upd = await other.update(`beneficiaries?id=eq.${beneficiaryId}`, { full_name: "hijack" });
+    assert.ok(upd.status >= 400 || (Array.isArray(upd.body) && upd.body.length === 0), `expected no effect, got ${upd.status} ${JSON.stringify(upd.body)}`);
+    const still = await db.get(`beneficiaries?select=full_name&id=eq.${beneficiaryId}`);
+    assert.notEqual(still.body[0]?.full_name, "hijack");
   });
 
   test("a sponsorship needs consent-independent ownership checks: own beneficiary, own request/policy", async () => {

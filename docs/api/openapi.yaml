@@ -78,6 +78,13 @@ tags:
   - name: Complaints
   - name: Notifications & devices
   - name: AI
+  - name: Family (diaspora)
+    description: |
+      Sponsors abroad look after family in Ghana: add **beneficiaries**, capture their **consent** by SMS/WhatsApp
+      code or signed link (never from the sponsor), link the payer to a policy with a **sponsorship** (optionally a
+      **gift** with a message the beneficiary reveals), see the **family dashboard** and report **claims by proxy**
+      with the beneficiary's `proxy_claims` consent. Both parties get documents, reminders and claim updates
+      (`notifications.recipient_role`).
   - name: Partner API
   - name: System
 
@@ -1139,6 +1146,120 @@ paths:
         "200": { $ref: "#/components/responses/Ok" }
         "403": { $ref: "#/components/responses/Error" }
 
+  /fx:
+    get:
+      tags: [Diaspora payments]
+      security: []
+      summary: Indicative FX display rates (GHS per 1 unit) and the disclosure text
+      description: |
+        Diaspora payers see the GHS premium in GBP, USD, EUR or CAD. Rates are indicative (source and time
+        are returned; `manual` rates are flagged); the insurer always receives the GHS contract amount and the
+        card issuer / PSP applies the final rate. `amount` (GHS) returns a full `quote` with the disclosure.
+      parameters:
+        - { name: currency, in: query, schema: { type: string, enum: [GHS, GBP, USD, EUR, CAD], default: GHS } }
+        - { name: amount, in: query, description: GHS amount to convert (indicative), schema: { type: number } }
+      responses:
+        "200":
+          description: Rates
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/FxRates" } }
+  /subscriptions:
+    get:
+      tags: [Diaspora payments]
+      summary: The caller's sponsor subscriptions and saved payment methods (no card numbers)
+      responses:
+        "200":
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          items: { type: array, items: { $ref: "#/components/schemas/SponsorSubscription" } }
+                          paymentMethods: { type: array, items: { $ref: "#/components/schemas/PaymentMethod" } }
+    post:
+      tags: [Diaspora payments]
+      summary: Start recurring premium collections for a policy the caller pays for
+      description: |
+        Every collection is a GHS premium payment to the insurer (same split/ledger as a checkout), charged to the
+        sponsor's saved card on the cadence; the foreign amount is indicative. Needs a saved method — pay once by
+        card with `saveMethod: true` (or `sponsorSubscription` on `POST /payments`, which creates the subscription
+        automatically after the first payment). Monthly collections on a yearly quote need the insurer to allow instalments.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateSubscriptionInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /subscriptions/{id}/pause:
+    post:
+      tags: [Diaspora payments]
+      summary: Pause collections (cover may lapse when a premium falls due)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+  /subscriptions/{id}/cancel:
+    post:
+      tags: [Diaspora payments]
+      summary: Cancel collections; existing cover runs to its end date
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /bundles:
+    get:
+      tags: [Diaspora payments]
+      security: []
+      summary: Published product bundles (e.g. the Parents' Care Pack) with an indicative GHS estimate
+      description: Each item becomes its own request/quote/policy; the discount is confirmed by the insurer on the binding quotes. `getStartedUrl` opens the web flow with `?bundle=`.
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /property/{policyId}/updates:
+    get:
+      tags: [Diaspora payments]
+      summary: Construction / site photo updates on a property policy
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Diaspora payments]
+      summary: Record a site photo already uploaded with POST /documents/upload-url (scope policies)
+      description: Customer or sponsor of the policy only (RLS). The photo is visible to the broker and insurer.
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PropertyUpdateInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+  /property/{policyId}/inspections:
+    get:
+      tags: [Diaspora payments]
+      summary: Partner site inspections on a property policy (status, visit date, report)
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Diaspora payments]
+      summary: Ask for a partner site inspection (customer or sponsor)
+      description: Covva assigns an inspection partner; the partner schedules and files the report; the INSURER decides what it means for cover. One open inspection per policy.
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestInspectionInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+
   /verify:
     get:
       tags: [Verification]
@@ -1177,6 +1298,111 @@ paths:
                           message: { type: string }
         "400": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /family/beneficiaries:
+    get:
+      tags: [Family (diaspora)]
+      summary: Family members the caller looks after
+      description: Ghana Card numbers are masked (`ghana_card_masked`); `has_account` tells whether the beneficiary signed up with that phone.
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Family (diaspora)]
+      summary: Add a family member in Ghana
+      description: Phone must be a Ghana number (normalised to +233…). Consent starts `pending`; send a code next.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateBeneficiaryInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/beneficiaries/{id}:
+    get:
+      tags: [Family (diaspora)]
+      summary: One family member with their consent records
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    patch:
+      tags: [Family (diaspora)]
+      summary: Edit a family member (changing the phone resets consent)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateBeneficiaryInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /family/beneficiaries/{id}/consent:
+    post:
+      tags: [Family (diaspora)]
+      summary: Send a consent code (and signed link) to the beneficiary's phone
+      description: |
+        The 6-digit code goes to the **beneficiary** by SMS or WhatsApp together with a signed `/consent/{token}` link;
+        it is never returned to the sponsor. Codes last 15 minutes, links 7 days. Rate limited.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestConsentInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "429": { $ref: "#/components/responses/Error" }
+  /family/beneficiaries/{id}/consent/confirm:
+    post:
+      tags: [Family (diaspora)]
+      summary: Confirm with the code the beneficiary read out
+      description: 5 attempts, then the code is locked until a new one is sent (`422 business_rule`).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ConfirmConsentInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/dashboard:
+    get:
+      tags: [Family (diaspora)]
+      summary: Family dashboard
+      description: Beneficiaries (+ consents), sponsorships, policies paid for, next renewal, payment schedule (one-off payments and recurring sponsor subscriptions), claims and `summary`.
+      responses:
+        "200": { description: Dashboard, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/FamilyDashboard" } } }] } } } }
+  /family/sponsorships:
+    get:
+      tags: [Family (diaspora)]
+      summary: The caller's sponsorships
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Family (diaspora)]
+      summary: Link the payer to a beneficiary and a request or policy (optionally as a gift)
+      description: Needs the beneficiary's `data_sharing` consent. Becomes `active` once the policy exists. One sponsorship per policy.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateSponsorshipInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/sponsorships/{id}/reveal:
+    post:
+      tags: [Family (diaspora)]
+      summary: Open a gift (beneficiary's linked account)
+      description: Records `gift_revealed_at` and returns `gift_message`. The sponsor cannot call this.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/claims:
+    post:
+      tags: [Family (diaspora)]
+      summary: Report a claim on behalf of a beneficiary (claims by proxy)
+      description: Needs an active sponsorship and the beneficiary's `proxy_claims` consent; `422` otherwise. The claim stays the policyholder's (`reported_by_user_id` = sponsor). Reporting is not approval.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ProxyClaimInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
   /openapi:
     get:
       tags: [System]
@@ -2043,4 +2269,206 @@ components:
         invoiceDocumentId: { type: string, format: uuid }
         scheduledFor: { type: [string, "null"], format: date-time }
         directBilling: { type: boolean }
+        notes: { type: string, maxLength: 2000 }
+    CreateBeneficiaryInput:
+      type: object
+      required: [fullName, relationship, phone]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120 }
+        relationship: { type: string, enum: [parent, spouse, child, sibling, other] }
+        phone: { type: string, description: "Ghana mobile number (024 123 4567 / +233…); stored as +233XXXXXXXXX" }
+        email: { type: string, format: email }
+        dateOfBirth: { type: string, format: date }
+        ghanaCardNumber: { type: string, description: "GHA-123456789-0; masked in every response" }
+        address: { type: string, maxLength: 300 }
+        region: { type: string, maxLength: 60 }
+        notes: { type: string, maxLength: 1000 }
+    UpdateBeneficiaryInput:
+      allOf: [{ $ref: "#/components/schemas/CreateBeneficiaryInput" }]
+      required: []
+      minProperties: 1
+    Beneficiary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        relationship: { type: string, enum: [parent, spouse, child, sibling, other] }
+        phone: { type: string }
+        email: { type: [string, "null"] }
+        date_of_birth: { type: [string, "null"], format: date }
+        ghana_card_masked: { type: [string, "null"], example: "GHA-•••••6789-0" }
+        region: { type: [string, "null"] }
+        linked_user_id: { type: [string, "null"], format: uuid }
+        has_account: { type: boolean }
+        consent_status: { type: string, enum: [pending, granted, declined, expired] }
+        consent_channel: { type: [string, "null"], enum: [sms, whatsapp, null] }
+        consent_sent_at: { type: [string, "null"], format: date-time }
+        consent_granted_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    RequestConsentInput:
+      type: object
+      properties:
+        kind: { type: string, enum: [data_sharing, proxy_claims, policy_purchase], default: data_sharing }
+        channel: { type: string, enum: [sms, whatsapp], default: sms }
+    ConfirmConsentInput:
+      type: object
+      required: [code]
+      properties:
+        kind: { type: string, enum: [data_sharing, proxy_claims, policy_purchase], default: data_sharing }
+        code: { type: string, pattern: "^\\d{6}$" }
+    CreateSponsorshipInput:
+      type: object
+      required: [beneficiaryId]
+      properties:
+        beneficiaryId: { type: string, format: uuid }
+        requestId: { type: string, format: uuid, description: One of requestId / policyId is required }
+        policyId: { type: string, format: uuid }
+        gift: { type: boolean, default: false }
+        giftMessage: { type: string, maxLength: 500 }
+        notifyBeneficiary: { type: boolean, default: true, description: Send the beneficiary documents, reminders and claim updates too }
+    Sponsorship:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sponsor_user_id: { type: string, format: uuid }
+        beneficiary_id: { type: string, format: uuid }
+        request_id: { type: [string, "null"], format: uuid }
+        policy_id: { type: [string, "null"], format: uuid }
+        status: { type: string, enum: [draft, active, ended] }
+        gift: { type: boolean }
+        gift_message: { type: [string, "null"] }
+        gift_revealed_at: { type: [string, "null"], format: date-time }
+        notify_beneficiary: { type: boolean }
+        started_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    ProxyClaimInput:
+      allOf: [{ $ref: "#/components/schemas/ReportClaimInput" }]
+      properties:
+        evidence:
+          type: array
+          maxItems: 20
+          description: Files already uploaded under the sponsor's folder (§7 upload flow)
+          items: { type: object, required: [path, name], properties: { path: { type: string }, name: { type: string }, mime: { type: string }, size: { type: integer } } }
+    FamilyDashboard:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            activePolicies: { type: integer }
+            pendingPolicies: { type: integer }
+            nextRenewal: { type: [object, "null"], properties: { policyId: { type: string, format: uuid }, coverEnd: { type: string, format: date }, days: { type: integer } } }
+            nextPaymentDue: { type: [object, "null"], properties: { paymentId: { type: string }, dueAt: { type: string }, amount: { type: [number, "null"] }, currency: { type: [string, "null"] } } }
+            openClaims: { type: integer }
+            annualPremiumGHS: { type: number }
+            coverGaps: { type: array, items: { type: object, properties: { beneficiaryId: { type: string, format: uuid }, name: { type: string }, reason: { type: string, enum: [no_cover, consent_pending, consent_declined] } } } }
+        beneficiaries: { type: array, items: { allOf: [{ $ref: "#/components/schemas/Beneficiary" }, { properties: { consents: { type: array, items: { type: object, properties: { kind: { type: string }, granted: { type: boolean }, granted_at: { type: [string, "null"] }, declined_at: { type: [string, "null"] }, expires_at: { type: [string, "null"] }, requested_at: { type: [string, "null"] }, locked_at: { type: [string, "null"] } } } } } }] } }
+        sponsorships: { type: array, items: { $ref: "#/components/schemas/Sponsorship" } }
+        policies: { type: array, items: { type: object, description: "policies row (lite) + category + insurer, with sponsor_user_id / beneficiary_id" } }
+        claims: { type: array, items: { type: object, description: "claims row (lite) with reported_by_user_id" } }
+        payments: { type: array, items: { type: object, description: "payments row (lite)" } }
+        subscriptions: { type: array, items: { type: object, description: "sponsor_subscriptions row (lite): status, cadence, display_amount, display_currency, ghs_amount, next_charge_at" } }
+    # --- Diaspora payments ---------------------------------------------------------
+    FxRates:
+      type: object
+      properties:
+        base: { type: string, enum: [GHS] }
+        currencies: { type: array, items: { type: string } }
+        marginPct: { type: number, description: "Platform display buffer (% of the rate) added to the indicative foreign amount; shown to the payer, never collected by Covva" }
+        rates:
+          type: object
+          additionalProperties:
+            type: [object, "null"]
+            properties:
+              rate: { type: number, description: GHS per 1 unit }
+              source: { type: string, enum: [manual, openexchangerates, bog, provider] }
+              fetchedAt: { type: string, format: date-time }
+              validUntil: { type: [string, "null"], format: date-time }
+              manual: { type: boolean, description: Flag the rate as a manual/indicative override in the UI }
+        selected: { type: [object, "null"], properties: { currency: { type: string }, rate: { type: number }, source: { type: string }, fetchedAt: { type: string }, disclosure: { type: string } } }
+        quote: { type: [object, "null"], $ref: "#/components/schemas/FxQuote" }
+        indicative: { type: boolean }
+        note: { type: string }
+    FxQuote:
+      type: object
+      description: Indicative display of a GHS amount. `ghsAmount` is the contract amount the insurer receives.
+      properties:
+        displayCurrency: { type: string, enum: [GHS, GBP, USD, EUR, CAD] }
+        ghsAmount: { type: number }
+        displayAmount: { type: number }
+        rate: { type: number, description: GHS per 1 unit after the margin }
+        baseRate: { type: number }
+        marginPct: { type: number }
+        source: { type: string }
+        quotedAt: { type: string, format: date-time }
+        indicative: { type: boolean }
+        disclosure: { type: string, description: "Plain-language FX disclosure to show next to the price" }
+    PaymentMethod:
+      type: object
+      description: Saved card by PSP token (never a PAN).
+      properties:
+        id: { type: string, format: uuid }
+        psp: { type: string, enum: [paystack_intl, stripe, paystack, simulator] }
+        brand: { type: [string, "null"] }
+        last4: { type: [string, "null"] }
+        exp_month: { type: [integer, "null"] }
+        exp_year: { type: [integer, "null"] }
+        billing_country: { type: [string, "null"] }
+        currency: { type: [string, "null"] }
+        is_default: { type: boolean }
+        status: { type: string, enum: [active, expired, revoked] }
+        created_at: { type: string, format: date-time }
+    SponsorSubscription:
+      type: object
+      description: "sponsor_subscriptions row (public columns) plus `summary` from @im/core subscriptionSummary()."
+      properties:
+        id: { type: string, format: uuid }
+        policy_id: { type: [string, "null"], format: uuid }
+        beneficiary_id: { type: [string, "null"], format: uuid }
+        cadence: { type: string, enum: [monthly, quarterly, annual] }
+        display_currency: { type: string }
+        display_amount: { type: number, description: Indicative amount in display_currency }
+        ghs_amount: { type: number, description: Contract amount collected for the insurer per charge }
+        fx_rate: { type: [number, "null"] }
+        fx_source: { type: [string, "null"] }
+        payment_method_id: { type: [string, "null"], format: uuid }
+        psp: { type: string }
+        status: { type: string, enum: [active, past_due, paused, cancelled] }
+        next_charge_at: { type: string, format: date-time }
+        last_charged_at: { type: [string, "null"], format: date-time }
+        past_due_since: { type: [string, "null"], format: date-time }
+        failures: { type: integer, description: "Consecutive failed collections (retries 1d, 3d, 7d, then past_due)" }
+        summary:
+          type: object
+          properties:
+            cadenceLabel: { type: string }
+            statusLabel: { type: string }
+            tone: { type: string, enum: [ok, danger, wait, neutral] }
+            hint: { type: string }
+            amountLabel: { type: string }
+            nextChargeLabel: { type: string }
+            failures: { type: integer }
+            daysToNext: { type: [integer, "null"] }
+    CreateSubscriptionInput:
+      type: object
+      properties:
+        policyId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid, description: "Alternative to policyId: the paid application whose policy the subscription continues" }
+        cadence: { type: string, enum: [monthly, quarterly, annual], default: monthly }
+        displayCurrency: { type: string, enum: [GHS, GBP, USD, EUR, CAD], default: GHS }
+        paymentMethodId: { type: string, format: uuid, description: Defaults to the sponsor's default saved method }
+        beneficiaryId: { type: string, format: uuid }
+    PropertyUpdateInput:
+      type: object
+      required: [storagePath]
+      properties:
+        storagePath: { type: string, description: "Path returned by POST /documents/upload-url (must be in the caller's own folder)" }
+        caption: { type: string, maxLength: 500 }
+        takenAt: { type: string, format: date-time }
+    RequestInspectionInput:
+      type: object
+      required: [address]
+      properties:
+        address: { type: string, minLength: 5, maxLength: 500 }
+        gps: { type: object, properties: { lat: { type: number }, lng: { type: number } } }
         notes: { type: string, maxLength: 2000 }

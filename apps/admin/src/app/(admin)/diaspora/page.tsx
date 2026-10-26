@@ -164,9 +164,9 @@ async function ConsentAudit({ supabase, params, page, from, to }: ListProps) {
             const b = bMap.get(c.beneficiary_id);
             return (
               <tr key={c.id} className="hover:bg-mist/60">
-                <Td><span className="font-semibold text-ink">{b?.full_name ?? "—"}</span><p className="text-xs text-muted">sponsor {personName(people.get(b?.sponsor_user_id))}</p></Td>
+                <Td><span className="font-semibold text-ink">{b?.full_name ?? "—"}</span><p className="text-xs text-muted">sponsor {personName(people.get(b?.sponsor_user_id ?? ""))}</p></Td>
                 <Td>{c.kind.replace(/_/g, " ")}</Td>
-                <Td>{c.granted ? <Pill tone="ok">Given {c.granted_at ? formatDateTime(c.granted_at) : ""}</Pill> : c.declined_at ? <Pill tone="danger">Declined {formatDateTime(c.declined_at)}</Pill> : c.locked_at ? <Pill tone="danger">Locked</Pill> : c.expires_at && new Date(c.expires_at) < new Date() ? <Pill tone="warn">Expired</Pill> : <Pill tone="wait">Pending</Pill>}</Td>
+                <Td>{c.granted ? <Pill tone="ok">Given {c.granted_at ? formatDateTime(c.granted_at) : ""}</Pill> : c.declined_at ? <Pill tone="danger">Declined {formatDateTime(c.declined_at)}</Pill> : c.locked_at ? <Pill tone="danger">Locked</Pill> : c.expires_at && new Date(c.expires_at) < new Date() ? <Pill tone="neutral">Expired</Pill> : <Pill tone="wait">Pending</Pill>}</Td>
                 <Td>{c.channel ?? "—"}</Td>
                 <Td className="whitespace-nowrap text-muted">{c.requested_at ? formatDateTime(c.requested_at) : "—"}</Td>
                 <Td className="tabular-nums">{c.attempts}</Td>

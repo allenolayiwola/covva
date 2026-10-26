@@ -8,7 +8,7 @@ import { Card, DefinitionList, Notice, PageHeader, Pill, StatusPill, buttonClass
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { getBeneficiary, listConsents } from "@/server/diaspora";
-import { UUID_RE, account } from "../../../_lib/data";
+import { UUID_RE, account, requestTime } from "../../../_lib/data";
 import { BeneficiaryForm } from "../new/beneficiary-form";
 import { ConsentPanel } from "./consent-panel";
 import { LinkPolicyForm, SponsorshipForm } from "./sponsorship-form";
@@ -43,9 +43,14 @@ async function Body({ params, searchParams }: Pick<PageProps<"/account/family/be
   const proxyConsent = consentGranted(consents, "proxy_claims");
   const first = b.full_name.split(/\s+/)[0] ?? b.full_name;
   const sponsorshipByPolicy = new Map((sponsorships ?? []).filter((s) => s.policy_id).map((s) => [s.policy_id!, s]));
+  const now = requestTime(); // request time: account() awaited connection()
   const consentState = (kind: ConsentKind) => {
     const c = consents.find((x) => x.kind === kind);
     return { kind, granted: !!c?.granted, grantedAt: c?.granted_at ?? null, declinedAt: c?.declined_at ?? null, requestedAt: c?.requested_at ?? null, expiresAt: c?.expires_at ?? null, locked: !!c?.locked_at, channel: c?.channel ?? null };
+  };
+  const codeLive = (kind: ConsentKind) => {
+    const c = consents.find((x) => x.kind === kind);
+    return !!c && !c.granted && !!c.code_hash && !!c.expires_at && new Date(c.expires_at).getTime() > now && !c.locked_at;
   };
 
   return (
@@ -63,8 +68,8 @@ async function Body({ params, searchParams }: Pick<PageProps<"/account/family/be
         <h2 id="consent-h" className="mb-1 text-lg font-semibold text-ink">Consent</h2>
         <p className="mb-4 text-sm text-muted">{meta.hint}</p>
         <div className="space-y-4">
-          <ConsentPanel beneficiaryId={b.id} beneficiaryName={first} kind="data_sharing" title={CONSENT_KIND_META.data_sharing.title} summary="Needed before you can request quotes for them." state={consentState("data_sharing")} />
-          <ConsentPanel beneficiaryId={b.id} beneficiaryName={first} kind="proxy_claims" title={CONSENT_KIND_META.proxy_claims.title} summary="Lets you report a claim for them and follow it. Ask for this once a policy is issued." state={consentState("proxy_claims")} disabled={!dataConsent} />
+          <ConsentPanel beneficiaryId={b.id} beneficiaryName={first} kind="data_sharing" title={CONSENT_KIND_META.data_sharing.title} summary="Needed before you can request quotes for them." state={consentState("data_sharing")} codeLive={codeLive("data_sharing")} />
+          <ConsentPanel beneficiaryId={b.id} beneficiaryName={first} kind="proxy_claims" title={CONSENT_KIND_META.proxy_claims.title} summary="Lets you report a claim for them and follow it. Ask for this once a policy is issued." state={consentState("proxy_claims")} codeLive={codeLive("proxy_claims")} disabled={!dataConsent} />
         </div>
       </section>
 

@@ -20,6 +20,8 @@ const NEW_ROUTES = [
   { path: "/referrals", h1: /worth/i },
   { path: "/waitlist", h1: /Be first/i },
   { path: "/press", h1: /Media kit/i },
+  // Diaspora bundle page (product_bundles seed: Parents' Care Pack)
+  { path: "/bundles/parents-care-pack", h1: /Parents. Care Pack/i },
 ];
 
 test.describe("marketing site", () => {

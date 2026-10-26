@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { formatDate, formatMoney, fxSummaryLine, instalmentAmount, parseDisplayCurrency, roundHalfUp, type FxQuote, type SubscriptionCadence } from "@im/core";
+import { formatDate, formatMoney, instalmentAmount, parseDisplayCurrency, roundHalfUp, type FxQuote, type SubscriptionCadence } from "@im/core";
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError, ruleMessage } from "@/server/requests";

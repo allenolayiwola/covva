@@ -27,7 +27,6 @@ import { log, mask } from "@/server/log";
  * gifts and the family dashboard. Reads go through the caller's RLS client; the service client is
  * used only for system writes (issuing consent codes, link decisions, account linking).
  */
-type Svc = ReturnType<typeof createServiceClient>;
 type Db = UserClient;
 
 export type Beneficiary = Row<"beneficiaries">;
@@ -457,7 +456,7 @@ export async function familyDashboard(db: Db, userId: string): Promise<FamilyDas
 
   return {
     summary,
-    beneficiaries: beneficiaries.map((b) => ({ ...b, consents: consents.filter((c) => c.beneficiary_id === b.id).map(({ beneficiary_id: _b, ...rest }) => rest) })),
+    beneficiaries: beneficiaries.map((b) => ({ ...b, consents: consents.filter((c) => c.beneficiary_id === b.id).map((c) => ({ kind: c.kind, granted: c.granted, granted_at: c.granted_at, declined_at: c.declined_at, expires_at: c.expires_at, requested_at: c.requested_at, locked_at: c.locked_at })) })),
     sponsorships: sponsorshipsRes.data ?? [],
     policies,
     claims,

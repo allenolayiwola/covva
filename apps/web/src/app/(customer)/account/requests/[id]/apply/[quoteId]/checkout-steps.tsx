@@ -186,7 +186,7 @@ export function PaymentStep({
   sponsor?: SponsorOffer | null;
 }) {
   const [state, action] = useActionState(startPayment, initialActionState);
-  const [method, setMethod] = React.useState<string>("mtn");
+  const [chosenMethod, setMethod] = React.useState<string>("mtn");
   const [currency, setCurrency] = React.useState<DisplayCurrency>(currencies.some((c) => c.code === defaultCurrency) ? defaultCurrency : "GHS");
   const [sponsorMode, setSponsorMode] = React.useState<"" | "monthly" | "annual">("");
   const [saveCard, setSaveCard] = React.useState(false);
@@ -194,9 +194,8 @@ export function PaymentStep({
   const fx = currencies.find((c) => c.code === currency) ?? { code: "GHS" as const, rate: 1, source: "manual" as const, quotedAt: "", manual: false };
   const foreign = currency !== "GHS";
   const cardOnly = foreign || sponsorMode !== "";
-  React.useEffect(() => {
-    if (cardOnly && method !== "card") setMethod("card");
-  }, [cardOnly, method]);
+  // Foreign currency and sponsor plans are card only: derive the effective method rather than syncing state.
+  const method = cardOnly ? "card" : chosenMethod;
   const monthlyOffered = !!sponsor?.offered && (sponsor.billingPeriod === "month" || sponsor.instalmentsAllowed);
   const annualGhs = sponsor?.billingPeriod === "month" ? amount * 12 : amount;
   const dueGhs = sponsorMode === "monthly" ? (sponsor?.billingPeriod === "month" ? amount : instalmentAmount(annualGhs, "monthly")) : sponsorMode === "annual" ? annualGhs : amount;

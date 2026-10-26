@@ -23,14 +23,14 @@ async function run(id: string, fn: (userId: string) => Promise<string>): Promise
   }
 }
 
-export async function makeDefaultMethod(id: string, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+export async function makeDefaultMethod(id: string): Promise<ActionState> {
   return run(id, async (userId) => {
     await setDefaultPaymentMethod(userId, id);
     return "Default card updated.";
   });
 }
 
-export async function removeMethod(id: string, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+export async function removeMethod(id: string): Promise<ActionState> {
   return run(id, async (userId) => {
     const r = await revokePaymentMethod(userId, id);
     return r.affectedSubscriptions ? `Card removed. ${r.affectedSubscriptions} recurring payment${r.affectedSubscriptions === 1 ? " needs" : "s need"} a new card.` : "Card removed.";

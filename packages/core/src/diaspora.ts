@@ -171,11 +171,11 @@ export const CONSENT_KIND_META: Record<ConsentKind, { title: string; summary: st
   },
 };
 
-export const CONSENT_STATUS: Record<"pending" | "granted" | "declined" | "expired", { label: string; tone: "neutral" | "ok" | "danger" | "warn" | "info" | "wait"; hint: string }> = {
+export const CONSENT_STATUS: Record<"pending" | "granted" | "declined" | "expired", { label: string; tone: "neutral" | "ok" | "danger" | "info" | "wait"; hint: string }> = {
   pending: { label: "Awaiting consent", tone: "wait", hint: "Send a code by SMS or WhatsApp. They read it out to you, or tap the link to accept." },
   granted: { label: "Consent given", tone: "ok", hint: "They agreed to have cover arranged for them." },
   declined: { label: "Declined", tone: "danger", hint: "They declined. You can ask again after talking to them." },
-  expired: { label: "Code expired", tone: "warn", hint: "The code was not used within 15 minutes. Send a new one." },
+  expired: { label: "Code expired", tone: "wait", hint: "The code was not used within 15 minutes. Send a new one." },
 };
 
 export const CONSENT_CODE_TTL_MINUTES = 15;

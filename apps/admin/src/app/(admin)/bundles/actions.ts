@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
 import { parseBundleItems } from "@im/core";
+import type { Json } from "@im/db";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 
 const Bundle = z.object({
@@ -33,7 +34,7 @@ export async function saveBundle(_: ActionState, fd: FormData): Promise<ActionSt
   const known = new Set((cats ?? []).map((c) => c.slug));
   const unknown = items.filter((i) => !known.has(i.category_slug)).map((i) => i.category_slug);
   if (unknown.length) return fail(`Unknown category slug(s): ${unknown.join(", ")}.`);
-  const row = { slug: d.slug, name: d.name, description: d.description || null, audience: d.audience, items, discount_pct: d.discountPct, status: d.status };
+  const row = { slug: d.slug, name: d.name, description: d.description || null, audience: d.audience, items: items as unknown as Json, discount_pct: d.discountPct, status: d.status };
   const { error } = d.id ? await auth.supabase.from("product_bundles").update(row).eq("id", d.id) : await auth.supabase.from("product_bundles").insert(row);
   if (error) return fail(dbMessage(error));
   return done(`Bundle “${d.name}” ${d.id ? "updated" : "created"} (${d.status}). The marketing page refreshes within the hour.`);

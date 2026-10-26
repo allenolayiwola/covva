@@ -23,14 +23,14 @@ async function run(subscriptionId: string, fn: (userId: string) => Promise<strin
   }
 }
 
-export async function pauseSponsorSubscription(subscriptionId: string, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+export async function pauseSponsorSubscription(subscriptionId: string): Promise<ActionState> {
   return run(subscriptionId, async (userId) => {
     await pauseSubscription(subscriptionId, userId);
     return "Collections paused. Resume before the next premium is due to keep cover in force.";
   });
 }
 
-export async function resumeSponsorSubscription(subscriptionId: string, _prev: ActionState, _fd: FormData): Promise<ActionState> {
+export async function resumeSponsorSubscription(subscriptionId: string): Promise<ActionState> {
   return run(subscriptionId, async (userId) => {
     await resumeSubscription(subscriptionId, userId);
     return "Collections resumed.";
