@@ -21,7 +21,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           aria-label={`${brand.name} home`}
         >
-          <Logo height={36} label={brand.name} />
+          <Logo height={40} label={brand.name} />
         </Link>
 
         <nav aria-label="Primary" className="hidden md:block">
