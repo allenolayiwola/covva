@@ -502,6 +502,230 @@ export type Database = {
           },
         ]
       }
+      claim_fraud_flags: {
+        Row: {
+          claim_id: string
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number
+          status: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          kind: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          status?: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          kind?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_fraud_flags_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_info_requests: {
+        Row: {
+          claim_id: string
+          created_at: string
+          document_id: string | null
+          due_at: string | null
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          kind: string
+          message: string
+          requested_by: string | null
+          requested_by_party: Database["public"]["Enums"]["party"]
+          requested_party: Database["public"]["Enums"]["party"]
+          response: string | null
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          document_id?: string | null
+          due_at?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          kind?: string
+          message: string
+          requested_by?: string | null
+          requested_by_party?: Database["public"]["Enums"]["party"]
+          requested_party?: Database["public"]["Enums"]["party"]
+          response?: string | null
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          document_id?: string | null
+          due_at?: string | null
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          requested_by?: string | null
+          requested_by_party?: Database["public"]["Enums"]["party"]
+          requested_party?: Database["public"]["Enums"]["party"]
+          response?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_info_requests_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_info_requests_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_jobs: {
+        Row: {
+          claim_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          direct_billing: boolean
+          estimate: number | null
+          id: string
+          invoice_document_id: string | null
+          kind: string
+          notes: string | null
+          scheduled_for: string | null
+          service_partner_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claim_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direct_billing?: boolean
+          estimate?: number | null
+          id?: string
+          invoice_document_id?: string | null
+          kind: string
+          notes?: string | null
+          scheduled_for?: string | null
+          service_partner_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claim_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direct_billing?: boolean
+          estimate?: number | null
+          id?: string
+          invoice_document_id?: string | null
+          kind?: string
+          notes?: string | null
+          scheduled_for?: string | null
+          service_partner_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_jobs_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_jobs_invoice_document_id_fkey"
+            columns: ["invoice_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_jobs_service_partner_id_fkey"
+            columns: ["service_partner_id"]
+            isOneToOne: false
+            referencedRelation: "service_partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_messages: {
+        Row: {
+          attachments: Json
+          author_id: string | null
+          author_party: Database["public"]["Enums"]["party"]
+          body: string
+          claim_id: string
+          created_at: string
+          id: string
+          internal: boolean
+        }
+        Insert: {
+          attachments?: Json
+          author_id?: string | null
+          author_party?: Database["public"]["Enums"]["party"]
+          body: string
+          claim_id: string
+          created_at?: string
+          id?: string
+          internal?: boolean
+        }
+        Update: {
+          attachments?: Json
+          author_id?: string | null
+          author_party?: Database["public"]["Enums"]["party"]
+          body?: string
+          claim_id?: string
+          created_at?: string
+          id?: string
+          internal?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_messages_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claims: {
         Row: {
           acknowledged_at: string | null
@@ -516,12 +740,15 @@ export type Database = {
           decision_note: string | null
           delivered_to_insurer_at: string | null
           description: string | null
+          fraud_score: number | null
+          fraud_status: string
           id: string
           incident_at: string | null
           incident_type: string
           insurer_org_id: string
           insurer_reference: string | null
           location: string | null
+          location_gps: Json | null
           paid_at: string | null
           policy_id: string
           reference: string
@@ -544,12 +771,15 @@ export type Database = {
           decision_note?: string | null
           delivered_to_insurer_at?: string | null
           description?: string | null
+          fraud_score?: number | null
+          fraud_status?: string
           id?: string
           incident_at?: string | null
           incident_type: string
           insurer_org_id: string
           insurer_reference?: string | null
           location?: string | null
+          location_gps?: Json | null
           paid_at?: string | null
           policy_id: string
           reference?: string
@@ -572,12 +802,15 @@ export type Database = {
           decision_note?: string | null
           delivered_to_insurer_at?: string | null
           description?: string | null
+          fraud_score?: number | null
+          fraud_status?: string
           id?: string
           incident_at?: string | null
           incident_type?: string
           insurer_org_id?: string
           insurer_reference?: string | null
           location?: string | null
+          location_gps?: Json | null
           paid_at?: string | null
           policy_id?: string
           reference?: string
@@ -1267,6 +1500,7 @@ export type Database = {
           claim_id: string | null
           created_at: string
           delivered_to_insurer_at: string | null
+          duration_seconds: number | null
           file_name: string
           id: string
           kind: Database["public"]["Enums"]["document_kind"]
@@ -1289,6 +1523,7 @@ export type Database = {
           claim_id?: string | null
           created_at?: string
           delivered_to_insurer_at?: string | null
+          duration_seconds?: number | null
           file_name: string
           id?: string
           kind?: Database["public"]["Enums"]["document_kind"]
@@ -1311,6 +1546,7 @@ export type Database = {
           claim_id?: string | null
           created_at?: string
           delivered_to_insurer_at?: string | null
+          duration_seconds?: number | null
           file_name?: string
           id?: string
           kind?: Database["public"]["Enums"]["document_kind"]
@@ -1388,6 +1624,45 @@ export type Database = {
           rules?: Json
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      fx_rates: {
+        Row: {
+          base: string
+          created_at: string
+          created_by: string | null
+          fetched_at: string
+          id: string
+          note: string | null
+          quote: string
+          rate: number
+          source: string
+          valid_until: string | null
+        }
+        Insert: {
+          base?: string
+          created_at?: string
+          created_by?: string | null
+          fetched_at?: string
+          id?: string
+          note?: string | null
+          quote: string
+          rate: number
+          source?: string
+          valid_until?: string | null
+        }
+        Update: {
+          base?: string
+          created_at?: string
+          created_by?: string | null
+          fetched_at?: string
+          id?: string
+          note?: string | null
+          quote?: string
+          rate?: number
+          source?: string
+          valid_until?: string | null
         }
         Relationships: []
       }
@@ -2523,6 +2798,60 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          billing_country: string | null
+          brand: string | null
+          created_at: string
+          currency: string | null
+          exp_month: number | null
+          exp_year: number | null
+          id: string
+          is_default: boolean
+          last4: string | null
+          provider_customer_ref: string | null
+          provider_token_ref: string
+          psp: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_country?: string | null
+          brand?: string | null
+          created_at?: string
+          currency?: string | null
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider_customer_ref?: string | null
+          provider_token_ref: string
+          psp: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_country?: string | null
+          brand?: string | null
+          created_at?: string
+          currency?: string | null
+          exp_month?: number | null
+          exp_year?: number | null
+          id?: string
+          is_default?: boolean
+          last4?: string | null
+          provider_customer_ref?: string | null
+          provider_token_ref?: string
+          psp?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_splits: {
         Row: {
           amount: number
@@ -2590,7 +2919,12 @@ export type Database = {
           created_at: string
           currency: string
           customer_id: string
+          display_amount: number | null
+          display_currency: string | null
           failure_reason: string | null
+          fx_quoted_at: string | null
+          fx_rate: number | null
+          fx_source: string | null
           id: string
           idempotency_key: string
           paid_at: string | null
@@ -2598,6 +2932,7 @@ export type Database = {
           policy_id: string | null
           provider: string
           provider_reference: string | null
+          psp: string | null
           quote_id: string | null
           raw_event: Json | null
           reconciled: boolean
@@ -2618,7 +2953,12 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_id: string
+          display_amount?: number | null
+          display_currency?: string | null
           failure_reason?: string | null
+          fx_quoted_at?: string | null
+          fx_rate?: number | null
+          fx_source?: string | null
           id?: string
           idempotency_key: string
           paid_at?: string | null
@@ -2626,6 +2966,7 @@ export type Database = {
           policy_id?: string | null
           provider?: string
           provider_reference?: string | null
+          psp?: string | null
           quote_id?: string | null
           raw_event?: Json | null
           reconciled?: boolean
@@ -2646,7 +2987,12 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_id?: string
+          display_amount?: number | null
+          display_currency?: string | null
           failure_reason?: string | null
+          fx_quoted_at?: string | null
+          fx_rate?: number | null
+          fx_source?: string | null
           id?: string
           idempotency_key?: string
           paid_at?: string | null
@@ -2654,6 +3000,7 @@ export type Database = {
           policy_id?: string | null
           provider?: string
           provider_reference?: string | null
+          psp?: string | null
           quote_id?: string | null
           raw_event?: Json | null
           reconciled?: boolean
@@ -2996,6 +3343,45 @@ export type Database = {
           },
         ]
       }
+      product_bundles: {
+        Row: {
+          audience: string
+          created_at: string
+          description: string | null
+          discount_pct: number
+          id: string
+          items: Json
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          description?: string | null
+          discount_pct?: number
+          id?: string
+          items?: Json
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          description?: string | null
+          discount_pct?: number
+          id?: string
+          items?: Json
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           availability: Database["public"]["Enums"]["category_availability"]
@@ -3317,6 +3703,134 @@ export type Database = {
           whatsapp_opt_in?: boolean
         }
         Relationships: []
+      }
+      property_inspections: {
+        Row: {
+          address: string | null
+          completed_at: string | null
+          created_at: string
+          gps: Json | null
+          id: string
+          notes: string | null
+          partner_org_id: string | null
+          photos: Json
+          policy_id: string | null
+          report: Json | null
+          request_id: string | null
+          requested_by: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          completed_at?: string | null
+          created_at?: string
+          gps?: Json | null
+          id?: string
+          notes?: string | null
+          partner_org_id?: string | null
+          photos?: Json
+          policy_id?: string | null
+          report?: Json | null
+          request_id?: string | null
+          requested_by?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          completed_at?: string | null
+          created_at?: string
+          gps?: Json | null
+          id?: string
+          notes?: string | null
+          partner_org_id?: string | null
+          photos?: Json
+          policy_id?: string | null
+          report?: Json | null
+          request_id?: string | null
+          requested_by?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_inspections_partner_org_id_fkey"
+            columns: ["partner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_inspections_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "partner_renewal_pipeline"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "property_inspections_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_inspections_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_updates: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          policy_id: string
+          storage_path: string
+          taken_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          policy_id: string
+          storage_path: string
+          taken_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          policy_id?: string
+          storage_path?: string
+          taken_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_updates_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "partner_renewal_pipeline"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "property_updates_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quote_shares: {
         Row: {
@@ -3702,6 +4216,45 @@ export type Database = {
           },
         ]
       }
+      remittance_partners: {
+        Row: {
+          api_key_hash: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          settings: Json
+          slug: string
+          status: string
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key_hash?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          settings?: Json
+          slug: string
+          status?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key_hash?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          settings?: Json
+          slug?: string
+          status?: string
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
       request_events: {
         Row: {
           actor_id: string | null
@@ -3862,6 +4415,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           broker_org_id: string | null
+          bundle_id: string | null
           business_org_id: string | null
           cancelled_reason: string | null
           category_id: string
@@ -3896,6 +4450,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           broker_org_id?: string | null
+          bundle_id?: string | null
           business_org_id?: string | null
           cancelled_reason?: string | null
           category_id: string
@@ -3930,6 +4485,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           broker_org_id?: string | null
+          bundle_id?: string | null
           business_org_id?: string | null
           cancelled_reason?: string | null
           category_id?: string
@@ -3967,6 +4523,13 @@ export type Database = {
             columns: ["broker_org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "product_bundles"
             referencedColumns: ["id"]
           },
           {
@@ -4012,6 +4575,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_partners: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          direct_billing_insurer_ids: string[]
+          email: string | null
+          gps: Json | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: number | null
+          region: string | null
+          services: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          direct_billing_insurer_ids?: string[]
+          email?: string | null
+          gps?: Json | null
+          id?: string
+          kind: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          region?: string | null
+          services?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          direct_billing_insurer_ids?: string[]
+          email?: string | null
+          gps?: Json | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: number | null
+          region?: string | null
+          services?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       settlement_lines: {
         Row: {
@@ -4173,6 +4793,171 @@ export type Database = {
             columns: ["insurer_org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sponsor_subscriptions: {
+        Row: {
+          application_id: string | null
+          beneficiary_id: string | null
+          cadence: string
+          cancelled_at: string | null
+          created_at: string
+          display_amount: number
+          display_currency: string
+          failures: number
+          fx_rate: number | null
+          fx_source: string | null
+          ghs_amount: number
+          id: string
+          last_charged_at: string | null
+          metadata: Json
+          next_charge_at: string
+          past_due_since: string | null
+          paused_at: string | null
+          payment_method_id: string | null
+          policy_id: string | null
+          psp: string
+          psp_subscription_ref: string | null
+          request_id: string | null
+          sponsor_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          beneficiary_id?: string | null
+          cadence?: string
+          cancelled_at?: string | null
+          created_at?: string
+          display_amount?: number
+          display_currency?: string
+          failures?: number
+          fx_rate?: number | null
+          fx_source?: string | null
+          ghs_amount: number
+          id?: string
+          last_charged_at?: string | null
+          metadata?: Json
+          next_charge_at?: string
+          past_due_since?: string | null
+          paused_at?: string | null
+          payment_method_id?: string | null
+          policy_id?: string | null
+          psp?: string
+          psp_subscription_ref?: string | null
+          request_id?: string | null
+          sponsor_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          beneficiary_id?: string | null
+          cadence?: string
+          cancelled_at?: string | null
+          created_at?: string
+          display_amount?: number
+          display_currency?: string
+          failures?: number
+          fx_rate?: number | null
+          fx_source?: string | null
+          ghs_amount?: number
+          id?: string
+          last_charged_at?: string | null
+          metadata?: Json
+          next_charge_at?: string
+          past_due_since?: string | null
+          paused_at?: string | null
+          payment_method_id?: string | null
+          policy_id?: string | null
+          psp?: string
+          psp_subscription_ref?: string | null
+          request_id?: string | null
+          sponsor_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_subscriptions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_subscriptions_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_subscriptions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "partner_renewal_pipeline"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "sponsor_subscriptions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_subscriptions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_charges: {
+        Row: {
+          attempt: number
+          created_at: string
+          error: string | null
+          id: string
+          payment_id: string | null
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          payment_id?: string | null
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          payment_id?: string | null
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_charges_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_charges_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "sponsor_subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -4346,6 +5131,326 @@ export type Database = {
           registration?: string
           source?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      wa_contacts: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          last_inbound_at: string | null
+          last_outbound_at: string | null
+          locale: string
+          opted_in: boolean
+          opted_in_at: string | null
+          opted_out_at: string | null
+          phone: string
+          updated_at: string
+          user_id: string | null
+          wa_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          locale?: string
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          phone: string
+          updated_at?: string
+          user_id?: string | null
+          wa_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          locale?: string
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          phone?: string
+          updated_at?: string
+          user_id?: string | null
+          wa_id?: string
+        }
+        Relationships: []
+      }
+      wa_conversations: {
+        Row: {
+          assigned_org_id: string | null
+          assigned_user_id: string | null
+          bot_turns: number
+          claim_id: string | null
+          closed_at: string | null
+          contact_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          policy_id: string | null
+          request_id: string | null
+          status: string
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_org_id?: string | null
+          assigned_user_id?: string | null
+          bot_turns?: number
+          claim_id?: string | null
+          closed_at?: string | null
+          contact_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          policy_id?: string | null
+          request_id?: string | null
+          status?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_org_id?: string | null
+          assigned_user_id?: string | null
+          bot_turns?: number
+          claim_id?: string | null
+          closed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          policy_id?: string | null
+          request_id?: string | null
+          status?: string
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_assigned_org_id_fkey"
+            columns: ["assigned_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "wa_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "partner_renewal_pipeline"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_handoffs: {
+        Row: {
+          complaint_id: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          note: string | null
+          org_id: string | null
+          reason: string
+          request_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          to_party: string
+        }
+        Insert: {
+          complaint_id?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          note?: string | null
+          org_id?: string | null
+          reason: string
+          request_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          to_party: string
+        }
+        Update: {
+          complaint_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          note?: string | null
+          org_id?: string | null
+          reason?: string
+          request_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          to_party?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_handoffs_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_handoffs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_handoffs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_handoffs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          error: string | null
+          id: string
+          kind: string
+          payload: Json
+          sender_party: string | null
+          sender_user_id: string | null
+          status: string
+          template_name: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: string
+          error?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          sender_party?: string | null
+          sender_user_id?: string | null
+          status?: string
+          template_name?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          sender_party?: string | null
+          sender_user_id?: string | null
+          status?: string
+          template_name?: string | null
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_templates: {
+        Row: {
+          body: string
+          buttons: Json
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          meta_template_id: string | null
+          name: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          variables: string[]
+        }
+        Insert: {
+          body: string
+          buttons?: Json
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          meta_template_id?: string | null
+          name: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          variables?: string[]
+        }
+        Update: {
+          body?: string
+          buttons?: Json
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          meta_template_id?: string | null
+          name?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          variables?: string[]
         }
         Relationships: []
       }
@@ -4694,6 +5799,27 @@ export type Database = {
           team: string
         }[]
       }
+      latest_fx_rate: {
+        Args: { p_quote: string }
+        Returns: {
+          base: string
+          created_at: string
+          created_by: string | null
+          fetched_at: string
+          id: string
+          note: string | null
+          quote: string
+          rate: number
+          source: string
+          valid_until: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "fx_rates"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       list_my_sessions: {
         Args: never
         Returns: {
@@ -4799,6 +5925,7 @@ export type Database = {
         Returns: string
       }
       revoke_my_session: { Args: { p_session_id: string }; Returns: boolean }
+      run_claim_fraud_checks: { Args: { p_claim_id: string }; Returns: Json }
       set_commercial_terms: {
         Args: {
           p_broker_commission_pct?: number
@@ -4882,6 +6009,9 @@ export type Database = {
         | "invoice"
         | "other"
         | "sticker"
+        | "claim_video"
+        | "medical_report"
+        | "repair_estimate"
       integration_level: "portal" | "quote_api" | "policy_api"
       invoice_status: "draft" | "issued" | "paid" | "void" | "overdue"
       kyc_status: "unverified" | "pending" | "verified" | "rejected"
@@ -5157,6 +6287,9 @@ export const Constants = {
         "invoice",
         "other",
         "sticker",
+        "claim_video",
+        "medical_report",
+        "repair_estimate",
       ],
       integration_level: ["portal", "quote_api", "policy_api"],
       invoice_status: ["draft", "issued", "paid", "void", "overdue"],

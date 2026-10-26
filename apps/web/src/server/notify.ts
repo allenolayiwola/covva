@@ -4,7 +4,8 @@ import { ROLE_STATEMENTS, webPathToDeepLink } from "@im/core";
 import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { log, mask } from "@/server/log";
-import { sendWhatsApp, whatsAppLive } from "@/server/providers/whatsapp";
+import { whatsAppLive } from "@/server/providers/whatsapp";
+import { sendNotificationWhatsApp } from "@/server/whatsapp/sender";
 
 /**
  * Notification fan-out (owner: Backend stream): in-app row + email + SMS + push
@@ -155,6 +156,8 @@ async function deliver(svc: Svc, rows: Inserted[]) {
       const prefs = (p?.notification_prefs ?? {}) as Prefs;
       const delivered: Record<string, unknown> = { in_app: true };
       const want = new Set(n.channels);
+      // Broker offers (Addendum 4): WhatsApp one-tap accept first for opted-in brokers, SMS as the fallback.
+      if (n.kind === "offer.new" && want.has("sms")) want.add("whatsapp");
 
       if (want.has("email")) {
         if (prefs.email === false) delivered.email = { skipped: "opted_out" };
@@ -170,7 +173,9 @@ async function deliver(svc: Svc, rows: Inserted[]) {
         if (!optedIn) delivered.whatsapp = { skipped: "not_opted_in" };
         else if (!p?.phone) delivered.whatsapp = { skipped: "no_number" };
         else {
-          const r = await sendWhatsApp({ to: p.phone, kind: n.kind, title: n.title, body: n.body, link: absoluteLink(n.link) });
+          // Phase 2: registered templates (data.template, or the kind → template mapping, e.g. offer.new →
+          // broker_new_offer with the Accept button); otherwise the Phase 1 generic template. Logged in wa_messages.
+          const r = await sendNotificationWhatsApp({ to: p.phone, userId: n.user_id, name: p.preferred_name || p.full_name, kind: n.kind, title: n.title, body: n.body, link: absoluteLink(n.link), data: (n.data ?? {}) as Record<string, unknown> });
           delivered.whatsapp = r;
           whatsappDelivered = r.ok && r.provider === "meta" && whatsAppLive();
         }

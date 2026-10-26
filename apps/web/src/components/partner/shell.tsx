@@ -17,6 +17,7 @@ export function brokerNav(): NavItem[] {
     { href: "/partner/policies", label: "Policies" },
     { href: "/partner/appointments", label: "Appointments" },
     { href: "/partner/service", label: "Service & claims" },
+    { href: "/partner/whatsapp", label: "WhatsApp" },
     { href: "/partner/products/propose", label: "Rate proposals" },
     { href: "/partner/reports", label: "Reports" },
     { href: "/partner/settlements", label: "Settlements" },

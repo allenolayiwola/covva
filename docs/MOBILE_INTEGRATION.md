@@ -293,6 +293,15 @@ Scheme `covva://` plus universal/app links on the web host
 
 Expo Router file names should mirror the right-hand column.
 
+**Links in WhatsApp messages.** Every link the WhatsApp channel sends (quote links, `/account/requests/{id}`,
+`/account/requests/{id}/apply` checkout, `/account/policies/{id}/renew`, `/account/claims/new?policy=…`,
+`/account/documents`, broker `/partner/offers/accept/{token}` and `/partner/whatsapp?c=…`) is the plain web
+URL on the site host, never a `covva://` URL (WhatsApp only previews https links). The app intercepts them
+through universal links / app links (`/.well-known/*` above) and maps them with `webPathToDeepLink()`;
+anything it cannot map opens in the in-app browser. Broker one-tap accept also works without the app: the
+Accept quick-reply button on the `broker_new_offer` template carries `accept:<token>` and is redeemed by
+the webhook (`accept_order_offer(p_token)`), so the app only needs to handle the follow-up notification.
+
 ## 10a. Broker offers (claim model, Addendum 2 D/E)
 
 New requests are no longer assigned to one broker at creation. The routing engine either sends

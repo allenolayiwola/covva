@@ -38,7 +38,8 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `PAYSTACK_DVA_ENABLED`, `PAYSTACK_DVA_BANK` | no | no | `true` creates a Paystack dedicated virtual account per customer for bank transfers (auto-confirmed by `charge.success`) |
 | `VEHICLE_LOOKUP_PROVIDER`, `DVLA_API_URL`, `DVLA_API_KEY` | **yes** (key) | no | Registration lookup for motor quotes: `cache` (default) \| `dvla` \| `manual`. Unset → the form asks for make/model/year |
 | `IDENTITY_PROVIDER`, `NIA_API_URL`, `NIA_API_KEY` | **yes** (key) | no | Ghana Card verification: `manual` (default, admin review) \| `nia` (provider; manual review stays the fallback) |
-| `WHATSAPP_PROVIDER`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_TEMPLATE_*` | **yes** (token) | no | WhatsApp Cloud API (`meta`) for opted-in customers; `log` (default) only logs. Renewal reminders go WhatsApp first, SMS as fallback |
+| `WHATSAPP_PROVIDER`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_BUSINESS_ID`, `WHATSAPP_TEMPLATE_*` | **yes** (token) | **yes** (support console replies) | WhatsApp Cloud API (`meta`) for opted-in customers and the conversation channel; `log` (default) only logs. Renewal reminders go WhatsApp first, SMS as fallback. See "WhatsApp Business" below |
+| `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | **yes** | no | Inbound webhook `/api/webhooks/whatsapp`: signature check and Meta's subscription verification |
 | `LOG_LEVEL` | no | no | `debug` for verbose logs |
 | `NIC_MOTOR_DB_MODE` | no | no | How delegated motor policies reach the NIC motor insurance database: `manual` (default — an insurer task "Register policy … on the NIC motor database" is created and the insurer records the reference in Issuance → Delegated issuance) or `api` (through the insurer's connector adapter; only the `simulator` adapter exists, selected by `organizations.settings.connector = "simulator"`; falls back to the manual hand-off when the insurer has none). Status is tracked in `issuance_jobs.nic_registration`. |
 | `PARTNER_MFA_REQUIRED` | no | no | TOTP two-step verification for broker/insurer users in `/partner`. Defaults to `true` in production builds and `false` elsewhere. Set `false` only for local demos and e2e (`apps/web/playwright.config.js` does). Customers are never gated. |
@@ -171,6 +172,72 @@ Migration `20261028100300_quoting_payments.sql` adds `vehicle_lookups`, `quote_s
   below 85% once (`policies.underinsurance_flag`, notification `policy.underinsured`), clearing the flag when fixed.
 * **Share links**: `/q/<token>` (public, noindex) renders quote summaries only from `quote_shares` (14-day expiry,
   view count); no customer identity is exposed.
+
+### WhatsApp Business: setup, webhook, templates, 24-hour window, opt-out (Phase 2)
+
+Migration `20261029100300_whatsapp.sql` adds `wa_contacts`, `wa_conversations`, `wa_messages`, `wa_templates`
+(seeded) and `wa_handoffs`. Code: `packages/core/src/whatsapp.ts` (pure helpers, classifier, template registry,
+webhook parser), `apps/web/src/server/whatsapp/*` (webhook → router → assistant/sender → handoff),
+`apps/web/src/server/providers/whatsapp.ts` (Cloud API adapter), admin console `/whatsapp` (+ `/templates`,
+`/contacts`), partner workspace `/partner/whatsapp`, marketing "Chat with us" drawer (`/api/ai/faq`).
+
+**Setup (Meta Business Manager → WhatsApp)**
+
+1. Create (or claim) the WhatsApp Business Account; note `WHATSAPP_BUSINESS_ID` and the phone number's
+   `WHATSAPP_PHONE_NUMBER_ID`. Create a system user with `whatsapp_business_messaging` +
+   `whatsapp_business_management` and a permanent token → `WHATSAPP_ACCESS_TOKEN`.
+2. App → Settings → Basic → App secret → `WHATSAPP_APP_SECRET`. Choose any random string for
+   `WHATSAPP_VERIFY_TOKEN`.
+3. App → WhatsApp → Configuration → Webhooks: callback URL `https://<web>/api/webhooks/whatsapp`, verify
+   token = `WHATSAPP_VERIFY_TOKEN`, subscribe to the **messages** field. Meta GETs the URL with
+   `hub.challenge`; the route echoes it when the token matches.
+4. Set `WHATSAPP_PROVIDER=meta` on **both** Vercel projects (the admin console sends support replies with
+   the same credentials). `NEXT_PUBLIC_WHATSAPP_NUMBER` (digits) keeps the marketing button and the
+   "Talk to a human" link pointing at the business number.
+5. Feature flag `ai_assistant` + the AI Gateway must be on for the bot to answer FAQs; otherwise it sends
+   a safe canned reply and offers a human.
+
+**Webhook.** `POST /api/webhooks/whatsapp` verifies `X-Hub-Signature-256` (HMAC-SHA256 of the raw body with
+the app secret; in non-production with the `log` provider and no secret, unsigned calls are accepted so the
+flow can be exercised locally), rate-limits per IP, parses with `parseWebhookPayload()` and always answers
+200 once the signature is valid. Every inbound message is stored with its Meta `wa_message_id` (unique) so
+retries are no-ops; delivery statuses (`sent → delivered → read`, `failed`) update the outbound row. The
+router then: honours STOP, confirms consent codes (6 digits → `confirm_beneficiary_consent`, guarded while
+the diaspora function does not exist), redeems Accept/Decline buttons (`accept:<token>` →
+`accept_order_offer(p_token)` as the service role), links quote / renewal / claim / documents / checkout
+pages for the intents the keyword classifier recognises, and otherwise runs the FAQ assistant. After three
+bot replies every answer offers "Talk to a human / My broker". Advice, suitability and claims help are
+handed to the customer's **broker of record** (`wa_handoffs` + notification to the broker's advisers;
+reply from Partner workspace → WhatsApp); complaints, payment problems and "human" go to **support**
+(Admin → WhatsApp; a complaint row is opened for known customers, a callback lead for unknown numbers).
+Contacts are linked to accounts by phone (`profiles.phone`, any spelling); staff can link by email.
+
+**Templates.** `wa_templates` is the registry (seeded: `renewal_reminder`, `policy_documents_ready`,
+`claim_status_update`, `quote_ready`, `payment_link`, `broker_new_offer` with Accept/Decline quick-reply
+buttons, `consent_request`, `otp_code`, `info_request`). Each must be submitted in Business Manager →
+Message templates (Admin → WhatsApp → Templates → **Copy for Meta submission** gives the body, variables and
+sample values) and marked `approved` in the registry once Meta approves it; the live provider refuses
+unapproved templates (the `log` provider only logs). `notify()` picks a template from the notification kind
+(`offer.new` → `broker_new_offer`, `renewal.*` → `renewal_reminder`, `claim.*` → `claim_status_update`,
+`quote.ready`, `policy.issued` → `policy_documents_ready`) or from `data.template` + `data.template_params`;
+other kinds fall back to the Phase 1 generic template. Broker offers are sent on WhatsApp to opted-in
+brokers whenever the SMS channel is requested, with SMS as the fallback.
+
+**24-hour window.** Meta only delivers free-form text, interactive buttons and media within 24 hours of the
+contact's last inbound message (`wa_contacts.last_inbound_at`, stamped by trigger). `canSend()` in
+`@im/core` enforces it everywhere: outside the window only approved templates go out (the console and the
+partner page switch to the template form automatically). Meta error 131047 on a send means the window had
+closed on their side.
+
+**Opt-out.** STOP / unsubscribe / opt out (`isOptOut()`) sets `opted_out_at`, closes the conversation and
+sends one confirmation; **nothing** is sent to an opted-out contact afterwards, templates included, until the
+contact messages again (which opts them back in). Staff can opt a contact out from Admin → WhatsApp →
+Contacts (e.g. a request made by phone) but never opt anyone back in. `profiles.whatsapp_opt_in` still gates
+the notification channel; the conversation channel is opt-in by the customer messaging us.
+
+**Retention and privacy.** Inbound text is stored redacted of Ghana Card numbers, emails, phones and card
+numbers (`redactPII`); media is referenced by Meta id only, never downloaded. The bot never quotes prices or
+advises (`FAQ_SYSTEM_PROMPT`), and usage is logged to `ai_usage` (`whatsapp_faq`, `web_faq`).
 
 ## 3. Supabase Auth settings
 

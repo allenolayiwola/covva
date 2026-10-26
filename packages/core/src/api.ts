@@ -106,6 +106,12 @@ export const InitPaymentRequest = InitPaymentInput.extend({
       provider: z.enum(["mtn", "vod", "atl"]),
     })
     .optional(),
+  /** Diaspora: show the amount in this currency (indicative); the insurer is still paid in GHS. */
+  displayCurrency: z.enum(["GHS", "GBP", "USD", "EUR", "CAD"]).optional(),
+  /** Card only: keep the PSP authorisation token (never the card number) for sponsor subscriptions. */
+  saveMethod: z.boolean().optional(),
+  /** Sponsor abroad: start a recurring collection after this first payment (card only). */
+  sponsorSubscription: z.object({ cadence: z.enum(["monthly", "quarterly", "annual"]), beneficiaryId: uuid.optional() }).optional(),
 });
 export type InitPaymentRequest = z.infer<typeof InitPaymentRequest>;
 
@@ -395,3 +401,135 @@ export type UpdatePartnerProfileInput = z.infer<typeof UpdatePartnerProfileInput
 /** Push notification kinds the broker app must handle (see docs/MOBILE_INTEGRATION.md §15). */
 export const BROKER_PUSH_KINDS = ["offer.new", "message.new", "claim.status", "claim.reported", "claim.delivered", "renewal.due", "document.uploaded", "request.created"] as const;
 export type BrokerPushKind = (typeof BROKER_PUSH_KINDS)[number];
+
+// ---------------------------------------------------------------------------
+// Claims completion (Phase 2): thread, info requests, video, partner network, jobs
+// ---------------------------------------------------------------------------
+/** `POST /claims/{id}/messages` — a message in the claim thread. `internal` is partner/staff only (the server rejects it for customers). */
+export const ClaimMessageInput = z.object({
+  body: z.string().trim().min(1).max(4000),
+  attachments: z.array(z.object({ documentId: uuid.optional(), storagePath: z.string().max(400).optional(), name: z.string().trim().min(1).max(200) })).max(10).default([]),
+  internal: z.boolean().default(false),
+});
+export type ClaimMessageInput = z.infer<typeof ClaimMessageInput>;
+
+export const ClaimMessagesQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  before: z.string().datetime({ offset: true }).optional(),
+});
+
+/** `POST /partner/claims/{id}/info-requests` — ask the customer (or the broker) for a document, information or an inspection slot. */
+export const ClaimInfoRequestInput = z.object({
+  kind: z.enum(["document", "information", "inspection"]).default("document"),
+  requestedParty: z.enum(["customer", "broker"]).default("customer"),
+  message: z.string().trim().min(3).max(2000),
+  dueAt: z.string().datetime({ offset: true }).optional(),
+  /** Insurers may move the claim to `info_requested` in the same call. */
+  setStatus: z.boolean().default(false),
+});
+export type ClaimInfoRequestInput = z.infer<typeof ClaimInfoRequestInput>;
+
+/** `POST /claims/{id}/info-requests/{reqId}/fulfil` — link a document and/or answer in writing. */
+export const FulfilInfoRequestInput = z
+  .object({ documentId: uuid.optional(), response: z.string().trim().max(2000).optional() })
+  .refine((v) => !!v.documentId || !!v.response, { message: "Attach a document or write a response", path: ["response"] });
+export type FulfilInfoRequestInput = z.infer<typeof FulfilInfoRequestInput>;
+
+export const VIDEO_UPLOAD_MIME = ["video/mp4", "video/webm", "video/quicktime"] as const;
+/** `POST /claims/{id}/video` (JSON, base64) — or multipart with a `file` part and the same field names. */
+export const ClaimVideoUploadInput = z.object({
+  fileName: z.string().trim().min(1).max(200),
+  mimeType: z.enum(VIDEO_UPLOAD_MIME),
+  /** Measured on the device; the server rejects anything over 90 seconds. */
+  durationSeconds: z.coerce.number().int().min(0).max(3600).optional(),
+  /** Base64 (plain or data: URL) video contents. */
+  content: z.string().min(1),
+  caption: z.string().trim().max(300).optional(),
+});
+export type ClaimVideoUploadInput = z.infer<typeof ClaimVideoUploadInput>;
+
+export const ServicePartnerKindEnum = z.enum(["garage", "towing", "hospital", "clinic", "pharmacy", "assessor"]);
+/** `GET /service-partners?kind=&region=&insurerOrgId=` — approved post-claim partners (public directory). */
+export const ServicePartnersQuery = z.object({
+  kind: ServicePartnerKindEnum.optional(),
+  region: z.string().trim().max(100).optional(),
+  /** Only partners that direct-bill this insurer. */
+  insurerOrgId: uuid.optional(),
+  q: z.string().trim().max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+});
+export type ServicePartnersQuery = z.infer<typeof ServicePartnersQuery>;
+
+export const ClaimJobKindEnum = z.enum(["repair", "towing", "treatment", "assessment", "replacement", "other"]);
+export const ClaimJobStatusEnum = z.enum(["requested", "accepted", "in_progress", "completed", "cancelled"]);
+/** `POST /partner/claims/{id}/jobs` — assign a service partner to the claim. */
+export const ClaimJobInput = z.object({
+  servicePartnerId: uuid,
+  kind: ClaimJobKindEnum.default("repair"),
+  directBilling: z.boolean().default(false),
+  estimate: z.coerce.number().nonnegative().optional(),
+  scheduledFor: z.string().datetime({ offset: true }).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+export type ClaimJobInput = z.infer<typeof ClaimJobInput>;
+
+/** `PATCH /partner/claims/{id}/jobs` with `jobId` (or the web action) — track the job. */
+export const UpdateClaimJobInput = z
+  .object({
+    jobId: uuid,
+    status: ClaimJobStatusEnum.optional(),
+    estimate: z.coerce.number().nonnegative().optional(),
+    invoiceDocumentId: uuid.optional(),
+    scheduledFor: z.string().datetime({ offset: true }).nullable().optional(),
+    directBilling: z.boolean().optional(),
+    notes: z.string().trim().max(2000).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 1, { message: "Nothing to update", path: ["status"] });
+export type UpdateClaimJobInput = z.infer<typeof UpdateClaimJobInput>;
+
+/** Insurer/staff review of a fraud flag. */
+export const ReviewFraudFlagInput = z.object({ flagId: uuid, status: z.enum(["cleared", "confirmed", "open"]), note: z.string().trim().max(1000).optional() });
+export type ReviewFraudFlagInput = z.infer<typeof ReviewFraudFlagInput>;
+
+// ---------------------------------------------------------------------------
+// Diaspora payments: FX display, sponsor subscriptions, bundles, property cover.
+// ---------------------------------------------------------------------------
+export const DisplayCurrencySchema = z.enum(["GHS", "GBP", "USD", "EUR", "CAD"]);
+
+/** `GET /fx?currency=&amount=` — indicative rates and the disclosure text. */
+export const FxQuery = z.object({
+  currency: z.string().trim().toUpperCase().pipe(DisplayCurrencySchema).default("GHS"),
+  /** Optional GHS amount to convert (indicative). */
+  amount: z.coerce.number().positive().max(1_000_000_000).optional(),
+});
+export type FxQuery = z.infer<typeof FxQuery>;
+
+/** `POST /subscriptions` — a sponsor's recurring premium collection for a policy they pay for. */
+export const CreateSubscriptionInput = z
+  .object({
+    policyId: uuid.optional(),
+    applicationId: uuid.optional(),
+    cadence: z.enum(["monthly", "quarterly", "annual"]).default("monthly"),
+    displayCurrency: DisplayCurrencySchema.default("GHS"),
+    /** A saved payment method (`GET /subscriptions` lists them); defaults to the sponsor's default method. */
+    paymentMethodId: uuid.optional(),
+    beneficiaryId: uuid.optional(),
+  })
+  .refine((v) => !!v.policyId || !!v.applicationId, { message: "Give the policy (or application) the subscription pays for", path: ["policyId"] });
+export type CreateSubscriptionInput = z.infer<typeof CreateSubscriptionInput>;
+
+/** `POST /property/{policyId}/updates` — a construction / site photo already uploaded to the documents bucket. */
+export const PropertyUpdateInput = z.object({
+  storagePath: z.string().trim().min(3).max(500),
+  caption: z.string().trim().max(500).optional(),
+  takenAt: z.string().datetime({ offset: true }).optional(),
+});
+export type PropertyUpdateInput = z.infer<typeof PropertyUpdateInput>;
+
+/** `POST /property/{policyId}/inspections` — ask for a partner site inspection. */
+export const RequestInspectionInput = z.object({
+  address: z.string().trim().min(5).max(500),
+  gps: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+export type RequestInspectionInput = z.infer<typeof RequestInspectionInput>;

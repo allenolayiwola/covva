@@ -270,4 +270,17 @@ test.describe("marketing site", () => {
     await expect(status).toContainText("Thank you — we’ve got your message.");
     await expect(status.getByRole("button", { name: "Send another message" })).toBeVisible();
   });
+
+  test("chat drawer opens with the disclaimer and a way to reach a person", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Chat with us" }).click();
+    const drawer = page.getByRole("dialog", { name: "Chat with us" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByTestId("chat-disclaimer")).toContainText("not an insurer or broker");
+    await expect(drawer.getByText(/can.t recommend a product or quote a price/)).toBeVisible();
+    await expect(drawer.getByRole("link", { name: /Talk to a human \/ my broker/ })).toBeVisible();
+    await expect(drawer.getByLabel("Your question")).toBeVisible();
+    await drawer.getByRole("button", { name: "Close chat" }).click();
+    await expect(drawer).toBeHidden();
+  });
 });

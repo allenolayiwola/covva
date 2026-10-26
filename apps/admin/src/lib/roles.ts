@@ -43,6 +43,13 @@ export const PERMS = {
   audit: ["platform_admin", "compliance"],
   /** AI insights generation (costs money). */
   insights: ["platform_admin", "platform_ops", "compliance"],
+  /**
+   * WhatsApp support console: take over conversations, reply, hand off, opt contacts out.
+   * The one place `support` writes — they are the support agents.
+   */
+  whatsapp: ["platform_admin", "platform_ops", "support"],
+  /** WhatsApp template registry (what we submit to Meta). */
+  whatsappTemplates: ["platform_admin", "platform_ops"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 export type PermKey = keyof typeof PERMS;

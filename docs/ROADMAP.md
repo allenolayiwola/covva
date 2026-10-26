@@ -154,7 +154,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [ ] Diaspora page on the marketing site with currency switcher and stories.
 
 **WhatsApp**
-- [ ] WhatsApp Business channel: notifications (renewals, documents, claims), quote links, payment links; one-tap broker accept; chat button on every page with AI FAQ handoff to a human/broker.
+- [x] WhatsApp Business channel: notifications (renewals, documents, claims), quote links, payment links; one-tap broker accept; chat button on every page with AI FAQ handoff to a human/broker (`wa_*` tables, `server/whatsapp/*`, admin `/whatsapp`, partner `/partner/whatsapp`, `/api/webhooks/whatsapp`, `/api/ai/faq`; Twi/Ga/Ewe replies still to come).
 
 ### Phase 3 — Instalments, USSD, embedded partners, SME
 - [ ] Instalment premiums (monthly/quarterly): schedules, automated MoMo collections, retries, grace periods, lapse/reinstatement per insurer rules; ledger entries.

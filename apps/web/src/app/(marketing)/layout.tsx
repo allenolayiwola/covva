@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/marketing/site-footer";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { getBrand } from "@/components/marketing/brand";
 import { WhatsAppButton } from "@/components/marketing/whatsapp-button";
+import { ChatWidget } from "@/components/marketing/chat-widget";
 import { ConsentBanner } from "@/components/marketing/consent-banner";
 import { SmartAppBanner } from "@/components/marketing/smart-app-banner";
 
@@ -40,6 +41,7 @@ export default async function MarketingLayout({ children }: LayoutProps<"/">) {
       </main>
       <SiteFooter />
       <WhatsAppButton />
+      <ChatWidget whatsappNumber={process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? null} />
       <ConsentBanner />
     </>
   );
