@@ -86,7 +86,7 @@ async function Customer({ params }: { params: Promise<{ id: string }> }) {
                   {(policies ?? []).map((p) => (
                     <tr key={p.id}>
                       <Td className="font-medium text-ink">{p.policy_number ?? p.internal_reference}<p className="text-xs text-muted">{cats.get(p.category_id)?.name}</p></Td>
-                      <Td>{insurers.get(p.insurer_org_id) ?? "Insurer"}</Td>
+                      <Td>{(p.insurer_org_id ? insurers.get(p.insurer_org_id) : null) ?? "Insurer"}</Td>
                       <Td><StatusPill meta={POLICY_STATUS[p.status]} /></Td>
                       <Td>{formatDate(p.cover_start)} – {formatDate(p.cover_end)}</Td>
                       <Td className="tabular-nums">{formatGHS(p.premium != null ? Number(p.premium) : null)}</Td>

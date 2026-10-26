@@ -1,6 +1,6 @@
 # Build brief (read this first)
 
-You are one of several engineers building **COVVA**, a Ghana
+You are one of several engineers building **Covva**, a Ghana
 multi-insurer, multi-broker insurance marketplace. Read, in order:
 
 1. `docs/PLAN.md` — product rules, design tokens, data model overview.

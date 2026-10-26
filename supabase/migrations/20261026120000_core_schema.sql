@@ -1,5 +1,5 @@
 -- =============================================================================
--- COVVA — core schema
+-- Covva — core schema
 -- Platform = technology provider. Broker of record = advice/arranging.
 -- Insurer = underwriting, issuance, claims decisions. Payments settle to insurer.
 -- =============================================================================

@@ -23,8 +23,9 @@ export function monthlyReference(policyId: string, month = period()): string {
 }
 
 /** Record a billable policy-month for the broker (falls back to the insurer for direct business). */
-export async function recordPolicyActive(svc: Svc, policy: { id: string; broker_org_id: string | null; insurer_org_id: string }, month = period()) {
+export async function recordPolicyActive(svc: Svc, policy: { id: string; broker_org_id: string | null; insurer_org_id: string | null }, month = period()) {
   const orgId = policy.broker_org_id ?? policy.insurer_org_id;
+  if (!orgId) return; // customer-added policy with an unlisted insurer: nothing to bill
   const row = { org_id: orgId, metric: "policy_active", quantity: 1, reference_id: monthlyReference(policy.id, month) };
   // `details` is added by migration 20261026130000_backend_support (cast until types are regenerated).
   const withDetails = { ...row, details: { policy_id: policy.id, period: month } as Json } as unknown as typeof row;

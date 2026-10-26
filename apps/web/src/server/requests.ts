@@ -15,6 +15,7 @@ import {
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 
 export class BusinessRuleError extends Error {
   constructor(message: string, public code = "business_rule") {
@@ -345,6 +346,10 @@ export async function createRequest(
       data: { request_id: request.id },
       channels: ["in_app", "email", "push"],
     });
+  }
+  if (routing.brokerOrgId) {
+    await emitEvent(routing.brokerOrgId, "request.created", { request_id: request.id, reference: request.reference, status: nextStatus, type: request.type, category: category.slug, source: request.source });
+    if (nextStatus === "quotes_ready") await emitEvent(routing.brokerOrgId, "quote.ready", { request_id: request.id, reference: request.reference, quotes: estimates.quotes, binding: estimates.ready });
   }
   await notify({
     userId: user.id,

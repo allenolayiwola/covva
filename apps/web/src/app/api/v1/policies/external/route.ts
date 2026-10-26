@@ -10,15 +10,20 @@ export const POST = withApi(
     if (input.coverEnd <= input.coverStart) throw invalid("Cover end must be after cover start.");
     const category = await getCategory(input.categorySlug);
     if (!category) throw notFound("Unknown insurance category.");
-    const { data: insurer } = await auth.supabase.from("organizations").select("id, type").eq("id", input.insurerOrgId).maybeSingle();
-    if (!insurer || insurer.type !== "insurer") throw notFound("Unknown insurer.");
+    let insurerId: string | null = null;
+    if (input.insurerOrgId) {
+      const { data: insurer } = await auth.supabase.from("organizations").select("id, type").eq("id", input.insurerOrgId).maybeSingle();
+      if (!insurer || insurer.type !== "insurer") throw notFound("Unknown insurer.");
+      insurerId = insurer.id;
+    }
     const today = new Date().toISOString().slice(0, 10);
     const policy = must(
       await auth.supabase
         .from("policies")
         .insert({
           customer_id: auth.userId,
-          insurer_org_id: insurer.id,
+          insurer_org_id: insurerId,
+          external_insurer_name: insurerId ? null : (input.insurerName ?? null),
           category_id: category.id,
           external_source: true,
           status: input.coverEnd < today ? "expired" : "active",
@@ -30,7 +35,7 @@ export const POST = withApi(
           nickname: input.nickname ?? null,
           summary: "Added by you — details not confirmed by the insurer.",
         })
-        .select("id, internal_reference, policy_number, status, cover_start, cover_end, external_source, nickname")
+        .select("id, internal_reference, policy_number, status, cover_start, cover_end, external_source, nickname, insurer_org_id, external_insurer_name")
         .single(),
     );
     if (input.documentId) {

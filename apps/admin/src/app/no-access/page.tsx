@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "403 · No access" };
 
 export default function NoAccessPage() {
   return (
-    <AuthFrame title="403 — you don't have access" subtitle="This console is for COVVA platform staff only.">
+    <AuthFrame title="403 — you don't have access" subtitle="This console is for Covva platform staff only.">
       <div className="space-y-4 text-sm text-ink-2">
         <div className="flex gap-3 rounded-xl bg-danger-bg p-4 text-danger">
           <ShieldAlert className="mt-0.5 size-5 shrink-0" aria-hidden />

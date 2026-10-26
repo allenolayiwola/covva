@@ -12,7 +12,7 @@ import { textLinkClass } from "@/components/marketing/ui-classes";
 
 export const metadata: Metadata = {
   title: "Participating partners",
-  description: "The licensed brokers and insurers participating in COVVA, with their NIC licence numbers.",
+  description: "The licensed brokers and insurers participating in Covva, with their NIC licence numbers.",
   alternates: { canonical: "/partners" },
 };
 

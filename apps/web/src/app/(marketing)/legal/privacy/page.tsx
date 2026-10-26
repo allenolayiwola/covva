@@ -7,7 +7,7 @@ import { REGULATION } from "@/components/marketing/content";
 
 export const metadata: Metadata = {
   title: "Privacy notice",
-  description: "How COVVA collects, uses, shares and protects personal data under Ghana’s Data Protection Act, 2012 (Act 843). Draft — subject to legal review.",
+  description: "How Covva collects, uses, shares and protects personal data under Ghana’s Data Protection Act, 2012 (Act 843). Draft — subject to legal review.",
   alternates: { canonical: "/legal/privacy" },
 };
 

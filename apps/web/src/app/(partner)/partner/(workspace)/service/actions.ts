@@ -4,6 +4,7 @@ import { z } from "zod";
 import { CLAIM_STATUS, COMPLAINT_STATUS } from "@im/core";
 import type { Enum } from "@im/db";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 import { ROLES, actionContext, dbMessage, run, type ActionState } from "../../_lib/context";
 
 const uuid = z.string().uuid();
@@ -44,6 +45,9 @@ export async function brokerClaimStatus(_prev: ActionState, formData: FormData):
     if (input.to === "delivered_to_insurer") {
       await notifyOrg(claim.insurer_org_id, { kind: "claim.delivered", title: `Claim ${claim.reference} delivered by ${ctx.orgName}`, link: `/partner/claims/${claim.id}` }, ["owner", "admin", "claims_officer"]);
     }
+    const changed = { claim_id: claim.id, reference: claim.reference, from_status: claim.status, status: input.to };
+    await emitEvent(ctx.orgId, "claim.status_changed", changed);
+    await emitEvent(claim.insurer_org_id, "claim.status_changed", changed);
     refresh();
     return { ok: true, message: `Claim moved to ${CLAIM_STATUS[input.to].label}.` };
   });

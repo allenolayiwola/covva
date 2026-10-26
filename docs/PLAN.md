@@ -1,4 +1,4 @@
-# COVVA — Build Plan
+# Covva — Build Plan
 
 _Formerly "Insurance Marketplace" (working name in the source documents)._
 

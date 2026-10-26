@@ -3,6 +3,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import type { Enum, Json } from "@im/db";
+import { sendInviteEmail } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 import { ROLES, actionContext, dbMessage, run, type ActionState } from "../../_lib/context";
 import { API_SCOPES, BROKER_ROLES, INSURER_ROLES, WEBHOOK_EVENTS } from "../../_lib/settings";
 
@@ -25,11 +27,13 @@ export async function inviteMember(_prev: ActionState, formData: FormData): Prom
     const { data, error } = await ctx.supabase
       .from("invitations")
       .insert({ org_id: ctx.orgId, email: input.email, role: input.role as Enum<"member_role">, team: input.team || null, invited_by: ctx.userId })
-      .select("token")
+      .select("token, expires_at")
       .single();
     if (error) return { ok: false, error: dbMessage(error, "We couldn't create the invitation.") };
+    const { data: me } = await ctx.supabase.from("profiles").select("full_name, preferred_name").eq("id", ctx.userId).maybeSingle();
+    await sendInviteEmail({ to: input.email, orgName: ctx.orgName, role: input.role, token: data.token, invitedBy: me?.preferred_name || me?.full_name || ctx.userEmail, expiresAt: data.expires_at }).catch(() => {});
     refresh();
-    return { ok: true, message: `Invitation created for ${input.email}. It expires in 14 days.`, data: { link: `/invite/${data.token}` } };
+    return { ok: true, message: `Invitation emailed to ${input.email}. It expires in 14 days — you can also share the link below.`, data: { link: `/invite/${data.token}` } };
   });
 }
 
@@ -199,6 +203,21 @@ export async function updateWebhook(_prev: ActionState, formData: FormData): Pro
     if (error) return { ok: false, error: dbMessage(error) };
     refresh();
     return { ok: true };
+  });
+}
+
+/** Queue a `test.ping` delivery to one endpoint so the partner can check their signature code. */
+export async function sendTestWebhook(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return run(async () => {
+    const ctx = await actionContext({ roles: ROLES.orgAdmin });
+    const id = uuid.parse(formData.get("id"));
+    const { data: hook } = await ctx.supabase.from("webhook_endpoints").select("id, active").eq("id", id).eq("org_id", ctx.orgId).maybeSingle();
+    if (!hook) return { ok: false, error: "Endpoint not found." };
+    if (!hook.active) return { ok: false, error: "Enable the endpoint before sending a test event." };
+    const { queued } = await emitEvent(ctx.orgId, "test.ping", { message: "Hello from Covva", org_id: ctx.orgId, sent_at: new Date().toISOString() }, { endpointId: hook.id });
+    if (!queued) return { ok: false, error: "Webhook delivery isn't configured on this environment (service key missing). Ask platform support." };
+    refresh();
+    return { ok: true, message: "Test event queued. The delivery log below updates once your endpoint responds." };
   });
 }
 

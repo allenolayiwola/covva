@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: COVVA API
+  title: Covva API
   version: 1.0.0
-  summary: REST API for the COVVA mobile app and partner (broker/insurer) integrations.
+  summary: REST API for the Covva mobile app and partner (broker/insurer) integrations.
   description: |
-    COVVA is a **technology platform**. It is not an insurer or broker, does not
+    Covva is a **technology platform**. It is not an insurer or broker, does not
     give advice in its own name and never holds premiums. Every response that concerns a
     transaction carries the information needed to show the mandatory disclosure.
 
@@ -52,6 +52,13 @@ servers:
 security:
   - bearerAuth: []
 tags:
+  - name: Webhooks
+    description: |
+      Signed HTTP callbacks to partner endpoints (configured in Team settings → Developer). Every delivery is a
+      `POST` with headers `x-covva-event`, `x-covva-delivery`, `x-covva-timestamp` and `x-covva-signature`
+      (`HMAC-SHA256(endpoint secret, "{timestamp}.{raw body}")`, hex). Respond 2xx within 10 s; failures retry after
+      1 min, 5 min, 30 min, 2 h and 12 h. Payloads carry ids, references, statuses, amounts and dates only — never
+      personal data; fetch details through the API. See `docs/WEBHOOKS.md`.
   - name: Me
   - name: Catalogue
   - name: Requests
@@ -552,6 +559,68 @@ paths:
       responses:
         "200": { description: OpenAPI document, content: { application/yaml: { schema: { type: string } } } }
 
+webhooks:
+  request.created:
+    post:
+      tags: [Webhooks]
+      summary: A request was routed to the broker of record
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  request.status_changed:
+    post:
+      tags: [Webhooks]
+      summary: A request changed status (data.from_status, data.status)
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  quote.ready:
+    post:
+      tags: [Webhooks]
+      summary: Quotes were sent to the customer, or a binding quote was posted
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  application.submitted:
+    post:
+      tags: [Webhooks]
+      summary: The customer applied for a quote
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  payment.succeeded:
+    post:
+      tags: [Webhooks]
+      summary: Premium confirmed by the payment provider (policy pending issuance — not active)
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  policy.issued:
+    post:
+      tags: [Webhooks]
+      summary: The insurer issued the policy; cover is active
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  claim.reported:
+    post:
+      tags: [Webhooks]
+      summary: A claim was reported (reporting is not approval)
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  claim.status_changed:
+    post:
+      tags: [Webhooks]
+      summary: A claim changed status
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  complaint.filed:
+    post:
+      tags: [Webhooks]
+      summary: A complaint owned by your organisation was filed
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  test.ping:
+    post:
+      tags: [Webhooks]
+      summary: Test delivery sent from the settings page
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -877,12 +946,38 @@ components:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         displayText: { type: [string, "null"] }
 
+    WebhookEnvelope:
+      type: object
+      required: [id, event, created_at, attempt, org_id, data]
+      properties:
+        id: { type: string, description: Delivery id (stable across retries — de-duplicate on it) }
+        event: { type: string, enum: [request.created, request.status_changed, quote.ready, application.submitted, payment.succeeded, policy.issued, claim.reported, claim.status_changed, complaint.filed, test.ping] }
+        created_at: { type: string, format: date-time }
+        attempt: { type: integer, minimum: 1, maximum: 5 }
+        org_id: { type: string, format: uuid, description: The organisation the endpoint belongs to }
+        data:
+          type: object
+          additionalProperties: true
+          description: Ids, references, statuses, amounts and dates only. Never personal data.
+          properties:
+            request_id: { type: string, format: uuid }
+            reference: { type: string }
+            status: { type: string }
+            from_status: { type: string }
+            policy_id: { type: string, format: uuid }
+            claim_id: { type: string, format: uuid }
+            complaint_id: { type: string, format: uuid }
+            payment_id: { type: string, format: uuid }
+            application_id: { type: string, format: uuid }
+            quote_id: { type: string, format: uuid }
     AddExternalPolicyInput:
       type: object
-      required: [categorySlug, insurerOrgId, policyNumber, coverStart, coverEnd]
+      required: [categorySlug, policyNumber, coverStart, coverEnd]
+      description: Give either `insurerOrgId` (an insurer on the platform) or `insurerName` (any other insurer; stored as `external_insurer_name`, no organisation is created).
       properties:
         categorySlug: { type: string }
         insurerOrgId: { type: string, format: uuid, description: From GET /catalog/insurers }
+        insurerName: { type: string, minLength: 2, maxLength: 120, description: Insurer not on the platform, as printed on the policy }
         policyNumber: { type: string }
         coverStart: { type: string, format: date }
         coverEnd: { type: string, format: date }

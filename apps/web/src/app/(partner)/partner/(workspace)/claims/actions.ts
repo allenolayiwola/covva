@@ -4,6 +4,7 @@ import { z } from "zod";
 import { CLAIM_STATUS, formatGHS, type ClaimStatus } from "@im/core";
 import { DECIDABLE, INSURER_STEPS } from "../../_lib/claims";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 import { ROLES, actionContext, dbMessage, run, type ActionState, type PartnerContext } from "../../_lib/context";
 
 const uuid = z.string().uuid();
@@ -30,6 +31,9 @@ async function after(ctx: PartnerContext, claim: NonNullable<Awaited<ReturnType<
   if (claim.broker_org_id) {
     await notifyOrg(claim.broker_org_id, { kind: "claim.status", title: `${ctx.orgName}: claim ${claim.reference} ${CLAIM_STATUS[to].label.toLowerCase()}`, body: note, link: "/partner/service#claims" });
   }
+  const changed = { claim_id: claim.id, reference: claim.reference, from_status: claim.status, status: to };
+  await emitEvent(claim.broker_org_id, "claim.status_changed", changed);
+  await emitEvent(claim.insurer_org_id, "claim.status_changed", changed);
 }
 
 export async function claimStep(_prev: ActionState, formData: FormData): Promise<ActionState> {

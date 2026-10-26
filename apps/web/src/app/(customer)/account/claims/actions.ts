@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Enum, Json } from "@im/db";
 import { notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 import { isOwnUpload, parseUploads, type ActionState, type UploadedFile } from "@/components/customer/utils";
 import { SIGNED_OUT, actionContext, dbError } from "../_lib/action";
 import { requiredEvidence } from "../_lib/labels";
@@ -40,11 +41,12 @@ export async function reportClaim(_prev: ActionState, formData: FormData): Promi
 
   const { data: policy } = await supabase
     .from("policies")
-    .select("id, insurer_org_id, broker_org_id, status, category:product_categories(slug)")
+    .select("id, insurer_org_id, broker_org_id, status, external_source, category:product_categories(slug)")
     .eq("id", v.policyId)
     .eq("customer_id", user.id)
     .maybeSingle();
   if (!policy) return { ok: false, error: "We couldn't find that policy in your wallet." };
+  if (policy.external_source || !policy.insurer_org_id) return { ok: false, error: "For a policy you added yourself, contact the insurer that issued it to make a claim." };
 
   const slug = (policy.category as unknown as { slug: string } | null)?.slug;
   const { data: claim, error } = await supabase
@@ -91,6 +93,9 @@ export async function reportClaim(_prev: ActionState, formData: FormData): Promi
       data: { claim_id: claim.id },
     }).catch(() => {});
   }
+  const reported = { claim_id: claim.id, reference: claim.reference, policy_id: policy.id, status: "reported", incident_type: v.incidentType };
+  await emitEvent(policy.broker_org_id, "claim.reported", reported);
+  await emitEvent(policy.insurer_org_id, "claim.reported", reported);
   revalidatePath("/account", "layout");
   redirect(`/account/claims/${claim.id}?reported=1`);
 }
@@ -136,6 +141,7 @@ export async function withdrawClaim(_prev: ActionState, formData: FormData): Pro
   }
   const { error } = await supabase.from("claims").update({ status: "withdrawn" }).eq("id", claim.id);
   if (error) return { ok: false, error: dbError(error, "We couldn't withdraw this claim. Please message your broker.") };
+  await emitEvent(claim.broker_org_id, "claim.status_changed", { claim_id: claim.id, reference: claim.reference, from_status: claim.status, status: "withdrawn" });
   if (reason) {
     await supabase.from("claim_events").insert({ claim_id: claim.id, actor_id: user.id, actor_party: "customer", note: `Withdrawn: ${reason}` });
   }

@@ -4,7 +4,7 @@ import { getFlags, getSetting } from "@/lib/catalog";
 
 /**
  * Brand details are config-driven (`platform_settings.brand`) because
- * "COVVA" is the brand name (configurable in platform settings). Every read goes through the
+ * "Covva" is the brand name (configurable in platform settings). Every read goes through the
  * cached catalogue helpers so marketing pages stay prerenderable.
  */
 export interface Brand {
@@ -16,7 +16,7 @@ export interface Brand {
 }
 
 const DEFAULT_BRAND: Brand = {
-  name: "COVVA",
+  name: "Covva",
   tagline: "Insurance made clearer. Human help built in.",
   supportEmail: "support@covva.com.gh",
   supportPhone: null,

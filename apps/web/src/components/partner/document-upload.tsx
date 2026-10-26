@@ -20,6 +20,8 @@ export function DocumentUpload({
   hidden,
   action,
   label = "Upload documents",
+  tasks,
+  hint,
 }: {
   customerId: string;
   scope: "policies" | "claims" | "requests";
@@ -27,9 +29,14 @@ export function DocumentUpload({
   hidden: Record<string, string>;
   action: FormAction;
   label?: string;
+  /** Open customer tasks the upload may complete (adds a "Completes task" select → `taskId`). */
+  tasks?: { id: string; title: string; documentKind?: string | null }[];
+  hint?: string;
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [kind, setKind] = useState(kinds[0]?.value ?? "other");
+  const [taskId, setTaskId] = useState("");
+  const key = hidden.policyId ?? hidden.claimId ?? hidden.requestId ?? "x";
   const [state, setState] = useState<FormState>({ ok: false });
   const [pending, start] = useTransition();
 
@@ -52,6 +59,7 @@ export function DocumentUpload({
       }
       const fd = new FormData();
       for (const [k, v] of Object.entries(hidden)) fd.set(k, v);
+      if (taskId) fd.set("taskId", taskId);
       fd.set("files", JSON.stringify(uploaded));
       const res = await action({ ok: false }, fd);
       setState(res);
@@ -61,15 +69,34 @@ export function DocumentUpload({
 
   return (
     <div className="space-y-3 rounded-xl border border-dashed border-line bg-mist/40 p-4">
+      {hint && <p className="text-xs text-muted">{hint}</p>}
       <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
-        <Field label="Document type" htmlFor={`dk-${hidden.policyId ?? hidden.claimId ?? "x"}`}>
-          <Select id={`dk-${hidden.policyId ?? hidden.claimId ?? "x"}`} value={kind} onChange={(e) => setKind(e.currentTarget.value)} className="h-10 text-sm">
+        <Field label="Document type" htmlFor={`dk-${key}`}>
+          <Select id={`dk-${key}`} value={kind} onChange={(e) => setKind(e.currentTarget.value)} className="h-10 text-sm">
             {kinds.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
           </Select>
         </Field>
-        <Field label="Files" htmlFor={`df-${hidden.policyId ?? hidden.claimId ?? "x"}`} hint="PDF, JPG, PNG or WebP · up to 20 MB each">
+        {tasks && tasks.length > 0 && (
+          <Field label="Completes task" htmlFor={`dt-${key}`} className="sm:col-span-2">
+            <Select
+              id={`dt-${key}`}
+              value={taskId}
+              onChange={(e) => {
+                const id = e.currentTarget.value;
+                setTaskId(id);
+                const t = tasks.find((x) => x.id === id);
+                if (t?.documentKind && kinds.some((k) => k.value === t.documentKind)) setKind(t.documentKind);
+              }}
+              className="h-10 text-sm"
+            >
+              <option value="">No task — just attach to the request</option>
+              {tasks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </Select>
+          </Field>
+        )}
+        <Field label="Files" htmlFor={`df-${key}`} hint="PDF, JPG, PNG or WebP · up to 20 MB each">
           <input
-            id={`df-${hidden.policyId ?? hidden.claimId ?? "x"}`}
+            id={`df-${key}`}
             type="file"
             multiple
             accept={ACCEPT}

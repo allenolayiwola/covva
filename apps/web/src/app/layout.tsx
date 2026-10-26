@@ -10,15 +10,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "COVVA — Find cover. Understand it. Move forward.",
-    template: "%s · COVVA",
+    default: "Covva — Find cover. Understand it. Move forward.",
+    template: "%s · Covva",
   },
   description:
     "Compare cover from participating licensed insurers in Ghana, with a named broker by your side from first question to policy delivery. Keep every policy in one wallet and get help with renewals and claims.",
-  applicationName: "COVVA",
+  applicationName: "Covva",
   openGraph: {
     type: "website",
-    siteName: "COVVA",
+    siteName: "Covva",
     locale: "en_GH",
   },
   twitter: { card: "summary_large_image" },

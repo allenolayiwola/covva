@@ -28,7 +28,7 @@ type Delivery = Pick<Row<"webhook_deliveries">, "id" | "endpoint_id" | "event" |
 export type WebhookPayload = Record<string, string | number | boolean | null | undefined>;
 
 const TIMEOUT_MS = 10_000;
-const USER_AGENT = "COVVA-Webhooks/1.0 (+https://covva.com.gh/docs/webhooks)";
+const USER_AGENT = "Covva-Webhooks/1.0 (+https://covva.com.gh/docs/webhooks)";
 
 function svcOrNull(): Svc | null {
   try {

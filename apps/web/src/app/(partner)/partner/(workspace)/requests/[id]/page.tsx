@@ -24,6 +24,7 @@ import { can, getPartnerContext, ROLES } from "../../../_lib/context";
 import { APPLICATION_LABEL, getCategoryMap, getCustomers, getOrgNames, getTeam, fullName, requestKind, SOURCE_LABEL, teamsOf } from "../../../_lib/data";
 import { customerConsents } from "../../../_lib/privileged";
 import { ActionForm } from "@/components/partner/action-form";
+import { DocumentUpload } from "@/components/partner/document-upload";
 import { FulfilmentCard } from "@/components/partner/queue-table";
 import { QuoteForm, type VersionOption } from "@/components/partner/quote-form";
 import { RealtimeRefresh } from "@/components/partner/realtime-refresh";
@@ -35,6 +36,7 @@ import {
   createTask,
   deliverPolicyDocuments,
   documentAction,
+  recordRequestDocuments,
   requestBrokerChange,
   saveQuote,
   sendMessage,
@@ -43,7 +45,21 @@ import {
   submitToInsurer,
   transitionRequest,
   updateTask,
+  withdrawBrokerChange,
 } from "./actions";
+
+const UPLOAD_KINDS = [
+  { value: "id_document", label: "ID document" },
+  { value: "vehicle_registration", label: "Vehicle registration" },
+  { value: "drivers_licence", label: "Driver's licence" },
+  { value: "photo", label: "Photo" },
+  { value: "proof_of_address", label: "Proof of address" },
+  { value: "medical", label: "Medical" },
+  { value: "receipt", label: "Receipt" },
+  { value: "police_report", label: "Police report" },
+  { value: "invoice", label: "Invoice" },
+  { value: "other", label: "Other" },
+];
 
 export const metadata: Metadata = { title: "Request" };
 
@@ -130,6 +146,12 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
   ];
   const currentBrokerName = ctx.orgName;
   const changeDisclosures = (disclosures.data ?? []).filter((d) => d.stage === "broker_change" && d.broker_org_id !== ctx.orgId);
+  const handoverTask = (tasks.data ?? []).find((t) => t.kind === "review" && t.assignee_party === "customer" && t.status === "open" && /broker/i.test(t.title));
+  const lastProposal = [...(events.data ?? [])].reverse().find((e) => e.event === "broker_change_proposed");
+  const proposedId = (lastProposal?.data as { target_broker_org_id?: string } | null)?.target_broker_org_id;
+  const proposedName = proposedId ? ((brokerDir.data ?? []).find((b) => b.id === proposedId)?.name ?? (lastProposal?.data as { target_broker_name?: string } | null)?.target_broker_name ?? "the new broker") : null;
+  const openDocTasks = (tasks.data ?? []).filter((t) => t.status === "open" && t.assignee_party === "customer" && (t.kind === "document" || t.kind === "signature"));
+  const isClosed = ["completed", "cancelled", "closed_no_cover"].includes(req.status);
 
   const comparison = compareQuotes(
     liveQuotes.map<ComparableQuote>((q) => ({
@@ -457,6 +479,21 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
                 ))}
               </ul>
             )}
+            {canWork && !isClosed && (
+              <div className="mt-4">
+                <h3 className="mb-2 text-sm font-semibold text-ink">Upload on the customer&apos;s behalf</h3>
+                <DocumentUpload
+                  customerId={req.customer_id}
+                  scope="requests"
+                  kinds={UPLOAD_KINDS}
+                  hidden={{ requestId: req.id }}
+                  action={recordRequestDocuments}
+                  label="Add to the customer's request"
+                  hint="For documents the customer sent by email, WhatsApp or in person. They are stored in the customer's wallet, marked as uploaded by you, and can complete an open document task."
+                  tasks={openDocTasks.map((t) => ({ id: t.id, title: t.title, documentKind: t.document_kind }))}
+                />
+              </div>
+            )}
           </Section>
 
           {/* Timeline ---------------------------------------------------------- */}
@@ -562,24 +599,33 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
             )}
           </Section>
 
-          {ctx.isSupervisor && !["completed", "cancelled", "closed_no_cover"].includes(req.status) && (
-            <Section title="Change broker of record" description="Supervisors only.">
+          {ctx.isSupervisor && !isClosed && (
+            <Section title="Hand over to another broker" description="Supervisors only. One broker of record per request.">
               <p className="text-sm text-muted">
-                One broker of record per request. The customer must be shown and acknowledge the new broker
-                (a <span className="font-medium">broker change disclosure</span>) before the request can move. Current: {currentBrokerName}.
+                The customer must be shown the new broker&apos;s disclosure and agree before the request moves. Current: {currentBrokerName}.
               </p>
               {changeDisclosures.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {changeDisclosures.map((d) => (
-                    <ActionForm key={d.broker_org_id} action={completeBrokerChange} submitLabel={`Hand over to ${(brokerDir.data ?? []).find((b) => b.id === d.broker_org_id)?.name ?? "new broker"}`} variant="secondary" confirm="Hand this request to the new broker of record?">
+                    <ActionForm key={d.broker_org_id} action={completeBrokerChange} submitLabel={`Complete hand-over to ${(brokerDir.data ?? []).find((b) => b.id === d.broker_org_id)?.name ?? "new broker"}`} variant="primary" confirm="Hand this request to the new broker of record? It leaves your queue and your team is unassigned.">
                       <input type="hidden" name="requestId" value={req.id} />
                       <input type="hidden" name="targetOrgId" value={d.broker_org_id} />
-                      <p className="text-xs text-brand">✓ Customer acknowledged on {formatDate(d.acknowledged_at)}</p>
+                      <p className="text-xs text-brand">✓ Customer agreed on {formatDate(d.acknowledged_at)}</p>
                     </ActionForm>
                   ))}
                 </div>
               )}
-              {(brokerDir.data ?? []).length > 0 && (
+              {handoverTask && changeDisclosures.length === 0 && (
+                <div className="mt-3 rounded-xl bg-amber-bg p-3 text-sm">
+                  <p className="font-medium text-ink">Waiting for the customer to confirm {proposedName}</p>
+                  <p className="text-xs text-muted">Asked {formatDateTime(handoverTask.created_at)}{handoverTask.due_at ? ` · due ${formatDate(handoverTask.due_at)}` : ""}.</p>
+                  <ActionForm action={withdrawBrokerChange} submitLabel="Withdraw proposal" variant="ghost" inline className="mt-2">
+                    <input type="hidden" name="requestId" value={req.id} />
+                    <input type="hidden" name="taskId" value={handoverTask.id} />
+                  </ActionForm>
+                </div>
+              )}
+              {!handoverTask && changeDisclosures.length === 0 && (brokerDir.data ?? []).length > 0 && (
                 <ActionForm action={requestBrokerChange} submitLabel="Ask customer to confirm" variant="outline" className="mt-3 space-y-3">
                   <input type="hidden" name="requestId" value={req.id} />
                   <Field label="New broker" htmlFor="bc-org">
@@ -593,6 +639,7 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
                   <p className="text-xs text-muted">Disclosure preview: {buildDisclosure({ broker: { name: "the new broker" } })}</p>
                 </ActionForm>
               )}
+              {!handoverTask && changeDisclosures.length === 0 && (brokerDir.data ?? []).length === 0 && <Empty>No other active brokers to hand over to.</Empty>}
             </Section>
           )}
         </aside>

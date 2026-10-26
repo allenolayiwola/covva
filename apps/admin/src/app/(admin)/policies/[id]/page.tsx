@@ -55,7 +55,7 @@ async function PolicyDetail({ params }: Pick<PageProps<"/policies/[id]">, "param
               cols={3}
               items={[
                 { label: "Customer", value: <Link className="text-brand hover:underline" href={`/users/${p.customer_id}`}>{personName(people.get(p.customer_id))}</Link> },
-                { label: "Insurer", value: insurer ? <Link className="text-brand hover:underline" href={`/organisations/${insurer.id}`}>{insurer.name}</Link> : "—" },
+                { label: "Insurer", value: insurer ? <Link className="text-brand hover:underline" href={`/organisations/${insurer.id}`}>{insurer.name}</Link> : p.external_insurer_name ? <span>{p.external_insurer_name} <Pill tone="neutral">Not on platform</Pill></span> : "—" },
                 { label: "Broker of record", value: broker ? <Link className="text-brand hover:underline" href={`/organisations/${broker.id}`}>{broker.name}</Link> : "—" },
                 { label: "Internal reference", value: p.internal_reference },
                 { label: "Insurer policy number", value: p.policy_number ?? "Not yet issued" },

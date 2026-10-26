@@ -9,7 +9,7 @@ export interface DisclosureParties {
   insurer?: { name: string } | null;
 }
 
-export const DEFAULT_PLATFORM_NAME = "COVVA";
+export const DEFAULT_PLATFORM_NAME = "Covva";
 
 export function buildDisclosure(p: DisclosureParties): string {
   const platform = p.platform ?? DEFAULT_PLATFORM_NAME;

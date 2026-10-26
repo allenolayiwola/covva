@@ -3,6 +3,9 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { IssuePolicyInput } from "@im/core";
 import { notify, notifyOrg } from "@/server/notify";
+import { declinePendingPolicy } from "@/server/policies";
+import { BusinessRuleError } from "@/server/requests";
+import { emitEvent } from "@/server/webhooks";
 import { ROLES, actionContext, dbMessage, run, type ActionState, type PartnerContext } from "../../_lib/context";
 
 const uuid = z.string().uuid();
@@ -61,42 +64,45 @@ export async function issuePolicy(_prev: ActionState, formData: FormData): Promi
         link: policy.request_id ? `/partner/requests/${policy.request_id}` : "/partner/policies",
       });
     }
+    const issued = { policy_id: policy.id, internal_reference: policy.internal_reference, policy_number: input.policyNumber.trim(), request_id: policy.request_id, status: "active", cover_start: input.coverStart, cover_end: input.coverEnd };
+    await emitEvent(policy.broker_org_id, "policy.issued", issued);
+    await emitEvent(ctx.orgId, "policy.issued", issued);
     refresh();
     return { ok: true, message: `Policy ${input.policyNumber.trim()} is active. Upload the schedule and certificate below.` };
   });
 }
 
+/**
+ * Decline the risk after payment. Membership is verified here (insurer org + underwriting
+ * role, and the policy is read through RLS), then `declinePendingPolicy` performs the system
+ * writes with the service client: rejecting the application, refunding the confirmed payment
+ * through the provider, cancelling the pending policy and closing the request — the last two
+ * are writes an insurer session can't make under RLS (requests are broker/staff only; payments
+ * are server-only).
+ */
 export async function declineIssuance(_prev: ActionState, formData: FormData): Promise<ActionState> {
   return run(async () => {
     const ctx = await actionContext({ kind: "insurer", roles: ROLES.underwrite });
     const input = z.object({ policyId: uuid, reason: z.string().trim().min(10, "Explain the decision so the broker can tell the customer").max(2000) }).parse(Object.fromEntries(formData));
     const policy = await loadPolicy(ctx, input.policyId);
     if (!policy || policy.status !== "pending_issuance") return { ok: false, error: "Policy not awaiting issuance." };
-    if (policy.request_id) {
-      const { error: aErr } = await ctx.supabase
-        .from("applications")
-        .update({ status: "rejected", decided_at: new Date().toISOString(), decision_note: input.reason })
-        .eq("request_id", policy.request_id)
-        .in("status", ["submitted", "draft"]);
-      if (aErr) return { ok: false, error: dbMessage(aErr) };
-    }
-    const { error } = await ctx.supabase
-      .from("policies")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancellation_reason: `Risk declined by insurer before issuance: ${input.reason}` })
-      .eq("id", policy.id);
-    if (error) return { ok: false, error: dbMessage(error) };
-    await notify({
-      userId: policy.customer_id,
-      kind: "application.declined",
-      title: "The insurer could not accept your application",
-      body: "Your broker will contact you about alternatives and any refund of your premium.",
-      link: policy.request_id ? `/account/requests/${policy.request_id}` : "/account",
-    });
-    if (policy.broker_org_id) {
-      await notifyOrg(policy.broker_org_id, { kind: "application.declined", title: `${ctx.orgName} declined the risk for ${policy.internal_reference}`, body: input.reason, link: policy.request_id ? `/partner/requests/${policy.request_id}` : "/partner/policies" });
+    let result: Awaited<ReturnType<typeof declinePendingPolicy>>;
+    try {
+      result = await declinePendingPolicy({ insurerOrgId: ctx.orgId, policyId: policy.id, reason: input.reason, actorId: ctx.userId, insurerName: ctx.orgName });
+    } catch (err) {
+      if (err instanceof BusinessRuleError) return { ok: false, error: err.message };
+      if (err instanceof Error && /SUPABASE_SECRET_KEY/.test(err.message)) return { ok: false, error: "Declining after payment needs the platform's service key on this environment (it refunds the premium and closes the request). Ask platform support to complete this decline." };
+      throw err;
     }
     refresh();
-    return { ok: true, message: "Risk declined. The broker and customer have been told; refunds are handled by the payment provider." };
+    return {
+      ok: true,
+      message: result.refunded
+        ? result.refund === "processed"
+          ? "Risk declined. The premium has been refunded and the broker and customer have been told."
+          : "Risk declined. A refund has been requested from the payment provider; the broker and customer have been told."
+        : "Risk declined. The broker and customer have been told.",
+    };
   });
 }
 

@@ -83,7 +83,7 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
           <h1 className="mt-2 text-[28px] font-semibold leading-tight sm:text-[32px]">{title}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-white/85">
             {insurer?.brand_color && <span aria-hidden className="inline-block size-3 rounded-sm" style={{ background: insurer.brand_color }} />}
-            {insurer?.name} · Policy {policy.policy_number ?? policy.internal_reference}
+            {insurer?.name ?? policy.external_insurer_name ?? "Insurer not listed"} · Policy {policy.policy_number ?? policy.internal_reference}
             {isDemo && <span className="rounded bg-white/15 px-1.5 text-[11px]">Demo</span>}
           </p>
           <dl className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
@@ -298,6 +298,13 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
                 {insurer.nic_licence_number && <li className="text-xs text-subtle">NIC licence {insurer.nic_licence_number}</li>}
               </ul>
               {isDemo && <DemoBadge className="mt-3" />}
+            </Card>
+          )}
+          {!insurer && policy.external_insurer_name && (
+            <Card className="p-5">
+              <p className="text-sm text-muted">Insurer</p>
+              <p className="mt-1 font-semibold text-ink">{policy.external_insurer_name}</p>
+              <p className="text-xs text-muted">Not on the platform. Contact them directly for claims and changes; we hold only what you entered.</p>
             </Card>
           )}
           {broker && (

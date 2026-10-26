@@ -4,6 +4,7 @@ import { getSetting } from "@/lib/catalog";
 import { check, invalid, must, parseJson, rule, withApi } from "@/server/api-auth";
 import { requestForCustomer } from "@/server/access";
 import { notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 
 /**
  * POST /api/v1/applications — apply for a ready-to-accept quote. The broker disclosure must
@@ -58,6 +59,7 @@ export const POST = withApi(
     check(await sb.from("request_events").insert({ request_id: request.id, actor_id: auth.userId, actor_party: "customer", event: "application_submitted", note: "Application submitted.", data: { application_id: application.id, quote_id: quote.id } as Json }));
     if (request.broker_org_id) {
       await notifyOrg(request.broker_org_id, { kind: "application.submitted", title: `Application submitted for ${request.reference}`, link: `/partner/requests/${request.id}`, data: { request_id: request.id, application_id: application.id }, channels: ["in_app", "email"] });
+      await emitEvent(request.broker_org_id, "application.submitted", { request_id: request.id, reference: request.reference, application_id: application.id, quote_id: quote.id, status: "submitted" });
     }
     return Response.json({ ok: true, data: { application, created: true, next: "POST /api/v1/payments with this applicationId" } }, { status: 201 });
   },

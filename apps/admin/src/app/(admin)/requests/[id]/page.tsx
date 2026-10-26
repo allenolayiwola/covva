@@ -10,7 +10,7 @@ import { isUuid, orgMap, personName, profileMap } from "@/lib/query";
 import { formatDateTime, formatGHS, relativeDue } from "@/lib/format";
 import { Breadcrumb, JsonView, KeyValues, LoadingBlock, Panel } from "@/components/ui/layout";
 import { ActionForm, ConfirmAction } from "@/components/ui/forms";
-import { addInternalNote, cancelRequest, reassignBroker } from "../actions";
+import { addInternalNote, cancelRequest, completeBrokerHandover, reassignBroker } from "../actions";
 
 export default function RequestDetailPage({ params }: PageProps<"/requests/[id]">) {
   return (
@@ -46,6 +46,9 @@ async function RequestDetail({ params }: Pick<PageProps<"/requests/[id]">, "para
   const routing = (events ?? []).filter((e) => /rout|broker_assigned|broker_reassigned/.test(e.event));
   const brokers = [...orgs.values()].filter((o) => o.type === "broker" && o.status === "active" && o.id !== r.broker_org_id);
   const canAct = can(staff.roles, "operations");
+  // Consented hand-over waiting for completion: a broker_change disclosure for a broker other than the current one.
+  const consented = (disclosures ?? []).filter((d) => d.stage === "broker_change" && d.broker_org_id !== r.broker_org_id);
+  const pendingHandover = open && consented.length > 0 && (events ?? []).some((e) => e.event === "broker_change_proposed") ? consented[consented.length - 1] : null;
 
   return (
     <>
@@ -56,6 +59,25 @@ async function RequestDetail({ params }: Pick<PageProps<"/requests/[id]">, "para
         actions={
           open ? (
             <>
+              {pendingHandover && (
+                <ConfirmAction
+                  action={completeBrokerHandover}
+                  fields={{ requestId: r.id, brokerOrgId: pendingHandover.broker_org_id }}
+                  label={`Complete hand-over to ${orgs.get(pendingHandover.broker_org_id)?.name ?? "new broker"}`}
+                  title="Complete broker hand-over"
+                  triggerVariant="primary"
+                  variant="primary"
+                  confirmLabel="Complete hand-over"
+                  requireReason={false}
+                  disabled={!canAct}
+                  body={
+                    <p>
+                      The customer agreed to {orgs.get(pendingHandover.broker_org_id)?.name} on {formatDateTime(pendingHandover.acknowledged_at)}. Completing moves the
+                      request, unassigns the adviser and tells both brokers and the customer.
+                    </p>
+                  }
+                />
+              )}
               <ConfirmAction
                 action={reassignBroker}
                 fields={{ requestId: r.id }}

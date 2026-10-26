@@ -29,5 +29,6 @@ export default function SignUpPage({ searchParams }: PageProps<"/sign-up">) {
 
 async function Body({ searchParams }: Pick<PageProps<"/sign-up">, "searchParams">) {
   const sp = await searchParams;
-  return <SignUpForm next={safeNext(sp.next)} />;
+  const email = typeof sp.email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sp.email) ? sp.email : undefined;
+  return <SignUpForm next={safeNext(sp.next)} defaultEmail={email} />;
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowRight, FileText, MessageSquare } from "lucide-react";
-import { OPEN_REQUEST_STATUSES, REQUEST_STATUS, formatDate, formatDateTime, formatGHS, relativeDue, type RequestStatus } from "@im/core";
+import { OPEN_REQUEST_STATUSES, REQUEST_STATUS, buildDisclosure, formatDate, formatDateTime, formatGHS, relativeDue, type RequestStatus } from "@im/core";
 import type { Row } from "@im/db";
 import { Card, DefinitionList, Notice, Pill, StatusPill, Timeline, buttonClass, type TimelineStep } from "@im/ui";
 import { BrokerCard, brokerContact } from "@/components/customer/broker-card";
@@ -15,6 +15,7 @@ import { formatBytes } from "@/components/customer/utils";
 import { CATEGORY_COLS, account, getRequestOr404, signUrls } from "../../_lib/data";
 import { PARTY_LABEL, REQUEST_TYPE_LABEL } from "../../_lib/labels";
 import { attachRequestDocument } from "./actions";
+import { BrokerChangeForm } from "./broker-change-form";
 import { CancelRequestForm } from "./cancel-form";
 
 export const metadata: Metadata = { title: "Request" };
@@ -37,7 +38,7 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
   const request = await getRequestOr404(supabase, id);
 
   const [eventsRes, tasksRes, quotesRes, docsRes, othersRes, lastMsgRes, unreadRes] = await Promise.all([
-    supabase.from("request_events").select("id, event, from_status, to_status, note, actor_party, created_at").eq("request_id", id).order("created_at", { ascending: true }),
+    supabase.from("request_events").select("id, event, from_status, to_status, note, actor_party, created_at, data").eq("request_id", id).order("created_at", { ascending: true }),
     supabase.from("request_tasks").select("*").eq("request_id", id).order("created_at", { ascending: true }),
     supabase.from("quotes").select("id, status, premium, insurer_org_id, valid_until, insurer:organizations!quotes_insurer_org_id_fkey(name)").eq("request_id", id),
     supabase.from("documents").select("id, file_name, storage_path, size_bytes, kind, created_at, delivered_to_insurer_at, task_id").eq("request_id", id).order("created_at", { ascending: false }),
@@ -76,6 +77,13 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
   const due = request.due_at && (OPEN_REQUEST_STATUSES as string[]).includes(status) ? relativeDue(request.due_at) : null;
   const submittedEvent = events.find((e) => e.to_status === "submitted") ?? events[0];
 
+  // Pending change of broker: open customer review task + latest proposal event naming the new broker.
+  const handoverTask = openCustomerTasks.find((t) => t.kind === "review" && /broker/i.test(t.title));
+  const proposal = handoverTask ? ([...events].reverse().find((e) => e.event === "broker_change_proposed")?.data as { target_broker_org_id?: string; reason?: string } | null) : null;
+  const { data: newBroker } = proposal?.target_broker_org_id
+    ? await supabase.from("organizations").select("id, name, nic_licence_number").eq("id", proposal.target_broker_org_id).maybeSingle()
+    : { data: null };
+
   // ------------------------------------------------------------------ timeline
   const steps: TimelineStep[] = [];
   steps.push({
@@ -92,6 +100,24 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
     steps.push({ title: t.title, detail: t.completed_at ? `Done ${formatDateTime(t.completed_at)}` : "Done", state: "done" });
   }
   for (const t of openCustomerTasks) {
+    if (t.id === handoverTask?.id && newBroker) {
+      steps.push({
+        title: "Confirm your new broker",
+        detail: `${broker?.name ?? "Your broker"} has proposed ${newBroker.name} as your broker of record.`,
+        state: isClosed ? "upcoming" : "current",
+        action: isClosed ? undefined : (
+          <BrokerChangeForm
+            requestId={request.id}
+            taskId={t.id}
+            newBroker={newBroker.name}
+            currentBroker={broker?.name ?? "Your current broker"}
+            reason={proposal?.reason ?? null}
+            disclosure={buildDisclosure({ broker: { name: newBroker.name, licence: newBroker.nic_licence_number } })}
+          />
+        ),
+      });
+      continue;
+    }
     steps.push({
       title: t.title,
       detail: (
@@ -195,7 +221,13 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
             </Notice>
           )}
           {status === "cancelled" && <Notice tone="neutral" className="mt-5">You cancelled this request{request.cancelled_reason ? ` (${request.cancelled_reason})` : ""}. Any existing policy is unaffected.</Notice>}
-          {status === "closed_no_cover" && <Notice tone="neutral" className="mt-5">Your broker closed this request without arranging cover. Message them if you&apos;d like to know why.</Notice>}
+          {status === "closed_no_cover" && (
+            <Notice tone="neutral" className="mt-5">
+              {events.some((e) => e.event === "insurer_declined")
+                ? "The insurer could not accept this application, so no cover was arranged. Any premium you paid is being refunded. Your broker will suggest alternatives."
+                : "Your broker closed this request without arranging cover. Message them if you'd like to know why."}
+            </Notice>
+          )}
           {request.next_step && !isClosed && <p className="mt-5 text-[15px] text-ink-2"><span className="font-semibold">Next step: </span>{request.next_step}</p>}
 
           <Timeline steps={steps} className="mt-7" />
@@ -266,6 +298,12 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
                         "Request created"
                       ) : e.event === "broker_assigned" ? (
                         "Broker of record assigned"
+                      ) : e.event === "broker_changed" ? (
+                        e.note ?? "Broker of record changed with your consent"
+                      ) : e.event === "insurer_declined" ? (
+                        e.note ?? "The insurer could not accept the application"
+                      ) : e.event === "payment_refunded" ? (
+                        e.note ?? "Premium refund"
                       ) : (
                         e.note ?? e.event.replace(/_/g, " ")
                       )}

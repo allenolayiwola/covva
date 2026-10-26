@@ -109,7 +109,7 @@ values
 -- Organisations ---------------------------------------------------------------------------
 insert into public.organizations (type, status, name, slug, legal_name, description, contact_email, region, settings, brand_color, integration_level, nic_licence_number, nic_licence_class)
 values
- ('platform', 'active', 'COVVA', 'platform', '[placeholder: technology partner legal entity]',
+ ('platform', 'active', 'Covva', 'platform', '[placeholder: technology partner legal entity]',
   'Technology provider. Not an insurer or broker.', 'hello@covva.com.gh', 'Greater Accra', '{"demo": false}', '#00796E', null, null, null),
  ('broker', 'active', 'Demo Broker', 'demo-broker', 'Demo Insurance Brokers Ltd',
   'Primary retail broker of record for personal lines. Human help, when you need it.', 'service@demo-broker.example', 'Greater Accra',
@@ -295,7 +295,7 @@ insert into public.feature_flags (key, enabled, description) values
  ('self_signup_partners', false, 'Allow brokers/insurers to apply online (admin approval still required).');
 
 insert into public.platform_settings (key, value, description) values
- ('brand', '{"name":"COVVA","working_name":true,"tagline":"Insurance made clearer. Human help built in.","support_email":"support@covva.com.gh","support_phone":"[placeholder]"}', 'Brand and contact details'),
+ ('brand', '{"name":"Covva","working_name":true,"tagline":"Insurance made clearer. Human help built in.","support_email":"support@covva.com.gh","support_phone":"[placeholder]"}', 'Brand and contact details'),
  ('disclosure_template', '{"text":"Technology provided by {platform}. Insurance broking services provided by {broker}, NIC licence {broker_licence}. This policy is underwritten and issued by {insurer}."}', 'Mandatory transaction disclosure'),
  ('terms_version', '"2026-10-v1"', 'Current customer terms version'),
  ('privacy_version', '"2026-10-v1"', 'Current privacy notice version'),

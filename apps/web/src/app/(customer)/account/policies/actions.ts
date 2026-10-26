@@ -61,7 +61,8 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a date");
 const External = z
   .object({
     category_id: uuid.or(z.literal("")).refine((v) => v !== "", "Choose the type of cover"),
-    insurer_org_id: uuid.or(z.literal("")).refine((v) => v !== "", "Choose the insurer"),
+    insurer_org_id: uuid.or(z.literal("other")).or(z.literal("")).refine((v) => v !== "", "Choose the insurer"),
+    external_insurer_name: z.string().trim().max(120).optional(),
     policy_number: z.string().trim().min(3, "Enter the policy number").max(60),
     nickname: z.string().trim().max(60).optional(),
     cover_start: date,
@@ -69,7 +70,8 @@ const External = z
     premium: z.union([z.literal(""), z.coerce.number().nonnegative("Premium can't be negative")]).optional(),
     sum_insured: z.union([z.literal(""), z.coerce.number().nonnegative()]).optional(),
   })
-  .refine((v) => v.cover_end > v.cover_start, { message: "The end date must be after the start date", path: ["cover_end"] });
+  .refine((v) => v.cover_end > v.cover_start, { message: "The end date must be after the start date", path: ["cover_end"] })
+  .refine((v) => v.insurer_org_id !== "other" || (v.external_insurer_name?.length ?? 0) >= 2, { message: "Enter the insurer's name as printed on your policy", path: ["external_insurer_name"] });
 
 export async function addExternalPolicy(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { supabase, user } = await actionContext();
@@ -87,7 +89,9 @@ export async function addExternalPolicy(_prev: ActionState, formData: FormData):
     .from("policies")
     .insert({
       customer_id: user.id,
-      insurer_org_id: v.insurer_org_id,
+      // Insurer not on the platform: keep the typed name; no organisations row is created.
+      insurer_org_id: v.insurer_org_id === "other" ? null : v.insurer_org_id,
+      external_insurer_name: v.insurer_org_id === "other" ? v.external_insurer_name! : null,
       category_id: v.category_id,
       policy_number: v.policy_number,
       nickname: v.nickname || null,

@@ -3,6 +3,7 @@ import { getSetting } from "@/lib/catalog";
 import { createServiceClient } from "@/lib/supabase/server";
 import { check, must, parseJson, rule, withApi } from "@/server/api-auth";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 
 /** GET /api/v1/complaints — the customer's complaints. */
 export const GET = withApi(
@@ -75,6 +76,7 @@ export const POST = withApi(
     );
     if (ownerOrg) {
       await notifyOrg(ownerOrg, { kind: "complaint.new", title: `New complaint ${complaint.reference}`, body: input.subject, link: `/partner/complaints/${complaint.id}`, data: { complaint_id: complaint.id }, channels: ["in_app", "email"] }, ["owner", "admin", "supervisor", "compliance", "platform_admin", "support"]);
+      await emitEvent(ownerOrg, "complaint.filed", { complaint_id: complaint.id, reference: complaint.reference, status: "open", category: input.category, against_party: input.againstParty, request_id: input.requestId ?? null, policy_id: input.policyId ?? null, claim_id: input.claimId ?? null });
     }
     await notify({
       userId: auth.userId,

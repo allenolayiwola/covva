@@ -2,6 +2,7 @@ import { BrokerQuoteInput, ENGINE_VERSION } from "@im/core";
 import type { Enum, Json } from "@im/db";
 import { forbidden, invalid, must, notFound, parseJson, rule, withApi } from "@/server/api-auth";
 import { notify } from "@/server/notify";
+import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 
 const QUOTABLE: Enum<"request_status">[] = ["submitted", "awaiting_customer_info", "adviser_action", "insurer_response", "quotes_ready"];
 
@@ -84,9 +85,11 @@ export const POST = withApi(
 
     if (input.status === "ready_to_accept" && request.status !== "quotes_ready") {
       await svc.from("requests").update({ status: "quotes_ready", next_step: "Compare your quotes and choose an option." }).eq("id", request.id).in("status", QUOTABLE);
+      await emitRequestStatus(request.broker_org_id, request, request.status, "quotes_ready");
     }
     if (input.status === "ready_to_accept") {
       await notify({ userId: request.customer_id, kind: "quote.ready", title: `A quote is ready for ${request.reference}`, body: "An insurer has confirmed a binding quote. Compare it before it expires.", link: `/account/requests/${request.id}/quotes`, data: { request_id: request.id, quote_id: quote.id } });
+      await emitEvent(request.broker_org_id, "quote.ready", { request_id: request.id, reference: request.reference, quote_id: quote.id, insurer_org_id: input.insurerOrgId, status: "ready_to_accept" });
     }
     return Response.json({ ok: true, data: quote }, { status: 201 });
   },

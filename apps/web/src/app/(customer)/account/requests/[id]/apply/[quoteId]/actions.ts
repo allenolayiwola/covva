@@ -6,7 +6,9 @@ import { z } from "zod";
 import { buildDisclosure } from "@im/core";
 import type { Json } from "@im/db";
 import { getSetting } from "@/lib/catalog";
+import { notifyOrg } from "@/server/notify";
 import { initiatePayment } from "@/server/payments";
+import { emitEvent } from "@/server/webhooks";
 import { normaliseGhanaPhone, type ActionState } from "@/components/customer/utils";
 import { SIGNED_OUT, actionContext, dbError } from "../../../../_lib/action";
 import { declarationsFor } from "./declarations";
@@ -115,18 +117,27 @@ export async function submitApplication(_prev: ActionState, formData: FormData):
   if (!existing?.length) {
     const termsVersion = (await getSetting<string>("terms_version")) ?? "unversioned";
     declarations.declared_at = new Date().toISOString();
-    const { error } = await supabase.from("applications").insert({
-      request_id: request.id,
-      quote_id: quote.id,
-      customer_id: user.id,
-      status: "submitted",
-      declarations: declarations as Json,
-      selected_benefits: benefits as Json,
-      terms_accepted_at: new Date().toISOString(),
-      terms_version: termsVersion,
-      disclosure_id: disclosure?.id ?? null,
-    });
+    const { data: created, error } = await supabase
+      .from("applications")
+      .insert({
+        request_id: request.id,
+        quote_id: quote.id,
+        customer_id: user.id,
+        status: "submitted",
+        declarations: declarations as Json,
+        selected_benefits: benefits as Json,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: termsVersion,
+        disclosure_id: disclosure?.id ?? null,
+      })
+      .select("id")
+      .single();
     if (error) return { ok: false, error: dbError(error, "We couldn't submit your application. Please try again.") };
+    const { data: ref } = await supabase.from("requests").select("reference").eq("id", request.id).maybeSingle();
+    if (request.broker_org_id) {
+      await notifyOrg(request.broker_org_id, { kind: "application.submitted", title: `Application submitted for ${ref?.reference ?? "a request"}`, link: `/partner/requests/${request.id}`, data: { request_id: request.id, application_id: created.id }, channels: ["in_app", "email"] }).catch(() => {});
+      await emitEvent(request.broker_org_id, "application.submitted", { request_id: request.id, reference: ref?.reference ?? null, application_id: created.id, quote_id: quote.id, status: "submitted" });
+    }
   }
   revalidatePath(`/account/requests/${request.id}`);
   refresh();

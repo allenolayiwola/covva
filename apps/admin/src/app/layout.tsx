@@ -6,9 +6,9 @@ const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500"], display
 const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400"], display: "swap", variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: { default: "Admin · COVVA", template: "%s · Admin · COVVA" },
-  description: "Platform administration portal for COVVA staff.",
-  applicationName: "COVVA Admin",
+  title: { default: "Admin · Covva", template: "%s · Admin · Covva" },
+  description: "Platform administration portal for Covva staff.",
+  applicationName: "Covva Admin",
   icons: { icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/favicon.png", type: "image/png" }], apple: "/apple-touch-icon.png" },
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
 };

@@ -5,7 +5,7 @@ import { LegalPage } from "@/components/marketing/legal-page";
 
 export const metadata: Metadata = {
   title: "Cookies",
-  description: "The cookies and similar technologies COVVA uses and how to control them. Draft — subject to legal review.",
+  description: "The cookies and similar technologies Covva uses and how to control them. Draft — subject to legal review.",
   alternates: { canonical: "/legal/cookies" },
 };
 

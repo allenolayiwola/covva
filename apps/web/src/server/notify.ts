@@ -37,7 +37,7 @@ function defaultChannels(kind: string): Channel[] {
   return SMS_KINDS.has(kind) ? ["in_app", "push", "email", "sms"] : ["in_app", "push", "email"];
 }
 
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
 
 /** Run work after the response when inside a request; otherwise run it now. */
 function defer(task: () => Promise<void>): Promise<void> {
@@ -105,9 +105,9 @@ export async function notifyOrg(orgId: string, input: Omit<NotifyInput, "userId"
 export async function sendInviteEmail(input: { to: string; orgName: string; role: string; token: string; invitedBy?: string | null; expiresAt?: string | null }): Promise<void> {
   const link = `${siteUrl()}/invite/${encodeURIComponent(input.token)}`;
   const role = input.role.replace(/_/g, " ");
-  const title = `You're invited to join ${input.orgName} on COVVA`;
+  const title = `You're invited to join ${input.orgName} on Covva`;
   const body = [
-    `${input.invitedBy ? `${input.invitedBy} has` : "You have been"} invited you to join ${input.orgName} as ${/^[aeiou]/i.test(role) ? "an" : "a"} ${role}.`,
+    `${input.invitedBy ? `${input.invitedBy} has invited you` : "You have been invited"} to join ${input.orgName} as ${/^[aeiou]/i.test(role) ? "an" : "a"} ${role}.`,
     "Open the link below and sign in with this email address (or create an account with it) to accept.",
     input.expiresAt ? `The invitation expires on ${input.expiresAt.slice(0, 10)}.` : "The invitation expires in 14 days.",
   ].join("\n");
@@ -225,7 +225,7 @@ export function emailHtml(n: Pick<Inserted, "title" | "body" | "link">, name?: s
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F7F3;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #DCE3E1;border-radius:16px;overflow:hidden">
 <tr><td style="background:#00796E;padding:20px 24px;color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.2px">
-<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;background:#ffffff;color:#00796E;border-radius:8px;margin-right:10px;font-weight:800">i</span>COVVA</td></tr>
+<img src="${siteUrl()}/brand/horizontal-reverse-light.png" height="36" alt="Covva" style="display:block;height:36px;border:0"></td></tr>
 <tr><td style="padding:28px 24px 8px">
 ${name ? `<p style="margin:0 0 12px;font-size:15px">Hello ${escapeHtml(name)},</p>` : ""}
 <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#15343E">${escapeHtml(n.title)}</h1>
@@ -254,7 +254,7 @@ export async function sendEmail(msg: { to: string; subject: string; html: string
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM ?? "COVVA <no-reply@covva.com.gh>",
+        from: process.env.EMAIL_FROM ?? "Covva <no-reply@covva.com.gh>",
         to: [msg.to],
         subject: msg.subject,
         html: msg.html,
@@ -296,7 +296,7 @@ export function normaliseGhanaPhone(phone: string): string {
 export async function sendSms(phone: string, message: string): Promise<Record<string, unknown>> {
   const provider = (process.env.SMS_PROVIDER ?? "log").toLowerCase();
   const to = normaliseGhanaPhone(phone);
-  const sender = (process.env.SMS_SENDER_ID ?? "COVVA").slice(0, 11);
+  const sender = (process.env.SMS_SENDER_ID ?? "Covva").slice(0, 11);
   try {
     if (provider === "arkesel") {
       const key = process.env.SMS_API_KEY;
@@ -383,3 +383,4 @@ async function sendExpoPush(svc: Svc, items: { notificationId: string; token: st
   }
   return out;
 }
+

@@ -21,11 +21,11 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `PAYMENTS_SIMULATOR` | no | no | `true` enables the sandbox simulator even in production builds (staging only!). `false` disables it in dev. |
 | `PAYMENTS_SIMULATOR_SECRET` | yes | no | HMAC key for simulator links (defaults to `SUPABASE_SECRET_KEY`) |
 | `RESEND_API_KEY` | **yes** | prod | Email delivery. Unset → emails are logged, not sent |
-| `EMAIL_FROM` | no | prod | e.g. `COVVA <no-reply@your-domain>` (verified Resend domain) |
+| `EMAIL_FROM` | no | prod | e.g. `Covva <no-reply@your-domain>` (verified Resend domain) |
 | `SMS_PROVIDER` | no | prod | `log` (default) \| `arkesel` \| `hubtel` |
 | `SMS_API_KEY` | **yes** | if SMS | Arkesel API key, or `clientId:clientSecret` for Hubtel |
 | `HUBTEL_CLIENT_ID` / `HUBTEL_CLIENT_SECRET` | **yes** | if Hubtel | Preferred over `SMS_API_KEY` for Hubtel |
-| `SMS_SENDER_ID` | no | if SMS | Registered sender id, ≤ 11 chars (default `COVVA`) |
+| `SMS_SENDER_ID` | no | if SMS | Registered sender id, ≤ 11 chars (default `Covva`) |
 | `EXPO_ACCESS_TOKEN` | **yes** | optional | Required only if Expo push security is enabled for the project |
 | `AI_GATEWAY_API_KEY` | **yes** | local | Vercel AI Gateway. On Vercel deployments OIDC is used automatically (a key, if set, wins) |
 | `AI_DEFAULT_MODEL` / `AI_FAST_MODEL` / `AI_VISION_MODEL` | no | no | Gateway model ids; overridden by `platform_settings.ai_models` |
@@ -65,7 +65,8 @@ been pasted into chat, logs or tickets.
    insurer receives the premium and bears Paystack fees; the platform never holds the money.
 3. **Webhook URL**: `https://<web-host>/api/webhooks/paystack` (Settings → API Keys & Webhooks), for
    both test and live modes. Signature: `x-paystack-signature` = HMAC-SHA512(raw body, secret key).
-   Handled events: `charge.success`, `charge.failed`, `refund.processed` (others are acknowledged).
+   Handled events: `charge.success`, `charge.failed`, `refund.processed`, `refund.failed` (`refund.pending`
+   and others are acknowledged).
 4. **Callback URL**: set per transaction (web: `/account/requests/{id}/confirmation`; mobile:
    `/api/payments/return`, which redirects to `covva://payments/return`).
 5. Mobile money channels must be enabled on the Paystack business (GHS). Direct MoMo prompts use `POST /charge`.
@@ -75,6 +76,17 @@ been pasted into chat, logs or tickets.
 Payment success creates the policy as `pending_issuance` and moves the request to
 `policy_documents`. **Only insurer issuance activates cover** (`POST /api/v1/partner/policies/{id}/issue`
 or the partner UI, which should call `onPolicyIssued()` afterwards).
+
+**Refunds (insurer declines after payment).** The insurer's "Decline risk" on a pending policy calls
+`declinePendingPolicy()` → `refundPayment()` (`POST /refund` with the transaction reference and a
+`merchant_note`). The payment is marked `refunded` as soon as Paystack accepts the request and
+`raw_event.refund` tracks progress (`requested` → `processed` on `refund.processed`). A `refund.failed`
+webhook reverts the payment to `succeeded` with `failure_reason = "Refund failed …"`, logs
+`paystack.refund_processing_failed` and notifies the broker's owners/supervisors/finance to arrange the
+refund manually (then set `status = refunded` from the admin payments page). The pending policy is
+cancelled, the application rejected and the request closed (`closed_no_cover`). Simulator payments are
+refunded immediately. Alert on `paystack.refund_failed` (provider refused) and
+`paystack.refund_processing_failed`.
 
 Sandbox: with no `PAYSTACK_SECRET_KEY` and `NODE_ENV !== "production"` (or `PAYMENTS_SIMULATOR=true`),
 checkout opens `/api/payments/simulate?reference=…&sig=…` — a clearly labelled simulator that runs the
@@ -103,6 +115,7 @@ same `applyPaymentResult` code path. Never enable it on a production domain.
 | `/api/cron/policy-lifecycle` | daily 00:15 | Active policies past `cover_end` → `expired`; notify customer |
 | `/api/cron/usage-metering` | daily 01:30 | One `policy_active` usage event per active policy per month for the broker org (idempotent) |
 | `/api/cron/complaint-sla` | daily 08:00 | Open complaints past `due_at` → timeline note, notify owner org + platform compliance (once) |
+| `/api/cron/webhook-retry` | every 10 min | Re-sends partner webhook deliveries whose `next_attempt_at` has passed (backoff 1m, 5m, 30m, 2h, 12h; max 5 attempts). See `docs/WEBHOOKS.md` |
 
 Each run writes `platform_settings['cron_last_run:<job>'] = { at, ok, ms, result }` (visible in admin
 system health). Sub-daily schedules need a Vercel Pro plan. Manual run:
@@ -114,9 +127,15 @@ Migrations live in `supabase/migrations/` and are applied with the Supabase MCP 
 (`supabase db push`). After applying, regenerate types into `packages/db/src/database.types.ts`.
 `20261026130000_backend_support.sql` adds `usage_events.details`, a one-policy-per-quote index,
 supporting indexes, KYC/request/claim column guards and the `ai_models` setting.
+`20261026140000_flows.sql` adds the invitation RPCs (`invitation_preview`, `accept_invitation`), the
+broker hand-over RPC (`complete_broker_change`), `policies.external_insurer_name` (with
+`insurer_org_id` nullable only when `external_source`), and `webhook_deliveries.last_error` /
+`response_ms` plus retry indexes.
 
 ## 6. Observability
 
+* Partner webhooks: `webhook_deliveries` rows per endpoint (status, attempts, `last_error`); the settings
+  page shows the last 20 per endpoint. Alert on repeated `webhooks.delivery_failed` for one endpoint.
 * Logs are one JSON object per line (`level`, `msg`, `requestId`, `path`, `status`, `ms`, `principal`).
   `src/instrumentation.ts` logs unhandled server errors (`request.unhandled_error`, with digest).
   Configure a Vercel log drain (Datadog/Axiom/Better Stack) and alert on `level=error`,

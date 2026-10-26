@@ -4,6 +4,7 @@ import { z } from "zod";
 import { BrokerQuoteInput, REQUEST_STATUS, canTransitionRequest, riskFingerprint, type RequestStatus } from "@im/core";
 import type { Enum } from "@im/db";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 import { ROLES, actionContext, dbMessage, run, type ActionState, type PartnerContext } from "../../../_lib/context";
 
 const uuid = z.string().uuid();
@@ -100,6 +101,7 @@ export async function transitionRequest(_prev: ActionState, formData: FormData):
       link: `/account/requests/${req.id}`,
       data: { request_id: req.id, status: to },
     });
+    await emitRequestStatus(ctx.orgId, req, req.status, to);
     refresh();
     return { ok: true, message: `Moved to ${REQUEST_STATUS[to].label}.` };
   });
@@ -142,6 +144,7 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
     if (input.wait === "on" && req.status !== "awaiting_customer_info" && canTransitionRequest(req.status, "awaiting_customer_info", "broker")) {
       const { error: e2 } = await ctx.supabase.from("requests").update({ status: "awaiting_customer_info", next_step: input.title }).eq("id", req.id);
       moved = !e2;
+      if (moved) await emitRequestStatus(ctx.orgId, req, req.status, "awaiting_customer_info");
     }
     await notify({
       userId: req.customer_id,
@@ -213,7 +216,8 @@ export async function submitToInsurer(_prev: ActionState, formData: FormData): P
       return { ok: false, error: dbMessage(error, "We couldn't submit to the insurer.") };
     }
     if (input.move === "on" && req.status !== "insurer_response" && canTransitionRequest(req.status, "insurer_response", "broker")) {
-      await ctx.supabase.from("requests").update({ status: "insurer_response", next_step: "Insurers are preparing quotations." }).eq("id", req.id);
+      const { error: mErr } = await ctx.supabase.from("requests").update({ status: "insurer_response", next_step: "Insurers are preparing quotations." }).eq("id", req.id);
+      if (!mErr) await emitRequestStatus(ctx.orgId, req, req.status, "insurer_response");
     }
     await notifyOrg(input.insurerOrgId, {
       kind: "submission.new",
@@ -355,6 +359,8 @@ export async function sendQuotesToCustomer(_prev: ActionState, formData: FormDat
       data: { request_id: req.id },
       channels: ["in_app", "email", "sms", "push"],
     });
+    if (req.status !== "quotes_ready") await emitRequestStatus(ctx.orgId, req, req.status, "quotes_ready");
+    await emitEvent(ctx.orgId, "quote.ready", { request_id: req.id, reference: req.reference, quotes: live.length, binding: live.filter((q) => q.status === "ready_to_accept").length });
     refresh();
     return { ok: true, message: "Quotes sent to the customer." };
   });
@@ -398,21 +404,27 @@ export async function documentAction(_prev: ActionState, formData: FormData): Pr
 }
 
 // ---------------------------------------------------------------------------
-// Broker change (supervisors). The DB requires a `broker_change` disclosure, which only
-// the customer can record (RLS), before broker_org_id may change.
+// Broker change (supervisors). Spec: one broker of record; changing it needs notice
+// and the customer's consent — a `broker_change` disclosure for the NEW broker, which
+// only the customer (or platform staff) can record. Completion runs through the
+// `complete_broker_change` SECURITY DEFINER function because RLS won't let a broker
+// hand a request to another organisation directly.
 // ---------------------------------------------------------------------------
 export async function requestBrokerChange(_prev: ActionState, formData: FormData): Promise<ActionState> {
   return guard(async (ctx) => {
     const input = z.object({ requestId: uuid, targetOrgId: uuid, reason: z.string().trim().min(10, "Explain the reason to the customer (at least 10 characters)").max(1000) }).parse(fd(formData));
     const req = await loadRequest(ctx, input.requestId);
+    if (["completed", "cancelled", "closed_no_cover"].includes(req.status)) return { ok: false, error: "A closed request can't be handed over." };
     if (input.targetOrgId === ctx.orgId) return { ok: false, error: "Choose a different broker." };
     const { data: target } = await ctx.supabase.from("organizations").select("id, name, nic_licence_number, type, status").eq("id", input.targetOrgId).maybeSingle();
     if (!target || target.type !== "broker" || target.status !== "active") return { ok: false, error: "Choose an active, licensed broker." };
+    const { data: openTask } = await ctx.supabase.from("request_tasks").select("id").eq("request_id", req.id).eq("kind", "review").eq("assignee_party", "customer").eq("status", "open").ilike("title", "%broker%").limit(1);
+    if (openTask?.length) return { ok: false, error: "The customer already has a hand-over to confirm. Wait for their answer or cancel that task first." };
     const { error } = await ctx.supabase.from("request_tasks").insert({
       request_id: req.id,
       kind: "review",
-      title: `Confirm change of broker to ${target.name}`,
-      detail: `${input.reason}\n\nInsurance broking services would be provided by ${target.name}${target.nic_licence_number ? `, NIC licence ${target.nic_licence_number}` : ""}. Your request does not move until you confirm.`,
+      title: "Confirm your new broker",
+      detail: `${ctx.orgName} proposes ${target.name}${target.nic_licence_number ? ` (NIC licence ${target.nic_licence_number})` : ""} as your broker of record. Reason: ${input.reason}\n\nNothing changes until you confirm.`,
       assignee_party: "customer",
       created_by: ctx.userId,
       due_at: new Date(Date.now() + 5 * 86_400_000).toISOString(),
@@ -425,7 +437,7 @@ export async function requestBrokerChange(_prev: ActionState, formData: FormData
       event: "broker_change_proposed",
       note: `Proposed change of broker to ${target.name}: ${input.reason}`,
       visible_to_customer: true,
-      data: { target_broker_org_id: target.id },
+      data: { target_broker_org_id: target.id, target_broker_name: target.name, from_broker_org_id: ctx.orgId, reason: input.reason },
     });
     await notify({
       userId: req.customer_id,
@@ -434,9 +446,10 @@ export async function requestBrokerChange(_prev: ActionState, formData: FormData
       body: `${ctx.orgName} proposes ${target.name} as your broker of record. Nothing changes until you confirm.`,
       link: `/account/requests/${req.id}`,
       data: { request_id: req.id, target_broker_org_id: target.id },
+      channels: ["in_app", "email", "sms", "push"],
     });
     refresh();
-    return { ok: true, message: `Asked the customer to confirm ${target.name}. Once they acknowledge the disclosure you can complete the hand-over.` };
+    return { ok: true, message: `Asked the customer to confirm ${target.name}. Once they agree you can complete the hand-over.` };
   }, ROLES.supervise);
 }
 
@@ -444,15 +457,119 @@ export async function completeBrokerChange(_prev: ActionState, formData: FormDat
   return guard(async (ctx) => {
     const input = z.object({ requestId: uuid, targetOrgId: uuid }).parse(fd(formData));
     const req = await loadRequest(ctx, input.requestId);
-    const { error } = await ctx.supabase.from("requests").update({ broker_org_id: input.targetOrgId, assigned_to: null, team: null }).eq("id", req.id);
-    if (error) {
-      if (error.code === "P0001") return { ok: false, error: error.message };
-      return { ok: false, error: "The customer has confirmed, but your account can't hand the request to another organisation directly. Platform operations will complete the hand-over — contact platform support with the reference." };
-    }
-    await notifyOrg(input.targetOrgId, { kind: "request.handover", title: `${req.reference} handed over from ${ctx.orgName}`, link: `/partner/requests/${req.id}` });
+    const { data, error } = await ctx.supabase.rpc("complete_broker_change", { p_request: req.id, p_broker_org_id: input.targetOrgId });
+    if (error) return { ok: false, error: dbMessage(error, "The hand-over could not be completed.") };
+    const row = data?.[0];
+    if (!row) return { ok: false, error: "The hand-over could not be completed." };
+    await notifyOrg(row.to_broker_org_id, {
+      kind: "request.handover",
+      title: `${req.reference} handed over from ${ctx.orgName}`,
+      body: "The customer has confirmed you as broker of record. The request is unassigned in your queue.",
+      link: `/partner/requests/${req.id}`,
+      data: { request_id: req.id },
+      channels: ["in_app", "email", "push"],
+    });
+    await notifyOrg(ctx.orgId, {
+      kind: "request.handover",
+      title: `${req.reference} handed over to ${row.to_broker_name}`,
+      link: `/partner/requests`,
+      data: { request_id: req.id },
+      channels: ["in_app"],
+    }, ["owner", "admin", "supervisor"]);
+    await notify({
+      userId: req.customer_id,
+      kind: "request.broker_changed",
+      title: `${row.to_broker_name} is now your broker for ${req.reference}`,
+      body: "Your request has moved with your consent. Your new broker will pick it up from here.",
+      link: `/account/requests/${req.id}`,
+      data: { request_id: req.id, broker_org_id: row.to_broker_org_id },
+      channels: ["in_app", "email", "push"],
+    });
+    await emitEvent(row.to_broker_org_id, "request.created", { request_id: req.id, reference: req.reference, status: req.status, handed_over_from: ctx.orgId });
     refresh();
-    return { ok: true, message: "Hand-over complete." };
+    return { ok: true, message: `Hand-over complete. ${row.to_broker_name} is now the broker of record; this request will disappear from your queue.` };
   }, ROLES.supervise);
+}
+
+/** Cancel an open hand-over proposal before the customer answers. */
+export async function withdrawBrokerChange(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return guard(async (ctx) => {
+    const input = z.object({ requestId: uuid, taskId: uuid }).parse(fd(formData));
+    const req = await loadRequest(ctx, input.requestId);
+    const { error } = await ctx.supabase.from("request_tasks").update({ status: "cancelled" }).eq("id", input.taskId).eq("request_id", req.id).eq("status", "open");
+    if (error) return { ok: false, error: dbMessage(error) };
+    await ctx.supabase.from("request_events").insert({ request_id: req.id, actor_id: ctx.userId, actor_party: "broker", event: "broker_change_withdrawn", note: "The proposed change of broker was withdrawn.", visible_to_customer: true, data: { task_id: input.taskId } });
+    refresh();
+    return { ok: true, message: "Proposal withdrawn. You remain the broker of record." };
+  }, ROLES.supervise);
+}
+
+// ---------------------------------------------------------------------------
+// Documents uploaded by the broker on the customer's behalf (received by email,
+// WhatsApp or in the office). Storage RLS lets active members upload under the
+// customer's folder; the `documents` row is owned by the customer and marked as
+// uploaded by the broker. Optionally completes the open task it answers.
+// ---------------------------------------------------------------------------
+const UPLOAD_KINDS = ["id_document", "vehicle_registration", "drivers_licence", "photo", "proof_of_address", "medical", "receipt", "police_report", "invoice", "endorsement", "other"] as const;
+const UploadedFiles = z.array(z.object({ path: z.string().min(5).max(400), name: z.string().min(1).max(255), mime: z.string().max(120), size: z.number().int().nonnegative(), kind: z.enum(UPLOAD_KINDS) })).min(1).max(10);
+
+export async function recordRequestDocuments(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return guard(async (ctx) => {
+    const input = z.object({ requestId: uuid, taskId: uuid.optional().or(z.literal("").transform(() => undefined)) }).parse({ requestId: formData.get("requestId"), taskId: formData.get("taskId") ?? "" });
+    let files: z.infer<typeof UploadedFiles>;
+    try {
+      files = UploadedFiles.parse(JSON.parse(String(formData.get("files") ?? "[]")));
+    } catch {
+      return { ok: false, error: "No valid files to record." };
+    }
+    const req = await loadRequest(ctx, input.requestId);
+    if (files.some((f) => !f.path.startsWith(`${req.customer_id}/requests/`) || f.path.includes(".."))) return { ok: false, error: "Unexpected storage path." };
+
+    let task: { id: string; title: string; document_kind: Enum<"document_kind"> | null } | null = null;
+    if (input.taskId) {
+      const { data } = await ctx.supabase.from("request_tasks").select("id, title, document_kind, status, assignee_party").eq("id", input.taskId).eq("request_id", req.id).maybeSingle();
+      if (!data || data.status !== "open") return { ok: false, error: "That task is no longer open." };
+      task = data;
+    }
+    const { error } = await ctx.supabase.from("documents").insert(
+      files.map((f) => ({
+        owner_id: req.customer_id,
+        uploaded_by: ctx.userId,
+        uploaded_by_party: "broker" as const,
+        request_id: req.id,
+        task_id: task?.id ?? null,
+        kind: f.kind as Enum<"document_kind">,
+        storage_path: f.path,
+        file_name: f.name,
+        mime_type: f.mime || null,
+        size_bytes: f.size,
+      })),
+    );
+    if (error) return { ok: false, error: dbMessage(error, "Files uploaded, but we couldn't record them. Try again.") };
+    if (task) {
+      await ctx.supabase.from("request_tasks").update({ status: "done", completed_at: new Date().toISOString(), completed_by: ctx.userId }).eq("id", task.id).eq("status", "open");
+    }
+    await ctx.supabase.from("request_events").insert({
+      request_id: req.id,
+      actor_id: ctx.userId,
+      actor_party: "broker",
+      event: "document_uploaded",
+      note: `${files.length === 1 ? files[0]!.name : `${files.length} documents`} added by ${ctx.orgName} on your behalf${task ? ` for “${task.title}”` : ""}.`,
+      visible_to_customer: true,
+      data: { task_id: task?.id ?? null, count: files.length },
+    });
+    await notify({
+      userId: req.customer_id,
+      kind: "request.document_added",
+      title: `${ctx.orgName} added ${files.length === 1 ? "a document" : `${files.length} documents`} to ${req.reference}`,
+      body: task ? `This completes “${task.title}”. You can see the file in your request.` : "You can see the file in your request. The insurer is notified only once your broker confirms delivery.",
+      link: `/account/requests/${req.id}`,
+      data: { request_id: req.id },
+      channels: ["in_app", "push"],
+    });
+    refresh();
+    return { ok: true, message: `${files.length} document${files.length === 1 ? "" : "s"} recorded for the customer${task ? ` and “${task.title}” marked done` : ""}.` };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -476,6 +593,7 @@ export async function deliverPolicyDocuments(_prev: ActionState, formData: FormD
       data: { request_id: req.id, policy_id: pol[0]!.id },
       channels: ["in_app", "email", "sms", "push"],
     });
+    await emitRequestStatus(ctx.orgId, req, req.status, "completed");
     refresh();
     return { ok: true, message: "Documents delivered and request completed." };
   });

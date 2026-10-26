@@ -1224,6 +1224,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["lead_kind"]
           message: string | null
           name: string
+          notes: string | null
           organization: string | null
           phone: string | null
           source_page: string | null
@@ -1238,6 +1239,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["lead_kind"]
           message?: string | null
           name: string
+          notes?: string | null
           organization?: string | null
           phone?: string | null
           source_page?: string | null
@@ -1252,6 +1254,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["lead_kind"]
           message?: string | null
           name?: string
+          notes?: string | null
           organization?: string | null
           phone?: string | null
           source_page?: string | null
@@ -1491,6 +1494,7 @@ export type Database = {
           reconciled: boolean
           reconciled_at: string | null
           reconciled_by: string | null
+          reconciliation_note: string | null
           request_id: string
           settlement_subaccount: string | null
           status: Database["public"]["Enums"]["payment_status"]
@@ -1517,6 +1521,7 @@ export type Database = {
           reconciled?: boolean
           reconciled_at?: string | null
           reconciled_by?: string | null
+          reconciliation_note?: string | null
           request_id: string
           settlement_subaccount?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -1543,6 +1548,7 @@ export type Database = {
           reconciled?: boolean
           reconciled_at?: string | null
           reconciled_by?: string | null
+          reconciliation_note?: string | null
           request_id?: string
           settlement_subaccount?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
@@ -1882,6 +1888,9 @@ export type Database = {
           optional_benefits: Json
           product_id: string
           rating: Json
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: Database["public"]["Enums"]["product_status"]
           submitted_by: string | null
           version: number
@@ -1906,6 +1915,9 @@ export type Database = {
           optional_benefits?: Json
           product_id: string
           rating?: Json
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           submitted_by?: string | null
           version: number
@@ -1930,6 +1942,9 @@ export type Database = {
           optional_benefits?: Json
           product_id?: string
           rating?: Json
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           submitted_by?: string | null
           version?: number
@@ -2783,29 +2798,14 @@ export type Database = {
         }[]
       }
       complete_broker_change: {
-        Args: { p_request: string; p_broker_org_id?: string | null }
+        Args: { p_broker_org_id?: string; p_request: string }
         Returns: {
           customer_id: string
-          from_broker_org_id: string | null
+          from_broker_org_id: string
           reference: string
           request_id: string
           to_broker_name: string
           to_broker_org_id: string
-        }[]
-      }
-      invitation_preview: {
-        Args: { p_token: string }
-        Returns: {
-          accepted_at: string | null
-          email: string
-          expires_at: string
-          invited_by_name: string | null
-          org_id: string
-          org_name: string
-          org_slug: string
-          org_type: Database["public"]["Enums"]["org_type"]
-          role: Database["public"]["Enums"]["member_role"]
-          team: string | null
         }[]
       }
       find_customer_for_partner: {
@@ -2815,6 +2815,21 @@ export type Database = {
           full_name: string
           id: string
           phone: string
+        }[]
+      }
+      invitation_preview: {
+        Args: { p_token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          invited_by_name: string
+          org_id: string
+          org_name: string
+          org_slug: string
+          org_type: Database["public"]["Enums"]["org_type"]
+          role: Database["public"]["Enums"]["member_role"]
+          team: string
         }[]
       }
       verify_audit_chain: {

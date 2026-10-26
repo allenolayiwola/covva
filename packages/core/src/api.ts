@@ -198,17 +198,22 @@ export type ConfirmUploadInput = z.infer<typeof ConfirmUploadInput>;
 
 export const UpdatePolicyInput = z.object({ nickname: z.string().trim().max(60).nullable() });
 
-export const AddExternalPolicyInput = z.object({
-  categorySlug: z.string().min(1),
-  insurerOrgId: uuid,
-  policyNumber: z.string().trim().min(3).max(60),
-  coverStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  coverEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  premium: z.coerce.number().nonnegative().optional(),
-  sumInsured: z.coerce.number().nonnegative().optional(),
-  nickname: z.string().trim().max(60).optional(),
-  documentId: uuid.optional(),
-});
+export const AddExternalPolicyInput = z
+  .object({
+    categorySlug: z.string().min(1),
+    /** An insurer from GET /catalog/insurers. Omit and give `insurerName` when the insurer is not on the platform. */
+    insurerOrgId: uuid.optional(),
+    /** Name of the insurer as printed on the policy, for insurers not listed on the platform. */
+    insurerName: z.string().trim().min(2).max(120).optional(),
+    policyNumber: z.string().trim().min(3).max(60),
+    coverStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    coverEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    premium: z.coerce.number().nonnegative().optional(),
+    sumInsured: z.coerce.number().nonnegative().optional(),
+    nickname: z.string().trim().max(60).optional(),
+    documentId: uuid.optional(),
+  })
+  .refine((v) => !!v.insurerOrgId || !!v.insurerName, { message: "Give the insurer (insurerOrgId) or its name (insurerName)", path: ["insurerOrgId"] });
 
 export const RenewalInput = z.object({
   risk: z.record(z.string(), z.unknown()).optional(),

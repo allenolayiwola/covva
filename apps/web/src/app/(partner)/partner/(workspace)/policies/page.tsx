@@ -36,7 +36,7 @@ async function Policies({ searchParams }: { searchParams: Promise<SP> }) {
 
   const { data } = await ctx.supabase
     .from("policies")
-    .select("id, policy_number, internal_reference, status, customer_id, insurer_org_id, category_id, cover_start, cover_end, premium, external_source")
+    .select("id, policy_number, internal_reference, status, customer_id, insurer_org_id, external_insurer_name, category_id, cover_start, cover_end, premium, external_source")
     .eq("broker_org_id", ctx.orgId)
     .order("cover_end", { ascending: true, nullsFirst: false })
     .limit(2000);
@@ -91,7 +91,7 @@ async function Policies({ searchParams }: { searchParams: Promise<SP> }) {
                       return (
                         <li key={p.id} className="rounded-xl border border-line bg-white p-3 text-sm">
                           <p className="font-semibold text-ink">{shortName(customers.get(p.customer_id))}</p>
-                          <p className="text-xs text-muted">{cats.get(p.category_id)?.name} · {insurers.get(p.insurer_org_id)} · {p.policy_number ?? p.internal_reference}</p>
+                          <p className="text-xs text-muted">{cats.get(p.category_id)?.name} · {(p.insurer_org_id ? insurers.get(p.insurer_org_id) : p.external_insurer_name) ?? "Insurer"} · {p.policy_number ?? p.internal_reference}</p>
                           <p className={days <= 7 ? "mt-1 text-xs font-medium text-amber" : "mt-1 text-xs text-muted"}>Expires {formatDate(p.cover_end)} ({days} day{days === 1 ? "" : "s"})</p>
                           <div className="mt-2">
                             {renewal ? (
@@ -145,7 +145,7 @@ async function Policies({ searchParams }: { searchParams: Promise<SP> }) {
                           <Link href={`/partner/customers/${p.customer_id}`} className="text-xs text-muted hover:text-brand">{shortName(customers.get(p.customer_id))}</Link>
                         </Td>
                         <Td>{cats.get(p.category_id)?.name ?? "—"}</Td>
-                        <Td>{insurers.get(p.insurer_org_id) ?? "—"}{p.external_source && <Pill className="ml-1">External</Pill>}</Td>
+                        <Td>{(p.insurer_org_id ? insurers.get(p.insurer_org_id) : p.external_insurer_name) ?? "—"}{p.external_source && <Pill className="ml-1">External</Pill>}</Td>
                         <Td><StatusPill meta={POLICY_STATUS[p.status]} /></Td>
                         <Td>{formatDate(p.cover_start)} – {formatDate(p.cover_end)}{days !== null && days >= 0 && days <= 45 && p.status === "active" && <p className="text-xs text-amber">Renewal in {days} days</p>}</Td>
                         <Td className="tabular-nums">{formatGHS(p.premium != null ? Number(p.premium) : null)}</Td>

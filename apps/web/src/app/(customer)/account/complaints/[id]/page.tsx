@@ -55,7 +55,7 @@ async function Detail({ params, searchParams }: Pick<PageProps<"/account/complai
     if (complaint.status !== "investigating" && complaint.status !== "escalated_nic") steps.push({ title: "Investigating", state: "upcoming" });
     steps.push({ title: "Final response", detail: `Target: ${formatDate(complaint.due_at)}`, state: "upcoming" });
   }
-  const handler = complaint.against_party === "platform" ? "COVVA support" : complaint.owner?.name ?? `the ${complaint.against_party}`;
+  const handler = complaint.against_party === "platform" ? "Covva support" : complaint.owner?.name ?? `the ${complaint.against_party}`;
 
   return (
     <div>

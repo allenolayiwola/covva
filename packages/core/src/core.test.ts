@@ -52,7 +52,7 @@ test("routing skips unlicensed brokers and prefers primary", () => {
 
 test("disclosure names all three parties", () => {
   const t = buildDisclosure({ broker: { name: "Demo Broker", licence: "NIC/1" }, insurer: { name: "Coastline" } });
-  assert.match(t, /Technology provided by COVVA\. Insurance broking services provided by Demo Broker, NIC licence NIC\/1\. This policy is underwritten and issued by Coastline\./);
+  assert.match(t, /Technology provided by Covva\. Insurance broking services provided by Demo Broker, NIC licence NIC\/1\. This policy is underwritten and issued by Coastline\./);
 });
 
 test("customers cannot jump requests to completed", () => {

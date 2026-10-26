@@ -75,7 +75,7 @@ async function Invoice({ params }: Pick<PageProps<"/invoices/[id]">, "params">) 
           <div className="flex items-center gap-3">
             <LogoMark size={40} />
             <div>
-              <p className="text-lg font-semibold text-ink">{b.name ?? "COVVA"}</p>
+              <p className="text-lg font-semibold text-ink">{b.name ?? "Covva"}</p>
               <p className="text-xs text-muted">{platform?.legal_name ?? ""}</p>
               <p className="text-xs text-muted">{platform?.address ?? ""}</p>
               <p className="text-xs text-muted">{b.support_email ?? platform?.contact_email ?? ""}</p>
@@ -125,7 +125,7 @@ async function Invoice({ params }: Pick<PageProps<"/invoices/[id]">, "params">) 
         </table>
         {voidNote && <p className="mt-6 rounded-lg bg-danger-bg p-3 text-sm text-danger">{voidNote.description}</p>}
         <footer className="mt-10 border-t border-line pt-4 text-xs leading-relaxed text-muted">
-          Technology services fees only. {b.name ?? "COVVA"} is a technology provider — not an insurer or broker — and does not collect or hold
+          Technology services fees only. {b.name ?? "Covva"} is a technology provider — not an insurer or broker — and does not collect or hold
           insurance premiums, which are paid directly to insurers.
         </footer>
       </article>

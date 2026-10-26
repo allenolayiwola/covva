@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Field, Input, Select } from "@im/ui";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { MultiUpload } from "@/components/customer/upload";
@@ -16,6 +16,7 @@ export function ExternalPolicyForm({
   insurers: { id: string; name: string }[];
 }) {
   const [state, action] = useActionState(addExternalPolicy, initialActionState);
+  const [insurer, setInsurer] = useState("");
   const fe = state.fieldErrors ?? {};
   return (
     <form action={action} className="space-y-5" noValidate>
@@ -28,14 +29,20 @@ export function ExternalPolicyForm({
             ))}
           </Select>
         </Field>
-        <Field label="Insurer" htmlFor="insurer_org_id" error={fe.insurer_org_id} hint="Not listed? Contact support and we'll help.">
-          <Select id="insurer_org_id" name="insurer_org_id" defaultValue="" aria-invalid={!!fe.insurer_org_id}>
+        <Field label="Insurer" htmlFor="insurer_org_id" error={fe.insurer_org_id} hint="Participating insurers are listed first. Choose “Other” if yours isn't here.">
+          <Select id="insurer_org_id" name="insurer_org_id" value={insurer} onChange={(e) => setInsurer(e.currentTarget.value)} aria-invalid={!!fe.insurer_org_id}>
             <option value="">Choose…</option>
             {insurers.map((i) => (
               <option key={i.id} value={i.id}>{i.name}</option>
             ))}
+            <option value="other">Other / not listed</option>
           </Select>
         </Field>
+        {insurer === "other" && (
+          <Field label="Insurer name" htmlFor="external_insurer_name" error={fe.external_insurer_name} hint="As printed on your policy. We won't contact them." className="sm:col-span-2">
+            <Input id="external_insurer_name" name="external_insurer_name" maxLength={120} required aria-invalid={!!fe.external_insurer_name} />
+          </Field>
+        )}
         <Field label="Policy number" htmlFor="policy_number" error={fe.policy_number}>
           <Input id="policy_number" name="policy_number" autoComplete="off" aria-invalid={!!fe.policy_number} />
         </Field>

@@ -3,6 +3,7 @@ import type { Json } from "@im/db";
 import { check, must, parseJson, rule, withApi } from "@/server/api-auth";
 import { requiredEvidence } from "@/server/claims";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 
 /** GET /api/v1/claims — the customer's claims. */
 export const GET = withApi(
@@ -28,7 +29,7 @@ export const POST = withApi(
       "Policy not found.",
     );
     if (policy.customer_id !== auth.userId) throw rule("Only the policyholder can report a claim here.");
-    if (policy.external_source) throw rule("For a policy you added yourself, contact the insurer that issued it to make a claim.");
+    if (policy.external_source || !policy.insurer_org_id) throw rule("For a policy you added yourself, contact the insurer that issued it to make a claim.");
     if (policy.status === "pending_issuance") throw rule("This policy hasn't been issued by the insurer yet, so there is no cover to claim against. Contact your broker.");
     if (["cancelled"].includes(policy.status)) throw rule("This policy was cancelled. Contact your broker if you think this is wrong.");
 
@@ -58,6 +59,9 @@ export const POST = withApi(
       await notifyOrg(policy.broker_org_id, { kind: "claim.reported", title: `Claim ${claim.reference} reported`, body: `${input.incidentType} on ${policy.policy_number ?? policy.internal_reference}. Check the evidence and deliver it to the insurer.`, link: `/partner/claims/${claim.id}`, data: { claim_id: claim.id } });
     }
     await notify({ userId: auth.userId, kind: "claim.reported", title: `Claim ${claim.reference} reported to your broker`, body: CLAIM_DISCLAIMER, link: `/account/claims/${claim.id}`, data: { claim_id: claim.id }, channels: ["in_app", "email"] });
+    const reported = { claim_id: claim.id, reference: claim.reference, policy_id: policy.id, status: "reported", incident_type: input.incidentType };
+    await emitEvent(policy.broker_org_id, "claim.reported", reported);
+    await emitEvent(policy.insurer_org_id, "claim.reported", reported);
     return Response.json(
       {
         ok: true,

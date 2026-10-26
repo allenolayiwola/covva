@@ -6,7 +6,7 @@ import { LegalPage } from "@/components/marketing/legal-page";
 
 export const metadata: Metadata = {
   title: "Terms of use",
-  description: "The terms that apply when you use the COVVA website and apps. Draft — subject to legal review.",
+  description: "The terms that apply when you use the Covva website and apps. Draft — subject to legal review.",
   alternates: { canonical: "/legal/terms" },
 };
 

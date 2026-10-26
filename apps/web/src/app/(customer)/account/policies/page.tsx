@@ -77,7 +77,7 @@ function PolicyGrid({ title, policies, empty }: { title: string; policies: Polic
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted">{coverLabel(p.category?.name, p.insured_items as Record<string, unknown>)}</p>
                     <p className="truncate text-[17px] font-semibold text-ink">{policyTitle(p)}</p>
-                    <p className="truncate text-sm text-muted">{p.insurer?.name} · {p.policy_number ?? p.internal_reference}</p>
+                    <p className="truncate text-sm text-muted">{p.insurer?.name ?? p.external_insurer_name ?? "Insurer not listed"} · {p.policy_number ?? p.internal_reference}</p>
                   </div>
                   <StatusPill meta={POLICY_STATUS[p.status]} />
                 </div>

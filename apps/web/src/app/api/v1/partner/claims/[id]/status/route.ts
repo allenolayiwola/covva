@@ -2,6 +2,7 @@ import { CLAIM_STATUS, PartnerClaimStatusInput } from "@im/core";
 import type { Update } from "@im/db";
 import { forbidden, must, notFound, parseJson, rule, uuidParam, withApi } from "@/server/api-auth";
 import { notify, notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 
 const FINAL = ["paid", "closed", "withdrawn", "rejected"];
 
@@ -33,6 +34,9 @@ export const POST = withApi(
     const label = CLAIM_STATUS[input.status].label;
     await notify({ userId: claim.customer_id, kind: "claim.status", title: `Claim ${claim.reference}: ${label}`, body: input.visibleToCustomer && input.note ? input.note : CLAIM_STATUS[input.status].customerHint, link: `/account/claims/${id}`, data: { claim_id: id, status: input.status } });
     if (claim.broker_org_id) await notifyOrg(claim.broker_org_id, { kind: "claim.status", title: `Claim ${claim.reference}: ${label}`, link: `/partner/claims/${id}`, data: { claim_id: id, status: input.status }, channels: ["in_app", "email"] });
+    const changed = { claim_id: id, reference: claim.reference, from_status: claim.status, status: input.status };
+    await emitEvent(claim.broker_org_id, "claim.status_changed", changed);
+    await emitEvent(claim.insurer_org_id, "claim.status_changed", changed);
     return { claim: { ...updated, statusLabel: CLAIM_STATUS[updated.status].label } };
   },
   { auth: "apiKey", scopes: ["claims:write"] },

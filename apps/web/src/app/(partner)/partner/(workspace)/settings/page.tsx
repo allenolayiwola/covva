@@ -4,7 +4,7 @@ import { Checkbox, DemoBadge, Field, Input, Notice, PageHeader, Pill, Select, Ta
 import { GHANA_REGIONS, formatDate, formatDateTime, formatGHS, humanize } from "@im/core";
 import { can, getPartnerContext, ROLES, type PartnerContext } from "../../_lib/context";
 import { nowMs, getTeam, teamsOf } from "../../_lib/data";
-import { API_SCOPES, BROKER_ROLES, INSURER_ROLES, WEBHOOK_EVENTS } from "../../_lib/settings";
+import { API_SCOPES, BROKER_ROLES, INSURER_ROLES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
 import { ActionForm } from "@/components/partner/action-form";
 import { ApiKeyForm, InviteForm, LogoUpload } from "@/components/partner/settings-forms";
 import { Bars, Empty, KV, PageSkeleton, Section } from "@/components/partner/ui";
@@ -15,6 +15,7 @@ import {
   revokeApiKey,
   revokeInvitation,
   saveConnector,
+  sendTestWebhook,
   setLogo,
   setMemberActive,
   updateMember,
@@ -278,6 +279,10 @@ async function DeveloperTab({ ctx }: { ctx: PartnerContext }) {
     ctx.supabase.from("api_keys").select("id, name, prefix, scopes, created_at, last_used_at, expires_at, revoked_at").eq("org_id", ctx.orgId).order("created_at", { ascending: false }),
     ctx.supabase.from("webhook_endpoints").select("id, url, events, active, secret, last_delivery_at, last_status, created_at").eq("org_id", ctx.orgId).order("created_at", { ascending: false }),
   ]);
+  const hookIds = (hooks ?? []).map((h) => h.id);
+  const { data: deliveries } = hookIds.length
+    ? await ctx.supabase.from("webhook_deliveries").select("id, endpoint_id, event, status, attempts, next_attempt_at, delivered_at, last_error, response_ms, created_at").in("endpoint_id", hookIds).order("created_at", { ascending: false }).limit(20 * hookIds.length)
+    : { data: [] };
   return (
     <div className="space-y-6">
       <Section title="API keys" description="For your systems to call the /api/v1 endpoints. Keys act for your organisation; keep them secret.">
@@ -327,14 +332,20 @@ async function DeveloperTab({ ctx }: { ctx: PartnerContext }) {
                   <summary className="cursor-pointer text-xs font-medium text-brand">Show signing secret</summary>
                   <code className="mt-1 block break-all rounded bg-mist px-2 py-1 text-xs">{h.secret}</code>
                 </details>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <ActionForm action={updateWebhook} submitLabel={h.active ? "Pause" : "Enable"} variant="outline" inline>
                     <input type="hidden" name="id" value={h.id} /><input type="hidden" name="op" value={h.active ? "disable" : "enable"} />
                   </ActionForm>
+                  {h.active && (
+                    <ActionForm action={sendTestWebhook} submitLabel="Send test event" variant="secondary" inline>
+                      <input type="hidden" name="id" value={h.id} />
+                    </ActionForm>
+                  )}
                   <ActionForm action={updateWebhook} submitLabel="Delete" variant="ghost" inline confirm="Delete this webhook endpoint?">
                     <input type="hidden" name="id" value={h.id} /><input type="hidden" name="op" value="delete" />
                   </ActionForm>
                 </div>
+                <DeliveryLog rows={(deliveries ?? []).filter((d) => d.endpoint_id === h.id).slice(0, 20)} />
               </li>
             ))}
           </ul>
@@ -344,9 +355,14 @@ async function DeveloperTab({ ctx }: { ctx: PartnerContext }) {
           <fieldset>
             <legend className="mb-1.5 text-sm font-medium text-ink-2">Events</legend>
             <div className="grid gap-2 sm:grid-cols-2">
-              {WEBHOOK_EVENTS.map((e) => <Checkbox key={e} name="events" value={e} label={<code className="text-xs">{e}</code>} />)}
+              {WEBHOOK_EVENTS.filter((e) => e !== "test.ping").map((e) => (
+                <Checkbox key={e} name="events" value={e} label={<span><code className="text-xs">{e}</code><span className="block text-xs text-muted">{WEBHOOK_EVENT_DESCRIPTIONS[e]}</span></span>} />
+              ))}
             </div>
           </fieldset>
+          <p className="text-xs text-muted">
+            Deliveries are signed: <code>x-covva-signature</code> = HMAC-SHA256 of <code>{"{x-covva-timestamp}.{body}"}</code> with the endpoint secret. Failed deliveries retry after 1 min, 5 min, 30 min, 2 h and 12 h. Payloads carry ids, references and statuses only — never personal data. See <code>docs/WEBHOOKS.md</code>.
+          </p>
         </ActionForm>
       </Section>
     </div>
@@ -391,5 +407,33 @@ async function ConnectorTab({ ctx }: { ctx: PartnerContext }) {
         <p className="mt-3 text-xs text-muted">The platform tests and enables connectors. Until then, submissions arrive in this portal.</p>
       </Section>
     </div>
+  );
+}
+
+type DeliveryRow = { id: number; event: string; status: number | null; attempts: number; next_attempt_at: string | null; delivered_at: string | null; last_error: string | null; response_ms: number | null; created_at: string };
+
+function DeliveryLog({ rows }: { rows: DeliveryRow[] }) {
+  if (!rows.length) return <p className="text-xs text-subtle">No deliveries yet.</p>;
+  return (
+    <details>
+      <summary className="cursor-pointer text-xs font-medium text-brand">Recent deliveries ({rows.length})</summary>
+      <Table className="mt-2">
+        <THead><tr><Th>Event</Th><Th>Status</Th><Th>Attempts</Th><Th>Next retry</Th><Th>Sent</Th></tr></THead>
+        <tbody>
+          {rows.map((d) => (
+            <tr key={d.id}>
+              <Td><code className="text-xs">{d.event}</code><span className="block text-[11px] text-subtle">#{d.id}</span></Td>
+              <Td>
+                {d.delivered_at ? <Pill tone="ok">Delivered {d.status}</Pill> : d.next_attempt_at ? <Pill tone="wait">{d.status ? `HTTP ${d.status}` : "Failed"} · retrying</Pill> : d.attempts === 0 ? <Pill tone="info">Queued</Pill> : <Pill tone="danger">{d.status ? `HTTP ${d.status}` : "Failed"} · gave up</Pill>}
+                {d.last_error && !d.delivered_at && <span className="block text-[11px] text-muted">{d.last_error}</span>}
+              </Td>
+              <Td className="tabular-nums">{d.attempts}{d.response_ms != null ? <span className="text-xs text-subtle"> · {d.response_ms} ms</span> : null}</Td>
+              <Td className="text-xs">{d.delivered_at ? "—" : formatDateTime(d.next_attempt_at)}</Td>
+              <Td className="text-xs">{formatDateTime(d.created_at)}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </details>
   );
 }

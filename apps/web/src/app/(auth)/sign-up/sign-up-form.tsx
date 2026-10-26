@@ -7,7 +7,7 @@ import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
 import { signUp } from "../actions";
 
-export function SignUpForm({ next }: { next: string }) {
+export function SignUpForm({ next, defaultEmail }: { next: string; defaultEmail?: string }) {
   const [state, action] = useActionState(signUp, initialActionState);
   const [type, setType] = React.useState<"individual" | "business">("individual");
   const fe = state.fieldErrors ?? {};
@@ -53,8 +53,8 @@ export function SignUpForm({ next }: { next: string }) {
       <Field label="Mobile number" htmlFor="phone" error={fe.phone} hint="Your broker may call or text you about your requests.">
         <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="024 123 4567" required aria-invalid={!!fe.phone} />
       </Field>
-      <Field label="Email address" htmlFor="email" error={fe.email}>
-        <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" required aria-invalid={!!fe.email} />
+      <Field label="Email address" htmlFor="email" error={fe.email} hint={defaultEmail ? "Your invitation was sent to this address." : undefined}>
+        <Input id="email" name="email" type="email" inputMode="email" autoComplete="email" required defaultValue={defaultEmail} readOnly={!!defaultEmail} aria-invalid={!!fe.email} />
       </Field>
       <Field label="Password" htmlFor="password" error={fe.password} hint="At least 8 characters.">
         <Input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required aria-invalid={!!fe.password} />

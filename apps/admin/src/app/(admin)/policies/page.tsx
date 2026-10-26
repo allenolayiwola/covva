@@ -36,7 +36,7 @@ async function PolicyList({ searchParams }: { searchParams: Promise<SearchParams
 
   let query = supabase
     .from("policies")
-    .select("id, policy_number, internal_reference, status, customer_id, insurer_org_id, broker_org_id, category_id, premium, billing_period, cover_start, cover_end, external_source, issued_at", { count: "exact" })
+    .select("id, policy_number, internal_reference, status, customer_id, insurer_org_id, external_insurer_name, broker_org_id, category_id, premium, billing_period, cover_start, cover_end, external_source, issued_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to);
   if (status && status in POLICY_STATUS) query = query.eq("status", status as PolicyStatus);
@@ -82,7 +82,7 @@ async function PolicyList({ searchParams }: { searchParams: Promise<SearchParams
               </Td>
               <Td><Link href={`/users/${p.customer_id}`} className="hover:text-brand">{personName(people.get(p.customer_id))}</Link></Td>
               <Td>{cats.get(p.category_id)?.name}</Td>
-              <Td>{orgs.get(p.insurer_org_id)?.name}</Td>
+              <Td>{p.insurer_org_id ? orgs.get(p.insurer_org_id)?.name : <span className="text-muted">{p.external_insurer_name ?? "—"} (not listed)</span>}</Td>
               <Td>{p.broker_org_id ? orgs.get(p.broker_org_id)?.name : "—"}</Td>
               <Td><StatusPill meta={POLICY_STATUS[p.status]} /></Td>
               <Td className="tabular-nums">{formatGHS(p.premium == null ? null : Number(p.premium))}<span className="text-xs text-muted"> /{p.billing_period}</span></Td>

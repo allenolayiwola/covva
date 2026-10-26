@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { FileComplaintInput } from "@im/core";
 import { getSetting } from "@/lib/catalog";
 import { notifyOrg } from "@/server/notify";
+import { emitEvent } from "@/server/webhooks";
 import type { ActionState } from "@/components/customer/utils";
 import { SIGNED_OUT, actionContext, dbError } from "../_lib/action";
 
@@ -73,6 +74,7 @@ export async function fileComplaint(_prev: ActionState, formData: FormData): Pro
       link: `/partner/complaints/${complaint.id}`,
       data: { complaint_id: complaint.id },
     }).catch(() => {});
+    await emitEvent(ownerOrg, "complaint.filed", { complaint_id: complaint.id, reference: complaint.reference, status: "open", category: v.category, against_party: v.againstParty, request_id: req.data?.id ?? null, policy_id: pol.data?.id ?? null, claim_id: clm.data?.id ?? null });
   }
   revalidatePath("/account/complaints");
   redirect(`/account/complaints/${complaint.id}?filed=1`);
