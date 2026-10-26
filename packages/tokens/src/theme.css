@@ -28,15 +28,26 @@
   --font-weight-extrabold: 500;
   --font-weight-black: 500;
 
-  --radius-card: 16px;
-  --radius-field: 10px;
+  /* Desktop redesign: 20px cards, 24px hero card, 12px fields; every button is a full pill. */
+  --radius-card: 20px;
+  --radius-hero: 24px;
+  --radius-field: 12px;
+
+  /* Site container: content never wider than 1440px; `wide:` variant = ≥1440px side padding step. */
+  --container-site: 1440px;
+  --breakpoint-wide: 1440px;
+
+  /* Minimum text size is 13px (brand/a11y rule): Tailwind's text-xs is lifted from 12px to 13px. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
 
   --shadow-float: 0 18px 40px -18px rgb(21 52 62 / 0.25), 0 2px 6px rgb(21 52 62 / 0.06);
   --shadow-card: 0 1px 2px rgb(21 52 62 / 0.05);
 
+  /* Entrance motion animates transform only: content is visible from the first paint (LCP, no-JS, reduced motion). */
   --animate-fade-up: fade-up 0.5s ease-out both;
   @keyframes fade-up {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { transform: translateY(8px); }
+    to { transform: translateY(0); }
   }
 }

@@ -1,4 +1,5 @@
 import { must, uuidParam, withApi } from "@/server/api-auth";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * GET /api/v1/policies/{id}/documents — the policy's documents with short-lived signed URLs
@@ -20,7 +21,7 @@ export const GET = withApi(
       policyNumber: policy.policy_number,
       verificationCode: policy.external_source ? null : policy.verification_code,
       stickerNumber: policy.sticker_number,
-      verifyUrl: policy.verification_code && !policy.external_source ? `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/verify?q=${encodeURIComponent(policy.verification_code)}` : null,
+      verifyUrl: policy.verification_code && !policy.external_source ? `${siteUrl()}/verify?q=${encodeURIComponent(policy.verification_code)}` : null,
       documents: rows.map((d) => ({
         id: d.id,
         kind: d.kind,

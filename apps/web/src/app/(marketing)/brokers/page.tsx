@@ -91,8 +91,8 @@ export default async function BrokersPage() {
           {VALUE.map((v) => (
             <FeatureCard key={v.title} icon={<v.icon />} title={v.title}>{v.body}</FeatureCard>
           ))}
-          <div className="flex flex-col justify-between rounded-card bg-brand-deep p-6 text-white">
-            <Inbox aria-hidden className="size-6 text-mint" />
+          <div className="flex flex-col justify-between rounded-card border border-line bg-mint/60 p-6 text-ink">
+            <Inbox aria-hidden className="size-6 text-brand" />
             <p className="mt-6 text-[17px] font-semibold leading-snug">“One queue for mobile and web. Clear ownership at every step.”</p>
           </div>
         </div>

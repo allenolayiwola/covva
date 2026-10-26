@@ -20,7 +20,7 @@ export function Testimonials({ items }: { items: Testimonial[] }) {
             <Avatar initials="—" size={36} />
             <div>
               <p className="text-sm font-semibold text-ink">{t.name}</p>
-              <p className="text-[12px] text-muted">{t.context}</p>
+              <p className="text-[13px] text-muted">{t.context}</p>
             </div>
           </footer>
         </li>

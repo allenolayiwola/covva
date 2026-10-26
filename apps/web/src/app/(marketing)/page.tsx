@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
-  Banknote,
   BellRing,
   Building2,
   CreditCard,
@@ -10,8 +9,6 @@ import {
   Globe2,
   Layers,
   QrCode,
-  Search,
-  ShieldCheck,
   Smartphone,
   UserRoundCheck,
   Wallet,
@@ -22,7 +19,7 @@ import { ROLE_STATEMENTS } from "@im/core";
 import { getCategories, getPartnerDirectory } from "@/lib/catalog";
 import { displayOrgName, getBrand, isDemoMode, isDemoOrg } from "@/components/marketing/brand";
 import { HeroVisual } from "@/components/marketing/hero-visual";
-import { QuoteWidget } from "@/components/marketing/quote-widget";
+import { HomeHero } from "@/components/marketing/home-hero";
 import { TrustBar } from "@/components/marketing/trust-bar";
 import { CompareIllustration, PayIllustration, PolicyIllustration } from "@/components/marketing/how-it-works-illustrations";
 import { CategoryIcon } from "@/components/marketing/category-icon";
@@ -35,7 +32,6 @@ import { Testimonials } from "@/components/marketing/testimonials";
 import { PartnerCtaStrip } from "@/components/marketing/partner-cta-strip";
 import { RenewalReminderForm } from "@/components/marketing/renewal-reminder-form";
 import { Reveal } from "@/components/marketing/reveal";
-import { Experiment } from "@/components/marketing/experiment";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { HOME_FAQ_IDS, KEY_BENEFITS, STATS, TESTIMONIALS, findFaq } from "@/components/marketing/content";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
@@ -43,11 +39,16 @@ import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
 export const metadata: Metadata = {
-  title: { absolute: "Covva — Compare, buy and manage insurance in minutes" },
+  title: { absolute: "Covva — Real quotes. Your broker. Pay by MoMo." },
   description:
-    "Compare motor, home, health, travel, life and business insurance from licensed insurers in Ghana. Pay by MoMo or card, get your policy instantly and keep it in a digital wallet with QR verification.",
+    "Get real quotes for motor, home, health, travel, life and business insurance from licensed insurers in Ghana through brokers you choose. Pay by MoMo or card; the insurer issues your policy to a digital wallet with QR verification.",
   alternates: { canonical: "/" },
-  openGraph: { title: "Covva — Compare, buy and manage insurance in minutes", description: "Insurance for Ghana and the diaspora: compare licensed insurers, pay by MoMo or card, get your policy instantly.", url: "/" },
+  openGraph: {
+    title: "Covva — Real quotes. Your broker. Pay by MoMo.",
+    description: "Insurance for Ghana and the diaspora: compare quotes from licensed insurers through your broker, pay by MoMo or card, get your policy in your wallet.",
+    url: "/",
+    images: ["/opengraph-image"],
+  },
 };
 
 const STEPS = [
@@ -68,7 +69,6 @@ export default async function HomePage() {
     .concat(directory.insurers.filter((i) => !preferred.includes(i.slug)))
     .slice(0, 3)
     .map((i) => ({ name: i.name, color: i.brand_color }));
-  const quoteCategories = categories.map((c) => ({ slug: c.slug, name: c.name, icon: c.icon, availability: c.availability }));
   const reminderCategories = categories.map((c) => ({ slug: c.slug, name: c.name }));
   const faqs = findFaq(HOME_FAQ_IDS);
   const anyDemoPartner = directory.insurers.some((o) => isDemoOrg(o.settings));
@@ -77,39 +77,12 @@ export default async function HomePage() {
     <>
       <JsonLd data={faqJsonLd(faqs)} />
 
-      {/* Hero ------------------------------------------------------------------ */}
-      <section aria-labelledby="hero-title" className="relative overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[620px] bg-gradient-to-b from-mist/80 to-white" />
-        <div className="relative mx-auto grid w-full max-w-[1200px] gap-10 px-4 pb-14 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-center lg:gap-12 lg:px-8 lg:pb-20 lg:pt-16">
-          <div className="motion-safe:animate-fade-up">
-            <Eyebrow>Insurance for Ghana and the diaspora</Eyebrow>
-            <h1 id="hero-title" className="mt-5 text-balance text-[42px] leading-[1.02] tracking-[-0.04em] text-ink sm:text-[58px] lg:text-[64px]">
-              <Experiment
-                name="home_hero_headline"
-                variants={{
-                  control: <>Compare, buy and manage insurance <span className="text-brand">in minutes.</span></>,
-                  instant: <>Insured <span className="text-brand">in minutes.</span> Pay by MoMo, get your policy instantly.</>,
-                }}
-              />
-            </h1>
-            <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-muted sm:text-xl">
-              Motor, home, health, travel, life and business cover from licensed insurers. Pay with MoMo or card, get your policy instantly, and keep it in a wallet that works offline.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3 lg:hidden">
-              <a href="#quote" className={buttonClass("primary", "lg")}>Get quotes</a>
-              <Link href="/get-started" className={buttonClass("secondary", "lg")}>Help me choose</Link>
-            </div>
-            <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted">
-              <li className="flex items-center gap-2"><ShieldCheck aria-hidden className="size-4 text-brand" />Licensed insurers & brokers only</li>
-              <li className="flex items-center gap-2"><Banknote aria-hidden className="size-4 text-brand" />Premiums paid to the insurer</li>
-              <li className="flex items-center gap-2"><Search aria-hidden className="size-4 text-brand" />No obligation to buy</li>
-            </ul>
-          </div>
-          <div id="quote" className="scroll-mt-24 motion-safe:animate-fade-up [animation-delay:120ms]">
-            <QuoteWidget categories={quoteCategories} defaultSlug="motor" />
-          </div>
-        </div>
-      </section>
+      <HomeHero
+        examples={[
+          { label: "Motor · third party, private car", monthly: monthlyFrom(prices, ["motor"], 45).monthly },
+          { label: "Health · family outpatient plan", monthly: monthlyFrom(prices, ["health"], 180).monthly },
+        ]}
+      />
 
       <TrustBar insurers={directory.insurers} demo={demo} />
 
@@ -139,7 +112,7 @@ export default async function HomePage() {
       {/* Product tiles ----------------------------------------------------------- */}
       <Section tone="mist" labelledBy="cover-title" className="pt-4! sm:pt-6!">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="cover-title" className="text-[26px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[28px]">Cover for what matters to you</h2>
+          <h2 id="cover-title" className="text-h3 text-ink">Cover for what matters to you</h2>
           <p className="text-sm text-muted">“From” prices are indicative monthly figures from approved products; your quote may differ.</p>
         </div>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
@@ -200,17 +173,17 @@ export default async function HomePage() {
 
       {/* Diaspora ------------------------------------------------------------------ */}
       <Section tone="brand" labelledBy="diaspora-title" className="overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-white/[0.06]" />
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-white/60" />
         <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
           <div>
-            <p className="mb-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-mint"><Globe2 aria-hidden className="size-4" /> For the diaspora</p>
-            <h2 id="diaspora-title" className="text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] sm:text-[40px]">Protect your family back home.</h2>
-            <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-white/80">
+            <p className="mb-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand"><Globe2 aria-hidden className="size-4" /> For the diaspora</p>
+            <h2 id="diaspora-title" className="text-balance text-h2 text-ink">Protect your family back home.</h2>
+            <p className="mt-4 max-w-xl text-lead text-muted">
               Pay in GBP, USD, EUR or CAD for a parent’s health plan, the family car or the house you are building in Kumasi. You both get the documents, the reminders and every claim update.
             </p>
-            <CheckList invert className="mt-7" items={["Add parents and relatives as beneficiaries", "Family dashboard with every policy you pay for", "Gift a policy, or bundle a “Parents’ Care Pack”", "Group plans for churches and associations"]} />
+            <CheckList className="mt-7" items={["Add parents and relatives as beneficiaries", "Family dashboard with every policy you pay for", "Gift a policy, or bundle a “Parents’ Care Pack”", "Group plans for churches and associations"]} />
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/diaspora" className={buttonClass("white", "lg")}>Insure family in Ghana <ArrowRight aria-hidden className="size-4" /></Link>
+              <Link href="/diaspora" className={buttonClass("primary", "lg")}>Insure family in Ghana <ArrowRight aria-hidden className="size-4" /></Link>
             </div>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -220,10 +193,10 @@ export default async function HomePage() {
               { cur: "€", title: "Home under construction", body: "Buildings cover for the Oyarifa house, paid from Hamburg." },
               { cur: "C$", title: "Funeral plan for both parents", body: "Monthly from Toronto; benefit paid within days of a claim." },
             ].map((c) => (
-              <li key={c.title} className="rounded-card bg-white/10 p-5 ring-1 ring-inset ring-white/20">
-                <span aria-hidden className="grid size-9 place-items-center rounded-lg bg-white text-sm font-semibold text-brand-deep">{c.cur}</span>
-                <p className="mt-4 font-semibold">{c.title}</p>
-                <p className="mt-1 text-[13.5px] leading-relaxed text-white/75">{c.body}</p>
+              <li key={c.title} className="rounded-card border border-line bg-white p-5">
+                <span aria-hidden className="grid size-9 place-items-center rounded-lg bg-mint text-sm font-semibold text-brand-deep">{c.cur}</span>
+                <p className="mt-4 font-semibold text-ink">{c.title}</p>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{c.body}</p>
               </li>
             ))}
           </ul>
@@ -235,7 +208,7 @@ export default async function HomePage() {
         <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Compare the cover, not just the price</Eyebrow>
-            <h2 id="compare-title" className="text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[40px]">
+            <h2 id="compare-title" className="text-balance text-h2 text-ink">
               The same car. Three insurers. Three different prices.
             </h2>
             <p className="mt-4 text-[17px] leading-relaxed text-muted">
@@ -302,7 +275,7 @@ export default async function HomePage() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Questions</Eyebrow>
-            <h2 id="faq-title" className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[40px]">Good to know</h2>
+            <h2 id="faq-title" className="text-h2 text-ink">Good to know</h2>
             <p className="mt-4 text-[17px] leading-relaxed text-muted">Straight answers to the questions people ask most.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/support" className={buttonClass("outline", "md")}>Visit the help centre</Link>
@@ -315,7 +288,7 @@ export default async function HomePage() {
       </Section>
 
       <div className="pt-4 sm:pt-6">
-        <CtaBand title="Compare, buy and manage insurance in minutes." body="Start with a quote, or answer a few questions and we’ll suggest the cover worth considering. A named broker is with you at every step." primary={{ label: "Get quotes", href: "/#quote" }} secondary={{ label: "Help me choose", href: "/get-started" }} />
+        <CtaBand title="Real quotes from licensed insurers, through your broker." body="Start with a quote, or answer a few questions and we’ll suggest the cover worth considering. A named broker is with you at every step." primary={{ label: "Get quotes", href: "/quote" }} secondary={{ label: "Help me choose", href: "/get-started" }} />
       </div>
     </>
   );

@@ -1,7 +1,11 @@
 import * as React from "react";
 import { Container, Eyebrow, cn } from "@im/ui";
 
-/** A full-width page band with the 1200px container and consistent vertical rhythm. */
+/**
+ * A full-width page band with the shared 1440px container and the 8pt rhythm (96px between sections on
+ * desktop, 64px on phones). Light theme only: the former dark "ink" and "brand" tones now render as light
+ * mist / mint bands, so `invert` is accepted for compatibility but no longer changes colours.
+ */
 export function Section({
   id,
   tone = "white",
@@ -22,10 +26,10 @@ export function Section({
       id={id}
       aria-labelledby={labelledBy}
       className={cn(
-        "relative scroll-mt-20 py-16 sm:py-24",
+        "relative scroll-mt-20 py-16 lg:py-24",
         tone === "mist" && "bg-mist",
-        tone === "ink" && "bg-ink text-white",
-        tone === "brand" && "bg-brand-deep text-white",
+        tone === "ink" && "bg-mist",
+        tone === "brand" && "bg-mint/60",
         className,
       )}
     >
@@ -64,24 +68,11 @@ export function SectionHeading({
       )}
     >
       <div className={cn("max-w-2xl", align === "center" && "mx-auto")}>
-        {eyebrow &&
-          (invert ? (
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-mint">{eyebrow}</p>
-          ) : (
-            <Eyebrow className="mb-3">{eyebrow}</Eyebrow>
-          ))}
-        <As
-          id={id}
-          className={cn(
-            "text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] sm:text-[40px]",
-            invert ? "text-white" : "text-ink",
-          )}
-        >
+        {eyebrow && <Eyebrow className="mb-3">{eyebrow}</Eyebrow>}
+        <As id={id} className={cn("text-balance text-ink", As === "h1" ? "text-h1" : As === "h2" ? "text-h2" : "text-h3", invert && undefined)}>
           {title}
         </As>
-        {description && (
-          <p className={cn("mt-4 text-[17px] leading-relaxed", invert ? "text-white/80" : "text-muted")}>{description}</p>
-        )}
+        {description && <p className="mt-4 text-lead text-muted">{description}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
@@ -136,14 +127,8 @@ export function CheckList({ items, className, invert }: { items: React.ReactNode
   return (
     <ul className={cn("space-y-3", className)}>
       {items.map((it, i) => (
-        <li key={i} className={cn("flex gap-3 text-[15px] leading-relaxed", invert ? "text-white/90" : "text-ink-2")}>
-          <span
-            aria-hidden
-            className={cn(
-              "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full",
-              invert ? "bg-white/15 text-white" : "bg-mint text-brand-deep",
-            )}
-          >
+        <li key={i} className={cn("flex gap-3 text-[15px] leading-relaxed text-ink-2", invert && undefined)}>
+          <span aria-hidden className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-mint text-brand-deep">
             <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12.5l4.5 4.5L19 7.5" />
             </svg>

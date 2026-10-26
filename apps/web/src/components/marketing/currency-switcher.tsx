@@ -72,7 +72,7 @@ export function CurrencySwitcher({ className }: { className?: string }) {
             </div>
             <div className="shrink-0 text-right">
               <p className="text-[20px] font-semibold tabular-nums text-ink">{format(ex.ghsPerYear, cur, period)}</p>
-              <p className="text-[12px] text-muted">≈ {format(ex.ghsPerYear, DIASPORA_CURRENCIES[0]!, period)} · per {period}</p>
+              <p className="text-[13px] text-muted">≈ {format(ex.ghsPerYear, DIASPORA_CURRENCIES[0]!, period)} · per {period}</p>
             </div>
           </li>
         ))}

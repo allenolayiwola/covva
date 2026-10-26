@@ -1,14 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import { siteUrl } from "@/lib/site-url";
 
 const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500"], display: "swap", variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400"], display: "swap", variable: "--font-outfit" });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000");
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "Covva — Find cover. Understand it. Move forward.",
     template: "%s · Covva",

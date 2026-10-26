@@ -17,8 +17,7 @@ import { PaymentBadges } from "@/components/marketing/payment-badges";
 import { PRODUCT_LINES, findProductLine } from "@/components/marketing/products-content";
 import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://covva.com.gh";
+import { siteUrl } from "@/lib/site-url";
 
 export function generateStaticParams() {
   return PRODUCT_LINES.map((p) => ({ slug: p.slug }));
@@ -33,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/insurance/[slug]"
     title,
     description: line.lede,
     alternates: { canonical: `/insurance/${line.slug}` },
-    openGraph: { title, description: line.lede, url: `/insurance/${line.slug}` },
+    openGraph: { title, description: line.lede, url: `/insurance/${line.slug}`, images: ["/opengraph-image"] },
   };
 }
 
@@ -63,7 +62,7 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
     "@type": "Product",
     name: line.name,
     description: line.lede,
-    url: `${siteUrl}/insurance/${line.slug}`,
+    url: `${siteUrl()}/insurance/${line.slug}`,
     category: "Insurance",
     brand: { "@type": "Organization", name: "Covva" },
     offers: {
@@ -163,18 +162,18 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
             <p className="mt-2 text-[15px] leading-relaxed text-muted">{line.instalments}</p>
           </div>
           {line.callout ? (
-            <div className="rounded-card bg-brand-deep p-6 text-white">
-              <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-white/15"><QrCode className="size-5" /></span>
+            <div className="rounded-card border border-line bg-mint/60 p-6 text-ink">
+              <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-white text-brand"><QrCode className="size-5" /></span>
               <h3 className="mt-5 text-[19px] font-semibold tracking-tight">{line.callout.title}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-white/80">{line.callout.body}</p>
-              <Link href="/verify" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-white underline-offset-4 hover:underline">Verify a policy <ArrowRight aria-hidden className="size-4" /></Link>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">{line.callout.body}</p>
+              <Link href="/verify" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline-offset-4 hover:underline">Verify a policy <ArrowRight aria-hidden className="size-4" /></Link>
             </div>
           ) : (
-            <div className="rounded-card bg-brand-deep p-6 text-white">
-              <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-white/15"><QrCode className="size-5" /></span>
+            <div className="rounded-card border border-line bg-mint/60 p-6 text-ink">
+              <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-white text-brand"><QrCode className="size-5" /></span>
               <h3 className="mt-5 text-[19px] font-semibold tracking-tight">Digital wallet with QR verification</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-white/80">Your certificate lives in the Covva wallet, offline, with a QR code anyone can scan to confirm the policy is valid — without seeing your personal details.</p>
-              <Link href="/verify" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-white underline-offset-4 hover:underline">Verify a policy <ArrowRight aria-hidden className="size-4" /></Link>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted">Your certificate lives in the Covva wallet, offline, with a QR code anyone can scan to confirm the policy is valid — without seeing your personal details.</p>
+              <Link href="/verify" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline-offset-4 hover:underline">Verify a policy <ArrowRight aria-hidden className="size-4" /></Link>
             </div>
           )}
         </div>

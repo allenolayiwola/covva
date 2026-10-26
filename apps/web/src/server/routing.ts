@@ -16,6 +16,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { log } from "@/server/log";
 import { notify, notifyOrg } from "@/server/notify";
 import { emitEvent } from "@/server/webhooks";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Routing engine integration (Addendum 2 D/E). Loads the facts the pure engine needs
@@ -29,8 +30,6 @@ import { emitEvent } from "@/server/webhooks";
 type Svc = ReturnType<typeof createServiceClient>;
 
 const OPEN_STATUSES: Enum<"request_status">[] = ["submitted", "awaiting_customer_info", "adviser_action", "insurer_response", "quotes_ready"];
-
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
 
 export const acceptLink = (token: string) => `${siteUrl()}/partner/offers/accept/${encodeURIComponent(token)}`;
 export const acceptDeepLink = (token: string) => `covva://offers/accept/${encodeURIComponent(token)}`;

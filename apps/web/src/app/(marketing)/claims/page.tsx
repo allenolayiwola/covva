@@ -64,7 +64,7 @@ export default async function ClaimsPage() {
               <li className="flex gap-2"><span aria-hidden className="font-semibold text-brand">193</span> Ambulance</li>
             </ul>
             <p className="mt-4 text-[13px] leading-relaxed text-muted">Travelling abroad? Call the 24-hour assistance line printed on your travel certificate before you get treatment.</p>
-            <p className="mt-4 text-[13px] text-muted">Questions: <a href={`mailto:${brand.supportEmail}`} className="font-medium text-brand hover:underline">{brand.supportEmail}</a></p>
+            <p className="mt-4 text-[13px] text-muted">Questions: <a href={`mailto:${brand.supportEmail}`} className="-my-1 inline-block py-1 font-medium text-brand hover:underline">{brand.supportEmail}</a></p>
           </div>
         }
       />

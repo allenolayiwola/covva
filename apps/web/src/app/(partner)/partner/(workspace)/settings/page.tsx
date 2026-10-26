@@ -314,8 +314,8 @@ async function TermsTab({ ctx }: { ctx: PartnerContext }) {
       <Section title="How settlement works" tone="mist">
         <p className="text-sm text-ink-2">
           {broker
-            ? "Customers pay the insurer directly. Your commission is paid by the insurer out of the premium. On Covva-sourced business under revenue share, Covva's share is deducted; on your own clients you keep the full commission."
-            : "Premiums settle to your account through the payment provider. Broker commission and Covva's platform fee on Covva-sourced business are paid out of the premium, either at checkout (split group) or by monthly statement."}
+            ? "Customers pay the insurer directly. Your commission is paid by the insurer out of the premium. On Covva-sourced business under revenue share, Covva’s share is deducted; on your own clients you keep the full commission."
+            : "Premiums settle to your account through the payment provider. Broker commission and Covva’s platform fee on Covva-sourced business are paid out of the premium, either at checkout (split group) or by monthly statement."}
         </p>
         <p className="mt-2 text-sm text-ink-2">Statements are under <strong>Settlements</strong>.</p>
       </Section>

@@ -12,8 +12,9 @@ export { BRAND, CanopyMark, LogoMark, Logo, type LogoProps, type CanopyMarkProps
 type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "white";
 type ButtonSize = "sm" | "md" | "lg";
 
+/** Every button is a full pill (desktop redesign). Heights sit on the 8pt grid; the smallest is a 40px tap target. */
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: "bg-brand text-white hover:bg-brand-dark",
   secondary: "bg-mint text-brand-deep hover:bg-[#cfe7da]",
@@ -23,9 +24,9 @@ const buttonVariants: Record<ButtonVariant, string> = {
   white: "bg-white text-brand-deep hover:bg-mist",
 };
 const buttonSizes: Record<ButtonSize, string> = {
-  sm: "h-9 px-3.5 text-sm",
-  md: "h-11 px-5 text-[15px]",
-  lg: "h-12 px-6 text-base",
+  sm: "h-10 px-4 text-sm",
+  md: "h-12 px-6 text-[15px]",
+  lg: "h-14 px-7 text-base",
 };
 
 export function buttonClass(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
@@ -311,8 +312,11 @@ export function Checkpoints({ labels, done, className }: { labels: string[]; don
 /* ----------------------------------------------------------------------------
  * Layout helpers
  * ------------------------------------------------------------------------- */
+/** Shared 1440px site container: 20px side padding on phones, 32px from 768, 64px from 1280, 80px from 1440. */
+export const containerClass = "mx-auto w-full max-w-site px-5 md:px-8 xl:px-16 wide:px-20";
+
 export function Container({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={clsx("mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8", className)}>{children}</div>;
+  return <div className={clsx(containerClass, className)}>{children}</div>;
 }
 
 export function Tabs({ items, active, className }: { items: { key: string; label: React.ReactNode; href: string; count?: number }[]; active: string; className?: string }) {

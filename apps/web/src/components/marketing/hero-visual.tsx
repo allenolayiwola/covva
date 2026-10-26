@@ -37,22 +37,22 @@ export function HeroVisual({ insurers, demo }: { insurers: HeroInsurer[]; demo: 
                 <OrgTile name={q.insurer.name} color={q.insurer.color} size={34} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-ink">{displayOrgName(q.insurer.name)}</p>
-                  <p className="text-[11px] text-muted">Excess {formatGHS(q.excess)}</p>
+                  <p className="text-[13px] text-muted">Excess {formatGHS(q.excess)}</p>
                 </div>
                 <p className="text-[15px] font-semibold tabular-nums text-ink">{formatGHS(q.premium)}</p>
               </li>
             ))}
           </ul>
-          <div className="mt-3 flex h-10 items-center justify-center rounded-[10px] bg-brand text-sm font-semibold text-white">Review all quotes</div>
+          <div className="mt-3 flex h-10 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">Review all quotes</div>
         </div>
 
         {/* Active policy */}
-        <div className="relative z-10 -mt-4 ml-auto w-[212px] overflow-hidden rounded-[20px] bg-brand-dark p-5 text-white shadow-float motion-safe:animate-fade-up [animation-delay:140ms] sm:absolute sm:right-4 sm:top-[236px] sm:mt-0">
-          <div aria-hidden className="absolute -right-10 -top-12 size-32 rounded-full bg-white/[0.07]" />
-          <p className="relative text-[11px] font-medium uppercase tracking-[0.14em] text-white/75">Motor · Active</p>
+        <div className="relative z-10 -mt-4 ml-auto w-[212px] overflow-hidden rounded-card border border-line bg-mint p-5 text-ink shadow-float motion-safe:animate-fade-up [animation-delay:140ms] sm:absolute sm:right-4 sm:top-[236px] sm:mt-0">
+          <div aria-hidden className="absolute -right-10 -top-12 size-32 rounded-full bg-white/60" />
+          <p className="relative text-[13px] font-medium uppercase tracking-[0.14em] text-brand-deep">Motor · Active</p>
           <p className="relative mt-2 text-[17px] font-semibold tracking-tight">Your everyday drive</p>
-          <p className="relative mt-0.5 truncate text-[11px] text-white/75">{first} · DEMO-1048</p>
-          <p className="relative mt-5 text-[11px] text-white/70">Cover ends</p>
+          <p className="relative mt-0.5 truncate text-[13px] text-muted">{first} · DEMO-1048</p>
+          <p className="relative mt-5 text-[13px] text-muted">Cover ends</p>
           <p className="relative text-[15px] font-semibold">30 Nov 2026</p>
         </div>
 

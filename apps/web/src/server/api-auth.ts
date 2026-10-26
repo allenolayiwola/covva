@@ -9,6 +9,7 @@ import type { Database, Enum } from "@im/db";
 import { createClient as createCookieClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError } from "@/server/requests";
 import { log } from "@/server/log";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * API v1 plumbing: authentication (Supabase bearer token, cookie session or
@@ -197,9 +198,7 @@ export function clientKind(req: Request): ClientKind {
   return parseClientKind(req.headers.get(CLIENT_HEADER));
 }
 
-export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://covva.com.gh").replace(/\/$/, "");
-}
+export { siteUrl };
 
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");

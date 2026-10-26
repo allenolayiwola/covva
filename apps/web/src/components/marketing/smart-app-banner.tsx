@@ -42,7 +42,7 @@ export function SmartAppBanner() {
       <CanopyMark size={32} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-semibold">Covva for Android</p>
-        <p className="truncate text-[12px] text-muted">Quotes, MoMo payments and your policy wallet.</p>
+        <p className="truncate text-[13px] text-muted">Quotes, MoMo payments and your policy wallet.</p>
       </div>
       <a href={PLAY_URL} className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand px-3 text-[13px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
         <Smartphone aria-hidden className="size-4" /> Get app

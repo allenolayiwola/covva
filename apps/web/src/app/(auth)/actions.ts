@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { normaliseGhanaPhone, safeNext, type ActionState } from "@/components/customer/utils";
+import { siteUrl } from "@/lib/site-url";
 
 async function siteOrigin() {
   const h = await headers();
@@ -11,7 +12,7 @@ async function siteOrigin() {
   if (origin && /^https?:\/\//.test(origin)) return origin;
   const host = h.get("x-forwarded-host") ?? h.get("host");
   if (host) return `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return siteUrl();
 }
 
 function authMessage(err: { message?: string; code?: string; status?: number } | null, fallback: string) {

@@ -79,12 +79,12 @@ export default async function PressPage() {
               <a href={`/brand/${f.file}`} download className="flex h-full flex-col rounded-card border border-line bg-white p-5 transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                 <span className="flex items-center justify-between font-semibold text-ink">{f.label} <Download aria-hidden className="size-4 text-brand" /></span>
                 <span className="mt-1 text-[13px] text-muted">{f.use}</span>
-                <span className="mt-3 font-mono text-[12px] text-subtle">/brand/{f.file}</span>
+                <span className="mt-3 font-mono text-[13px] text-subtle">/brand/{f.file}</span>
               </a>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-[13px] text-muted">Full guidelines: <code className="rounded bg-white px-1.5 py-0.5 text-[12px]">docs/design/brand/brand-guidelines.pdf</code> — available on request.</p>
+        <p className="mt-4 text-[13px] text-muted">Full guidelines: <code className="rounded bg-white px-1.5 py-0.5 text-[13px]">docs/design/brand/brand-guidelines.pdf</code> — available on request.</p>
       </Section>
 
       <Section labelledBy="palette-title">
@@ -96,7 +96,7 @@ export default async function PressPage() {
               <div className="p-4">
                 <p className="font-semibold text-ink">{c.name}</p>
                 <p className="font-mono text-[13px] text-ink-2">{c.hex}</p>
-                <p className="mt-1 text-[12.5px] text-muted">{c.use}</p>
+                <p className="mt-1 text-[13px] text-muted">{c.use}</p>
               </div>
             </li>
           ))}

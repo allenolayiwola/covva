@@ -2,6 +2,7 @@
   "name": "@im/web",
   "version": "0.1.0",
   "private": true,
+  "browserslist": ["chrome >= 100", "safari >= 15.4", "firefox >= 100", "edge >= 100", "and_chr >= 100", "ios_saf >= 15.4"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

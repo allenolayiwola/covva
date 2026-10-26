@@ -7,8 +7,7 @@ import { Section } from "@/components/marketing/section";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
 import { ARTICLES } from "@/components/marketing/articles";
 import { JsonLd } from "@/components/marketing/json-ld";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://covva.com.gh";
+import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "Learn — the plain-language insurance guide",
@@ -25,8 +24,8 @@ export default function LearnPage() {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: "Covva insurance guide",
-          url: `${siteUrl}/learn`,
-          hasPart: ARTICLES.map((a) => ({ "@type": "Article", headline: a.title, url: `${siteUrl}/learn/${a.slug}`, datePublished: a.published })),
+          url: `${siteUrl()}/learn`,
+          hasPart: ARTICLES.map((a) => ({ "@type": "Article", headline: a.title, url: `${siteUrl()}/learn/${a.slug}`, datePublished: a.published })),
         }}
       />
       <PageHero
@@ -51,7 +50,7 @@ export default function LearnPage() {
               <Link href={`/learn/${a.slug}`} className="group flex h-full flex-col rounded-card border border-line bg-white p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="flex items-center justify-between gap-3">
                   <Pill>{a.topic}</Pill>
-                  <span className="inline-flex items-center gap-1 text-[12px] text-muted"><Clock aria-hidden className="size-3.5" /> {a.readMinutes} min</span>
+                  <span className="inline-flex items-center gap-1 text-[13px] text-muted"><Clock aria-hidden className="size-3.5" /> {a.readMinutes} min</span>
                 </div>
                 <h3 className="mt-4 text-[19px] font-semibold leading-snug tracking-tight text-ink">{a.title}</h3>
                 <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{a.summary}</p>
@@ -62,8 +61,7 @@ export default function LearnPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-8 text-[14px] text-muted">
-          Short videos in English, Twi, Ga and Ewe are planned for each guide. Have a question we have not answered? <Link href="/support" className="font-medium text-brand hover:underline">Ask the help centre</Link>.
+        <p className="mt-8 text-[14px] text-muted"> Have a question we have not answered? <Link href="/support" className="font-medium text-brand hover:underline">Ask the help centre</Link>.
         </p>
       </Section>
     </>

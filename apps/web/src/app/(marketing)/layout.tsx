@@ -6,9 +6,10 @@ import { getBrand } from "@/components/marketing/brand";
 import { WhatsAppButton } from "@/components/marketing/whatsapp-button";
 import { ConsentBanner } from "@/components/marketing/consent-banner";
 import { SmartAppBanner } from "@/components/marketing/smart-app-banner";
+import { siteUrl as resolveSiteUrl } from "@/lib/site-url";
 import { AnalyticsClicks } from "@/components/marketing/analytics-clicks";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = resolveSiteUrl();
 const iosAppId = process.env.NEXT_PUBLIC_IOS_APP_ID;
 
 /** Smart app banner for iOS (`apple-itunes-app`) when the App Store id is configured; Android uses <SmartAppBanner />. */

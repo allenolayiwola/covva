@@ -69,8 +69,8 @@ export default function EmbeddedPartnersPage() {
           {AUDIENCES.map((a) => (
             <li key={a.title}><FeatureCard icon={<a.icon />} title={a.title} className="h-full">{a.body}</FeatureCard></li>
           ))}
-          <li className="flex flex-col justify-between rounded-card bg-brand-deep p-6 text-white">
-            <KeyRound aria-hidden className="size-6 text-mint" />
+          <li className="flex flex-col justify-between rounded-card border border-line bg-mint/60 p-6 text-ink">
+            <KeyRound aria-hidden className="size-6 text-brand" />
             <p className="mt-6 text-[16px] font-semibold leading-snug">Every embedded policy is arranged by a licensed broker and issued by a licensed insurer. Your customers see that disclosure before they pay.</p>
           </li>
         </ul>
@@ -91,9 +91,9 @@ export default function EmbeddedPartnersPage() {
             </article>
           ))}
         </div>
-        <div className="mt-6 overflow-hidden rounded-[20px] border border-line bg-ink p-6 font-mono text-[13px] leading-relaxed text-mint shadow-float" aria-label="Example API call for an embedded motor quote">
-          <div className="mb-4 flex items-center gap-2 font-sans text-xs text-white/60"><Braces aria-hidden className="size-4" /> POST /api/v1/partner/quotes — illustrative</div>
-          <pre className="overflow-x-auto whitespace-pre text-white/90">{`{
+        <div className="mt-6 overflow-hidden rounded-card border border-line bg-mist p-6 font-mono text-[13px] leading-relaxed text-brand-deep" aria-label="Example API call for an embedded motor quote">
+          <div className="mb-4 flex items-center gap-2 font-sans text-xs text-muted"><Braces aria-hidden className="size-4" /> POST /api/v1/partner/quotes — illustrative</div>
+          <pre className="overflow-x-auto whitespace-pre text-ink-2">{`{
   "category": "motor",
   "cover_type": "comprehensive",
   "vehicle": { "registration": "GX 1234-24", "value": 120000 },

@@ -57,8 +57,9 @@ export function Reveal({ children, className, delay = 0, as: As = "div" }: { chi
       data-reveal={!isClient || reduced ? "static" : shown ? "shown" : "pending"}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
       className={cn(
-        "motion-safe:transition-[opacity,transform] motion-safe:duration-700 motion-safe:ease-out",
-        "motion-safe:data-[reveal=pending]:translate-y-3 motion-safe:data-[reveal=pending]:opacity-0",
+        // Transform only: never hide content behind an opacity reveal (visible by default, LCP-safe, no-JS safe).
+        "motion-safe:transition-transform motion-safe:duration-700 motion-safe:ease-out",
+        "motion-safe:data-[reveal=pending]:translate-y-3",
         className,
       )}
     >

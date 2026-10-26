@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Languages } from "lucide-react";
-import { Notice, Select, cn } from "@im/ui";
+import { Select, cn } from "@im/ui";
 import { ARTICLE_LANGUAGES, type ArticleLanguage } from "./articles";
 
 export const LANG_COOKIE = "covva_lang";
@@ -23,14 +23,15 @@ function subscribe(cb: () => void) {
 }
 
 /**
- * Honest language switcher for the Learn hub. Only English content exists today: the choice is stored
- * in the `covva_lang` cookie and the page says plainly that Twi, Ga and Ewe are coming — nothing is
- * machine-translated.
+ * Language switcher for the Learn hub. It lists only languages with published content (the preference is
+ * kept in the `covva_lang` cookie) and renders nothing while English is the only one — no "coming soon"
+ * promises on the page; Twi, Ga and Ewe appear here automatically when their articles exist.
  */
 export function LanguageSwitcher({ className }: { className?: string }) {
   const lang = React.useSyncExternalStore(subscribe, readLang, () => "en" as ArticleLanguage);
   const uid = React.useId();
-  const meta = ARTICLE_LANGUAGES.find((l) => l.code === lang) ?? ARTICLE_LANGUAGES[0];
+  const available = ARTICLE_LANGUAGES.filter((l) => l.available);
+  if (available.length < 2) return null;
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center gap-3">
@@ -38,18 +39,13 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           <Languages aria-hidden className="size-4 text-brand" /> Language
         </label>
         <Select id={uid} value={lang} onChange={(e) => writeLang(e.target.value as ArticleLanguage)} className="h-10 w-auto min-w-[160px]">
-          {ARTICLE_LANGUAGES.map((l) => (
+          {available.map((l) => (
             <option key={l.code} value={l.code}>
-              {l.native}{l.available ? "" : " — coming soon"}
+              {l.native}
             </option>
           ))}
         </Select>
       </div>
-      {!meta.available && (
-        <Notice tone="wait">
-          <span role="status">{meta.label} translations are coming soon. We have saved your preference and will show {meta.label} as soon as our translators finish — for now this article is in English.</span>
-        </Notice>
-      )}
     </div>
   );
 }

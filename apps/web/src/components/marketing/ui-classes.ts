@@ -2,14 +2,9 @@ import { buttonClass } from "@im/ui";
 
 export { buttonClass };
 
-/** Translucent button for use on teal/ink backgrounds (avoids conflicting overrides of `buttonClass`). */
+/** Light theme only: the former on-dark translucent button is now the outline pill. */
 export function onDarkButtonClass(size: "md" | "lg" = "lg") {
-  return [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-semibold text-white transition-colors",
-    "bg-white/10 ring-1 ring-inset ring-white/30 hover:bg-white/20",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-    size === "lg" ? "h-12 px-6 text-base" : "h-11 px-5 text-[15px]",
-  ].join(" ");
+  return buttonClass("outline", size);
 }
 
 /** Text link with arrow affordance. */

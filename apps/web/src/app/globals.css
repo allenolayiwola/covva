@@ -27,6 +27,9 @@
   h3, h4 {
     letter-spacing: -0.01em;
   }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
   /* Icons: 1.75px rounded strokes on a 24 grid (lucide). */
   svg.lucide {
     stroke-width: 1.75;
@@ -41,4 +44,42 @@
 
 @utility text-balance {
   text-wrap: balance;
+}
+
+/* Type scale (desktop / phone): h1 64/40, h2 48/32, h3 36/26, h4 28/22; body 18/16/14. */
+@utility text-h1 {
+  font-size: 40px;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  @media (width >= 64rem) { font-size: 64px; line-height: 1.02; letter-spacing: -0.035em; }
+}
+@utility text-h2 {
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  @media (width >= 64rem) { font-size: 48px; line-height: 1.06; }
+}
+@utility text-h3 {
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 36px; line-height: 1.12; }
+}
+@utility text-h4 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  @media (width >= 64rem) { font-size: 28px; }
+}
+@utility text-lead {
+  font-size: 16px;
+  line-height: 1.6;
+  @media (width >= 64rem) { font-size: 18px; }
+}
+
+/* The floating WhatsApp pill moves above the full-width cookie bar on phones. */
+@media (width < 40rem) {
+  body:has([data-consent-banner]) [data-whatsapp] {
+    bottom: 5.5rem;
+  }
 }

@@ -5,6 +5,7 @@ import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { log, mask } from "@/server/log";
 import { sendWhatsApp, whatsAppLive } from "@/server/providers/whatsapp";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Notification fan-out (owner: Backend stream): in-app row + email + SMS + push
@@ -37,8 +38,6 @@ const SMS_KINDS = new Set([
 function defaultChannels(kind: string): Channel[] {
   return SMS_KINDS.has(kind) ? ["in_app", "push", "email", "sms"] : ["in_app", "push", "email"];
 }
-
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
 
 /** Run work after the response when inside a request; otherwise run it now. */
 function defer(task: () => Promise<void>): Promise<void> {

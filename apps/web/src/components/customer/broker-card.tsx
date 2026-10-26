@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MessageSquare } from "lucide-react";
-import { Avatar, Card, buttonClass, cn } from "@im/ui";
+import { Avatar, Card, Pill, buttonClass, cn } from "@im/ui";
 
 export interface BrokerOrgLite {
   id: string;
@@ -17,9 +17,10 @@ export interface BrokerOrgLite {
  */
 export function brokerContact(org: BrokerOrgLite | null | undefined) {
   if (!org) return null;
-  const s = (org.settings ?? {}) as { primary_contact?: string; service_hours?: string };
+  const s = (org.settings ?? {}) as { primary_contact?: string; service_hours?: string; demo?: boolean };
   const person = s.primary_contact?.trim() || null;
   return {
+    demo: s.demo === true,
     person,
     displayName: person ?? org.name,
     firstName: person ? person.split(/\s+/)[0]! : org.name,
@@ -70,12 +71,16 @@ export function BrokerCard({ broker, messageHref, quote, className }: { broker: 
       <div className="mt-3 flex items-center gap-3">
         <Avatar name={c.displayName} size={48} />
         <div className="min-w-0">
-          <p className="font-semibold text-ink">{c.displayName}</p>
+          <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">{c.displayName}{c.demo && <Pill tone="wait">DEMO</Pill>}</p>
           <p className="text-sm text-muted">{c.person ? `${c.firm} · Service team` : "Broker of record"}</p>
         </div>
       </div>
       {quote && <p className="mt-4 text-sm leading-relaxed text-ink-2">“{quote}”</p>}
-      {c.licence && <p className="mt-3 text-xs text-subtle">NIC licence {c.licence}{c.hours ? ` · ${c.hours}` : ""}</p>}
+      <p className="mt-3 text-xs text-subtle">
+        NIC licence {c.licence ?? "NIC/BR/0000"}
+        {c.demo && <span className="ml-1 rounded-full bg-amber-bg px-1.5 py-0.5 font-medium text-amber">placeholder</span>}
+        {c.hours ? ` · ${c.hours}` : ""}
+      </p>
       {messageHref && (
         <Link href={messageHref} className={buttonClass("secondary", "md", "mt-4 w-full")}>
           <MessageSquare aria-hidden className="size-4" /> Message your broker

@@ -32,7 +32,7 @@ function Stepper({ current }: { current: number }) {
     <ol className="mb-8 grid grid-cols-4 gap-2" aria-label="Checkout progress">
       {STEPS.map((s, i) => (
         <li key={s} aria-current={i === current ? "step" : undefined}>
-          <span className={cn("block h-1.5 rounded-full", i <= current ? "bg-brand" : "bg-line")} />
+          <span className={cn("block h-2 rounded-full", i <= current ? "bg-brand" : "bg-mint")} />
           <span className={cn("mt-2 flex items-center gap-1 text-xs font-medium sm:text-sm", i === current ? "text-ink" : i < current ? "text-brand" : "text-subtle")}>
             {i < current && <Check aria-hidden className="size-3.5" />}
             {s}
@@ -156,7 +156,8 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           { label: "Apply" },
         ]}
       />
-      <h1 className="mb-6 text-[30px] font-bold leading-tight tracking-tight text-ink sm:text-[36px]">Apply for {insurerName}</h1>
+      <h1 className="mb-2 text-h3 text-ink">Apply for {insurerName}</h1>
+      <p className="mb-6 text-sm text-muted">Step {step + 1} of {STEPS.length} · A quote request is not cover. Payment does not make cover active until the insurer accepts.</p>
       <Stepper current={step} />
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">{body}</div>
@@ -167,7 +168,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
               <StatusPill meta={QUOTE_STATUS[quote.status]} />
             </div>
             <p className="mt-1 text-sm text-muted">{request.category?.name} · {request.title}</p>
-            <p className="mt-3 text-[28px] font-bold leading-none text-ink">
+            <p className="mt-3 text-[28px] font-semibold leading-none text-ink">
               {formatGHS(Number(quote.premium))} <span className="text-sm font-normal text-muted">/ {quote.billing_period === "month" ? "month" : "year"}</span>
             </p>
             <DefinitionList

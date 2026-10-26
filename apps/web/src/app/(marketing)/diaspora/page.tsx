@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description:
     "Look after your family in Ghana from anywhere. Pay in GBP, USD, EUR or CAD for parents’ health and funeral cover, the family car or the home you are building. Family dashboard, dual notifications, gift a policy, group plans for churches and associations.",
   alternates: { canonical: "/diaspora" },
-  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora" },
+  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora", images: ["/opengraph-image"] },
 };
 
 const FEATURES = [

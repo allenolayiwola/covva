@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CircleCheck, Clock } from "lucide-react";
-import { FULFILMENT_CHECKPOINTS, PAYMENT_STATUS, buildDisclosure, formatDateTime, formatGHS } from "@im/core";
-import { Card, Checkpoints, DefinitionList, DisclosureBlock, Notice, StatusPill, buttonClass } from "@im/ui";
+import { PAYMENT_STATUS, buildDisclosure, formatDateTime, formatGHS } from "@im/core";
+import { Card, DefinitionList, DisclosureBlock, Notice, StatusPill, Timeline, buttonClass } from "@im/ui";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { RealtimeRefresh } from "@/components/customer/realtime-refresh";
 import { account, getRequestOr404 } from "../../../_lib/data";
@@ -53,10 +53,10 @@ async function Confirmation({ params }: Pick<PageProps<"/account/requests/[id]/c
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-mint text-brand">
           {paid ? <CircleCheck aria-hidden className="size-8" /> : <Clock aria-hidden className="size-8" />}
         </span>
-        <h1 className="mt-5 text-[30px] font-bold leading-tight tracking-tight text-ink sm:text-[36px]">
+        <h1 className="mt-5 text-h3 text-ink">
           {active ? "Your policy has been issued." : paid ? "Payment received." : "Waiting for payment confirmation."}
         </h1>
-        <p className="mx-auto mt-2 max-w-lg text-[15px] text-muted">
+        <p className="mx-auto mt-3 max-w-lg text-lead text-muted">
           {active
             ? `${insurer} has confirmed acceptance and issued your policy. Your documents are in your wallet.`
             : paid
@@ -65,10 +65,13 @@ async function Confirmation({ params }: Pick<PageProps<"/account/requests/[id]/c
         </p>
       </div>
 
-      <Card className="mt-8 p-5">
-        <Checkpoints
-          labels={FULFILMENT_CHECKPOINTS.map((c) => c.label)}
-          done={[true, paid, active, active]}
+      <Card className="mt-8 p-5 sm:p-6">
+        <Timeline
+          steps={[
+            { title: paid ? "Paid" : "Payment", detail: paid ? `Received by ${insurer} through the payment provider.` : "Waiting for the payment provider to confirm.", state: paid ? "done" : "current" },
+            { title: active ? "Insurer accepted" : "Insurer acceptance pending", detail: active ? `${insurer} accepted your application.` : `${insurer} reviews your application. Payment does not make cover active until the insurer accepts.`, state: active ? "done" : paid ? "current" : "upcoming" },
+            { title: "Documents", detail: active ? "Your schedule, receipt and certificate are in your wallet." : "Issued with your policy number once the insurer accepts.", state: active ? "done" : "upcoming" },
+          ]}
         />
         {payment && (
           <DefinitionList
@@ -86,7 +89,7 @@ async function Confirmation({ params }: Pick<PageProps<"/account/requests/[id]/c
       </Card>
 
       {!active && (
-        <Notice tone="info" className="mt-6" title="What happens next">
+        <Notice tone="wait" className="mt-6" title="Payment does not make cover active until the insurer accepts">
           Your broker sends your application to {insurer}. When {insurer} accepts it, they issue your policy number and documents. We&apos;ll notify you —
           until then, please don&apos;t treat yourself as covered.
         </Notice>

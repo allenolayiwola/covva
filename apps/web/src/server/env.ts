@@ -2,7 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Server-side environment helpers. Read at call time (not module load) so runtime env is used. */
-export const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+export { siteUrl } from "@/lib/site-url";
 
 /** Sandbox payment simulator: never in production unless explicitly enabled for a staging deploy. */
 export const simulatorEnabled = () =>
