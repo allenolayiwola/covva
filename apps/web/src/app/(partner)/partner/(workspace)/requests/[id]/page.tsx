@@ -526,7 +526,7 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
             <div className="mt-3">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted">Consents</p>
               {consents === null ? (
-                <p className="mt-1 text-sm text-muted">Consent records are held by the platform and aren't available here right now.</p>
+                <p className="mt-1 text-sm text-muted">Consent records are held by the platform and aren’t available here right now.</p>
               ) : consents.length === 0 ? (
                 <p className="mt-1 text-sm text-amber">No consent records found.</p>
               ) : (
@@ -557,7 +557,7 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
                   <input type="hidden" name="requestId" value={req.id} />
                 </ActionForm>
               ) : (
-                <p className="mt-3 text-sm text-muted">Waiting for the insurer to issue the policy. You can deliver documents once it's active.</p>
+                <p className="mt-3 text-sm text-muted">Waiting for the insurer to issue the policy. You can deliver documents once it’s active.</p>
               )
             )}
           </Section>

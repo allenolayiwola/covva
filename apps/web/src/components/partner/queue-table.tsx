@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Checkpoints, Pill, buttonClass, cn, type TimelineStep } from "@im/ui";
+import { Checkpoints, Pill, buttonClass, cn } from "@im/ui";
 import { FULFILMENT_CHECKPOINTS, relativeDue } from "@im/core";
 import type { Tone } from "@im/core";
 
@@ -76,8 +76,8 @@ export function QueueTable({ rows, demo }: { rows: QueueRow[]; demo: boolean }) 
                     {r.ownerDetail && <p className="text-xs text-subtle">{r.ownerDetail}</p>}
                   </td>
                   <td className="px-4 py-4">
-                    <p className={cn("font-semibold", due.overdue ? "text-danger" : "text-ink")}>{due.label}</p>
-                    {due.atRisk ? <p className="text-xs text-amber">{due.overdue ? "Overdue" : "At risk"}</p> : r.dueHint ? <p className="text-xs text-subtle">{r.dueHint}</p> : null}
+                    <p suppressHydrationWarning className={cn("font-semibold", due.overdue ? "text-danger" : "text-ink")}>{due.label}</p>
+                    {due.atRisk ? <p suppressHydrationWarning className="text-xs text-amber">{due.overdue ? "Overdue" : "At risk"}</p> : r.dueHint ? <p className="text-xs text-subtle">{r.dueHint}</p> : null}
                   </td>
                 </tr>
               );
@@ -127,4 +127,3 @@ export function FulfilmentCard({ done, demo, className }: { done: boolean[]; dem
   );
 }
 
-export type { TimelineStep };

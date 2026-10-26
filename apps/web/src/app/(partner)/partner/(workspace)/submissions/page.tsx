@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { DemoBadge, EmptyState, PageHeader, Pill, StatusPill, Table, Tabs, Td, Th, THead } from "@im/ui";
 import { QUOTE_STATUS, formatDate, formatDateTime, formatGHS, humanize } from "@im/core";
 import { requireKind } from "../../_lib/context";
-import { DAY, getCategoryMap, getOrgNames } from "../../_lib/data";
+import { nowMs, DAY, getCategoryMap, getOrgNames } from "../../_lib/data";
 import { DueCell, PageSkeleton } from "@/components/partner/ui";
 
 export const metadata: Metadata = { title: "Submissions" };
@@ -52,7 +52,7 @@ async function Inbox({ searchParams }: { searchParams: Promise<Record<string, st
   const [cats, brokers] = await Promise.all([getCategoryMap(), getOrgNames(ctx, [...all.map((s) => s.broker_org_id), ...(quotes ?? []).map((q) => q.broker_org_id)])]);
   const reqOf = (s: (typeof all)[number]) => s.request as unknown as { reference: string; category_id: string; type: string } | null;
   const refByReq = new Map(all.map((s) => [s.request_id, { ref: reqOf(s)?.reference, subId: s.id }]));
-  const expiring = (quotes ?? []).filter((q) => q.valid_until && Date.parse(q.valid_until) - Date.now() < 3 * DAY);
+  const expiring = (quotes ?? []).filter((q) => q.valid_until && Date.parse(q.valid_until) - nowMs() < 3 * DAY);
 
   return (
     <>

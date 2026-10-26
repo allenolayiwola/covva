@@ -1,0 +1,240 @@
+"use client";
+import * as React from "react";
+import { useActionState } from "react";
+import Link from "next/link";
+import {
+  Car,
+  Check,
+  Droplets,
+  Flame,
+  Heart,
+  Info,
+  LayoutGrid,
+  Luggage,
+  MapPin,
+  Plane,
+  Scale,
+  ShieldCheck,
+  Ship,
+  Stethoscope,
+  Store,
+  type LucideIcon,
+} from "lucide-react";
+import { CLAIM_DISCLAIMER } from "@im/core";
+import { Button, Field, Input, Notice, Textarea, cn } from "@im/ui";
+import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
+import { MultiUpload } from "@/components/customer/upload";
+import { initialActionState } from "@/components/customer/utils";
+import { reportClaim } from "../actions";
+
+const ICONS: Record<string, LucideIcon> = {
+  car: Car,
+  shield: ShieldCheck,
+  grid: LayoutGrid,
+  info: Info,
+  flame: Flame,
+  droplets: Droplets,
+  heart: Heart,
+  luggage: Luggage,
+  plane: Plane,
+  stethoscope: Stethoscope,
+  store: Store,
+  scale: Scale,
+  ship: Ship,
+};
+
+export interface ClaimPolicy {
+  id: string;
+  label: string;
+  subtitle: string;
+  categorySlug: string;
+  incidents: { value: string; label: string; icon: string }[];
+}
+
+export function ClaimForm({ userId, policies, initialPolicyId }: { userId: string; policies: ClaimPolicy[]; initialPolicyId?: string }) {
+  const [state, action] = useActionState(reportClaim, initialActionState);
+  const [policyId, setPolicyId] = React.useState(initialPolicyId && policies.some((p) => p.id === initialPolicyId) ? initialPolicyId : "");
+  const [step, setStep] = React.useState(policyId ? 2 : 1);
+  const [incident, setIncident] = React.useState("");
+  const [date, setDate] = React.useState("");
+  const [time, setTime] = React.useState("");
+  const [location, setLocation] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [amount, setAmount] = React.useState("");
+  const [thirdParty, setThirdParty] = React.useState("");
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const policy = policies.find((p) => p.id === policyId);
+  const fe = { ...state.fieldErrors, ...errors };
+  const today = new Date().toISOString().slice(0, 10);
+
+  React.useEffect(() => {
+    if (state.fieldErrors?.incidentType || state.fieldErrors?.incidentDate) setStep(2);
+    else if (state.fieldErrors?.description || state.fieldErrors?.amountClaimed) setStep(3);
+  }, [state]);
+
+  function next() {
+    const e: Record<string, string> = {};
+    if (step === 1 && !policyId) e.policyId = "Choose the policy you're claiming on";
+    if (step === 2) {
+      if (!incident) e.incidentType = "Choose what happened";
+      if (!date) e.incidentDate = "Enter the date it happened";
+      else if (date > today) e.incidentDate = "The date can't be in the future";
+    }
+    if (step === 3 && description.trim().length < 10) e.description = "Describe what happened in a few sentences";
+    setErrors(e);
+    if (!Object.keys(e).length) {
+      setStep((s) => Math.min(4, s + 1));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  const incidentLabel = policy?.incidents.find((i) => i.value === incident)?.label;
+
+  return (
+    <form action={action} noValidate>
+      <input type="hidden" name="policyId" value={policyId} />
+      <input type="hidden" name="incidentType" value={incident} />
+
+      <div className="mb-6 flex items-center justify-between text-sm">
+        <Link href={policy ? `/account/policies/${policy.id}` : "/account/claims"} className="font-medium text-brand hover:underline">Cancel</Link>
+        <span className="text-muted">Step {step} of 4</span>
+      </div>
+      <ol className="mb-8 grid grid-cols-4 gap-2" aria-hidden>
+        {[1, 2, 3, 4].map((n) => (
+          <li key={n} className={cn("h-1.5 rounded-full", n <= step ? "bg-brand" : "bg-line")} />
+        ))}
+      </ol>
+
+      {/* Step 1 — which policy */}
+      <section hidden={step !== 1} aria-labelledby="s1">
+        <h2 id="s1" className="text-[28px] font-bold tracking-tight text-ink">Which policy?</h2>
+        <p className="mt-1 text-muted">Choose the cover you&apos;re claiming on.</p>
+        <div className="mt-5 space-y-2" role="radiogroup" aria-label="Policy">
+          {policies.map((p) => (
+            <label
+              key={p.id}
+              className={cn(
+                "flex cursor-pointer items-center gap-3 rounded-card border p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand",
+                policyId === p.id ? "border-brand bg-mint-2/60" : "border-line hover:bg-mist",
+              )}
+            >
+              <input type="radio" name="ui-policy" value={p.id} checked={policyId === p.id} onChange={() => setPolicyId(p.id)} className="sr-only" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium text-ink">{p.label}</span>
+                <span className="block text-sm text-muted">{p.subtitle}</span>
+              </span>
+              {policyId === p.id && <Check aria-hidden className="size-5 text-brand" />}
+            </label>
+          ))}
+        </div>
+        {fe.policyId && <p className="mt-2 text-xs text-danger">{fe.policyId}</p>}
+      </section>
+
+      {/* Step 2 — what happened (mobile-claim-report.jpg) */}
+      <section hidden={step !== 2} aria-labelledby="s2">
+        <h2 id="s2" className="text-[28px] font-bold tracking-tight text-ink">What happened?</h2>
+        {policy && <p className="mt-1 text-muted">{policy.subtitle}</p>}
+        <div className="mt-5 grid grid-cols-2 gap-3" role="radiogroup" aria-label="What happened">
+          {(policy?.incidents ?? []).map((i) => {
+            const Icon = ICONS[i.icon] ?? Info;
+            const on = incident === i.value;
+            return (
+              <label
+                key={i.value}
+                className={cn(
+                  "relative flex min-h-28 cursor-pointer flex-col justify-between rounded-card border p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand",
+                  on ? "border-brand bg-mint-2/60 text-brand-deep" : "border-line text-ink hover:bg-mist",
+                )}
+              >
+                <input type="radio" name="ui-incident" value={i.value} checked={on} onChange={() => setIncident(i.value)} className="sr-only" />
+                <Icon aria-hidden className="size-6" />
+                <span className="mt-3 text-[17px] font-medium">{i.label}</span>
+                {on && <Check aria-hidden className="absolute right-4 top-4 size-5 text-brand" />}
+              </label>
+            );
+          })}
+        </div>
+        {fe.incidentType && <p className="mt-2 text-xs text-danger">{fe.incidentType}</p>}
+
+        <div className="mt-5 divide-y divide-line rounded-card border border-line">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <label htmlFor="incidentDate" className="text-ink">Date</label>
+            <div className="flex gap-2">
+              <Input id="incidentDate" name="incidentDate" type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} className="h-10 w-40" aria-invalid={!!fe.incidentDate} />
+              <label htmlFor="incidentTime" className="sr-only">Time</label>
+              <Input id="incidentTime" name="incidentTime" type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-10 w-28" />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <label htmlFor="location" className="text-ink">Location</label>
+            <div className="relative w-full sm:w-72">
+              <MapPin aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand" />
+              <Input id="location" name="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Spintex Road, Accra" className="h-10 pl-9" maxLength={300} />
+            </div>
+          </div>
+        </div>
+        {fe.incidentDate && <p className="mt-2 text-xs text-danger">{fe.incidentDate}</p>}
+
+        <div className="mt-6">
+          <MultiUpload userId={userId} scope="claims" name="evidence" label="Photos and evidence" tiles max={10} hint="Photos, police report, receipts · PDF, JPG or PNG · up to 10 MB each" />
+        </div>
+        <Notice tone="neutral" icon={<Info className="size-4" />} className="mt-6">{CLAIM_DISCLAIMER}</Notice>
+      </section>
+
+      {/* Step 3 — details */}
+      <section hidden={step !== 3} aria-labelledby="s3" className="space-y-5">
+        <h2 id="s3" className="text-[28px] font-bold tracking-tight text-ink">Tell us more</h2>
+        <Field label="What happened, in your own words" htmlFor="description" error={fe.description} hint="Include who was involved, what was damaged or lost, and anything you did afterwards (e.g. police report).">
+          <Textarea id="description" name="description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} className="min-h-40" aria-invalid={!!fe.description} />
+        </Field>
+        <Field label={<>Amount you think it will cost <span className="font-normal text-subtle">(if known)</span></>} htmlFor="amountClaimed" error={fe.amountClaimed}>
+          <div className="flex">
+            <span className="inline-flex items-center rounded-l-field border border-r-0 border-line bg-mist px-3 text-sm text-muted">GH₵</span>
+            <Input id="amountClaimed" name="amountClaimed" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} className="rounded-l-none" />
+          </div>
+        </Field>
+        <Field label={<>Anyone else involved? <span className="font-normal text-subtle">(optional)</span></>} htmlFor="thirdParty" hint="Names, phone numbers, vehicle registrations, witnesses.">
+          <Textarea id="thirdParty" name="thirdParty" value={thirdParty} onChange={(e) => setThirdParty(e.target.value)} maxLength={500} className="min-h-20" />
+        </Field>
+      </section>
+
+      {/* Step 4 — review */}
+      <section hidden={step !== 4} aria-labelledby="s4" className="space-y-5">
+        <h2 id="s4" className="text-[28px] font-bold tracking-tight text-ink">Check and send</h2>
+        <dl className="divide-y divide-line rounded-card border border-line px-4 text-sm">
+          {[
+            ["Policy", policy?.label],
+            ["What happened", incidentLabel],
+            ["When", date ? `${date}${time ? ` ${time}` : ""}` : "—"],
+            ["Where", location || "—"],
+            ["Estimated cost", amount ? `GH₵ ${Number(amount).toLocaleString("en-GH")}` : "Not known yet"],
+          ].map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-4 py-3">
+              <dt className="text-muted">{k}</dt>
+              <dd className="text-right font-medium text-ink">{v}</dd>
+            </div>
+          ))}
+          <div className="py-3">
+            <dt className="text-muted">Description</dt>
+            <dd className="mt-1 whitespace-pre-wrap text-ink">{description}</dd>
+          </div>
+        </dl>
+        <Notice tone="wait" icon={<Info className="size-4" />} title="Reporting is not approval">
+          {CLAIM_DISCLAIMER} Your broker checks your report and sends it to the insurer; we&apos;ll show when the insurer has it.
+        </Notice>
+      </section>
+
+      <FormMessage state={state} className="mt-6" />
+      <div className="mt-8 flex gap-3">
+        {step > (initialPolicyId ? 2 : 1) && (
+          <Button type="button" variant="outline" size="lg" onClick={() => setStep((s) => s - 1)}>Back</Button>
+        )}
+        {step < 4 ? (
+          <Button type="button" size="lg" className="flex-1" onClick={next}>Continue</Button>
+        ) : (
+          <SubmitButton size="lg" className="flex-1" pendingText="Sending…">Report claim to my broker</SubmitButton>
+        )}
+      </div>
+    </form>
+  );
+}

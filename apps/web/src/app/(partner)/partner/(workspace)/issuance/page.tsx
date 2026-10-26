@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { DemoBadge, EmptyState, Field, Input, Notice, PageHeader, Pill, StatusPill, Textarea } from "@im/ui";
 import { PAYMENT_STATUS, POLICY_STATUS, formatDate, formatDateTime, formatGHS, humanize } from "@im/core";
 import { can, requireKind, ROLES } from "../../_lib/context";
-import { DAY, getCategoryMap, getCustomers, getOrgNames, shortName } from "../../_lib/data";
+import { nowMs, DAY, getCategoryMap, getCustomers, getOrgNames, shortName } from "../../_lib/data";
 import { ActionForm } from "@/components/partner/action-form";
 import { DocumentUpload } from "@/components/partner/document-upload";
 import { RealtimeRefresh } from "@/components/partner/realtime-refresh";
@@ -34,7 +34,7 @@ export default function IssuancePage() {
 async function Issuance() {
   const ctx = await requireKind("insurer");
   const sb = ctx.supabase;
-  const since = new Date(Date.now() - 30 * DAY).toISOString();
+  const since = new Date(nowMs() - 30 * DAY).toISOString();
   const [{ data: pending }, { data: recent }] = await Promise.all([
     sb.from("policies").select("*").eq("insurer_org_id", ctx.orgId).eq("status", "pending_issuance").order("created_at"),
     sb.from("policies").select("*").eq("insurer_org_id", ctx.orgId).eq("status", "active").gte("issued_at", since).order("issued_at", { ascending: false }).limit(20),
@@ -53,7 +53,7 @@ async function Issuance() {
   const reqOf = new Map((requests ?? []).map((r) => [r.id, r]));
   const canAct = can(ctx, ROLES.underwrite);
   const today = new Date().toISOString().slice(0, 10);
-  const nextYear = new Date(Date.now() + 364 * DAY).toISOString().slice(0, 10);
+  const nextYear = new Date(nowMs() + 364 * DAY).toISOString().slice(0, 10);
 
   return (
     <>

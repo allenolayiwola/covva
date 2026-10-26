@@ -95,7 +95,7 @@ export async function TopBarRight() {
             )}
           </div>
           {(notes ?? []).length === 0 ? (
-            <p className="px-2 py-4 text-sm text-muted">You're all caught up.</p>
+            <p className="px-2 py-4 text-sm text-muted">You’re all caught up.</p>
           ) : (
             <ul className="max-h-96 overflow-y-auto">
               {(notes ?? []).map((n) => (

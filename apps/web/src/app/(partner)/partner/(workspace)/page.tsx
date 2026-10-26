@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { DemoBadge, PageHeader, Pill, StatCard, StatusPill, Table, Td, Th, THead, buttonClass } from "@im/ui";
 import { CLAIM_STATUS, OPEN_REQUEST_STATUSES, REQUEST_STATUS, formatDate, formatDateTime, humanize, type ClaimStatus } from "@im/core";
 import { getPartnerContext, type PartnerContext } from "../_lib/context";
-import { DAY, getCategoryMap, getCustomers, getOrgNames, isAtRisk, requestKind, shortName } from "../_lib/data";
+import { nowMs, DAY, getCategoryMap, getCustomers, getOrgNames, isAtRisk, requestKind, shortName } from "../_lib/data";
 import { Bars, DueCell, Empty, PageSkeleton, Section, TitleSkeleton } from "@/components/partner/ui";
 
 export default function OverviewPage() {
@@ -24,7 +24,7 @@ async function Overview() {
 // ---------------------------------------------------------------------------
 async function BrokerOverview({ ctx }: { ctx: PartnerContext }) {
   const sb = ctx.supabase;
-  const now = Date.now();
+  const now = nowMs();
   const in30 = new Date(now + 30 * DAY).toISOString().slice(0, 10);
   const today = new Date(now).toISOString().slice(0, 10);
 
@@ -153,7 +153,7 @@ async function BrokerOverview({ ctx }: { ctx: PartnerContext }) {
 // ---------------------------------------------------------------------------
 async function InsurerOverview({ ctx }: { ctx: PartnerContext }) {
   const sb = ctx.supabase;
-  const soon = new Date(Date.now() + 3 * DAY).toISOString();
+  const soon = new Date(nowMs() + 3 * DAY).toISOString();
   const nowIso = new Date().toISOString();
 
   const [subs, expiring, toIssue, claims, products] = await Promise.all([

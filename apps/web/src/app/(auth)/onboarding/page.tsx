@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Card } from "@im/ui";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -21,6 +22,7 @@ export default function OnboardingPage({ searchParams }: PageProps<"/onboarding"
 }
 
 async function Body({ searchParams }: Pick<PageProps<"/onboarding">, "searchParams">) {
+  await connection();
   const sp = await searchParams;
   const next = safeNext(sp.next);
   await requireUser(`/onboarding?next=${encodeURIComponent(next)}`);

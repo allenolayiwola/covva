@@ -1,0 +1,967 @@
+openapi: 3.1.0
+info:
+  title: Insurance Marketplace API
+  version: 1.0.0
+  summary: REST API for the Insurance Marketplace mobile app and partner (broker/insurer) integrations.
+  description: |
+    Insurance Marketplace is a **technology platform**. It is not an insurer or broker, does not
+    give advice in its own name and never holds premiums. Every response that concerns a
+    transaction carries the information needed to show the mandatory disclosure.
+
+    ## Authentication
+    * **Customer / partner users** — `Authorization: Bearer <Supabase access token>` (mobile) or the
+      Supabase session cookie (web). Requests run as that user, so Postgres Row Level Security applies.
+    * **Partner integrations** — `x-api-key: imk_<prefix>_<secret>` (see `/partner/*`). Keys belong to a
+      broker or insurer organisation and carry scopes: `requests:read`, `quotes:write`,
+      `policies:issue`, `claims:write` (or `*`).
+
+    ## Envelope
+    Every JSON response (except the AI chat stream and redirects) is an `ApiResult`:
+    `{ "ok": true, "data": … }` or `{ "ok": false, "error": { "code", "message", "details?" } }`.
+
+    | HTTP | `error.code` | Meaning |
+    |---|---|---|
+    | 400 | `invalid_input` | Validation failed (`details` lists `{ path, message }`) |
+    | 401 | `unauthorised` | Missing/expired token or invalid API key |
+    | 403 | `forbidden` | Authenticated but not allowed |
+    | 404 | `not_found` | Not found or not visible to you |
+    | 409 | `conflict` | Duplicate / already done |
+    | 422 | `business_rule` | A product rule blocked it (e.g. quote expired, broker not disclosed). Show `message` to the user. |
+    | 429 | `rate_limited` | Slow down; see `Retry-After` |
+    | 503 | `unavailable` | Feature switched off or not configured (AI, payments) |
+    | 500 | `internal_error` | Unexpected error; quote `x-request-id` to support |
+
+    Every response has an `x-request-id` header (send your own to correlate).
+
+    ## Product rules clients must honour
+    * Show the broker-of-record disclosure and record it (`POST /requests/{id}/disclosure`) **before** an application.
+    * Only `ready_to_accept` quotes can be applied for, and only before `valid_until`.
+    * Payment confirmation never activates cover. Show cover as active only when `policy.status = active`.
+    * Reporting a claim is not approval. Only the insurer decides claims.
+    * When `demoMode` is true, show "Illustrative only · Demo data" near insurer names and prices.
+    * AI output is labelled as AI-assisted and is never a suitability or claim decision.
+  contact:
+    name: Platform engineering
+    email: support@insurance-marketplace.example
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: insurance-marketplace.example
+  - url: http://localhost:3000/api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Me
+  - name: Catalogue
+  - name: Requests
+  - name: Documents
+  - name: Applications & payments
+  - name: Policies
+  - name: Claims
+  - name: Complaints
+  - name: Notifications & devices
+  - name: AI
+  - name: Partner API
+  - name: System
+
+paths:
+  /me:
+    get:
+      tags: [Me]
+      summary: Current user — profile, memberships, feature flags, consent state
+      responses:
+        "200": { $ref: "#/components/responses/Me" }
+        "401": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Me]
+      summary: Update own profile
+      description: KYC status can't be changed by the client (enforced in the database).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateProfileInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /me/consents:
+    post:
+      tags: [Me]
+      summary: Record consent decisions (append-only)
+      description: When `version` is omitted the current `terms_version` / `privacy_version` is used.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RecordConsentsInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
+  /catalog/categories:
+    get:
+      tags: [Catalogue]
+      summary: Insurance categories with availability and `risk_schema` (form definition)
+      security: []
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { type: array, items: { $ref: "#/components/schemas/Category" } } }
+  /catalog/categories/{slug}:
+    get:
+      tags: [Catalogue]
+      summary: One category with approved products from participating insurers
+      security: []
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+  /catalog/insurers:
+    get:
+      tags: [Catalogue]
+      summary: Public directory of active insurers and brokers (for "add a policy bought elsewhere")
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /needs-assessment:
+    get:
+      tags: [Catalogue]
+      summary: The "help me choose" questions
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Catalogue]
+      summary: Run the needs assessment and store the answers
+      description: Works signed-in (bearer) or anonymously (pass `anonymousId`). Returns categories to consider — not product advice.
+      security: [{}, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/NeedsAssessmentInput" } } }
+      responses:
+        "200":
+          description: Suggestions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/NeedsResult" } }
+
+  /requests:
+    get:
+      tags: [Requests]
+      summary: The customer's requests
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Before" }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/RequestStatus" } }
+        - { name: open, in: query, schema: { type: string, enum: ["true", "false"] } }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+    post:
+      tags: [Requests]
+      summary: Create (and by default submit) a request
+      description: |
+        Validates `risk` against the category's `risk_schema`, routes exactly one broker of record,
+        prices estimates from approved rating rules and creates document tasks. `source` is recorded as `mobile`.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateRequestInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /requests/{id}:
+    get:
+      tags: [Requests]
+      summary: Request detail — customer-visible timeline, tasks, broker, documents, applications, payments, policies
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+  /requests/{id}/cancel:
+    post:
+      tags: [Requests]
+      summary: Cancel an open request (customer)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /requests/{id}/quotes:
+    get:
+      tags: [Requests]
+      summary: Quotes, comparison result and disclosure text
+      description: |
+        `comparison` is the engine output (`insurersCompared`, `productsCompared`, `criteria`, `ranked`, `paidPlacements`,
+        `materialExclusions`, `disclaimer`). Show `summary` (e.g. "3 quotes from 3 participating insurers compared"),
+        each quote's `statusLabel`, `labels` (explained, never an unexplained "best"), `valid_until` and `comparedAt`.
+        Paid placements are listed separately and never ranked.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: Quotes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/QuotesResult" } }
+  /requests/{id}/disclosure:
+    post:
+      tags: [Requests]
+      summary: Acknowledge the broker-of-record disclosure (required before applying). Idempotent.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/DisclosureAckInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /requests/{id}/messages:
+    get:
+      tags: [Requests]
+      summary: Message thread with the broker (oldest first within the page)
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/Limit" }, { $ref: "#/components/parameters/Before" }]
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+    post:
+      tags: [Requests]
+      summary: Send a message on the thread
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PostMessageInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+  /requests/{id}/tasks/{taskId}/complete:
+    post:
+      tags: [Requests]
+      summary: Complete a customer task (document tasks need `documentId`)
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { name: taskId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/CompleteTaskInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /documents/upload-url:
+    post:
+      tags: [Documents]
+      summary: Get a signed upload URL in the private documents bucket
+      description: |
+        Path layout `{customerId}/{scope}/{uuid}-{fileName}`. Then `PUT` the file bytes to `signedUrl`
+        with the returned headers, then confirm with `POST /documents` (body provided in `confirm.body`).
+        Uploading is not the same as notifying the insurer — the broker delivers documents.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UploadUrlInput" } } }
+      responses:
+        "200":
+          description: Upload target
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          bucket: { type: string }
+                          path: { type: string }
+                          token: { type: string }
+                          signedUrl: { type: string, format: uri }
+                          method: { type: string, enum: [PUT] }
+                          headers: { type: object, additionalProperties: { type: string } }
+                          expiresInSeconds: { type: integer }
+                          confirm: { type: object }
+  /documents:
+    post:
+      tags: [Documents]
+      summary: Confirm an upload and create the document record
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ConfirmUploadInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+  /documents/{id}/url:
+    get:
+      tags: [Documents]
+      summary: Signed download URL (valid 5 minutes)
+      parameters: [{ $ref: "#/components/parameters/Id" }, { name: download, in: query, schema: { type: string, enum: ["true", "false"] } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
+  /applications:
+    post:
+      tags: [Applications & payments]
+      summary: Apply for a ready-to-accept quote
+      description: Requires the broker disclosure to have been acknowledged and the quote to be `ready_to_accept` and unexpired. Idempotent per quote.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ApplyInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /payments:
+    post:
+      tags: [Applications & payments]
+      summary: Start payment for a submitted application
+      description: |
+        Revalidates the quote at checkout. Premiums settle to the insurer's Paystack subaccount.
+        Open `authorizationUrl` in an in-app browser; for a direct MoMo prompt (`momo` given) `authorizationUrl`
+        is null — show `displayText` and poll `GET /payments/{id}`. Pass `callbackUrl` =
+        `https://<host>/api/payments/return` from the app to be redirected to `insurancemarketplace://payments/return`.
+        In test environments without Paystack keys a **sandbox simulator** page is returned instead.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/InitPaymentRequest" } } }
+      responses:
+        "201":
+          description: Payment started
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/InitiatePaymentResult" } }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /payments/{id}:
+    get:
+      tags: [Applications & payments]
+      summary: Poll a payment (re-verifies pending Paystack payments)
+      description: "`coverActive` is true only when the insurer has issued the policy."
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
+  /policies:
+    get:
+      tags: [Policies]
+      summary: Policy wallet
+      parameters: [{ name: status, in: query, schema: { $ref: "#/components/schemas/PolicyStatus" } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /policies/{id}:
+    get:
+      tags: [Policies]
+      summary: Policy detail with cover wording, documents, claims and disclosure
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    patch:
+      tags: [Policies]
+      summary: Rename a policy (nickname only)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [nickname], properties: { nickname: { type: [string, "null"], maxLength: 60 } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /policies/external:
+    post:
+      tags: [Policies]
+      summary: Add a policy bought elsewhere (shown as "Added by you")
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AddExternalPolicyInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+  /policies/{id}/renewal:
+    post:
+      tags: [Policies]
+      summary: Start a renewal review (or a switch review for external policies)
+      description: Existing cover is never cancelled. Renewal prices are estimates until the insurer confirms.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/RenewalInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /claims:
+    get:
+      tags: [Claims]
+      summary: The customer's claims
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Claims]
+      summary: Report a claim to the broker
+      description: "Reporting is not approval: show `disclaimer`. Returns the evidence checklist (`requiredEvidence`)."
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ReportClaimInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /claims/{id}:
+    get:
+      tags: [Claims]
+      summary: Claim detail, timeline and documents
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /claims/{id}/withdraw:
+    post:
+      tags: [Claims]
+      summary: Withdraw a claim before the insurer decides
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
+  /complaints:
+    get:
+      tags: [Complaints]
+      summary: The customer's complaints
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Complaints]
+      summary: File a complaint (routed to the broker, insurer or platform; SLA from settings)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FileComplaintInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+
+  /notifications:
+    get:
+      tags: [Notifications & devices]
+      summary: In-app notifications (with `deepLink` for the app) and unread count
+      parameters: [{ $ref: "#/components/parameters/Limit" }, { $ref: "#/components/parameters/Before" }, { name: unread, in: query, schema: { type: string, enum: ["true", "false"] } }]
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+  /notifications/read:
+    post:
+      tags: [Notifications & devices]
+      summary: Mark notifications read
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { ids: { type: array, items: { type: string, format: uuid }, maxItems: 200 }, all: { type: boolean } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /devices:
+    post:
+      tags: [Notifications & devices]
+      summary: Register an Expo push token (moves the token to this user if it existed)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RegisterDeviceInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+  /devices/{token}:
+    delete:
+      tags: [Notifications & devices]
+      summary: Unregister a push token (URL-encode it). Call on sign-out.
+      parameters: [{ name: token, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
+  /ai/assistant:
+    post:
+      tags: [AI]
+      summary: Streaming customer assistant (AI SDK UI message stream)
+      description: |
+        Same handler as `/api/ai/assistant`. Use `useChat` with `DefaultChatTransport({ api, headers: { Authorization }, body: { requestId?, policyId?, threadId? } })`.
+        The response is a Server-Sent Events UI message stream (`x-vercel-ai-ui-message-stream: v1`), not an ApiResult.
+        Response header `x-thread-id` identifies the stored conversation; pass it back as `threadId`.
+        Tools are read-only (policies, request status, quote comparison, glossary, needs assessment, draft message to broker — never sends).
+        Rate limit: 15 burst, ~6/min. 503 `unavailable` when the `ai_assistant` flag is off.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AssistantRequest" } } }
+      responses:
+        "200": { description: UI message stream, content: { text/event-stream: { schema: { type: string } } } }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /partner/requests:
+    get:
+      tags: [Partner API]
+      summary: Requests routed to the broker, or submitted to the insurer (scope requests:read)
+      security: [{ apiKey: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/Limit" }
+        - { $ref: "#/components/parameters/Before" }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/RequestStatus" } }
+        - { name: updatedSince, in: query, schema: { type: string, format: date-time } }
+      responses:
+        "200": { $ref: "#/components/responses/Page" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /partner/quotes:
+    post:
+      tags: [Partner API]
+      summary: Post a quote for a request (scope quotes:write)
+      description: Brokers quote for appointed insurers on their routed requests; insurers quote only for themselves on requests submitted to them. A `ready_to_accept` quote moves the request to `quotes_ready` and notifies the customer.
+      security: [{ apiKey: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/BrokerQuoteInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/policies/{id}/issue:
+    post:
+      tags: [Partner API]
+      summary: Issue a pending policy — activates cover (insurer keys only, scope policies:issue)
+      description: Requires a confirmed payment. Records `policy_active` usage, completes the request and notifies the customer.
+      security: [{ apiKey: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/IssuePolicyBody" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/claims/{id}/status:
+    post:
+      tags: [Partner API]
+      summary: Update a claim's status or decision (insurer keys only, scope claims:write)
+      security: [{ apiKey: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PartnerClaimStatusInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /openapi:
+    get:
+      tags: [System]
+      summary: This document (YAML)
+      security: []
+      responses:
+        "200": { description: OpenAPI document, content: { application/yaml: { schema: { type: string } } } }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Supabase access token (JWT)
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: "Partner key `imk_<prefix>_<secret>`; the platform stores only sha256(key)."
+
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+    Before: { name: before, in: query, description: Cursor (ISO timestamp from `nextCursor`), schema: { type: string, format: date-time } }
+
+  responses:
+    Ok:
+      description: Success
+      content: { application/json: { schema: { $ref: "#/components/schemas/OkEnvelope" } } }
+    Page:
+      description: A page of items
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/OkEnvelope"
+              - properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { type: object } }
+                      nextCursor: { type: [string, "null"], format: date-time }
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } }
+    Me:
+      description: Current user
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/OkEnvelope"
+              - properties:
+                  data:
+                    type: object
+                    properties:
+                      profile: { type: object, description: "profiles row; Ghana Card returned as ghana_card_last4 only" }
+                      memberships: { type: array, items: { type: object } }
+                      isPartner: { type: boolean }
+                      flags: { type: object, additionalProperties: { type: boolean }, description: "feature_flags (e.g. demo_mode, ai_assistant)" }
+                      consents: { type: object, additionalProperties: { type: object } }
+                      versions: { type: object, properties: { terms: { type: [string, "null"] }, privacy: { type: [string, "null"] } } }
+                      needsConsent: { type: boolean }
+
+  schemas:
+    OkEnvelope:
+      type: object
+      required: [ok, data]
+      properties:
+        ok: { const: true }
+        data: {}
+    ErrorEnvelope:
+      type: object
+      required: [ok, error]
+      properties:
+        ok: { const: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { $ref: "#/components/schemas/ErrorCode" }
+            message: { type: string, description: Safe to show to users }
+            details: {}
+    ErrorCode:
+      type: string
+      enum: [unauthorised, forbidden, not_found, invalid_input, business_rule, conflict, rate_limited, unavailable, internal_error]
+
+    RequestStatus:
+      type: string
+      enum: [draft, submitted, awaiting_customer_info, adviser_action, insurer_response, quotes_ready, payment_confirmation, policy_documents, completed, cancelled, closed_no_cover]
+    QuoteStatus:
+      type: string
+      enum: [estimate, awaiting_underwriting, ready_to_accept, accepted, expired, declined, withdrawn]
+    PolicyStatus:
+      type: string
+      enum: [pending_issuance, active, lapsed, cancelled, expired, renewed]
+    ClaimStatus:
+      type: string
+      enum: [draft, reported, delivered_to_insurer, acknowledged, under_assessment, info_requested, approved, partially_approved, rejected, paid, closed, withdrawn]
+    ComplaintStatus:
+      type: string
+      enum: [open, acknowledged, investigating, resolved, escalated_nic, closed]
+    PaymentStatus:
+      type: string
+      enum: [pending, processing, succeeded, failed, refunded, reversed, abandoned]
+    CategoryAvailability:
+      type: string
+      enum: [integrated, broker_assisted, planned]
+    DocumentKind:
+      type: string
+      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other]
+    ConsentType:
+      type: string
+      enum: [terms, privacy, marketing, data_sharing_broker, data_sharing_insurer, ai_assistance]
+
+    RiskField:
+      type: object
+      required: [key, label, type]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        type: { type: string, enum: [text, number, currency, select, multiselect, boolean, date, region] }
+        required: { type: boolean }
+        min: { type: number }
+        max: { type: number }
+        placeholder: { type: string }
+        help: { type: string }
+        options: { type: array, items: { type: object, properties: { value: { type: string }, label: { type: string } } } }
+    Category:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        name: { type: string }
+        short_description: { type: [string, "null"] }
+        icon: { type: [string, "null"], description: lucide icon name }
+        segment: { type: string, enum: [personal, business, specialist] }
+        availability: { $ref: "#/components/schemas/CategoryAvailability" }
+        availabilityLabel: { type: string }
+        availabilityPromise: { type: string }
+        risk_schema: { type: array, items: { $ref: "#/components/schemas/RiskField" } }
+        required_documents: { type: array, items: { $ref: "#/components/schemas/DocumentKind" } }
+        regulatory_note: { type: [string, "null"] }
+        default_sla_hours: { type: integer }
+
+    UpdateProfileInput:
+      type: object
+      properties:
+        fullName: { type: string, maxLength: 200 }
+        preferredName: { type: [string, "null"] }
+        phone: { type: [string, "null"], pattern: "^\\+?\\d{9,15}$" }
+        accountType: { type: string, enum: [individual, business] }
+        businessName: { type: [string, "null"] }
+        dateOfBirth: { type: [string, "null"], format: date }
+        ghanaCardNumber: { type: [string, "null"], pattern: "^GHA-\\d{9}-\\d$" }
+        region: { type: [string, "null"] }
+        city: { type: [string, "null"] }
+        locale: { type: string }
+        avatarUrl: { type: [string, "null"], format: uri }
+        notificationPrefs: { type: object, properties: { email: { type: boolean }, sms: { type: boolean }, push: { type: boolean }, whatsapp: { type: boolean } } }
+        onboarded: { const: true }
+    RecordConsentsInput:
+      type: object
+      required: [consents]
+      properties:
+        consents:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: object
+            required: [type, granted]
+            properties:
+              type: { $ref: "#/components/schemas/ConsentType" }
+              granted: { type: boolean }
+              version: { type: string }
+              context: { type: string }
+    NeedsAssessmentInput:
+      type: object
+      required: [answers]
+      properties:
+        answers: { type: object, additionalProperties: { oneOf: [{ type: string }, { type: array, items: { type: string } }, { type: boolean }] } }
+        anonymousId: { type: string }
+    NeedsResult:
+      type: object
+      properties:
+        id: { type: [string, "null"], format: uuid }
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              name: { type: string }
+              priority: { type: string, enum: [essential, recommended, consider] }
+              why: { type: string }
+              availability: { $ref: "#/components/schemas/CategoryAvailability" }
+        needsAdviser: { type: boolean }
+        adviserReason: { type: [string, "null"] }
+        note: { type: string }
+
+    CreateRequestInput:
+      type: object
+      required: [categorySlug, risk]
+      properties:
+        categorySlug: { type: string }
+        type: { type: string, enum: [new_cover, renewal, switch, endorsement, service], default: new_cover }
+        risk: { type: object, additionalProperties: true, description: "Answers keyed by the category's risk_schema field keys" }
+        relatedPolicyId: { type: string, format: uuid }
+        needsAssessmentId: { type: string, format: uuid }
+        submit: { type: boolean, default: true }
+    DisclosureAckInput:
+      type: object
+      properties:
+        stage: { type: string, enum: [before_advice, before_application, broker_change], default: before_application }
+        method: { type: string, enum: [in_app, sms, email, call], default: in_app }
+    PostMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        attachments: { type: array, items: { type: object, required: [documentId, name], properties: { documentId: { type: string, format: uuid }, name: { type: string } } } }
+    CompleteTaskInput:
+      type: object
+      properties:
+        documentId: { type: string, format: uuid }
+        note: { type: string, maxLength: 1000 }
+
+    Quote:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/QuoteStatus" }
+        statusLabel: { type: string }
+        statusHint: { type: [string, "null"] }
+        is_binding: { type: boolean }
+        premium: { type: number }
+        taxes: { type: number }
+        fees: { type: number }
+        currency: { type: string, example: GHS }
+        billing_period: { type: string }
+        sum_insured: { type: [number, "null"] }
+        excess: { type: [number, "null"] }
+        coverage: { type: array, items: { type: object, properties: { key: { type: string }, label: { type: string }, included: { type: boolean } } } }
+        limits: { type: object }
+        excesses: { type: object }
+        exclusions: { type: array, items: { type: string } }
+        key_exclusion: { type: [string, "null"] }
+        waiting_period_days: { type: integer }
+        optional_benefits: { type: array, items: { type: object, properties: { key: { type: string }, label: { type: string }, premium: { type: number } } } }
+        valid_until: { type: [string, "null"], format: date-time }
+        expired: { type: boolean }
+        paid_placement: { type: boolean }
+        commission_disclosure: { type: [string, "null"] }
+        labels: { type: array, items: { type: string }, description: "Explained labels, e.g. Lowest premium" }
+        demo: { type: boolean }
+        insurer: { type: object, properties: { id: { type: string }, name: { type: string }, slug: { type: string }, logo_url: { type: [string, "null"] } } }
+        product: { type: [object, "null"], properties: { id: { type: string }, name: { type: string }, tier: { type: [string, "null"] } } }
+    QuotesResult:
+      type: object
+      properties:
+        request: { type: object }
+        broker: { type: [object, "null"] }
+        quotes: { type: array, items: { $ref: "#/components/schemas/Quote" } }
+        comparison:
+          type: object
+          properties:
+            engineVersion: { type: string }
+            insurersCompared: { type: integer }
+            productsCompared: { type: integer }
+            criteria: { type: object }
+            ranked: { type: array, items: { type: object } }
+            paidPlacements: { type: array, items: { type: object } }
+            materialExclusions: { type: array, items: { type: object } }
+            disclaimer: { type: string }
+        summary: { type: string }
+        disclosure: { type: [string, "null"] }
+        comparedAt: { type: string, format: date-time }
+        demoMode: { type: boolean }
+        demoDisclaimer: { type: [string, "null"] }
+
+    UploadUrlInput:
+      type: object
+      required: [scope, fileName, mimeType, sizeBytes]
+      properties:
+        scope: { type: string, enum: [requests, policies, claims, profile] }
+        fileName: { type: string, maxLength: 200 }
+        mimeType: { type: string, enum: [application/pdf, image/jpeg, image/png, image/webp, image/heic, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document] }
+        sizeBytes: { type: integer, maximum: 20971520 }
+        kind: { $ref: "#/components/schemas/DocumentKind" }
+        requestId: { type: string, format: uuid }
+        policyId: { type: string, format: uuid }
+        claimId: { type: string, format: uuid }
+        taskId: { type: string, format: uuid }
+    ConfirmUploadInput:
+      allOf:
+        - $ref: "#/components/schemas/UploadUrlInput"
+        - type: object
+          required: [path]
+          properties:
+            path: { type: string }
+            checksum: { type: string }
+
+    ApplyInput:
+      type: object
+      required: [quoteId, declarations, acceptTerms]
+      properties:
+        quoteId: { type: string, format: uuid }
+        declarations: { type: object, additionalProperties: { oneOf: [{ type: boolean }, { type: string }] } }
+        selectedBenefits: { type: array, items: { type: string }, description: optional_benefits keys }
+        acceptTerms: { const: true }
+    InitPaymentRequest:
+      type: object
+      required: [applicationId]
+      properties:
+        applicationId: { type: string, format: uuid }
+        channel: { type: string, enum: [mobile_money, card, bank_transfer], default: mobile_money }
+        callbackUrl: { type: string, format: uri }
+        momo:
+          type: object
+          required: [phone, provider]
+          properties:
+            phone: { type: string, example: "0244123456" }
+            provider: { type: string, enum: [mtn, vod, atl] }
+    InitiatePaymentResult:
+      type: object
+      properties:
+        paymentId: { type: string, format: uuid }
+        reference: { type: string }
+        authorizationUrl: { type: [string, "null"], format: uri }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        displayText: { type: [string, "null"] }
+
+    AddExternalPolicyInput:
+      type: object
+      required: [categorySlug, insurerOrgId, policyNumber, coverStart, coverEnd]
+      properties:
+        categorySlug: { type: string }
+        insurerOrgId: { type: string, format: uuid, description: From GET /catalog/insurers }
+        policyNumber: { type: string }
+        coverStart: { type: string, format: date }
+        coverEnd: { type: string, format: date }
+        premium: { type: number }
+        sumInsured: { type: number }
+        nickname: { type: string, maxLength: 60 }
+        documentId: { type: string, format: uuid }
+    RenewalInput:
+      type: object
+      properties:
+        risk: { type: object, additionalProperties: true, description: Defaults to the original request's risk details }
+        changes: { type: string, maxLength: 2000, description: "What has changed (posted to the broker)" }
+
+    ReportClaimInput:
+      type: object
+      required: [policyId, incidentType, incidentAt, description]
+      properties:
+        policyId: { type: string, format: uuid }
+        incidentType: { type: string, example: Accident }
+        incidentAt: { type: string, format: date-time }
+        location: { type: string, maxLength: 300 }
+        description: { type: string, minLength: 10, maxLength: 5000 }
+        amountClaimed: { type: number }
+    FileComplaintInput:
+      type: object
+      required: [subject, description, category]
+      properties:
+        subject: { type: string, minLength: 3, maxLength: 200 }
+        description: { type: string, minLength: 10, maxLength: 5000 }
+        category: { type: string, enum: [advice, service, claims, payment, data_privacy, technology, other] }
+        againstParty: { type: string, enum: [broker, insurer, platform], default: broker }
+        requestId: { type: string, format: uuid }
+        policyId: { type: string, format: uuid }
+        claimId: { type: string, format: uuid }
+        desiredOutcome: { type: string, maxLength: 2000 }
+    RegisterDeviceInput:
+      type: object
+      required: [token, platform]
+      properties:
+        token: { type: string, example: "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" }
+        platform: { type: string, enum: [ios, android, web] }
+        provider: { type: string, enum: [expo, fcm, apns, webpush], default: expo }
+        appVersion: { type: string }
+    AssistantRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages: { type: array, maxItems: 60, items: { type: object, description: "AI SDK UIMessage { id, role, parts }" } }
+        requestId: { type: string, format: uuid }
+        policyId: { type: string, format: uuid }
+        threadId: { type: string, format: uuid }
+
+    BrokerQuoteInput:
+      type: object
+      required: [requestId, insurerOrgId, status, premium]
+      properties:
+        requestId: { type: string, format: uuid }
+        insurerOrgId: { type: string, format: uuid }
+        productVersionId: { type: string, format: uuid }
+        status: { type: string, enum: [estimate, awaiting_underwriting, ready_to_accept] }
+        premium: { type: number, minimum: 0 }
+        excess: { type: number, minimum: 0 }
+        sumInsured: { type: number, minimum: 0 }
+        keyExclusion: { type: string }
+        validUntil: { type: string, format: date-time, description: Defaults to 14 days for ready_to_accept }
+        brokerNote: { type: string, maxLength: 2000 }
+    IssuePolicyBody:
+      type: object
+      required: [policyNumber, coverStart, coverEnd]
+      properties:
+        policyNumber: { type: string, minLength: 3, maxLength: 60 }
+        coverStart: { type: string, format: date }
+        coverEnd: { type: string, format: date }
+    PartnerClaimStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [acknowledged, under_assessment, info_requested, approved, partially_approved, rejected, paid, closed] }
+        note: { type: string, maxLength: 2000 }
+        insurerReference: { type: string }
+        decisionAmount: { type: number, minimum: 0 }
+        visibleToCustomer: { type: boolean, default: true }

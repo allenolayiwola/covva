@@ -146,7 +146,7 @@ async function Customer({ params }: { params: Promise<{ id: string }> }) {
             <KV label="KYC"><Pill tone={profile.kyc_status === "verified" ? "ok" : "wait"}>{humanize(profile.kyc_status)}</Pill></KV>
           </Section>
           <Section title="Consents">
-            {consents === null ? <p className="text-sm text-muted">Consent records are held by the platform and aren't available here right now.</p> : consents.length === 0 ? <p className="text-sm text-amber">No consent records found.</p> : (
+            {consents === null ? <p className="text-sm text-muted">Consent records are held by the platform and aren’t available here right now.</p> : consents.length === 0 ? <p className="text-sm text-amber">No consent records found.</p> : (
               <ul className="space-y-1.5 text-sm">
                 {consents.map((c) => <li key={c.type} className="flex justify-between"><span>{humanize(c.type)}</span><Pill tone={c.granted ? "ok" : "danger"}>{c.granted ? "Granted" : "Refused"} · {formatDate(c.at)}</Pill></li>)}
               </ul>

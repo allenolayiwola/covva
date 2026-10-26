@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { DemoBadge, EmptyState, PageHeader, StatCard, Tabs } from "@im/ui";
 import { OPEN_REQUEST_STATUSES, QUEUE_BUCKETS, REQUEST_STATUS, type RequestStatus, type RiskField } from "@im/core";
 import { requireKind } from "../../_lib/context";
-import { SOURCE_LABEL, getCategoryMap, getCustomers, getOrgNames, getTeam, isAtRisk, requestKind, shortName } from "../../_lib/data";
+import { nowMs, SOURCE_LABEL, getCategoryMap, getCustomers, getOrgNames, getTeam, isAtRisk, requestKind, shortName } from "../../_lib/data";
 import { getCategories } from "@/lib/catalog";
 import { AutoSubmitSelect } from "@/components/partner/action-form";
 import { CreateRequestButton } from "@/components/partner/create-request";
@@ -73,7 +73,7 @@ async function Queue({ searchParams }: { searchParams: Promise<SP> }) {
     .order("created_at", { ascending: false })
     .limit(500);
   const all = data ?? [];
-  const now = Date.now();
+  const now = nowMs();
 
   const bucket = QUEUE_BUCKETS.find((b) => b.key === sp.bucket);
   let rows = all;

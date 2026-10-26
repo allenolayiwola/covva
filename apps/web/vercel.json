@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/cron/renewal-reminders", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/sla-monitor", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/quote-expiry", "schedule": "5 * * * *" },
+    { "path": "/api/cron/policy-lifecycle", "schedule": "15 0 * * *" },
+    { "path": "/api/cron/usage-metering", "schedule": "30 1 * * *" },
+    { "path": "/api/cron/complaint-sla", "schedule": "0 8 * * *" }
+  ]
+}

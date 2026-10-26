@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { DemoBadge, EmptyState, PageHeader, StatCard, StatusPill, Table, Tabs, Td, Th, THead } from "@im/ui";
 import { QUOTE_STATUS, formatDate, formatDateTime, formatGHS, type QuoteStatus } from "@im/core";
 import { requireKind } from "../../_lib/context";
-import { DAY, getCustomers, getOrgNames, shortName } from "../../_lib/data";
+import { nowMs, DAY, getCustomers, getOrgNames, shortName } from "../../_lib/data";
 import { PageSkeleton } from "@/components/partner/ui";
 
 export const metadata: Metadata = { title: "Quotes" };
@@ -43,7 +43,7 @@ async function Quotes({ searchParams }: { searchParams: Promise<Record<string, s
     .order("created_at", { ascending: false })
     .limit(1000);
   const all = data ?? [];
-  const now = Date.now();
+  const now = nowMs();
   const expiring = (q: (typeof all)[number]) => q.status === "ready_to_accept" && !!q.valid_until && Date.parse(q.valid_until) > now && Date.parse(q.valid_until) - now < 3 * DAY;
   const rows = filter.key === "expiring" ? all.filter(expiring) : all.filter((q) => filter.statuses!.includes(q.status));
 

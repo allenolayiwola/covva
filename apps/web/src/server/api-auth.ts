@@ -78,10 +78,10 @@ export function dbError(err: PgError, fallback = "Something went wrong."): ApiEr
 }
 
 /** Unwrap a Supabase result; throw ApiError on error, `not_found` when the row is missing. */
-export function must<T>(res: { data: T | null; error: PgError | null }, notFoundMessage = "Not found."): T {
+export function must<R extends { data: unknown; error: PgError | null }>(res: R, notFoundMessage = "Not found."): NonNullable<R["data"]> {
   if (res.error) throw dbError(res.error);
   if (res.data === null || res.data === undefined) throw notFound(notFoundMessage);
-  return res.data;
+  return res.data as NonNullable<R["data"]>;
 }
 
 /** Throw on a write error (insert/update without needing the row back). */

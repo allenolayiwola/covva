@@ -130,3 +130,8 @@ export const APPLICATION_LABEL: Record<Row<"applications">["status"], string> = 
   rejected: "Declined by insurer",
   withdrawn: "Withdrawn",
 };
+
+/** Request-time clock for Server Components (they render once per request, so this is stable). */
+export function nowMs(): number {
+  return Date.now();
+}

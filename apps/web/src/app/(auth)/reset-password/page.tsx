@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { Card, Notice } from "@im/ui";
 import { getUser } from "@/lib/auth";
 import { ResetPasswordForm } from "./form";
@@ -21,6 +22,7 @@ export default function ResetPasswordPage() {
 }
 
 async function Body() {
+  await connection();
   const user = await getUser();
   if (!user) {
     return (

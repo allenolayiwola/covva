@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Bell, User } from "lucide-react";
 import { DemoBadge, buttonClass } from "@im/ui";
 import { SiteHeader } from "@/components/site-header";
@@ -69,6 +70,7 @@ function HeaderFallback() {
 
 /** Customers must finish onboarding (profile + consents) before using the account area. */
 async function OnboardingGate({ children }: { children: React.ReactNode }) {
+  await connection(); // Supabase Auth reads the clock; keep it out of the prerendered shell
   await requireUser("/account");
   const profile = await getProfile();
   if (!profile?.onboarded_at) redirect("/onboarding?next=/account");

@@ -171,6 +171,7 @@ function RiskForm({
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saved, setSaved] = React.useState<"idle" | "saved" | "restored" | "unavailable">("idle");
   const hydrated = React.useRef(false);
+  const dirty = React.useRef(false);
   const copy = TYPE_COPY[type];
 
   // Restore a saved draft (resumable forms for low-bandwidth / interrupted sessions).
@@ -191,7 +192,7 @@ function RiskForm({
 
   // Autosave (debounced).
   React.useEffect(() => {
-    if (!hydrated.current) return;
+    if (!hydrated.current || !dirty.current) return;
     const t = setTimeout(() => {
       try {
         localStorage.setItem(key, JSON.stringify({ values, note, savedAt: Date.now() }));
@@ -212,6 +213,7 @@ function RiskForm({
   }, [state]);
 
   const set = (k: string, v: Value) => {
+    dirty.current = true;
     setValues((prev) => ({ ...prev, [k]: v }));
     if (errors[k]) setErrors(({ [k]: _, ...rest }) => rest);
   };
@@ -310,7 +312,10 @@ function RiskForm({
           htmlFor="f-note"
           error={errors.__note}
         >
-          <Textarea id="f-note" name="note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={4000} aria-invalid={!!errors.__note} />
+          <Textarea id="f-note" name="note" value={note} onChange={(e) => {
+              dirty.current = true;
+              setNote(e.target.value);
+            }} maxLength={4000} aria-invalid={!!errors.__note} />
         </Field>
       )}
 

@@ -1,5 +1,6 @@
 import "server-only";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import type { Row } from "@im/db";
 import { STORAGE_BUCKETS } from "@im/db";
 import { requireUser } from "@/lib/auth";
@@ -13,6 +14,9 @@ import { createClient } from "@/lib/supabase/server";
 export type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 export async function account(next = "/account") {
+  // Supabase Auth reads the clock (token expiry) once cookies resolve. With partial prefetching the
+  // cookie-bound shell is prerendered, so mark this as request-time work first.
+  await connection();
   const user = await requireUser(next);
   const supabase = await createClient();
   return { user, supabase };

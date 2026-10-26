@@ -87,7 +87,7 @@ export function QuoteForm({
       {versionId && (
         <div className="rounded-xl bg-mist p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-ink-2">Pre-fill an <span className="font-semibold">estimate</span> from the insurer's approved rates and the customer's risk answers.</p>
+            <p className="text-sm text-ink-2">Pre-fill an <span className="font-semibold">estimate</span> from the insurer’s approved rates and the customer’s risk answers.</p>
             <Button type="button" variant="secondary" size="sm" onClick={priceFromRates}>Price from approved rates</Button>
           </div>
           {rated && (

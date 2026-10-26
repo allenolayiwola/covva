@@ -20,16 +20,16 @@ export default function NoAccessPage() {
       </header>
       <main id="main" className="mx-auto max-w-2xl px-4 py-12 sm:py-16">
         <div className="rounded-card border border-line bg-white p-6 sm:p-8">
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">You don't have partner access yet</h1>
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">You don’t have partner access yet</h1>
           <p className="mt-2 text-[15px] text-muted">
             The Partner workspace is for staff of licensed brokers and insurers that work with Insurance Marketplace.
-            Your account is signed in, but it isn't linked to a partner organisation.
+            Your account is signed in, but it isn’t linked to a partner organisation.
           </p>
           <h2 className="mt-6 text-lg font-semibold text-ink">How to get access</h2>
           <ol className="mt-2 list-decimal space-y-2 pl-5 text-[15px] text-ink-2">
             <li>Ask an owner or admin of your organisation to invite you from <span className="font-medium">Team settings → Invite member</span>, using the email address you sign in with.</li>
             <li>Open the invitation link from your email. Invitations expire after 14 days.</li>
-            <li>Sign in again. Your organisation's workspace will open automatically.</li>
+            <li>Sign in again. Your organisation’s workspace will open automatically.</li>
           </ol>
           <h2 className="mt-6 text-lg font-semibold text-ink">New partner organisation?</h2>
           <p className="mt-1 text-[15px] text-muted">

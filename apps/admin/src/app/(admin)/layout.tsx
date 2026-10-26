@@ -35,11 +35,11 @@ async function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
       {!staff.mfaRequired && (
-        <div role="alert" className="bg-danger px-4 py-1.5 text-center text-xs font-semibold text-white">
+        <div role="alert" className="no-print bg-danger px-4 py-1.5 text-center text-xs font-semibold text-white">
           MFA disabled — ADMIN_MFA_REQUIRED=false. Use only for local demos; never in production.
         </div>
       )}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:px-6">
+      <header className="no-print sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:px-6">
         <MobileNav />
         <Link href="/" className="flex items-center gap-2.5">
           <LogoMark size={28} />
@@ -53,7 +53,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="flex">
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-line bg-white lg:block">
+        <aside className="no-print sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-line bg-white lg:block">
           <SidebarNav />
           <p className="px-6 pb-6 text-[11px] leading-relaxed text-subtle">
             Technology provider console. The platform is not an insurer or broker and never holds premiums.
