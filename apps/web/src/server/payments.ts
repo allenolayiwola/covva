@@ -3,10 +3,11 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { formatDate } from "@im/core";
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { BusinessRuleError } from "@/server/requests";
+import { BusinessRuleError, ruleMessage } from "@/server/requests";
 import { notify, notifyOrg } from "@/server/notify";
 import { log } from "@/server/log";
 import { paystackKey, simulatorEnabled, simulatorSignature, siteUrl } from "@/server/env";
+import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 
 /**
  * Payment service (owner: Backend stream). Premiums are paid through Paystack and
@@ -356,6 +357,12 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
   const event = (outcome.event ?? null) as Json;
 
   if (outcome.status !== "succeeded") {
+    if (outcome.status === "refunded" && payment.status === "refunded") {
+      // Refund requested by us earlier (see refundPayment) and now confirmed by the provider.
+      const refund = { ...asObject(asObject(payment.raw_event).refund as Json), status: "processed", processed_at: outcome.paidAt ?? new Date().toISOString(), source: outcome.source };
+      await svc.from("payments").update({ raw_event: { ...asObject(payment.raw_event), refund, last_event: event } as Json }).eq("id", payment.id);
+      return { status: "refunded" };
+    }
     if (payment.status === "succeeded" && (outcome.status === "refunded" || outcome.status === "reversed")) {
       await svc.from("payments").update({ status: outcome.status, raw_event: { ...asObject(payment.raw_event), last_event: event } as Json }).eq("id", payment.id);
       log.warn("payment.reversed_or_refunded", { paymentId: payment.id, status: outcome.status });
@@ -475,6 +482,10 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
     link: policyId ? `/partner/policies/${policyId}` : `/partner/requests/${request.id}`,
     data: { request_id: request.id, payment_id: payment.id, policy_id: policyId },
   });
+  const paid = { payment_id: payment.id, request_id: request.id, reference: request.reference, provider_reference: payment.provider_reference, quote_id: quote.id, policy_id: policyId, amount: Number(payment.amount), currency: payment.currency, status: "succeeded" };
+  await emitEvent(request.broker_org_id, "payment.succeeded", paid);
+  await emitEvent(quote.insurer_org_id, "payment.succeeded", paid);
+  await emitRequestStatus(request.broker_org_id, request, "payment_confirmation", "policy_documents");
 
   return { status: "succeeded", policyId };
 }
@@ -527,6 +538,88 @@ export async function verifyPayment(reference: string): Promise<{ status: Enum<"
     return { status: r.status ?? "abandoned" };
   }
   return { status: payment.status };
+}
+
+// ---------------------------------------------------------------------------
+// refundPayment
+// ---------------------------------------------------------------------------
+export interface RefundResult {
+  status: Enum<"payment_status">;
+  /** `requested` = provider accepted the refund and will confirm by webhook; `processed` = done (simulator). */
+  refund: "requested" | "processed";
+}
+
+/**
+ * Refund a succeeded premium payment (e.g. the insurer declined the risk after payment).
+ * Paystack refunds are asynchronous: `POST /refund` queues it and the provider confirms with
+ * `refund.processed` (or `refund.failed`). We mark the payment `refunded` as soon as the
+ * provider accepts the request and keep the provider's progress in `raw_event.refund`;
+ * a `refund.failed` webhook reverts the payment to `succeeded` and alerts operations.
+ * (We deliberately don't reuse `processing`: that status means "customer is paying" and
+ * `verifyPayment` would re-apply the original success to it.) Simulator payments are
+ * refunded immediately. Authorisation is the caller's job — this is a system write.
+ */
+export async function refundPayment(paymentId: string, reason: string): Promise<RefundResult> {
+  const svc = createServiceClient();
+  const { data: payment } = await svc.from("payments").select("*").eq("id", paymentId).maybeSingle();
+  if (!payment) throw new BusinessRuleError("Payment not found.", "not_found");
+  if (payment.status === "refunded" || payment.status === "reversed") return { status: payment.status, refund: "processed" };
+  if (payment.status !== "succeeded") throw new BusinessRuleError(`Only a confirmed payment can be refunded (this one is ${payment.status}).`);
+
+  const note = reason.trim().slice(0, 500);
+  let refund: Record<string, unknown>;
+  let result: RefundResult["refund"];
+  if (payment.provider === "paystack" && paystackKey()) {
+    const res = await paystack<{ id?: number; status?: string; amount?: number; transaction?: unknown }>("/refund", {
+      method: "POST",
+      body: { transaction: payment.provider_reference, currency: payment.currency, merchant_note: note, customer_note: "Your premium is being refunded because the insurer could not accept the application." },
+    });
+    if (!res.ok) {
+      log.error("paystack.refund_failed", { paymentId: payment.id, status: res.status, message: res.json.message });
+      throw new BusinessRuleError(res.json.message ? `The payment provider refused the refund: ${res.json.message}` : "The payment provider could not start the refund. Try again or refund from the Paystack dashboard.");
+    }
+    refund = { status: "requested", provider_refund_id: res.json.data?.id ?? null, provider_status: res.json.data?.status ?? null, requested_at: new Date().toISOString(), reason: note };
+    result = "requested";
+  } else {
+    // Simulator / no provider key: nothing was really charged, so the refund is immediate.
+    refund = { status: "processed", provider: payment.provider, requested_at: new Date().toISOString(), processed_at: new Date().toISOString(), reason: note };
+    result = "processed";
+  }
+  const { error } = await svc
+    .from("payments")
+    .update({ status: "refunded", failure_reason: `Refunded: ${note}`.slice(0, 500), raw_event: { ...asObject(payment.raw_event), refund } as Json })
+    .eq("id", payment.id)
+    .eq("status", "succeeded");
+  if (error) throw new BusinessRuleError(ruleMessage(error, "The refund was requested but could not be recorded. Check the payment in the admin portal."));
+  await svc.from("request_events").insert({
+    request_id: payment.request_id,
+    actor_party: "system",
+    event: "payment_refunded",
+    note: result === "processed" ? `Premium of ${payment.currency} ${Number(payment.amount).toFixed(2)} refunded.` : `Refund of ${payment.currency} ${Number(payment.amount).toFixed(2)} requested from the payment provider. It usually reaches the original payment method within 5–10 working days.`,
+    data: { payment_id: payment.id, refund } as Json,
+  });
+  return { status: "refunded", refund: result };
+}
+
+/** Paystack `refund.failed`: the provider could not complete a refund we recorded. Revert and alert. */
+export async function applyRefundFailed(reference: string, event: unknown): Promise<void> {
+  const svc = createServiceClient();
+  const { data: payment } = await svc.from("payments").select("*").eq("provider_reference", reference).maybeSingle();
+  if (!payment || payment.status !== "refunded") return;
+  const refund = { ...asObject(asObject(payment.raw_event).refund as Json), status: "failed", failed_at: new Date().toISOString() };
+  await svc.from("payments").update({ status: "succeeded", failure_reason: "Refund failed at the payment provider — refund manually", raw_event: { ...asObject(payment.raw_event), refund, last_event: event as Json } as Json }).eq("id", payment.id);
+  log.error("paystack.refund_processing_failed", { paymentId: payment.id, reference });
+  const { data: request } = await svc.from("requests").select("id, reference, broker_org_id").eq("id", payment.request_id).maybeSingle();
+  if (request?.broker_org_id) {
+    await notifyOrg(request.broker_org_id, {
+      kind: "payment.refund_failed",
+      title: `Refund failed for ${request.reference}`,
+      body: "The payment provider could not process the refund. Arrange it with the insurer and record it on the payment.",
+      link: `/partner/requests/${request.id}`,
+      data: { request_id: request.id, payment_id: payment.id },
+      channels: ["in_app", "email"],
+    }, ["owner", "admin", "supervisor", "finance"]);
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { applyPaymentResult, verifyPaystackSignature } from "@/server/payments";
+import { applyPaymentResult, applyRefundFailed, verifyPaystackSignature } from "@/server/payments";
 import { log } from "@/server/log";
 
 interface PaystackEvent {
@@ -56,7 +56,12 @@ export async function POST(req: Request) {
           await applyPaymentResult(ref, { status: "failed", failureReason: evt.data.gateway_response ?? "Declined", event: evt as unknown, source: "webhook" });
           break;
         case "refund.processed":
-          await applyPaymentResult(ref, { status: "refunded", event: evt as unknown, source: "webhook" });
+          await applyPaymentResult(ref, { status: "refunded", paidAt: evt.data.paid_at ?? null, event: evt as unknown, source: "webhook" });
+          break;
+        case "refund.failed":
+          await applyRefundFailed(ref, evt as unknown);
+          break;
+        case "refund.pending":
           break;
         case "charge.dispute.create":
           log.warn("paystack.dispute", { requestId, reference: ref });

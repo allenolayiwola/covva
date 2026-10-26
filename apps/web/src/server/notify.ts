@@ -94,6 +94,43 @@ export async function notifyOrg(orgId: string, input: Omit<NotifyInput, "userId"
 }
 
 // ---------------------------------------------------------------------------
+// Team invitations (recipient may not have an account yet)
+// ---------------------------------------------------------------------------
+/**
+ * Email a team invitation. When the address belongs to an existing user it goes through
+ * `notify()` (in-app + email, kind `invite.sent`); otherwise the email is sent directly
+ * with `sendEmail()` — invitations are the one message we must deliver to people with
+ * no account. Degrades to a log line when `RESEND_API_KEY` is unset.
+ */
+export async function sendInviteEmail(input: { to: string; orgName: string; role: string; token: string; invitedBy?: string | null; expiresAt?: string | null }): Promise<void> {
+  const link = `${siteUrl()}/invite/${encodeURIComponent(input.token)}`;
+  const role = input.role.replace(/_/g, " ");
+  const title = `You're invited to join ${input.orgName} on COVVA`;
+  const body = [
+    `${input.invitedBy ? `${input.invitedBy} has` : "You have been"} invited you to join ${input.orgName} as ${/^[aeiou]/i.test(role) ? "an" : "a"} ${role}.`,
+    "Open the link below and sign in with this email address (or create an account with it) to accept.",
+    input.expiresAt ? `The invitation expires on ${input.expiresAt.slice(0, 10)}.` : "The invitation expires in 14 days.",
+  ].join("\n");
+
+  let svc: ReturnType<typeof createServiceClient> | null = null;
+  try {
+    svc = createServiceClient();
+  } catch {
+    svc = null;
+  }
+  if (svc) {
+    const { data: existing } = await svc.from("profiles").select("id").eq("email", input.to.toLowerCase()).maybeSingle();
+    if (existing) {
+      await notify({ userId: existing.id, kind: "invite.sent", title, body, link, data: { org_name: input.orgName, role: input.role }, channels: ["in_app", "email", "push"] });
+      return;
+    }
+  }
+  await defer(async () => {
+    await sendEmail({ to: input.to, subject: title, html: emailHtml({ title, body, link }), text: emailText({ title, body, link }) });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Delivery
 // ---------------------------------------------------------------------------
 type Inserted = { id: string; user_id: string; kind: string; title: string; body: string | null; link: string | null; data: Json; channels: string[] };
