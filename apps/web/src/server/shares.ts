@@ -120,7 +120,13 @@ export interface SharedComparison {
  */
 export async function loadSharedComparison(token: string, opts: { recordView?: boolean } = {}): Promise<SharedComparison | null> {
   if (!SHARE_TOKEN_RE.test(token)) return null;
-  const svc = createServiceClient();
+  let svc: ReturnType<typeof createServiceClient>;
+  try {
+    svc = createServiceClient();
+  } catch {
+    // No service credentials (e.g. a preview without SUPABASE_SECRET_KEY): treat every share as unknown.
+    return null;
+  }
   const { data: share } = await svc
     .from("quote_shares")
     .select("id, token, request_id, quote_id, expires_at, view_count, request:requests(id, title, risk_data, category:product_categories(slug, name))")

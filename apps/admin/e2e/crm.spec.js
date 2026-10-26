@@ -14,8 +14,8 @@ test.describe("partnerships CRM", () => {
       await expect(board.getByRole("listitem", { name: new RegExp(`^${stage} \\(\\d+\\)$`) })).toBeVisible();
     }
     await expect(page.getByText("Open accounts", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Owner", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Kind", { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Owner" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Kind" })).toBeVisible();
     await expect(page.getByText(/Lost accounts \(\d+\)/)).toBeVisible();
     // Sidebar group
     const nav = page.getByRole("navigation", { name: "Admin" }).first();
@@ -48,7 +48,7 @@ test.describe("partnerships CRM", () => {
     await page.goto("/partners/crm/new");
     await expect(page.getByRole("heading", { level: 1, name: "New account" })).toBeVisible();
     await page.getByLabel("Name", { exact: true }).fill(name);
-    await page.getByLabel("Kind", { exact: true }).selectOption("broker");
+    await page.getByRole("combobox", { name: "Kind" }).selectOption("broker");
     await page.getByLabel("Source", { exact: true }).selectOption("event");
     await page.getByLabel("Region", { exact: true }).fill("Ashanti");
     await page.getByLabel("Contact name", { exact: true }).fill("Kwame Boateng");

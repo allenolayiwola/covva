@@ -2,7 +2,7 @@ import "server-only";
 import { compareQuotes, declaredValue, underinsuranceCheck } from "@im/core";
 import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
-import { notify, notifyOrg } from "@/server/notify";
+import { deliverPending, notify, notifyOrg } from "@/server/notify";
 import { recordPolicyActive, period } from "@/server/usage";
 import { toComparable, type QuoteWithParties } from "@/server/quotes";
 import { log } from "@/server/log";
@@ -397,6 +397,13 @@ const crmReminders: CronJob = async (svc) => {
   return { checked: due?.length ?? 0, sent };
 };
 
+/**
+ * Every 10 minutes: email/push delivery for onboarding notifications that the database RPCs
+ * wrote directly (application decisions, appointment decisions, licence expiry/lapse).
+ */
+const ONBOARDING_KINDS = ["partner.application.approved", "partner.application.needs_changes", "partner.application.rejected", "appointment.decided", "licence.expiring", "licence.lapsed"];
+const onboardingNotifications: CronJob = async (svc) => deliverPending(svc, { kinds: ONBOARDING_KINDS, limit: 200 });
+
 export const CRON_JOBS: Record<string, CronJob> = {
   "crm-reminders": crmReminders,
   "renewal-reminders": renewalReminders,
@@ -410,6 +417,7 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "price-schedule": priceSchedule,
   "settlement-statements": settlementStatements,
   "licence-status": licenceStatus,
+  "onboarding-notifications": onboardingNotifications,
   // Delegated / API issuance jobs left queued or failed (adapter outage, missing number block) are re-run.
   "issuance-retry": (svc) => retryIssuanceJobs(svc),
 };
