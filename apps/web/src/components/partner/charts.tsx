@@ -151,7 +151,7 @@ export function RateMeter({ label, ratio, detail, className }: { label: string; 
         <span className="text-muted">{label}</span>
         <span className="font-semibold tabular-nums text-ink">{pct == null ? "—" : `${pct}%`}</span>
       </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-mist" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined} aria-valuetext={pct == null ? "No data yet" : `${pct}%`}>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-mist" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? 0} aria-valuetext={pct == null ? "No data yet" : `${pct}%`}>
         <div className={cn("h-full rounded-full", pct != null && pct < 70 ? "bg-gold" : "bg-brand")} style={{ width: `${pct ?? 0}%` }} />
       </div>
       {detail && <p className="mt-1 text-xs text-subtle">{detail}</p>}

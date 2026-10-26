@@ -41,7 +41,7 @@ test.describe("broker workspace", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
     const panel = page.getByTestId("broker-analytics");
     await expect(panel).toBeVisible({ timeout: 30_000 });
-    for (const label of ["Leads received", "Requests", "Quotes sent", "Conversions", "Policies issued", "Renewals due (30 days)", "Lapses (90 days)", "Open claims", "Response targets met"]) {
+    for (const label of ["Leads received", "Requests", "Quotes sent", "Conversions", "Policies issued", "Renewals due (30 days)", "Lapses (90 days)", "Claims in progress", "Response targets met"]) {
       await expect(panel.getByText(label, { exact: true }).first()).toBeVisible();
     }
     await expect(panel.getByRole("img", { name: "Requests, quotes and conversions per day" })).toBeVisible();
@@ -105,7 +105,7 @@ test.describe("insurer portal", () => {
     await page.goto("/partner?days=30");
     const panel = page.getByTestId("insurer-analytics");
     await expect(panel).toBeVisible({ timeout: 30_000 });
-    for (const label of ["Sales (premium)", "Submissions received", "Quotes", "Conversions", "Policies issued", "Renewals due (30 days)", "Lapses (90 days)", "Open claims", "SLA performance"]) {
+    for (const label of ["Sales (premium)", "Submissions received", "Quotes", "Conversions", "Policies issued", "Renewals due (30 days)", "Lapses (90 days)", "Claims in progress", "SLA performance"]) {
       await expect(panel.getByText(label, { exact: true }).first()).toBeVisible();
     }
     await expect(panel.getByRole("img", { name: "Submissions, quotes and conversions per day" })).toBeVisible();

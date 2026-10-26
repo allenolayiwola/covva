@@ -14,7 +14,7 @@ test.describe("partnerships CRM", () => {
       await expect(board.getByRole("listitem", { name: new RegExp(`^${stage} \\(\\d+\\)$`) })).toBeVisible();
     }
     await expect(page.getByText("Open accounts", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Owner", { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Owner" })).toBeVisible();
     await expect(page.getByLabel("Kind", { exact: true })).toBeVisible();
     await expect(page.getByText(/Lost accounts \(\d+\)/)).toBeVisible();
     // Sidebar group
