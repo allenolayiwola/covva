@@ -23,12 +23,18 @@ test.describe("partner security", () => {
 
   test("team settings offers the Addendum 3 role labels", async ({ page }) => {
     await page.goto("/partner/settings?tab=team");
-    // The invite form's role picker (member rows also have one, inside collapsed <details>).
+    // The team table shows Addendum 3 labels (the demo adviser is an "Account Executive", never "Adviser").
+    const table = page.getByRole("table").first();
+    await expect(table).toBeVisible();
+    await expect(table).toContainText("Account Executive");
+    await expect(table).not.toContainText(/\bAdviser\b/);
+    // Owners/admins also get the invite form with the same labels; the demo broker is a supervisor, so it is optional here.
     const role = page.locator("#iv-role");
-    await expect(role).toBeVisible();
-    const labels = await role.locator("option").allTextContents();
-    expect(labels).toEqual(expect.arrayContaining(["Admin", "Account Executive", "Claims", "Finance", "Read-only"]));
-    expect(labels).not.toContain("Adviser");
+    if (await role.count()) {
+      const labels = await role.locator("option").allTextContents();
+      expect(labels).toEqual(expect.arrayContaining(["Admin", "Account Executive", "Claims", "Finance", "Read-only"]));
+      expect(labels).not.toContain("Adviser");
+    }
   });
 
   test("/partner/mfa forwards to the workspace when MFA is not required", async ({ page }) => {

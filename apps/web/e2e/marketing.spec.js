@@ -67,7 +67,7 @@ test.describe("marketing site", () => {
     await page.goto("/insurance/motor");
     await expect(page.getByRole("heading", { level: 2, name: /Third party vs comprehensive/ })).toBeVisible();
     await expect(page.getByRole("heading", { level: 3, name: "Sticker and QR verification" })).toBeVisible();
-    await expect(page.getByText(/from/i).first()).toBeVisible();
+    await expect(page.getByText(/GH₵ \d+/).first()).toBeVisible();
     await expect(page.getByText("Indicative").first()).toBeVisible();
     await expect(page.getByRole("form", { name: /Motor quotes/ })).toBeVisible();
     await expect(page.locator("script[type='application/ld+json']").filter({ hasText: '"Product"' })).toHaveCount(1);

@@ -11,8 +11,8 @@ async function noHorizontalOverflow(page) {
 test("home on a phone: hero, menu button, no horizontal scroll", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Find cover.");
-  await expect(page.getByRole("link", { name: "What do I need?" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Compare, buy and manage insurance");
+  await expect(page.getByRole("link", { name: "Help me choose" }).first()).toBeVisible();
   await structuralChecks(page);
   await noHorizontalOverflow(page);
   // The desktop primary nav is hidden; a menu control is offered instead.

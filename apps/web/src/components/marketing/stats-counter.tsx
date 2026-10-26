@@ -41,13 +41,13 @@ export function StatsCounter({ items }: { items: readonly StatItem[] }) {
   return (
     <dl ref={ref} className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {items.map((s) => (
-        <div key={s.id} className="rounded-card border border-line bg-white p-5 sm:p-6">
-          <dd className="font-display text-[40px] leading-none text-ink sm:text-[48px]">
+        <div key={s.id} className="flex flex-col rounded-card border border-line bg-white p-5 sm:p-6">
+          <dt className="order-2 mt-3 text-[15px] font-semibold text-ink">{s.label}</dt>
+          <dd className="order-1 font-display text-[40px] leading-none text-ink sm:text-[48px]">
             <span className="tabular-nums">{Math.round(s.value * progress)}</span>
             <span className="text-[24px] text-brand sm:text-[28px]">{s.suffix}</span>
           </dd>
-          <dt className="mt-3 text-[15px] font-semibold text-ink">{s.label}</dt>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">{s.note}</p>
+          <dd className="order-3 mt-1 text-[13px] leading-relaxed text-muted">{s.note}</dd>
         </div>
       ))}
     </dl>
