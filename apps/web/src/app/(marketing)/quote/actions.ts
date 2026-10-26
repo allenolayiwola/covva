@@ -27,9 +27,24 @@ export async function submitQuoteRequest(raw: unknown): Promise<SubmitQuoteResul
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: "Please sign in to send your request.", code: "unauthorised" };
 
-  const { data: brokers } = await supabase.from("organizations").select("id, name").in("id", input.brokerIds).eq("type", "broker");
-  const chosen = input.brokerIds.map((id) => brokers?.find((b) => b.id === id)).filter((b): b is { id: string; name: string } => !!b);
-  if (!chosen.length) return { ok: false, error: "We couldn't find the brokers you chose. Please pick again." };
+  // The first choice becomes the broker of record through fixed routing, which only checks the organisation is
+  // active. Apply the same licence rule as pool routing here: a NIC licence number on file and not expired
+  // (the daily licence-status job may not have suspended an expired broker yet).
+  const { data: brokers } = await supabase
+    .from("organizations")
+    .select("id, name, status, nic_licence_number, nic_licence_expires_on")
+    .in("id", input.brokerIds)
+    .eq("type", "broker");
+  const today = new Date(new Date().toISOString().slice(0, 10));
+  const eligible = (b: NonNullable<typeof brokers>[number]) =>
+    b.status === "active" && !!b.nic_licence_number && (!b.nic_licence_expires_on || new Date(b.nic_licence_expires_on) >= today);
+  const chosen = input.brokerIds
+    .map((id) => brokers?.find((b) => b.id === id))
+    .filter((b): b is NonNullable<typeof brokers>[number] => !!b && eligible(b));
+  if (!chosen.length) return { ok: false, error: "The brokers you chose can't take new requests right now. Please pick another licensed broker." };
+  if (chosen.length < input.brokerIds.length) {
+    return { ok: false, error: "One of the brokers you chose can't take new requests right now. Please remove it and try again." };
+  }
 
   let requestId: string;
   try {

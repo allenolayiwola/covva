@@ -163,6 +163,8 @@ function loadTikTokPixel() {
 }
 
 let applied: ConsentChoice | "" = "";
+/** Fired after `applyConsent()` has loaded the vendors, so listeners can send events that were waiting on consent. */
+export const CONSENT_APPLIED_EVENT = "covva:consent-applied";
 /** Loads (or updates) vendors to match the visitor's choice. Idempotent; call whenever the choice changes. */
 export function applyConsent(choice: ConsentChoice) {
   if (typeof window === "undefined") return;
@@ -173,6 +175,7 @@ export function applyConsent(choice: ConsentChoice) {
     loadTikTokPixel();
   }
   applied = choice;
+  window.dispatchEvent(new Event(CONSENT_APPLIED_EVENT));
 }
 export function appliedConsent(): Consent | null {
   return applied ? consentFromChoice(applied) : null;
@@ -195,12 +198,13 @@ const TIKTOK_EVENTS: Partial<Record<TrackEvent, string>> = { quote_start: "Searc
 /**
  * Sends a conversion event to every vendor the visitor has consented to. Safe to call anywhere on the
  * client: with no consent (or no ids configured) it does nothing. Params must never contain personal data.
+ * Returns true when analytics consent was in force (the event went to every configured analytics vendor).
  */
-export function track(event: TrackEvent, params: Record<string, string | number | boolean | undefined> = {}) {
-  if (typeof window === "undefined") return;
+export function track(event: TrackEvent, params: Record<string, string | number | boolean | undefined> = {}): boolean {
+  if (typeof window === "undefined") return false;
   const w = win();
   const consent = appliedConsent();
-  if (!consent) return;
+  if (!consent) return false;
   const clean: Record<string, string | number | boolean> = {};
   for (const [k, v] of Object.entries(params)) if (v !== undefined) clean[k] = v;
   if (consent.analytics && w.gtag) w.gtag("event", event, { ...clean, transport_type: "beacon" });
@@ -210,4 +214,5 @@ export function track(event: TrackEvent, params: Record<string, string | number 
     const tiktok = TIKTOK_EVENTS[event];
     if (w.ttq?.track) w.ttq.track(tiktok ?? event, clean);
   }
+  return consent.analytics;
 }

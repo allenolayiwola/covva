@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { track } from "./analytics";
+import { CONSENT_APPLIED_EVENT, track } from "./analytics";
 import { EXPERIMENTS, resolveVariant, type ExperimentKey, type VariantOf } from "./experiments";
 
 const exposed = new Set<string>();
@@ -9,7 +9,9 @@ const noop = () => () => {};
 
 /**
  * Returns the visitor's variant for `key`. Control during server rendering and hydration, then the
- * resolved variant after mount (see experiments.ts). Reports one exposure event per page view.
+ * resolved variant after mount (see experiments.ts). Reports one exposure event per page view — and only
+ * marks it reported once analytics consent is in force: a visitor who accepts analytics later on the same
+ * page still gets the exposure, so the experiment's denominator matches its conversions.
  */
 export function useExperiment<K extends ExperimentKey>(key: K): VariantOf<K> {
   const control = EXPERIMENTS[key].variants[0] as VariantOf<K>;
@@ -18,8 +20,18 @@ export function useExperiment<K extends ExperimentKey>(key: K): VariantOf<K> {
   React.useEffect(() => {
     const tag = `${key}:${location.pathname}`;
     if (exposed.has(tag)) return;
-    exposed.add(tag);
-    track("experiment_exposure", { experiment: key, variant });
+    const send = () => {
+      if (exposed.has(tag)) return true;
+      if (!track("experiment_exposure", { experiment: key, variant })) return false;
+      exposed.add(tag);
+      return true;
+    };
+    if (send()) return;
+    const onApplied = () => {
+      if (send()) window.removeEventListener(CONSENT_APPLIED_EVENT, onApplied);
+    };
+    window.addEventListener(CONSENT_APPLIED_EVENT, onApplied);
+    return () => window.removeEventListener(CONSENT_APPLIED_EVENT, onApplied);
   }, [key, variant]);
   return variant;
 }

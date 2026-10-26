@@ -90,7 +90,8 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
     setBrokerIds(nextBrokers);
     setIndex(Math.max(0, nextIndex));
     setBooted(true);
-    history.replaceState({ ...history.state, quoteStep: Math.max(0, nextIndex) }, "");
+    // depth 0: this entry was not pushed by the flow, so there is no earlier step entry to go back to.
+    history.replaceState({ ...history.state, quoteStep: Math.max(0, nextIndex), quoteDepth: 0 }, "");
 
     createClient()
       .auth.getUser()
@@ -134,7 +135,31 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
     setErrors({});
     setSubmitError(null);
     setIndex(next);
-    history.pushState({ ...history.state, quoteStep: next }, "");
+    const depth = ((history.state as { quoteDepth?: number } | null)?.quoteDepth ?? 0) + 1;
+    history.pushState({ ...history.state, quoteStep: next, quoteDepth: depth }, "");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
+  /**
+   * Back: use the browser history when the flow pushed the previous step; otherwise (deep link, restored
+   * draft, return from sign-in) step to the previous screen explicitly, skipping sign-in when signed in.
+   */
+  const back = () => {
+    if (index <= 0) {
+      router.push("/");
+      return;
+    }
+    if (((history.state as { quoteDepth?: number } | null)?.quoteDepth ?? 0) > 0) {
+      history.back();
+      return;
+    }
+    let prev = index - 1;
+    if (screens[prev]?.kind === "auth" && user === "signed_in") prev -= 1;
+    prev = Math.max(0, prev);
+    setErrors({});
+    setSubmitError(null);
+    setIndex(prev);
+    history.replaceState({ ...history.state, quoteStep: prev, quoteDepth: 0 }, "");
     window.scrollTo({ top: 0, behavior: "auto" });
   };
 
@@ -337,7 +362,7 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
       {/* Sticky Back / Continue bar */}
       <div data-sticky-bar className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur print:hidden">
         <Container className="flex items-center justify-between gap-3 py-3">
-          <button type="button" onClick={() => (index > 0 ? history.back() : router.push("/"))} className={buttonClass("outline", "md")}>
+          <button type="button" onClick={back} className={buttonClass("outline", "md")}>
             <ArrowLeft aria-hidden className="size-4" /> Back
           </button>
           {screen.kind === "question" && (

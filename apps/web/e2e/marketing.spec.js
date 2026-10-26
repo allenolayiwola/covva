@@ -78,6 +78,14 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("link", { name: /Continue with phone/ })).toHaveAttribute("href", /\/sign-in\?method=phone&next=%2Fquote%3Fresume%3D1/);
   });
 
+  test("quote flow Back works on a deep link with no earlier step history", async ({ page }) => {
+    await page.goto("/quote?category=motor");
+    await expect(page.getByText(/Step 2 of 6/)).toBeVisible();
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/quote/);
+    await expect(page.getByRole("heading", { level: 1, name: "What do you want to insure?" })).toBeVisible();
+  });
+
   test("signed-in customer reaches the broker picker and the button counts brokers", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE.customer, viewport: { width: 1280, height: 800 } });
     const page = await ctx.newPage();

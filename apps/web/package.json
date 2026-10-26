@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test:db": "node --test tests/*.test.mjs",
     "test:purge": "node tests/purge-e2e-data.mjs",
     "e2e": "playwright test",
