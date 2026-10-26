@@ -74,3 +74,8 @@ export function median(values: number[]): number | null {
 
 export const DAY = 86_400_000;
 export const HOUR = 3_600_000;
+
+/** Current time in ms. Admin pages are request-time (see resolveStaff → connection()). */
+export function nowMs(): number {
+  return Date.now();
+}

@@ -1,5 +1,6 @@
 "use server";
 import { z } from "zod";
+import { revalidateEverywhere } from "@/lib/revalidate";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 
 const Toggle = z.object({
@@ -32,6 +33,7 @@ export async function toggleAppointment(_: ActionState, fd: FormData): Promise<A
     ? await auth.supabase.from("insurer_broker_appointments").update({ active, ends_on: active ? null : new Date().toISOString().slice(0, 10) }).eq("id", existing.id)
     : await auth.supabase.from("insurer_broker_appointments").insert({ insurer_org_id: insurerOrgId, broker_org_id: brokerOrgId, category_id: categoryId, active, starts_on: new Date().toISOString().slice(0, 10) });
   if (error) return fail(dbMessage(error));
+  await revalidateEverywhere(["catalog"]);
   return done(active ? "Broker appointed." : "Appointment withdrawn.");
 }
 

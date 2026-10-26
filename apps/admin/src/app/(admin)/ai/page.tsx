@@ -100,9 +100,10 @@ async function Ai() {
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel title="Model settings" description="Stored in platform_settings.ai_models and read by every AI feature (plain AI Gateway ids).">
           <ActionForm action={saveAiModels} submitLabel="Save models" readOnly={!canPlatform}>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Default model" htmlFor="m-default" hint="Quality-sensitive tasks"><Input id="m-default" name="default" defaultValue={models.default} className="font-mono text-sm" /></Field>
               <Field label="Fast model" htmlFor="m-fast" hint="Classification, extraction"><Input id="m-fast" name="fast" defaultValue={models.fast} className="font-mono text-sm" /></Field>
+              <Field label="Vision model" htmlFor="m-vision" hint="Document & photo extraction"><Input id="m-vision" name="vision" defaultValue={models.vision} className="font-mono text-sm" /></Field>
             </div>
           </ActionForm>
           {!process.env.AI_GATEWAY_API_KEY && <Notice tone="wait" className="mt-4">AI_GATEWAY_API_KEY is not set for the admin app — insights fall back to rule-based summaries.</Notice>}

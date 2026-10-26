@@ -97,7 +97,7 @@ export function MfaFlow({ next, email }: { next: string; email: string }) {
             <img src={mode.qr} alt="QR code for your authenticator app" width={184} height={184} />
           </div>
           <details className="text-xs text-muted">
-            <summary className="cursor-pointer">Can't scan? Enter this key instead</summary>
+            <summary className="cursor-pointer">Can&apos;t scan? Enter this key instead</summary>
             <code className="mt-2 block break-all rounded-lg bg-mist p-2 font-mono text-ink">{mode.secret}</code>
           </details>
         </div>

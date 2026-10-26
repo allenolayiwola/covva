@@ -22,7 +22,7 @@ export type ServiceClient = ReturnType<typeof createServiceClient>;
 // ---------------------------------------------------------------------------
 // Errors
 // ---------------------------------------------------------------------------
-export type ApiErrorCode = (typeof ApiErrorCodes)[keyof typeof ApiErrorCodes] | "unavailable";
+export type ApiErrorCode = (typeof ApiErrorCodes)[keyof typeof ApiErrorCodes];
 
 const STATUS: Record<string, number> = {
   unauthorised: 401,

@@ -89,6 +89,7 @@ export const ApiErrorCodes = {
   conflict: "conflict",
   rate_limited: "rate_limited",
   internal: "internal_error",
+  unavailable: "unavailable",
 } as const;
 
 // ---------------------------------------------------------------------------

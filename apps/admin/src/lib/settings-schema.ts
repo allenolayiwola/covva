@@ -37,7 +37,7 @@ export const KNOWN_SETTINGS: Record<string, { schema: z.ZodType; hint: string; e
     example: [45, 30, 14, 7, 1],
   },
   quote_validity_days: { schema: z.number().int().min(1).max(90), hint: "Default validity of binding quotes.", example: 14 },
-  ai_models: { schema: z.object({ default: modelId, fast: modelId }).passthrough(), hint: "AI Gateway model ids.", example: { default: "anthropic/claude-sonnet-5.5", fast: "anthropic/claude-haiku-4.5" } },
+  ai_models: { schema: z.object({ default: modelId, fast: modelId, vision: modelId.optional() }).passthrough(), hint: "AI Gateway model ids per tier (default, fast, vision).", example: { default: "anthropic/claude-sonnet-5.5", fast: "anthropic/claude-haiku-5.5", vision: "anthropic/claude-sonnet-5.5" } },
   invoice_tax_rate: { schema: z.number().min(0).max(1), hint: "Tax rate applied to new invoices (0–1, e.g. 0.219).", example: 0 },
 };
 

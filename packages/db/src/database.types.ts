@@ -2634,6 +2634,7 @@ export type Database = {
       }
       usage_events: {
         Row: {
+          details: Json
           id: number
           metric: string
           occurred_at: string
@@ -2642,6 +2643,7 @@ export type Database = {
           reference_id: string | null
         }
         Insert: {
+          details?: Json
           id?: never
           metric: string
           occurred_at?: string
@@ -2650,6 +2652,7 @@ export type Database = {
           reference_id?: string | null
         }
         Update: {
+          details?: Json
           id?: never
           metric?: string
           occurred_at?: string
@@ -2760,6 +2763,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_customer_for_partner: {
+        Args: { p_email?: string; p_phone?: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+          phone: string
+        }[]
+      }
       verify_audit_chain: {
         Args: { p_limit?: number }
         Returns: {

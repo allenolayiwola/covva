@@ -3,7 +3,7 @@ import { CheckCircle2, CircleAlert, XCircle } from "lucide-react";
 import { PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
 import { requireStaff, mfaRequired } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { orgMap } from "@/lib/query";
+import { nowMs, orgMap } from "@/lib/query";
 import { fmtNum, formatDateTime } from "@/lib/format";
 import { KeyValues, LoadingBlock, Panel } from "@/components/ui/layout";
 
@@ -33,12 +33,16 @@ const TABLES = [
   "organizations", "profiles", "requests", "quotes", "policies", "payments", "claims", "complaints", "documents", "usage_events", "ai_usage", "audit_events",
 ] as const;
 
+function Status({ ok, warn }: { ok: boolean; warn?: boolean }) {
+  return ok ? <CheckCircle2 className="size-4 text-brand" aria-label="OK" /> : warn ? <CircleAlert className="size-4 text-amber" aria-label="Warning" /> : <XCircle className="size-4 text-danger" aria-label="Error" />;
+}
+
 async function Health() {
   await requireStaff();
   const supabase = await createClient();
-  const t0 = Date.now();
+  const t0 = nowMs();
   const ping = await supabase.from("platform_settings").select("key", { head: true, count: "exact" });
-  const latency = Date.now() - t0;
+  const latency = nowMs() - t0;
 
   const [counts, { data: deliveries }, { data: endpoints }, { data: cron }, { data: connectors }, orgs, audit] = await Promise.all([
     Promise.all(TABLES.map((t) => supabase.from(t).select("*", { count: "estimated", head: true }).then((r) => ({ table: t, count: r.count, error: r.error?.message })))),
@@ -53,8 +57,6 @@ async function Health() {
   const hasEnv = (n: string) => !!process.env[n] && process.env[n]!.trim() !== "";
   const a = audit.data?.[0];
 
-  const Status = ({ ok, warn }: { ok: boolean; warn?: boolean }) =>
-    ok ? <CheckCircle2 className="size-4 text-brand" aria-label="OK" /> : warn ? <CircleAlert className="size-4 text-amber" aria-label="Warning" /> : <XCircle className="size-4 text-danger" aria-label="Error" />;
 
   return (
     <div className="space-y-6">
@@ -86,20 +88,20 @@ async function Health() {
           {cron?.length ? (
             <ul className="space-y-2 text-sm">
               {cron.map((c) => {
-                const v = c.value as { at?: string; ok?: boolean; detail?: string } | string | null;
+                const v = c.value as { at?: string; ok?: boolean; detail?: string; ms?: number } | string | null;
                 const at = typeof v === "string" ? v : v?.at ?? c.updated_at;
                 const ok = typeof v === "object" && v !== null && "ok" in v ? v.ok !== false : true;
-                const stale = Date.now() - new Date(at).getTime() > 26 * 3_600_000;
+                const stale = nowMs() - new Date(at).getTime() > 26 * 3_600_000;
                 return (
                   <li key={c.key} className="flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2"><Status ok={ok && !stale} warn={ok && stale} /><span className="font-mono text-xs">{c.key.replace("cron_last_run:", "")}</span></span>
-                    <span className="text-xs text-muted">{formatDateTime(at)}{typeof v === "object" && v?.detail ? ` · ${v.detail}` : ""}</span>
+                    <span className="text-xs text-muted">{formatDateTime(at)}{typeof v === "object" && v?.ms != null ? ` · ${v.ms} ms` : ""}{typeof v === "object" && v?.detail ? ` · ${v.detail}` : ""}</span>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="text-sm text-muted">No job has reported a run yet. Cron routes (Backend) should upsert <code>cron_last_run:&lt;job&gt;</code> with {"{ at, ok, detail }"}.</p>
+            <p className="text-sm text-muted">No job has reported a run yet. Cron routes (Backend) upsert <code>cron_last_run:&lt;job&gt;</code> with {"{ at, ok, ms, result }"}.</p>
           )}
         </Panel>
         <Panel title="Environment" description="Which variables are set for this admin deployment. Values are never shown.">

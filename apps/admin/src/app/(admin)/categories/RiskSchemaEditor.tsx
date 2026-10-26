@@ -22,8 +22,8 @@ function textToOptions(t: string) {
     });
 }
 function clean(f: RiskField): RiskField {
-  const out: RiskField = { key: f.key, label: f.label, type: f.type };
-  if (f.required) out.required = true;
+  // Always emit `required` explicitly so saving an unchanged schema is a no-op.
+  const out: RiskField = { key: f.key, label: f.label, type: f.type, required: !!f.required };
   if (f.min !== undefined && !Number.isNaN(f.min)) out.min = f.min;
   if (f.max !== undefined && !Number.isNaN(f.max)) out.max = f.max;
   if (f.placeholder) out.placeholder = f.placeholder;

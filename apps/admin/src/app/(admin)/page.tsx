@@ -5,7 +5,7 @@ import { PageHeader, Pill } from "@im/ui";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { computeAlerts, computeMetrics } from "@/lib/metrics";
-import { categoryMap } from "@/lib/query";
+import { categoryMap, nowMs } from "@/lib/query";
 import { fmtHours, fmtNum, fmtPct, fmtUSD, formatDate, formatDateTime, formatGHS } from "@/lib/format";
 import { Kpi, LoadingBlock, Panel } from "@/components/ui/layout";
 import { Bars, HBars, Sparkline } from "@/components/ui/charts";
@@ -66,7 +66,7 @@ async function Dashboard() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Panel title="Requests per day" description={`${sum(m.requests.daily)} in the last 30 days`} className="xl:col-span-2">
-          <Bars data={m.requests.daily.map((v, i) => ({ label: formatDate(new Date(Date.now() - (29 - i) * 86_400_000)), value: v }))} height={140} />
+          <Bars data={m.requests.daily.map((v, i) => ({ label: formatDate(new Date(nowMs() - (29 - i) * 86_400_000)), value: v }))} height={140} />
           <div className="mt-6 grid gap-6 sm:grid-cols-2">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">By category</p>

@@ -1,7 +1,8 @@
 /** Default AI Gateway model ids (overridden by platform_settings key `ai_models`). */
 export const DEFAULT_MODELS = {
   default: "anthropic/claude-sonnet-5.5",
-  fast: "anthropic/claude-haiku-4.5",
+  fast: "anthropic/claude-haiku-5.5",
+  vision: "anthropic/claude-sonnet-5.5",
 } as const;
 
 /** AI feature flags the admin can manage (created on first toggle if missing). */

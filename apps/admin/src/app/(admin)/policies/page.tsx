@@ -4,7 +4,7 @@ import { PageHeader, Pill, StatusPill, Table, THead, Th, Td } from "@im/ui";
 import { POLICY_STATUS, type PolicyStatus } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { categoryMap, ilikeTerm, isUuid, orgMap, pageOf, personName, profileMap, sp, type SearchParams } from "@/lib/query";
+import { categoryMap, ilikeTerm, isUuid, nowMs, orgMap, pageOf, personName, profileMap, sp, type SearchParams } from "@/lib/query";
 import { formatDate, formatGHS } from "@/lib/format";
 import { FilterBar, FilterCheck, FilterInput, FilterSelect, LoadingBlock, Pagination } from "@/components/ui/layout";
 
@@ -46,7 +46,7 @@ async function PolicyList({ searchParams }: { searchParams: Promise<SearchParams
   if (external) query = query.eq("external_source", true);
   if (renewing) {
     const today = new Date().toISOString().slice(0, 10);
-    const in45 = new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10);
+    const in45 = new Date(nowMs() + 45 * 86_400_000).toISOString().slice(0, 10);
     query = query.eq("status", "active").gte("cover_end", today).lte("cover_end", in45);
   }
   if (q) query = query.or(`policy_number.ilike.${ilikeTerm(q)},internal_reference.ilike.${ilikeTerm(q)},nickname.ilike.${ilikeTerm(q)}`);

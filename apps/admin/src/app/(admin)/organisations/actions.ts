@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Enum, Json, Update } from "@im/db";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { DUE_DILIGENCE, ROLES_BY_ORG_TYPE } from "@/lib/org-meta";
+import { revalidateEverywhere } from "@/lib/revalidate";
 
 const opt = (max = 300) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
 const optDate = z.string().trim().optional().transform((v) => (v ? v : null)).refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), "Use a valid date");
@@ -75,6 +76,7 @@ export async function updateOrganisation(_: ActionState, fd: FormData): Promise<
   const patch: Update<"organizations"> = { ...fields, ...(licenceChanged ? { licence_verified_at: null, licence_verified_by: null } : {}) };
   const { error } = await auth.supabase.from("organizations").update(patch).eq("id", orgId);
   if (error) return fail(dbMessage(error));
+  await revalidateEverywhere(["catalog"]); // public partner directory
   return done(licenceChanged ? "Saved. The licence number changed, so it must be verified again." : "Organisation saved.");
 }
 
@@ -117,6 +119,7 @@ export async function setOrganisationStatus(_: ActionState, fd: FormData): Promi
   };
   const { error } = await auth.supabase.from("organizations").update({ status: status as Enum<"org_status">, settings: nextSettings }).eq("id", orgId);
   if (error) return fail(dbMessage(error));
+  await revalidateEverywhere(["catalog"]); // public partner directory
   return done(`Status changed to ${status}.`);
 }
 
@@ -138,6 +141,7 @@ export async function verifyLicence(_: ActionState, fd: FormData): Promise<Actio
     .update(verify ? { licence_verified_at: new Date().toISOString(), licence_verified_by: auth.staff.userId } : { licence_verified_at: null, licence_verified_by: null })
     .eq("id", parsed.data.orgId);
   if (error) return fail(dbMessage(error));
+  await revalidateEverywhere(["catalog"]); // public partner directory
   return done(verify ? "Licence marked as verified against the NIC register." : "Licence verification removed.");
 }
 
@@ -175,6 +179,7 @@ export async function setDemoFlag(_: ActionState, fd: FormData): Promise<ActionS
   const settings = (org.settings as Record<string, Json> | null) ?? {};
   const { error } = await auth.supabase.from("organizations").update({ settings: { ...settings, demo: parsed.data.value === "true" } }).eq("id", parsed.data.orgId);
   if (error) return fail(dbMessage(error));
+  await revalidateEverywhere(["catalog"]); // public partner directory
   return done("Demo flag updated.");
 }
 

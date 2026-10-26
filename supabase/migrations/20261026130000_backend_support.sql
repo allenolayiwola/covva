@@ -39,7 +39,6 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists profiles_guard on public.profiles;
 create trigger profiles_guard before update on public.profiles
   for each row execute function private.profiles_guard();
 
@@ -67,7 +66,6 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists requests_customer_guard on public.requests;
 create trigger requests_customer_guard before update on public.requests
   for each row execute function private.requests_customer_guard();
 
@@ -93,7 +91,6 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists claims_customer_columns on public.claims;
 create trigger claims_customer_columns before update on public.claims
   for each row execute function private.claims_customer_columns();
 

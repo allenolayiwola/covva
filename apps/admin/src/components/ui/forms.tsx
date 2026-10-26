@@ -130,12 +130,9 @@ export function ConfirmAction({
   const [reason, setReason] = useState("");
   const [word, setWord] = useState("");
 
+  // Close the dialog once the action succeeds (DOM sync only; inputs reset on next open).
   useEffect(() => {
-    if (state?.ok) {
-      ref.current?.close();
-      setReason("");
-      setWord("");
-    }
+    if (state?.ok) ref.current?.close();
   }, [state]);
 
   const blocked = (requireReason && reason.trim().length < 5) || (!!confirmWord && word.trim() !== confirmWord);
@@ -148,7 +145,11 @@ export function ConfirmAction({
         size={size}
         disabled={disabled}
         title={disabled ? "Not available for your role or this record" : undefined}
-        onClick={() => ref.current?.showModal()}
+        onClick={() => {
+          setReason("");
+          setWord("");
+          ref.current?.showModal();
+        }}
       >
         {label}
       </Button>
