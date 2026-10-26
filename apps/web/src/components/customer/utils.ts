@@ -61,3 +61,28 @@ export type ActionState = {
 };
 
 export const initialActionState: ActionState = { ok: false };
+
+export interface UploadedFile {
+  path: string;
+  name: string;
+  size: number;
+  mime: string;
+}
+
+/** Parse the JSON list written by <MultiUpload> (server side), keeping only the caller's own paths. */
+export function parseUploads(raw: FormDataEntryValue | null, userId: string): UploadedFile[] {
+  if (typeof raw !== "string" || !raw) return [];
+  try {
+    const list = JSON.parse(raw) as UploadedFile[];
+    return list
+      .filter((f) => typeof f?.path === "string" && f.path.startsWith(`${userId}/`) && !f.path.includes("..") && typeof f.name === "string")
+      .slice(0, 20);
+  } catch {
+    return [];
+  }
+}
+
+/** Validate a single uploaded-file payload coming back from the browser. */
+export function isOwnUpload(f: UploadedFile | null | undefined, userId: string): f is UploadedFile {
+  return !!f && typeof f.path === "string" && f.path.startsWith(`${userId}/`) && !f.path.includes("..") && typeof f.name === "string" && f.name.length <= 255;
+}

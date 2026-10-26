@@ -10,7 +10,7 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-white text-ink font-sans;
+    @apply text-ink font-sans;
   }
   ::selection {
     @apply bg-mint text-brand-deep;
@@ -21,8 +21,25 @@
   h1, h2, h3 {
     letter-spacing: -0.02em;
   }
+  dialog::backdrop {
+    background: rgb(21 52 62 / 0.45);
+  }
 }
 
 @utility text-balance {
   text-wrap: balance;
+}
+
+/* Printable pages (invoices) */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: none !important;
+  }
 }
