@@ -9,7 +9,7 @@ import { categoryMap, orgMap, personName, profileMap } from "@/lib/query";
 import { formatDateTime } from "@/lib/format";
 import { LoadingBlock, ReadOnlyBanner } from "@/components/ui/layout";
 import { ActionForm, ConfirmAction } from "@/components/ui/forms";
-import { CATALOGUE_TABS, COMPLIANCE_TONE } from "../meta";
+import { CATALOGUE_TABS, COMPLIANCE_TONE, requestTime } from "../meta";
 import { publishVersion, returnVersion, startComplianceReview } from "../catalogue-actions";
 
 export default function CompliancePage() {
@@ -40,6 +40,7 @@ async function Queue() {
   const tableIds = (rows ?? []).map((r) => (r.rating as { rate_table_id?: string } | null)?.rate_table_id).filter((x): x is string => !!x);
   const { data: tables } = tableIds.length ? await supabase.from("rate_tables").select("id, name, status").in("id", tableIds) : { data: [] };
   const tmap = new Map((tables ?? []).map((t) => [t.id, t]));
+  const now = requestTime();
 
   return (
     <>
@@ -52,7 +53,7 @@ async function Queue() {
             const p = v.products as unknown as { name: string; insurer_org_id: string; category_id: string };
             const rating = (v.rating ?? {}) as { model?: string; rate_table_id?: string };
             const table = rating.rate_table_id ? tmap.get(rating.rate_table_id) : null;
-            const scheduled = v.scheduled_effective_from && new Date(v.scheduled_effective_from).getTime() > Date.now();
+            const scheduled = v.scheduled_effective_from && new Date(v.scheduled_effective_from).getTime() > now;
             return (
               <tr key={v.id} className="align-top">
                 <Td>

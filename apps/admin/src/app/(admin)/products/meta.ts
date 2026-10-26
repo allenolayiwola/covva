@@ -33,3 +33,8 @@ export function CATALOGUE_TABS(counts: { queue?: number; compliance?: number; ra
     { key: "templates", label: "Templates", href: "/products/templates", count: counts.templates },
   ];
 }
+
+/** Request-time clock for server components (called after `requireStaff()`, which reads the session). */
+export function requestTime(): number {
+  return Date.now();
+}

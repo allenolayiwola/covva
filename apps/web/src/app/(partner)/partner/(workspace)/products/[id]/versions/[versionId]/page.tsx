@@ -6,7 +6,7 @@ import { can, ROLES } from "../../../../../_lib/context";
 import { ActionForm } from "@/components/partner/action-form";
 import { PageSkeleton, Section, TitleSkeleton } from "@/components/partner/ui";
 import { VersionHeader } from "@/components/partner/version-nav";
-import { loadVersionPage } from "../../../_lib";
+import { loadVersionPage, requestTime } from "../../../_lib";
 import { schedulePriceChange, setIssuance, submitForCompliance } from "../../../catalogue-actions";
 
 export const metadata: Metadata = { title: "Product version" };
@@ -32,7 +32,7 @@ async function Version({ params }: { params: Promise<{ id: string; versionId: st
     ctx.supabase.from("document_templates").select("id", { count: "exact", head: true }).eq("product_version_id", version.id),
   ]);
   const rating = (version.rating ?? {}) as { model?: string; rate_table_id?: string };
-  const minSchedule = new Date(Date.now() + 2 * 3_600_000).toISOString().slice(0, 16);
+  const minSchedule = new Date(requestTime() + 2 * 3_600_000).toISOString().slice(0, 16);
 
   return (
     <>

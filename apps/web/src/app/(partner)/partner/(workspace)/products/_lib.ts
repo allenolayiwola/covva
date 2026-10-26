@@ -41,3 +41,8 @@ export const COMPLIANCE_TONE: Record<string, "ok" | "wait" | "danger" | "neutral
   returned: "danger",
   published: "ok",
 };
+
+/** Request-time clock for the version pages (only called after `loadVersionPage`, which awaits the session). */
+export function requestTime(): number {
+  return Date.now();
+}
