@@ -1677,10 +1677,11 @@ export type Database = {
           currency: string
           customer_id: string
           excess: number | null
+          external_insurer_name: string | null
           external_source: boolean
           id: string
           insured_items: Json
-          insurer_org_id: string
+          insurer_org_id: string | null
           internal_reference: string
           issued_at: string | null
           issued_by: string | null
@@ -1708,10 +1709,11 @@ export type Database = {
           currency?: string
           customer_id: string
           excess?: number | null
+          external_insurer_name?: string | null
           external_source?: boolean
           id?: string
           insured_items?: Json
-          insurer_org_id: string
+          insurer_org_id?: string | null
           internal_reference?: string
           issued_at?: string | null
           issued_by?: string | null
@@ -1739,10 +1741,11 @@ export type Database = {
           currency?: string
           customer_id?: string
           excess?: number | null
+          external_insurer_name?: string | null
           external_source?: boolean
           id?: string
           insured_items?: Json
-          insurer_org_id?: string
+          insurer_org_id?: string | null
           internal_reference?: string
           issued_at?: string | null
           issued_by?: string | null
@@ -2678,8 +2681,10 @@ export type Database = {
           endpoint_id: string
           event: string
           id: number
+          last_error: string | null
           next_attempt_at: string | null
           payload: Json
+          response_ms: number | null
           status: number | null
         }
         Insert: {
@@ -2689,8 +2694,10 @@ export type Database = {
           endpoint_id: string
           event: string
           id?: never
+          last_error?: string | null
           next_attempt_at?: string | null
           payload: Json
+          response_ms?: number | null
           status?: number | null
         }
         Update: {
@@ -2700,8 +2707,10 @@ export type Database = {
           endpoint_id?: string
           event?: string
           id?: never
+          last_error?: string | null
           next_attempt_at?: string | null
           payload?: Json
+          response_ms?: number | null
           status?: number | null
         }
         Relationships: [
@@ -2763,6 +2772,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          org_id: string
+          org_name: string
+          org_slug: string
+          org_type: Database["public"]["Enums"]["org_type"]
+          role: Database["public"]["Enums"]["member_role"]
+        }[]
+      }
+      complete_broker_change: {
+        Args: { p_request: string; p_broker_org_id?: string | null }
+        Returns: {
+          customer_id: string
+          from_broker_org_id: string | null
+          reference: string
+          request_id: string
+          to_broker_name: string
+          to_broker_org_id: string
+        }[]
+      }
+      invitation_preview: {
+        Args: { p_token: string }
+        Returns: {
+          accepted_at: string | null
+          email: string
+          expires_at: string
+          invited_by_name: string | null
+          org_id: string
+          org_name: string
+          org_slug: string
+          org_type: Database["public"]["Enums"]["org_type"]
+          role: Database["public"]["Enums"]["member_role"]
+          team: string | null
+        }[]
+      }
       find_customer_for_partner: {
         Args: { p_email?: string; p_phone?: string }
         Returns: {

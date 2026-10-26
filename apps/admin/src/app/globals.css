@@ -18,12 +18,28 @@
   :focus-visible {
     outline-color: var(--color-brand);
   }
-  h1, h2, h3 {
-    letter-spacing: -0.02em;
+  /* Brand guide: display & headings in Outfit (300–400); body in Inter (300–500). */
+  h1, h2 {
+    font-family: var(--font-display);
+    font-weight: 400 !important;
+    letter-spacing: -0.015em;
+  }
+  h3, h4 {
+    letter-spacing: -0.01em;
+  }
+  /* Icons: 1.75px rounded strokes on a 24 grid (lucide). */
+  svg.lucide {
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   dialog::backdrop {
     background: rgb(21 52 62 / 0.45);
   }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
 }
 
 @utility text-balance {

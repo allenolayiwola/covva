@@ -6,6 +6,7 @@ import { notify, notifyOrg } from "@/server/notify";
 import { recordPolicyActive, period } from "@/server/usage";
 import { toComparable, type QuoteWithParties } from "@/server/quotes";
 import { log } from "@/server/log";
+import { retryDueDeliveries } from "@/server/webhooks";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -251,6 +252,10 @@ const complaintSla: CronJob = async (svc) => {
   return { checked: overdue?.length ?? 0, escalated };
 };
 
+// ---------------------------------------------------------------------------
+/** Partner webhook retries: deliveries past `next_attempt_at` (backoff 1m, 5m, 30m, 2h, 12h; 5 attempts). */
+const webhookRetry: CronJob = async (svc) => retryDueDeliveries(svc, 200);
+
 export const CRON_JOBS: Record<string, CronJob> = {
   "renewal-reminders": renewalReminders,
   "sla-monitor": slaMonitor,
@@ -258,6 +263,7 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "policy-lifecycle": policyLifecycle,
   "usage-metering": usageMetering,
   "complaint-sla": complaintSla,
+  "webhook-retry": webhookRetry,
 };
 
 export async function runCron(job: string) {

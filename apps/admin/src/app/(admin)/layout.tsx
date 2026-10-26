@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { LogoMark, Spinner } from "@im/ui";
+import { Logo, Spinner } from "@im/ui";
 import { requireStaff } from "@/lib/auth";
 import { ROLE_LABEL } from "@/lib/roles";
 import { SidebarNav, MobileNav } from "@/components/shell/Sidebar";
@@ -42,8 +42,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
       <header className="no-print sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:px-6">
         <MobileNav />
         <Link href="/" className="flex items-center gap-2.5">
-          <LogoMark size={28} />
-          <span className="hidden text-[15px] font-semibold tracking-tight text-ink sm:inline">COVVA</span>
+          <Logo height={32} />
           <span className="rounded-md bg-ink px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-white">Admin</span>
         </Link>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${env.tone}`} title="Environment">{env.label}</span>

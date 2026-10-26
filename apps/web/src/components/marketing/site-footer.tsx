@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ExternalLink, Mail, ShieldCheck, Smartphone } from "lucide-react";
-import { Container, DemoBadge } from "@im/ui";
+import { Container, DemoBadge, Logo } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
 import { getCategories } from "@/lib/catalog";
 import { getBrand, getCurrentYear, isDemoMode } from "./brand";
@@ -57,10 +57,7 @@ export async function SiteFooter() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
           <div className="max-w-sm">
             <Link href="/" className="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-              <span aria-hidden className="grid size-8 place-items-center rounded-[9px] bg-brand text-white">
-                <ShieldCheck className="size-[18px]" strokeWidth={2.25} />
-              </span>
-              <span className="text-[17px] font-semibold tracking-tight text-ink">{brand.name}</span>
+              <Logo height={36} label={brand.name} />
             </Link>
             <p className="mt-4 text-[15px] font-medium text-ink-2">{brand.tagline}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">{ROLE_STATEMENTS.platform}</p>

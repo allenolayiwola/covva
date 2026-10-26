@@ -6,6 +6,7 @@
     { "path": "/api/cron/quote-expiry", "schedule": "5 * * * *" },
     { "path": "/api/cron/policy-lifecycle", "schedule": "15 0 * * *" },
     { "path": "/api/cron/usage-metering", "schedule": "30 1 * * *" },
-    { "path": "/api/cron/complaint-sla", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/complaint-sla", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/webhook-retry", "schedule": "*/10 * * * *" }
   ]
 }

@@ -19,7 +19,14 @@
   --color-info: #1f6fb2;
   --color-info-bg: #e3eff9;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui, Arial, sans-serif;
+
+  /* Brand guide: Inter 300–500 for body/UI; heavier weights are mapped down. */
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 500;
+  --font-weight-black: 500;
 
   --radius-card: 16px;
   --radius-field: 10px;

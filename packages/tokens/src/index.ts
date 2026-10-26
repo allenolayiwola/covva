@@ -27,12 +27,29 @@ export const colors = {
 export const radii = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, "2xl": 32, "3xl": 48 } as const;
 
+export const fonts = {
+  /** Display & headings — Outfit Light/Regular (300–400). */
+  display: "Outfit",
+  /** Body, UI & numbers — Inter 300–500. */
+  body: "Inter",
+} as const;
+
+export const brandAssets = {
+  horizontal: "brand/horizontal.svg",
+  horizontalReverse: "brand/horizontal-reverse.svg",
+  stacked: "brand/stacked.svg",
+  mark: "brand/mark.svg",
+  wordmark: "brand/wordmark.svg",
+  png: { horizontal: "brand/horizontal-light.png", horizontalReverse: "brand/horizontal-reverse-light.png", mark: "brand/mark-transparent.png" },
+} as const;
+
 export const typography = {
   fontFamily: "Inter",
-  display: { size: 56, lineHeight: 1.02, weight: "700", letterSpacing: -1.5 },
-  h1: { size: 36, lineHeight: 1.1, weight: "700", letterSpacing: -0.8 },
-  h2: { size: 26, lineHeight: 1.2, weight: "700", letterSpacing: -0.4 },
-  h3: { size: 18, lineHeight: 1.3, weight: "600", letterSpacing: -0.2 },
+  displayFamily: "Outfit",
+  display: { size: 56, lineHeight: 1.02, weight: "300", letterSpacing: -1 },
+  h1: { size: 36, lineHeight: 1.1, weight: "400", letterSpacing: -0.5 },
+  h2: { size: 26, lineHeight: 1.2, weight: "400", letterSpacing: -0.3 },
+  h3: { size: 18, lineHeight: 1.3, weight: "500", letterSpacing: -0.1 },
   body: { size: 16, lineHeight: 1.5, weight: "400", letterSpacing: 0 },
   small: { size: 14, lineHeight: 1.45, weight: "400", letterSpacing: 0 },
   caption: { size: 12, lineHeight: 1.4, weight: "500", letterSpacing: 0.6 },

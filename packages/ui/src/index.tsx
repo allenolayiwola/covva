@@ -4,30 +4,7 @@ import type { Tone } from "@im/core";
 
 export { clsx as cn };
 
-/* ----------------------------------------------------------------------------
- * Brand
- * ------------------------------------------------------------------------- */
-export function LogoMark({ size = 32, className }: { size?: number; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={clsx("inline-grid place-items-center rounded-[9px] bg-brand text-white font-bold leading-none shadow-card", className)}
-      style={{ width: size, height: size, fontSize: size * 0.55 }}
-    >
-      C
-    </span>
-  );
-}
-
-export function Logo({ name = "COVVA", size = 32, className, suffix }: { name?: string; size?: number; className?: string; suffix?: React.ReactNode }) {
-  return (
-    <span className={clsx("inline-flex items-center gap-2.5", className)}>
-      <LogoMark size={size} />
-      <span className="text-[17px] font-semibold tracking-tight text-ink">{name}</span>
-      {suffix}
-    </span>
-  );
-}
+export { BRAND, CanopyMark, LogoMark, Logo, type LogoProps, type CanopyMarkProps } from "./brand";
 
 /* ----------------------------------------------------------------------------
  * Buttons

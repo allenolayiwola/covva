@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ShieldCheck, UserRound } from "lucide-react";
-import { buttonClass } from "@im/ui";
+import { UserRound } from "lucide-react";
+import { Logo, buttonClass } from "@im/ui";
 import { getBrand } from "@/components/marketing/brand";
 import { HeaderNav, HeaderNavFallback } from "@/components/marketing/header-nav";
 import { MobileMenu } from "@/components/marketing/mobile-menu";
@@ -21,10 +21,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           aria-label={`${brand.name} home`}
         >
-          <span aria-hidden className="grid size-8 place-items-center rounded-[9px] bg-brand text-white shadow-card">
-            <ShieldCheck className="size-[18px]" strokeWidth={2.25} />
-          </span>
-          <span className="text-[17px] font-semibold tracking-tight text-ink">{brand.name}</span>
+          <Logo height={36} label={brand.name} />
         </Link>
 
         <nav aria-label="Primary" className="hidden md:block">

@@ -21,7 +21,7 @@ export default function PartnerLayout({ children }: LayoutProps<"/partner">) {
       <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
         <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/partner" className="shrink-0" aria-label="Partner workspace home">
-            <Logo />
+            <Logo height={36} />
           </Link>
           <div className="flex items-center gap-4 sm:gap-8">
             <span className="hidden text-[15px] text-muted sm:inline">Partner workspace</span>
