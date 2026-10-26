@@ -1,7 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Container, buttonClass } from "@im/ui";
+import { buttonClass, onDarkButtonClass } from "./ui-classes";
 
 /** Closing teal call-to-action band used at the bottom of most marketing pages. */
 export function CtaBand({
@@ -17,7 +17,7 @@ export function CtaBand({
 }) {
   return (
     <section aria-labelledby="cta-band-title" className="px-4 pb-16 sm:px-6 sm:pb-24 lg:px-8">
-      <Container className="relative overflow-hidden rounded-[28px] bg-brand-deep px-6 py-14 text-white sm:px-12 sm:py-16">
+      <div className="relative mx-auto max-w-[1136px] overflow-hidden rounded-[28px] bg-brand-deep px-6 py-14 text-white sm:px-12 sm:py-16">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-white/[0.06]" />
         <div aria-hidden className="pointer-events-none absolute -bottom-32 right-40 size-72 rounded-full bg-brand/40 blur-2xl" />
         <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
@@ -35,14 +35,14 @@ export function CtaBand({
             {secondary && (
               <Link
                 href={secondary.href}
-                className={buttonClass("primary", "lg", "bg-white/10 ring-1 ring-inset ring-white/25 hover:bg-white/15 focus-visible:ring-white focus-visible:ring-offset-brand-deep")}
+                className={onDarkButtonClass()}
               >
                 {secondary.label}
               </Link>
             )}
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }
