@@ -71,19 +71,19 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] Unit tests for routing decisions and timeout re-routing.
 
 **Catalogue extensions (Addendum 2 B, 3 B3)**
-- [ ] Rate tables as first-class data (`rate_tables`, `rate_rows`) with CSV/Excel import + validation templates; keep the existing `rating` JSON as one rule type.
-- [ ] Underwriting rules editor (accept / refer-to-L1 / decline) and the "fits delegated issuance rules" check.
-- [ ] Document templates (schedule, certificate, sticker) per product version; template approval.
-- [ ] Issuance type + SLA per product ("Instant" / "Issued within X hours") shown before payment (Addendum 2 G).
-- [ ] Scheduled price changes with effective dates; existing quotes/policies keep their version (already versioned).
-- [ ] Broker-submitted pending rate tables for insurers not yet on Covva.
+- [x] Rate tables as first-class data (`rate_tables`, `rate_rows`) with CSV import + validation templates (Excel: export to CSV first); the existing `rating` JSON stays as one rule type and a `rate_table` model delegates to the table.
+- [x] Underwriting rules editor (accept / refer-to-L1 / decline) and the "fits delegated issuance rules" check.
+- [x] Document templates (schedule, certificate, sticker, receipt) per product version; template approval in admin.
+- [x] Issuance type + SLA per product ("Instant" / "Issued within X hours") shown before payment (Addendum 2 G).
+- [x] Scheduled price changes with effective dates (`price-schedule` cron promotes them); existing quotes/policies keep their version.
+- [x] Broker-submitted pending rate tables for insurers not yet on Covva (creates a partnerships lead). Attaching an approved proposal to the insurer's product once they join still needs an admin action.
 - [ ] Launch insurer seed: load one real insurer's catalogue (needs their product data — see dependencies).
 
 **Commercial terms and ledger (Addendum 2 F)**
-- [ ] `org_commercial_terms` (broker: revenue share % or subscription; insurer: fee/commission %), `policies.source`, `payment_splits`, `ledger_entries` (every money movement), fee transparency on quotes.
-- [ ] Three-party split at checkout (insurer / broker / Covva) via Paystack split groups or Hubtel; fallback to periodic settlement when a party has no subaccount.
-- [ ] Settlement statements per broker/insurer per period; subscription invoices (invoices exist — extend).
-- [ ] Tests for split calculations.
+- [x] `org_commercial_terms` (broker: revenue share % or subscription; insurer: fee/commission %), `policies.source`, `payment_splits`, append-only `ledger_entries`, fee transparency on quotes and at checkout.
+- [x] Three-party split at checkout via a Paystack split group when configured (`PAYSTACK_SPLIT_GROUP_CODE` or `organizations.paystack_split_code`); otherwise the single insurer subaccount with broker/Covva shares settled by statement. Refund ledger entries and Hubtel still to do.
+- [x] Settlement statements per broker/insurer per period (monthly cron, admin issue/mark paid, CSV export). Statement PDFs and subscription-invoice linkage still to do.
+- [x] Tests for split calculations.
 
 **Access, auth and transparency (Addendum 4, 2 G)**
 - [x] MFA enforced for broker and insurer users (partner workspace gate like the admin console).
@@ -179,12 +179,12 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 ### Marketing site (Addendum 5, brand correction applied) — runs alongside Phases 1–2
 - [x] Home, product pages, how it works, brokers/insurers pages, trust, support, legal, partner directory; SEO routes; JSON-LD; forms → leads.
-- [ ] Hero instant-quote widget (type → registration/few details → quotes) on home and every product page; price-range teaser.
-- [ ] Trust bar (partner logos, "Licensed partners only", MoMo/Telecel/Visa/Mastercard, security badges); stats counter; testimonials; app badges + QR; smart app banners.
-- [ ] Diaspora page; Business/SME page refresh; Claims page; Verify-a-policy page; Embedded-partner page; Learn/Insurance Guide hub (EN/Twi/Ga/Ewe); referral page; waitlist + "launch partner" forms; press kit.
-- [ ] Renewal-reminder sign-up (pre-purchase lead capture); WhatsApp button; language and currency switchers.
+- [x] Hero instant-quote widget (type → registration/few details → quotes) on home and every product page; price-range teaser.
+- [x] Trust bar (partner logos, "Licensed partners only", MoMo/Telecel/AirtelTigo/Visa/Mastercard, security badges); stats counter (placeholder values); illustrative testimonials; app badges + QR; smart app banners (env-gated).
+- [x] Diaspora page; Business/SME page refresh; Claims page; Verify-a-policy page (+ public verify API); Embedded-partner page; Learn hub (English now, Twi/Ga/Ewe switcher shows "coming soon"); referral page; waitlist + "launch partner" forms; press kit.
+- [x] Renewal-reminder sign-up (pre-purchase lead capture); WhatsApp button (env-gated); language and currency switchers.
 - [ ] Headless CMS (pages, articles, FAQs, testimonials, partner logos) — proposal: Sanity or Payload; decision needed.
-- [ ] Analytics (GA4), Meta/TikTok pixels, Act 843 consent banner, A/B testing hooks; Lighthouse ≥ 90 on mobile.
+- [~] Act 843 consent banner + consent-gated GA4 done; Meta/TikTok pixels, A/B testing hooks and a Lighthouse run still to do.
 - [ ] Imagery: real Ghanaian photography + custom "how it works" illustrations (assets needed from you).
 
 ### Cross-cutting (every phase)

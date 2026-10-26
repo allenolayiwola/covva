@@ -24,7 +24,6 @@ export default async function OpengraphImage() {
           fontFamily: "sans-serif",
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} alt="" width={344} height={140} style={{ marginLeft: -16 }} />
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 22, letterSpacing: 4, fontWeight: 500, color: "#00796E", marginBottom: 20 }}>INSURANCE FOR EVERYDAY LIFE IN GHANA</div>

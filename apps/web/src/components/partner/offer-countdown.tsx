@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { cn } from "@im/ui";
 
 function label(ms: number): string {
@@ -11,15 +11,18 @@ function label(ms: number): string {
   return `${mins}:${String(secs).padStart(2, "0")} left`;
 }
 
+function subscribeTick(onChange: () => void) {
+  const id = setInterval(onChange, 1000);
+  return () => clearInterval(id);
+}
+const nowSeconds = () => Math.floor(Date.now() / 1000) * 1000;
+const serverNow = () => null;
+
 /** Live "12 min left" countdown to an offer's deadline (renders a static value on the server). */
 export function OfferCountdown({ respondsBy, className }: { respondsBy: string; className?: string }) {
   const deadline = new Date(respondsBy).getTime();
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  // Ticks once a second on the client; the server snapshot is null so SSR renders a placeholder.
+  const now = useSyncExternalStore(subscribeTick, nowSeconds, serverNow);
   const remaining = now === null ? null : deadline - now;
   const urgent = remaining !== null && remaining < 5 * 60_000;
   return (

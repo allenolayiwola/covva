@@ -6,7 +6,7 @@
 // them with the service key. Without SUPABASE_SECRET_KEY the privileged part is skipped.
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { ACCOUNTS, anon, asUser, hasServiceKey, service, signIn, stamp } from "./_lib/supabase.mjs";
+import { ACCOUNTS, PUBLISHABLE_KEY, SUPABASE_URL, anon, asUser, hasServiceKey, service, signIn, stamp } from "./_lib/supabase.mjs";
 import { purgeE2EData } from "./purge-e2e-data.mjs";
 
 const RUN = `E2E-CATALOGUE ${stamp()}`;
@@ -22,6 +22,23 @@ function expectOk(r, status = 200) {
 
 const sessions = {};
 const ids = {};
+
+/** Insert without RETURNING (Prefer: return=minimal), for tables the caller may write but not read (leads). */
+async function insertMinimal(session, table, row) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: "POST",
+    headers: { apikey: PUBLISHABLE_KEY, authorization: `Bearer ${session.token}`, "content-type": "application/json", prefer: "return=minimal" },
+    body: JSON.stringify(row),
+  });
+  const text = await res.text();
+  let body = text;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    /* keep text */
+  }
+  return { status: res.status, body, code: body && typeof body === "object" ? body.code : undefined, message: body && typeof body === "object" ? body.message : undefined };
+}
 
 before(async () => {
   sessions.customer = await signIn(ACCOUNTS.customer);
@@ -146,7 +163,8 @@ describe("broker", () => {
     const mine = await db.get(`rate_tables?select=id,proposed_insurer_name&id=eq.${ids.proposal}`);
     expectOk(mine);
     assert.equal(mine.body.length, 1, "a broker reads its own proposals");
-    const lead = await db.insert("leads", {
+    // Brokers may submit a lead but not read leads back, so insert without RETURNING (as the server action does).
+    const lead = await insertMinimal(sessions.broker, "leads", {
       kind: "insurer",
       name: `${RUN} New Insurer Ltd`,
       organization: `${RUN} New Insurer Ltd`,
@@ -156,6 +174,7 @@ describe("broker", () => {
       status: "new",
     });
     expectOk(lead, 201);
+    assert.equal(lead.status, 201);
   });
 
   test("cannot submit a proposal that is already approved, or for another organisation", async () => {

@@ -12,6 +12,10 @@ import { OfferCountdown } from "@/components/partner/offer-countdown";
 import { Skeleton } from "@/components/partner/ui";
 import { acceptByToken, declineByToken } from "./actions";
 
+function isPast(iso: string): boolean {
+  return new Date(iso).getTime() <= Date.now();
+}
+
 export const metadata: Metadata = { title: "Accept request", robots: { index: false, follow: false } };
 
 /**
@@ -57,7 +61,7 @@ async function Body({ params }: Pick<PageProps<"/partner/offers/accept/[token]">
   const { data: req } = await supabase.from("requests").select("id, reference, title, type, category_id, broker_org_id, talk_to_expert, complexity_flags, category:product_categories(name)").eq("id", offer.request_id).maybeSingle();
   const org = brokerOrgs.find((m) => m.org_id === offer.broker_org_id)?.org;
   const canAct = memberships.some((m) => m.org_id === offer.broker_org_id && ["owner", "admin", "supervisor", "adviser"].includes(m.role));
-  const expired = new Date(offer.responds_by).getTime() <= Date.now();
+  const expired = isPast(offer.responds_by);
   const catName = (req?.category as unknown as { name: string } | null)?.name ?? "Insurance";
 
   if (offer.status === "accepted") {

@@ -33,7 +33,7 @@ export async function revokeSession(_prev: ActionState, formData: FormData): Pro
 }
 
 /** Signs out every other session; this browser stays signed in. */
-export async function signOutEverywhere(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+export async function signOutEverywhere(): Promise<ActionState> {
   return run(async () => {
     const ctx = await actionContext();
     const { error } = await ctx.supabase.auth.signOut({ scope: "others" });

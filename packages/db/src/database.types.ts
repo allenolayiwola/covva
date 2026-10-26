@@ -3664,6 +3664,7 @@ export type Database = {
         }[]
       }
       request_routing_mode: { Args: { p_request: string }; Returns: string }
+      revoke_my_session: { Args: { p_session_id: string }; Returns: boolean }
       set_commercial_terms: {
         Args: {
           p_broker_commission_pct?: number
