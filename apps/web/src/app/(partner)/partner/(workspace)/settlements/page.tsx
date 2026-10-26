@@ -19,7 +19,11 @@ export const metadata: Metadata = { title: "Settlements" };
 export default function SettlementsPage({ searchParams }: PageProps<"/partner/settlements">) {
   return (
     <>
-      <PageHeader title="Settlements" description="Monthly statements built from the ledger: what was paid, what is owed and what is due to you." />
+      <PageHeader
+        title="Settlements"
+        description="Monthly statements built from the ledger: what was paid, what is owed and what is due to you."
+        actions={<a href="/partner/settlements/export" className="text-sm font-semibold text-brand hover:underline">Export ledger (CSV)</a>}
+      />
       <Suspense fallback={<PageSkeleton stats={3} />}>
         <Settlements searchParams={searchParams} />
       </Suspense>

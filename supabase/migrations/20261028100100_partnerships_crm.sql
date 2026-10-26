@@ -481,8 +481,10 @@ create or replace view public.crm_pipeline_summary with (security_invoker = true
   union all
   select 'time_to_live', 'all', count(*)::bigint, coalesce(sum(a.estimated_value), 0)::numeric,
          avg(extract(epoch from (a.live_at - a.agreement_signed_at)) / 86400.0)::numeric
-  from public.crm_accounts a where a.live_at is not null and a.agreement_signed_at is not null;
+  from public.crm_accounts a where a.live_at is not null and a.agreement_signed_at is not null
+  having count(*) > 0; -- no row at all for non-staff (RLS hides every account) instead of a zero row
 comment on view public.crm_pipeline_summary is 'Pipeline counts/value per stage, open accounts per owner, and average days from agreement signed to live.';
+revoke select on public.crm_pipeline_summary from anon;
 grant select on public.crm_pipeline_summary to authenticated, service_role;
 
 grant execute on all functions in schema private to authenticated, service_role;

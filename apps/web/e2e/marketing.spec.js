@@ -167,6 +167,15 @@ test.describe("marketing site", () => {
     await expect(page.locator("meta[name='robots']").first()).toHaveAttribute("content", /noindex/);
   });
 
+  test("shared quotes: a bad token renders the not-found page (noindex) and never leaks data", async ({ page }) => {
+    await page.goto("/q/not-a-real-token");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/couldn.t find that page/i);
+    await expect(page.locator("meta[name='robots']").first()).toHaveAttribute("content", /noindex/);
+    // A well-formed but unknown token behaves the same.
+    await page.goto(`/q/${"a".repeat(48)}`);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/couldn.t find that page/i);
+  });
+
   test("how it works explains every role", async ({ page }) => {
     await page.goto("/how-it-works");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Every step visible");

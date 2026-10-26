@@ -81,7 +81,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 **Commercial terms and ledger (Addendum 2 F)**
 - [x] `org_commercial_terms` (broker: revenue share % or subscription; insurer: fee/commission %), `policies.source`, `payment_splits`, append-only `ledger_entries`, fee transparency on quotes and at checkout.
-- [x] Three-party split at checkout via a Paystack split group when configured (`PAYSTACK_SPLIT_GROUP_CODE` or `organizations.paystack_split_code`); otherwise the single insurer subaccount with broker/Covva shares settled by statement. Refund ledger entries and Hubtel still to do.
+- [x] Three-party split at checkout via a Paystack split group when configured (`PAYSTACK_SPLIT_GROUP_CODE` or `organizations.paystack_split_code`); otherwise the single insurer subaccount with broker/Covva shares settled by statement. Refund ledger entries post on `refundPayment()`; Hubtel is the second provider (Phase 1).
 - [x] Settlement statements per broker/insurer per period (monthly cron, admin issue/mark paid, CSV export). Statement PDFs and subscription-invoice linkage still to do.
 - [x] Tests for split calculations.
 
@@ -95,10 +95,10 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 ### Phase 1 — Catalogue, quote, routing, MoMo + split payments, wallet, renewals
 **Fast onboarding and quoting**
 - [x] Needs assessment, dynamic risk forms, estimates from approved rates, explained comparison.
-- [ ] Vehicle lookup by registration (DVLA/partner API) to prefill motor quotes; "motor quote in under 2 minutes" flow with a 3-field start.
-- [ ] Ghana Card (NIA) verification via a provider (manual admin review stays as fallback).
-- [ ] Save and share quotes (link, WhatsApp, email); resume later.
-- [ ] Honest copy when only one insurer is quoting ("1 insurer compared").
+- [x] Vehicle lookup by registration (DVLA/partner API) to prefill motor quotes; "motor quote in under 2 minutes" flow with a 3-field start (`vehicle_lookups` cache + DVLA stub behind `DVLA_API_URL`; "Talk to an expert" checkbox on the form).
+- [~] Ghana Card (NIA) verification via a provider (manual admin review stays as fallback) — provider hook (`IDENTITY_PROVIDER=nia`, NIA stub) wired into the profile KYC flow; live credentials pending.
+- [x] Save and share quotes (link, WhatsApp, email); resume later (`quote_shares`, public `/q/<token>`, `POST /requests/{id}/share`).
+- [x] Honest copy when only one insurer is quoting ("1 insurer compared").
 
 **Insurer Level 1 and Level 2**
 - [x] Level 1 insurer portal (queue, approve/decline, upload documents, customer receives them).
@@ -109,8 +109,8 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 **Payments**
 - [x] MTN MoMo, Telecel Cash, AirtelTigo Money, cards via Paystack; webhook; refunds; premiums settle to the insurer.
-- [ ] Bank transfer channel; Hubtel as a swappable second provider behind the payment abstraction.
-- [ ] Three-way split live (from Phase 0) and payment ledger exports.
+- [x] Bank transfer channel (insurer account or Paystack dedicated virtual account; admin reconciliation confirms); Hubtel as a swappable second provider behind the payment abstraction (`PAYMENT_PROVIDER` / per-insurer).
+- [~] Three-way split live (from Phase 0) and payment ledger exports (partner ledger CSV at `/partner/settlements/export`; split group still needs Paystack configuration per insurer).
 
 **Policy wallet**
 - [x] All policies, documents, renewal dates, external policies, nickname, broker contact.
@@ -120,8 +120,8 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 **Renewals**
 - [x] Reminder schedule (45/30/14/7/1), renewal review, broker renewal pipeline.
-- [ ] One-tap renewal with refreshed quotes and switch-insurer option; WhatsApp reminders.
-- [ ] Underinsurance nudges on value changes.
+- [x] One-tap renewal with refreshed quotes and switch-insurer option (broker of record kept); WhatsApp reminders (opt-in, SMS fallback).
+- [x] Underinsurance nudges on value changes (`policy-lifecycle` cron, `policies.underinsurance_flag`, policy page nudge).
 
 **Partner self-service (Addendum 3) — needed for the launch partner**
 - [ ] Public "Partner with Covva" pages for insurers and brokers with register / request-a-call CTAs (callback → CRM lead).
@@ -190,7 +190,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 ### Cross-cutting (every phase)
 - [x] RBAC, audit log, encryption, secure document storage, rate limiting, feature flags, consent capture.
 - [ ] Data-subject requests (export/delete) workflow; retention jobs (Act 843).
-- [ ] Notification abstraction gains WhatsApp; payment abstraction gains Hubtel and a diaspora card PSP.
+- [~] Notification abstraction gains WhatsApp (done); payment abstraction gains Hubtel (done) and a diaspora card PSP (to do).
 - [ ] Tests added with every feature; CI gates merges.
 
 ---

@@ -23,13 +23,13 @@ export interface VehicleData {
  * is returned upper-cased with runs of spaces collapsed (the lookup simply misses the cache).
  */
 export function normaliseRegistration(input: string | null | undefined): string {
-  const raw = (input ?? "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
+  const raw = (input ?? "").toUpperCase().replace(/[^A-Z0-9-]+/g, " ").replace(/\s+/g, " ").trim();
   if (!raw) return "";
-  const compact = raw.replace(/\s+/g, "");
+  const compact = raw.replace(/[\s-]+/g, "");
   const m = /^([A-Z]{1,3})(\d{1,4})(\d{2})$/.exec(compact);
   if (m) return `${m[1]} ${m[2]}-${m[3]}`;
-  // Older / foreign formats: keep letters and digits in groups.
-  return raw.replace(/\s+/g, " ");
+  // Older / foreign formats: upper-cased with tidy spacing (the lookup simply misses the cache).
+  return raw;
 }
 
 /** Plate year suffix (e.g. 23 → 2023); null when the plate has no year. */

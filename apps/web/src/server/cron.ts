@@ -355,7 +355,50 @@ const licenceStatus: CronJob = async (svc) => {
   return (data ?? {}) as Record<string, unknown>;
 };
 
+// ---------------------------------------------------------------------------
+/**
+ * Partnerships CRM (Addendum 3 D): remind assignees of tasks due today or overdue,
+ * in-app + email, once per task (`reminder_sent_at` is claimed before sending so a
+ * retried run never double-sends). Links point at the admin console.
+ */
+const crmReminders: CronJob = async (svc) => {
+  const startOfToday = new Date();
+  startOfToday.setUTCHours(0, 0, 0, 0); // Africa/Accra is UTC+0
+  const endOfToday = new Date(startOfToday.getTime() + 86_400_000 - 1);
+  const { data: due } = await svc
+    .from("crm_tasks")
+    .select("id, title, due_at, assignee_id, account_id")
+    .is("done_at", null)
+    .is("reminder_sent_at", null)
+    .not("assignee_id", "is", null)
+    .lte("due_at", endOfToday.toISOString())
+    .limit(500);
+  const accountIds = [...new Set((due ?? []).map((t) => t.account_id))];
+  const accounts = accountIds.length ? ((await svc.from("crm_accounts").select("id, name").in("id", accountIds)).data ?? []) : [];
+  const names = new Map(accounts.map((a) => [a.id, a.name]));
+  const adminBase = (process.env.NEXT_PUBLIC_ADMIN_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  let sent = 0;
+  for (const t of due ?? []) {
+    if (!t.assignee_id || !t.due_at) continue;
+    const { data: claimed } = await svc.from("crm_tasks").update({ reminder_sent_at: new Date().toISOString() }).eq("id", t.id).is("reminder_sent_at", null).select("id");
+    if (!claimed?.length) continue;
+    const overdue = Date.parse(t.due_at) < startOfToday.getTime();
+    await notify({
+      userId: t.assignee_id,
+      kind: "crm.task.due",
+      title: `${overdue ? "Overdue" : "Due today"}: ${t.title}`,
+      body: `${names.get(t.account_id) ?? "Partnership account"} · due ${t.due_at.slice(0, 16).replace("T", " ")}. Open the account in the admin console to complete or reschedule it.`,
+      link: `${adminBase}/partners/crm/${t.account_id}`,
+      data: { task_id: t.id, account_id: t.account_id, overdue },
+      channels: ["in_app", "email"],
+    });
+    sent++;
+  }
+  return { checked: due?.length ?? 0, sent };
+};
+
 export const CRON_JOBS: Record<string, CronJob> = {
+  "crm-reminders": crmReminders,
   "renewal-reminders": renewalReminders,
   "sla-monitor": slaMonitor,
   "quote-expiry": quoteExpiry,

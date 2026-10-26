@@ -13,6 +13,7 @@ test("normaliseRegistration canonicalises Ghana plates", () => {
   assert.equal(normaliseRegistration(null), "");
   // Unknown shapes are upper-cased and tidied, not rejected.
   assert.equal(normaliseRegistration("abc  def"), "ABC DEF");
+  assert.equal(normaliseRegistration("e2e 0000-00"), "E2E 0000-00");
 });
 
 test("registrationYear reads the plate year suffix", () => {

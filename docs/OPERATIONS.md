@@ -33,6 +33,12 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `REVALIDATE_SECRET` | **yes** | yes | Shared with the admin app for `POST /api/revalidate` |
 | `APPLE_TEAM_ID`, `IOS_BUNDLE_ID` | no | mobile | Universal links (`/.well-known/apple-app-site-association`) |
 | `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_CERT_FINGERPRINTS` | no | mobile | App links (`/.well-known/assetlinks.json`); comma-separated fingerprints (upload key + Play signing key) |
+| `PAYMENT_PROVIDER` | no | no | `paystack` (default) \| `hubtel`. Per insurer: `organizations.settings.payment_provider`. Hubtel is used only when its credentials are set |
+| `HUBTEL_MERCHANT_ACCOUNT`, `HUBTEL_WEBHOOK_SECRET` | **yes** | if Hubtel | Hubtel checkout merchant account (fallback; per insurer `organizations.settings.hubtel_merchant_account` wins) and the shared secret required on `/api/webhooks/hubtel` |
+| `PAYSTACK_DVA_ENABLED`, `PAYSTACK_DVA_BANK` | no | no | `true` creates a Paystack dedicated virtual account per customer for bank transfers (auto-confirmed by `charge.success`) |
+| `VEHICLE_LOOKUP_PROVIDER`, `DVLA_API_URL`, `DVLA_API_KEY` | **yes** (key) | no | Registration lookup for motor quotes: `cache` (default) \| `dvla` \| `manual`. Unset → the form asks for make/model/year |
+| `IDENTITY_PROVIDER`, `NIA_API_URL`, `NIA_API_KEY` | **yes** (key) | no | Ghana Card verification: `manual` (default, admin review) \| `nia` (provider; manual review stays the fallback) |
+| `WHATSAPP_PROVIDER`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_TEMPLATE_*` | **yes** (token) | no | WhatsApp Cloud API (`meta`) for opted-in customers; `log` (default) only logs. Renewal reminders go WhatsApp first, SMS as fallback |
 | `LOG_LEVEL` | no | no | `debug` for verbose logs |
 | `NIC_MOTOR_DB_MODE` | no | no | How delegated motor policies reach the NIC motor insurance database: `manual` (default — an insurer task "Register policy … on the NIC motor database" is created and the insurer records the reference in Issuance → Delegated issuance) or `api` (through the insurer's connector adapter; only the `simulator` adapter exists, selected by `organizations.settings.connector = "simulator"`; falls back to the manual hand-off when the insurer has none). Status is tracked in `issuance_jobs.nic_registration`. |
 | `PARTNER_MFA_REQUIRED` | no | no | TOTP two-step verification for broker/insurer users in `/partner`. Defaults to `true` in production builds and `false` elsewhere. Set `false` only for local demos and e2e (`apps/web/playwright.config.js` does). Customers are never gated. |
@@ -126,6 +132,45 @@ Migration `20261027100200_commercial_ledger.sql` adds the commercial model (Adde
 * **Transparency**: `quotes.fee_breakdown` (set at payment initiation, or computed on the fly for the
   checkout page) shows the customer the premium, taxes, platform fee and broker commission, and states
   that the fee and commission are paid by the insurer out of the premium.
+
+### Bank transfer, Hubtel, lookups and WhatsApp (Phase 1)
+
+Migration `20261028100300_quoting_payments.sql` adds `vehicle_lookups`, `quote_shares`, `payment_accounts`,
+`payments.channel_detail` (+ a provider check: `paystack | hubtel | simulator | bank_transfer`),
+`policies.underinsurance_flag`, `profiles.whatsapp_opt_in` and `kyc_verifications.checked_at`.
+
+* **Bank transfer** (`channel: bank_transfer`): the money must reach the insurer, never Covva. With
+  `PAYSTACK_DVA_ENABLED=true` each customer gets a Paystack **dedicated virtual account** (stored in
+  `payment_accounts`); Paystack confirms the credit with `charge.success` and the normal flow applies.
+  Otherwise the instructions show the insurer's own account from `organizations.settings.bank_account`
+  `{ bank, account_name, account_number }` with a unique reference (`platform_settings.payments.bank_transfer.reference_prefix`
+  + payment reference). The payment stays `pending` (`payments.channel_detail` holds the instructions);
+  when the insurer confirms the credit, admin → Payments → **Reconcile** on the pending transfer calls
+  `POST /api/payments/confirm-transfer` (shared `REVALIDATE_SECRET`) on the web app, which applies the
+  success through the same idempotent path as a webhook. An insurer without `bank_account` cannot take transfers.
+* **Hubtel** (`server/providers/hubtel.ts`): hosted checkout via `POST /items/initiate`, status via the
+  transaction-status API. Callbacks (`/api/webhooks/hubtel`) are **unsigned**, so register the callback URL with
+  `?secret=<HUBTEL_WEBHOOK_SECRET>` (or send `x-hubtel-secret`); every success is re-verified with the status API
+  before it is applied. Refunds for Hubtel and bank transfers are recorded as `requested` + `manual` — arrange
+  them with the insurer/Hubtel and finish from the admin payments page.
+* **Refund ledger**: `refundPayment()` posts a `refund` entry (insurer, −premium) and `adjustment` reversals of
+  the commission / platform-fee / revenue-share entries (reference `<payment ref>:refund`, idempotent).
+  Partners export their ledger from Partner workspace → Settlements → **Export CSV**
+  (`/partner/settlements/export?from=&to=`; owners, admins and finance).
+* **Vehicle lookup**: `POST /api/v1/lookups/vehicle` → cache (`vehicle_lookups`, 90 days) → DVLA stub
+  (`DVLA_API_URL`, `GET /vehicles/{registration}` with a bearer key). Only vehicle facts are stored. Ops can seed the
+  cache by inserting rows with the service key (normalised plates such as `GR 1234-23`).
+* **Ghana Card**: `IDENTITY_PROVIDER=nia` calls `POST {NIA_API_URL}/verify` when a customer saves a card number;
+  `verified` / `rejected` are applied to the profile, anything else stays in the admin KYC queue (manual review).
+* **WhatsApp**: `WHATSAPP_PROVIDER=meta` sends approved Cloud API templates (`WHATSAPP_TEMPLATE_RENEWAL`,
+  `WHATSAPP_TEMPLATE_GENERIC`; three body parameters: title, body, link) to customers who switched on WhatsApp
+  in Profile → Notifications (`profiles.whatsapp_opt_in`). `notify()` sends WhatsApp first and skips SMS when
+  the WhatsApp message was delivered by the live provider; with the `log` provider SMS still goes out.
+* **Underinsurance nudges**: the `policy-lifecycle` cron compares `sum_insured` with the declared value
+  (motor vehicle value; home buildings + contents; business premises + stock + equipment) and flags policies
+  below 85% once (`policies.underinsurance_flag`, notification `policy.underinsured`), clearing the flag when fixed.
+* **Share links**: `/q/<token>` (public, noindex) renders quote summaries only from `quote_shares` (14-day expiry,
+  view count); no customer identity is exposed.
 
 ## 3. Supabase Auth settings
 

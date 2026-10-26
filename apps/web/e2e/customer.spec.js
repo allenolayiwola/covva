@@ -46,12 +46,33 @@ test.describe("customer account", () => {
     await page.getByRole("button", { name: /^Motor/ }).click();
     await expect(page.getByRole("heading", { level: 2, name: /Motor · Tell us what you need/ })).toBeVisible();
 
+    // Motor starts with three fields (registration, use, value) and a "Find my vehicle" lookup; the rest sits under "Check details".
+    await expect(page.getByRole("heading", { level: 3, name: "Start with three details" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Find my vehicle" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Check details/ })).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByLabel(/Talk to an expert first/)).not.toBeChecked();
+
     await page.getByRole("button", { name: "Send request" }).click();
     // Client-side zod validation (riskSchemaToZod) blocks the submit and focuses the first error.
     await expect(page.getByText("Choose type of cover").first()).toBeVisible();
     await expect(page.getByText("Year of manufacture must be a number").first()).toBeVisible();
     await expect(page.getByLabel("Type of cover")).toBeFocused();
     await expect(page).toHaveURL(/\/account\/requests\/new$/);
+  });
+
+  test("new request: the registration lookup degrades gracefully and never blocks the form", async ({ page }) => {
+    await page.goto("/account/requests/new?category=motor");
+    await expect(page.getByRole("heading", { level: 2, name: /Motor · Tell us what you need/ })).toBeVisible();
+    // Empty registration: a field error, no network call.
+    await page.getByRole("button", { name: "Find my vehicle" }).click();
+    await expect(page.getByText("Enter the registration number, e.g. GR 1234-23")).toBeVisible();
+    await expect(page.getByLabel("Registration number (optional)")).toBeFocused();
+    // Unknown plate: "couldn't find" (or "isn't available") and the detail fields stay open for manual entry.
+    await page.getByLabel("Registration number (optional)").fill("E2E 0000-00");
+    await page.getByRole("button", { name: "Find my vehicle" }).click();
+    await expect(page.getByText(/couldn.t find that registration|Lookup isn.t available/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByLabel("Vehicle make")).toBeVisible();
+    await expect(page.getByLabel("Registration number (optional)")).toHaveValue("E2E 0000-00");
   });
 
   test("new request: a complete motor form is sent (or reports that the service is unavailable)", async ({ page }, testInfo) => {

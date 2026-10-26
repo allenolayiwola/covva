@@ -68,6 +68,7 @@ tags:
       personal data; fetch details through the API. See `docs/WEBHOOKS.md`.
   - name: Me
   - name: Catalogue
+  - name: Lookups
   - name: Requests
   - name: Documents
   - name: Applications & payments
@@ -171,6 +172,28 @@ paths:
       security: []
       responses:
         "200": { $ref: "#/components/responses/Ok" }
+  /lookups/vehicle:
+    post:
+      tags: [Lookups]
+      summary: Prefill a motor quote from a Ghana registration number
+      description: |
+        Normalises the plate (`GR 1234-23`) and looks it up in the cache, then the configured provider
+        (DVLA / partner API when `DVLA_API_URL` is set). `found: false` just means "ask the customer" —
+        quoting never depends on it. Returns vehicle facts only (make, model, year, body, colour,
+        engine, seats, use), never the keeper. Rate-limited (write bucket).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/VehicleLookupInput" } } }
+      responses:
+        "200":
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/VehicleLookupResult" } }
+        "400": { $ref: "#/components/responses/Error" }
   /needs-assessment:
     get:
       tags: [Catalogue]
@@ -268,6 +291,29 @@ paths:
         "200": { $ref: "#/components/responses/Ok" }
         "201": { $ref: "#/components/responses/Ok" }
         "422": { $ref: "#/components/responses/Error" }
+  /requests/{id}/share:
+    post:
+      tags: [Requests]
+      summary: Save & share the comparison (link, WhatsApp or email)
+      description: |
+        Creates a share token valid for 14 days. `url` opens a public, read-only comparison
+        (`/q/{token}`) that shows quote summaries only — never the customer's name, reference or risk
+        details beyond the cover title. `whatsappUrl` is a `https://wa.me/?text=` link with `text`
+        prefilled; `channel: email` also emails the summary to `email` (defaults to the account email).
+        "Resume later" needs nothing extra: the request itself is saved — `GET /requests`.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/ShareQuotesInput" } } }
+      responses:
+        "201":
+          description: Share created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/ShareResult" } }
+        "404": { $ref: "#/components/responses/Error" }
   /requests/{id}/messages:
     get:
       tags: [Requests]
@@ -363,11 +409,17 @@ paths:
       tags: [Applications & payments]
       summary: Start payment for a submitted application
       description: |
-        Revalidates the quote at checkout. Premiums settle to the insurer's Paystack subaccount.
+        Revalidates the quote at checkout. Premiums settle to the insurer (Paystack subaccount, the insurer's
+        Hubtel merchant account, or the insurer's bank account) — never to Covva.
         Open `authorizationUrl` in an in-app browser; for a direct MoMo prompt (`momo` given) `authorizationUrl`
         is null — show `displayText` and poll `GET /payments/{id}`. Pass `callbackUrl` =
         `https://<host>/api/payments/return` from the app to be redirected to `covva://payments/return`.
-        In test environments without Paystack keys a **sandbox simulator** page is returned instead.
+        **Bank transfer** (`channel: bank_transfer`): `authorizationUrl` is null and `bankTransfer` holds the
+        account, amount and the reference to quote; the payment stays `pending` until the credit is confirmed
+        (automatically for a dedicated virtual account, otherwise by the insurer/admin reconciliation) — keep
+        polling or wait for the `payment.succeeded` notification. `provider` says which rail took the payment
+        (`paystack`, `hubtel`, `bank_transfer`, `simulator`).
+        In test environments without provider keys a **sandbox simulator** page is returned instead.
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: "#/components/schemas/InitPaymentRequest" } } }
@@ -471,8 +523,13 @@ paths:
   /policies/{id}/renewal:
     post:
       tags: [Policies]
-      summary: Start a renewal review (or a switch review for external policies)
-      description: Existing cover is never cancelled. Renewal prices are estimates until the insurer confirms.
+      summary: One-tap renewal — refreshed quotes for the same risk (or a switch review for external policies)
+      description: |
+        Creates a renewal request for the policy's risk with the policy's broker kept as broker of record and
+        estimates refreshed from current rates. `renewal` holds `sameInsurer` (the "Renew with <insurer>" offer:
+        `oneTap` is true when it is binding — apply and pay in one step), `alternatives` (cheapest first),
+        `savings` and `insurersCompared` (show "1 insurer compared" honestly). Existing cover is never
+        cancelled. Renewal prices are estimates until the insurer confirms.
       parameters: [{ $ref: "#/components/parameters/Id" }]
       requestBody:
         content: { application/json: { schema: { $ref: "#/components/schemas/RenewalInput" } } }
@@ -1397,6 +1454,65 @@ components:
         authorizationUrl: { type: [string, "null"], format: uri }
         status: { $ref: "#/components/schemas/PaymentStatus" }
         displayText: { type: [string, "null"] }
+        provider: { type: string, enum: [paystack, hubtel, simulator, bank_transfer] }
+        bankTransfer:
+          oneOf:
+            - { type: "null" }
+            - $ref: "#/components/schemas/BankTransferInstructions"
+    BankTransferInstructions:
+      type: object
+      required: [bank, accountName, accountNumber, reference, kind, amount, currency, instructions]
+      properties:
+        bank: { type: string }
+        accountName: { type: string }
+        accountNumber: { type: string }
+        reference: { type: string, description: Quote this on the transfer; it is matched at reconciliation }
+        kind: { type: string, enum: [insurer_account, paystack_dva], description: insurer's own account, or a Paystack dedicated virtual account unique to the customer (auto-confirms) }
+        amount: { type: number }
+        currency: { type: string, example: GHS }
+        instructions: { type: string, description: Plain-language instructions to show the customer }
+    VehicleLookupInput:
+      type: object
+      required: [registration]
+      properties:
+        registration: { type: string, example: "GR 1234-23" }
+    VehicleLookupResult:
+      type: object
+      required: [registration, found]
+      properties:
+        registration: { type: string, description: Normalised plate }
+        found: { type: boolean }
+        source: { type: [string, "null"], enum: [dvla, manual, cache, null] }
+        data:
+          type: [object, "null"]
+          properties:
+            make: { type: string }
+            model: { type: string }
+            year: { type: integer }
+            body: { type: string }
+            colour: { type: string }
+            chassis_last4: { type: string }
+            engine_cc: { type: integer }
+            seats: { type: integer }
+            use: { type: string, enum: [private, commercial] }
+        fetchedAt: { type: string, format: date-time }
+    ShareQuotesInput:
+      type: object
+      properties:
+        channel: { type: string, enum: [link, whatsapp, email], default: link }
+        email: { type: string, format: email, description: Recipient for `email` (defaults to the account email) }
+    ShareResult:
+      type: object
+      required: [id, token, url, channel, expiresAt, text, whatsappUrl]
+      properties:
+        id: { type: string, format: uuid }
+        token: { type: string }
+        url: { type: string, format: uri, description: Public read-only comparison page }
+        channel: { type: string, enum: [link, whatsapp, email] }
+        expiresAt: { type: string, format: date-time }
+        text: { type: string, description: Plain-text summary (WhatsApp / SMS friendly) }
+        whatsappUrl: { type: string, format: uri }
+        emailSent: { type: boolean }
 
     WebhookEnvelope:
       type: object

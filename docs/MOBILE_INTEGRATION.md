@@ -224,6 +224,36 @@ Copy must say uploads go to the broker — **uploading is not the same as notify
 6. In test environments without Paystack keys `authorizationUrl` points to a **sandbox simulator**
    page ("Sandbox simulator · no real money") with succeed/fail buttons; the same return flow applies.
 
+## 8a. Quick motor quote, sharing, bank transfer, WhatsApp opt-in
+
+* **Quick motor quote (3-field start).** Ask for registration, use and value first. `POST /lookups/vehicle
+  { registration }` returns `{ found, data: { make, model, year, use … } }` — prefill `vehicle_make`,
+  `vehicle_model`, `vehicle_year` (and `use`) and collapse the remaining fields under "Check details".
+  `found: false` is normal (no provider configured / not cached): show the fields. Never block on the lookup.
+  `@im/core` has `normaliseRegistration`, `quickQuoteFields(riskSchema)` and `prefillFromLookup`.
+* **Talk to an expert.** Pass `talkToExpert: true` on `POST /requests` to route to a broker regardless of the
+  insurer's integration. Copy: "A licensed broker calls you before any quote is prepared."
+* **Honest comparison copy.** From `GET /requests/{id}/quotes` use `comparison.insurersCompared`; when it is 1
+  show "1 insurer compared — we show every licensed insurer that quoted for this risk".
+* **Save & share.** `POST /requests/{id}/share { channel: "link" | "whatsapp" | "email", email? }` →
+  `{ url, whatsappUrl, text, expiresAt }`. Open `whatsappUrl` with `Linking.openURL`, copy `url` to the
+  clipboard, or share `text` with the system share sheet. The public page shows no customer identity.
+  "Resume later" = the saved request in `GET /requests` (status `quotes_ready` → "Saved quotes").
+* **Bank transfer.** `POST /payments { applicationId, channel: "bank_transfer" }` → `authorizationUrl: null`,
+  `provider: "bank_transfer"`, `bankTransfer: { bank, accountName, accountNumber, reference, amount, kind,
+  instructions }`. Show the details with copy buttons and the reference; the payment stays `pending` until the
+  credit is confirmed (poll `GET /payments/{id}` or wait for `payment.succeeded`). Repeating the call returns the
+  same instructions. Hubtel checkouts behave like Paystack (`authorizationUrl`), with `provider: "hubtel"`.
+* **One-tap renewal.** `POST /policies/{id}/renewal` now returns `renewal: { sameInsurer, alternatives, savings,
+  insurersCompared, brokerOrgId }`. Render "Renew with <insurer>" (apply + pay when `sameInsurer.oneTap`) and
+  "Switch insurer" (the comparison for `request.id`). The policy's broker stays broker of record.
+* **WhatsApp opt-in.** `PATCH /me { notificationPrefs: { whatsapp: true } }` records the opt-in
+  (`profiles.whatsapp_opt_in`). Opted-in customers with a phone number get renewal reminders on WhatsApp
+  first and SMS only as a fallback. Show the plain copy: "Renewal reminders, quote links and payment links on
+  your phone number. We message you only about your cover."
+* **Underinsurance nudge.** `GET /policies/{id}` includes `underinsurance_flag` (`{ reason, suggested_sum_insured,
+  current_value, at }` or null). Show "Your car may be insured for less than it's worth" with a link to request a change.
+
 ## 9. Push notifications
 
 ```ts

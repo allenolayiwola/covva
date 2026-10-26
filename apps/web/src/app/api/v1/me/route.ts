@@ -69,6 +69,8 @@ export const PATCH = withApi(
     if (input.notificationPrefs) {
       const { data: cur } = await auth.supabase.from("profiles").select("notification_prefs").eq("id", auth.userId).single();
       patch.notification_prefs = { ...((cur?.notification_prefs as Record<string, boolean>) ?? {}), ...input.notificationPrefs };
+      // WhatsApp is an explicit opt-in (renewal reminders, quote links); keep the flag in step with the preference.
+      if (typeof input.notificationPrefs.whatsapp === "boolean") patch.whatsapp_opt_in = input.notificationPrefs.whatsapp;
     }
     if (!Object.keys(patch).length) return { updated: false };
     const res = await auth.supabase.from("profiles").update(patch).eq("id", auth.userId).select("id, full_name, preferred_name, phone, account_type, business_name, region, city, locale, avatar_url, notification_prefs, onboarded_at, kyc_status").single();

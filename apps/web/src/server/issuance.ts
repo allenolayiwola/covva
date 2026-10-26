@@ -231,7 +231,9 @@ export async function startIssuance(svc: Svc, policyId: string): Promise<Issuanc
     policy.request_id ? svc.from("requests").select("id, reference, broker_org_id, customer_id, risk_data").eq("id", policy.request_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const risk = ((policy.insured_items ?? {}) as { risk?: Record<string, unknown> }).risk ?? ((request?.risk_data ?? {}) as Record<string, unknown>);
-  const issuanceType = version?.issuance_type ?? line?.issuance_type ?? "manual";
+  // The product version's issuance type wins when the insurer set one; a version left at the
+  // default ("manual") falls back to the line integration's setting for this insurer × line.
+  const issuanceType = version?.issuance_type && version.issuance_type !== "manual" ? version.issuance_type : (line?.issuance_type ?? version?.issuance_type ?? "manual");
   const outcome = fitsDelegatedIssuance((rules ?? []) as unknown as UnderwritingRule[], risk, issuanceType);
   const decision = decideIssuanceMode(line ? { level: line.level, slaHours: line.sla_hours, issuanceType, active: line.active } : null, outcome);
   const slaHours = version?.sla_hours && version.sla_hours > 0 ? Math.min(version.sla_hours, decision.slaHours) : decision.slaHours;
