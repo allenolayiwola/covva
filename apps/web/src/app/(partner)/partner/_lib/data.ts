@@ -122,3 +122,11 @@ export const DAY = 86_400_000;
 export function isAtRisk(dueAt: string | null, now = Date.now()) {
   return !!dueAt && new Date(dueAt).getTime() - now < 4 * HOUR;
 }
+
+export const APPLICATION_LABEL: Record<Row<"applications">["status"], string> = {
+  draft: "Draft",
+  submitted: "Submitted to insurer",
+  accepted: "Accepted by insurer",
+  rejected: "Declined by insurer",
+  withdrawn: "Withdrawn",
+};

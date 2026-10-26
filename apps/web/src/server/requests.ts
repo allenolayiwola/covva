@@ -14,6 +14,7 @@ import {
 } from "@im/core";
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { notify, notifyOrg } from "@/server/notify";
 
 export class BusinessRuleError extends Error {
   constructor(message: string, public code = "business_rule") {
@@ -223,12 +224,27 @@ export interface CreateRequestArgs {
   submit?: boolean;
 }
 
-export async function createRequest(args: CreateRequestArgs, opts: { supabase?: Awaited<ReturnType<typeof createClient>> } = {}) {
+export async function createRequest(
+  args: CreateRequestArgs,
+  opts: {
+    supabase?: Awaited<ReturnType<typeof createClient>>;
+    /**
+     * Verified user id when `supabase` is a bearer-token client (API v1 / mobile), which
+     * has no cookie session for `auth.getUser()`. The caller must have verified the token.
+     */
+    userId?: string;
+  } = {},
+) {
   const supabase = opts.supabase ?? (await createClient());
   const svc = createServiceClient();
 
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth.user;
+  let user: { id: string } | null = null;
+  if (opts.userId && opts.supabase) {
+    user = { id: opts.userId };
+  } else {
+    const { data: auth } = await supabase.auth.getUser();
+    user = auth.user;
+  }
   if (!user) throw new BusinessRuleError("Please sign in to continue.", "unauthorised");
 
   const { data: category } = await supabase.from("product_categories").select("*").eq("slug", args.categorySlug).single();
@@ -321,27 +337,23 @@ export async function createRequest(args: CreateRequestArgs, opts: { supabase?: 
       { onConflict: "org_id,metric,reference_id", ignoreDuplicates: true },
     );
     // Notify broker team
-    const { data: members } = await svc.from("memberships").select("user_id").eq("org_id", routing.brokerOrgId).eq("active", true);
-    if (members?.length) {
-      await svc.from("notifications").insert(
-        members.map((m) => ({
-          user_id: m.user_id,
-          kind: "request.new",
-          title: `New ${category.name.toLowerCase()} request ${request.reference}`,
-          body: request.title ?? undefined,
-          link: `/partner/requests/${request.id}`,
-          data: { request_id: request.id } as Json,
-        })),
-      );
-    }
+    await notifyOrg(routing.brokerOrgId, {
+      kind: "request.new",
+      title: `New ${category.name.toLowerCase()} request ${request.reference}`,
+      body: request.title ?? undefined,
+      link: `/partner/requests/${request.id}`,
+      data: { request_id: request.id },
+      channels: ["in_app", "email", "push"],
+    });
   }
-  await svc.from("notifications").insert({
-    user_id: user.id,
-    kind: "request.created",
-    title: `Request ${request.reference} received`,
+  await notify({
+    userId: user.id,
+    kind: nextStatus === "quotes_ready" ? "quote.ready" : "request.created",
+    title: nextStatus === "quotes_ready" ? `Quotes ready for ${request.reference}` : `Request ${request.reference} received`,
     body: nextStep,
-    link: `/account/requests/${request.id}`,
-    data: { request_id: request.id } as Json,
+    link: nextStatus === "quotes_ready" ? `/account/requests/${request.id}/quotes` : `/account/requests/${request.id}`,
+    data: { request_id: request.id },
+    channels: ["in_app", "push", "email"],
   });
 
   return { request: { ...request, status: nextStatus, next_step: nextStep }, routing, estimates };

@@ -64,7 +64,12 @@ export function SectionHeading({
       )}
     >
       <div className={cn("max-w-2xl", align === "center" && "mx-auto")}>
-        {eyebrow && <Eyebrow className={cn("mb-3", invert && "text-mint")}>{eyebrow}</Eyebrow>}
+        {eyebrow &&
+          (invert ? (
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-mint">{eyebrow}</p>
+          ) : (
+            <Eyebrow className="mb-3">{eyebrow}</Eyebrow>
+          ))}
         <As
           id={id}
           className={cn(
@@ -84,12 +89,13 @@ export function SectionHeading({
 }
 
 /** Small round icon tile used across feature grids. */
-export function IconTile({ children, tone = "mint", className }: { children: React.ReactNode; tone?: "mint" | "white" | "brand" | "amber"; className?: string }) {
+export function IconTile({ children, tone = "mint", size = "md", className }: { children: React.ReactNode; tone?: "mint" | "white" | "brand" | "amber"; size?: "sm" | "md"; className?: string }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "inline-grid size-11 shrink-0 place-items-center rounded-xl [&>svg]:size-5",
+        "inline-grid shrink-0 place-items-center",
+        size === "md" ? "size-11 rounded-xl [&>svg]:size-5" : "size-9 rounded-[10px] [&>svg]:size-4",
         tone === "mint" && "bg-mint text-brand-deep",
         tone === "white" && "bg-white text-brand shadow-card ring-1 ring-line",
         tone === "brand" && "bg-brand text-white",

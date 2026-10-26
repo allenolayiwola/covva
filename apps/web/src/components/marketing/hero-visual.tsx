@@ -28,7 +28,7 @@ export function HeroVisual({ insurers, demo }: { insurers: HeroInsurer[]; demo: 
         <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-white/60 blur-2xl" />
 
         {/* Compare quotes */}
-        <div className="relative w-full rounded-[20px] border border-line/70 bg-white p-5 shadow-float motion-safe:animate-fade-up sm:absolute sm:left-6 sm:top-10 sm:w-[340px] sm:p-6">
+        <div className="relative w-full rounded-[20px] border border-line/70 bg-white p-5 shadow-float motion-safe:animate-fade-up sm:absolute sm:left-6 sm:top-10 sm:w-[316px] sm:p-6">
           <p className="text-xs text-muted">Motor · 3 quotes</p>
           <p className="mt-0.5 text-[17px] font-semibold tracking-tight text-ink">Compare quotes</p>
           <ul className="mt-4 divide-y divide-line border-t border-line">
@@ -47,11 +47,11 @@ export function HeroVisual({ insurers, demo }: { insurers: HeroInsurer[]; demo: 
         </div>
 
         {/* Active policy */}
-        <div className="relative z-10 -mt-10 ml-auto w-[230px] overflow-hidden rounded-[20px] bg-brand-dark p-5 text-white shadow-float motion-safe:animate-fade-up [animation-delay:140ms] sm:absolute sm:right-5 sm:top-[228px] sm:mt-0">
+        <div className="relative z-10 -mt-4 ml-auto w-[212px] overflow-hidden rounded-[20px] bg-brand-dark p-5 text-white shadow-float motion-safe:animate-fade-up [animation-delay:140ms] sm:absolute sm:right-4 sm:top-[236px] sm:mt-0">
           <div aria-hidden className="absolute -right-10 -top-12 size-32 rounded-full bg-white/[0.07]" />
           <p className="relative text-[11px] font-medium uppercase tracking-[0.14em] text-white/75">Motor · Active</p>
           <p className="relative mt-2 text-[17px] font-semibold tracking-tight">Your everyday drive</p>
-          <p className="relative mt-0.5 text-xs text-white/75">{first} · DEMO-1048</p>
+          <p className="relative mt-0.5 truncate text-[11px] text-white/75">{first} · DEMO-1048</p>
           <p className="relative mt-5 text-[11px] text-white/70">Cover ends</p>
           <p className="relative text-[15px] font-semibold">30 Nov 2026</p>
         </div>

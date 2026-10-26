@@ -5,9 +5,24 @@
   "type": "module",
   "main": "./src/index.tsx",
   "types": "./src/index.tsx",
-  "exports": { ".": "./src/index.tsx" },
-  "scripts": { "typecheck": "tsc --noEmit" },
-  "dependencies": { "clsx": "^2.1.1", "@im/core": "workspace:*", "lucide-react": "latest" },
-  "peerDependencies": { "react": "^19" },
-  "devDependencies": { "typescript": "^5.9.3", "@types/react": "^19", "react": "19.3.0" }
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "@im/core": "workspace:*",
+    "lucide-react": "latest"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/react": "^19",
+    "react": "19.3.0"
+  },
+  "sideEffects": false
 }

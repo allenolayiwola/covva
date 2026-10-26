@@ -96,7 +96,7 @@ export interface ActionState {
   ok: boolean;
   error?: string;
   message?: string;
-  data?: Record<string, string | number | boolean | null>;
+  data?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export const idle: ActionState = { ok: false };
