@@ -25,7 +25,7 @@ export function HeroQuoteCard({ examples, defaultLine = "motor", className, slot
     <form action="/quote" method="get" aria-labelledby={titleId} className={cn("rounded-hero border border-line bg-white p-5 shadow-float sm:p-6", className)}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 id={titleId} className="font-display text-[22px] leading-tight text-ink">What do you want to insure?</h2>
-        <span className="text-[13px] text-muted">Step 1 of 6</span>
+        <span className="whitespace-nowrap text-[13px] text-muted">Step 1 of 6</span>
       </div>
 
       <fieldset className="mt-4">
@@ -54,11 +54,13 @@ export function HeroQuoteCard({ examples, defaultLine = "motor", className, slot
       <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Example prices">
         {examples.slice(0, 2).map((e) => (
           <li key={e.label} className="rounded-field border border-line bg-mist px-3 py-2.5">
-            <p className="text-[13px] text-muted">{e.label}</p>
-            <p className="mt-0.5 flex items-baseline gap-1.5 text-ink">
+            <p className="flex items-start justify-between gap-2 text-[13px] text-muted">
+              <span>{e.label}</span>
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-bg px-2 py-0.5 font-medium text-amber">Example · DEMO</span>
+            </p>
+            <p className="mt-1 text-ink">
               <span className="text-[17px] font-semibold tabular-nums text-brand-deep">from GH₵ {e.monthly}</span>
-              <span className="text-[13px] text-muted">/month</span>
-              <span className="ml-auto rounded-full bg-amber-bg px-2 py-0.5 text-[13px] font-medium text-amber">Example · DEMO</span>
+              <span className="text-[13px] text-muted"> /month</span>
             </p>
           </li>
         ))}

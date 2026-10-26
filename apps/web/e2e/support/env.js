@@ -25,12 +25,12 @@ export const STATE = {
 };
 
 /**
- * Signs in through the real /sign-in page (email + password tab) and waits for the redirect.
+ * Signs in through the real /sign-in page (email + password) and waits for the redirect.
  * `next` keeps partner users out of the customer onboarding redirect.
  */
 export async function signInViaForm(page, { email, password = PASSWORD, next = "/account" }) {
-  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`, { waitUntil: "networkidle" }); // settle hydration before typing
-  await page.getByRole("tab", { name: "Password" }).click();
+  // Password sign-in sits behind "Use a password instead" (phone code / email link are the primary methods).
+  await page.goto(`/sign-in?method=password&next=${encodeURIComponent(next)}`, { waitUntil: "networkidle" }); // settle hydration before typing
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

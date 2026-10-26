@@ -20,7 +20,7 @@ export function PhoneMock({ insurers, className }: { insurers: string[]; classNa
             </span>
           </div>
           <div className="px-4 pb-5 pt-3">
-            <p className="mx-auto w-fit rounded-md bg-[#EEF2F1] px-2 py-0.5 text-[8.5px] text-muted">Illustrative only · Demo data</p>
+            <p className="mx-auto w-fit rounded-md bg-[#EEF2F1] px-2 py-0.5 text-[13px] text-muted">Illustrative only · Demo data</p>
             <p className="mt-2 text-[13px] text-muted">Good morning, Ama</p>
             <p className="text-[24px] font-bold leading-tight tracking-tight text-ink">My cover</p>
 

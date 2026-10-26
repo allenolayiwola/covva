@@ -61,8 +61,8 @@ test.describe("marketing site", () => {
     await page.getByRole("button", { name: /Continue/ }).click();
     await expect(page.getByRole("alert").first()).toBeVisible();
     // Fill the health questions: members + age, plan level (cards), pre-existing (yes/no), region.
-    await page.getByLabel(/members/i).first().fill("3");
-    await page.getByLabel(/oldest/i).first().fill("45");
+    await page.getByLabel("People to cover").fill("3");
+    await page.getByLabel("Age of oldest member").fill("45");
     await page.getByRole("button", { name: /Continue/ }).click();
     await page.getByRole("radio").first().check({ force: true });
     await page.getByRole("button", { name: /Continue/ }).click();
@@ -95,7 +95,7 @@ test.describe("marketing site", () => {
     await expect(send).toBeDisabled();
     const brokers = page.getByRole("checkbox", { name: /./ });
     await brokers.nth(0).check({ force: true });
-    await expect(send).toHaveText(/Send to 1 broker$/);
+    await expect(send).toHaveText(/Send to 1 broker\b/);
     if ((await brokers.count()) > 1) {
       await brokers.nth(1).check({ force: true });
       await expect(send).toHaveText(/Send to 2 brokers/);
@@ -247,7 +247,7 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Motor");
     await expect(page.getByRole("heading", { level: 2, name: "Participating insurers" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "What you will need" })).toBeVisible();
-    await expect(page).toHaveTitle(/Motor insurance in Ghana/);
+    await expect(page).toHaveTitle(/Compare Motor cover/);
   });
 
   test("unknown category renders the not-found page (noindex)", async ({ page }) => {

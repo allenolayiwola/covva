@@ -3,7 +3,7 @@
 import { Check, MapPin } from "lucide-react";
 import { Pill, cn } from "@im/ui";
 import { OrgTile } from "../org-tile";
-import { displayOrgName } from "../brand";
+import { displayOrgName } from "../org-name";
 import { MAX_BROKERS, type FlowBroker } from "./model";
 
 /**

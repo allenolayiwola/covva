@@ -47,6 +47,8 @@ export function watchConsole(page) {
     if (msg.type() !== "error") return;
     const text = msg.text();
     if (IGNORED_CONSOLE.some((re) => re.test(text))) return;
+    // A not-found page legitimately answers 404 for the document itself; only missing sub-resources are errors.
+    if (/Failed to load resource.*404/.test(text) && (msg.location()?.url ?? "") === page.url()) return;
     errors.push(`${msg.location()?.url ?? page.url()}: ${text.slice(0, 300)}`);
   });
   page.on("pageerror", (err) => errors.push(`pageerror: ${err.message.slice(0, 300)}`));

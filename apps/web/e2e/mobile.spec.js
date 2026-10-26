@@ -23,12 +23,15 @@ test("home on a phone: hero, menu button, no horizontal scroll", async ({ page }
 
 test("sign-in on a phone: tabs and form fit", async ({ page }) => {
   await page.goto("/sign-in", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByRole("tablist", { name: "Sign-in method" })).toBeVisible();
-  await page.getByRole("tab", { name: "Phone" }).click();
+  // Phone code (+233) is the default; email link is the other tab; password sits behind a secondary link.
   await expect(page.getByLabel("Mobile number")).toBeVisible();
-  await page.getByRole("tab", { name: "Password" }).click();
+  await expect(page.getByText("+233")).toBeVisible();
+  await page.getByRole("tab", { name: "Email link" }).click();
   await expect(page.getByLabel("Email address")).toBeVisible();
+  await page.getByRole("button", { name: "Use a password instead" }).click();
+  await expect(page.getByLabel("Password")).toBeVisible();
   await structuralChecks(page);
   await noHorizontalOverflow(page);
 });

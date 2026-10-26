@@ -5,7 +5,7 @@ import { Card, Notice } from "@im/ui";
 import { safeNext } from "@/components/customer/utils";
 import { SignInForm } from "./sign-in-form";
 
-export const metadata: Metadata = { title: "Sign in to Covva", robots: { index: false } };
+export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (

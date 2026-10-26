@@ -62,7 +62,13 @@ export function buildScreens(fields: RiskField[]): Screen[] {
   let pending: RiskField[] = [];
   const flush = () => {
     if (!pending.length) return;
-    screens.push({ kind: "question", fields: pending, title: pending.length === 1 ? pending[0]!.label : `${pending[0]!.label} and ${pending[1]!.label.toLowerCase()}`, help: pending.length === 1 ? pending[0]!.help : undefined });
+    const single = pending.length === 1 ? pending[0]! : null;
+    screens.push({
+      kind: "question",
+      fields: pending,
+      title: single ? single.label : `${pending[0]!.label} and ${pending[1]!.label.toLowerCase()}`,
+      help: single ? (single.help ?? (single.required ? undefined : "Optional — skip it if you don't know it.")) : undefined,
+    });
     pending = [];
   };
   for (const f of ordered) {

@@ -57,7 +57,7 @@ export function HomeHero({ examples }: { examples: HeroExample[] }) {
 
         {/* Photo band with the framed quote card (desktop). */}
         <div className="relative hidden lg:block">
-          <div className="relative min-h-[640px] overflow-hidden rounded-hero bg-mint">
+          <div className="relative min-h-[780px] overflow-hidden rounded-hero bg-mint">
             <Image
               src={heroPhoto}
               alt={HERO_PHOTO.alt}
@@ -65,7 +65,7 @@ export function HomeHero({ examples }: { examples: HeroExample[] }) {
               priority
               sizes="(min-width: 1024px) 560px, 0px"
               placeholder="blur"
-              className="object-cover object-[50%_35%]"
+              className="object-cover object-[50%_30%]"
             />
             <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/35 via-transparent to-transparent" />
             <a

@@ -109,8 +109,9 @@ function FieldControl({ field: f, value, error, onChange, autoFocus, multi }: { 
 
   const v = typeof value === "string" ? value : "";
   const common = { id, "aria-invalid": !!error, "aria-describedby": error ? errId : undefined, autoFocus };
+  // On a single-input screen the heading already asks the question: keep the label for assistive tech only.
   const label = (
-    <span className="text-[16px]">
+    <span className={multi ? "text-[16px]" : "sr-only"}>
       {f.label}
       {optional && <span className="font-normal text-subtle"> (optional)</span>}
     </span>
