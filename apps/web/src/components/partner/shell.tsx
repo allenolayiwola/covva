@@ -30,6 +30,7 @@ export function insurerNav(): NavItem[] {
     { href: "/partner", label: "Overview" },
     { href: "/partner/submissions", label: "Submissions" },
     { href: "/partner/issuance", label: "Issuance" },
+    { href: "/partner/instalments", label: "Instalments" },
     { href: "/partner/claims", label: "Claims" },
     { href: "/partner/products", label: "Products" },
     { href: "/partner/appointments", label: "Appointments" },
@@ -40,9 +41,22 @@ export function insurerNav(): NavItem[] {
   ];
 }
 
+/** Embedded distribution partners (dealers, banks, landlords…): referrals only — no requests, quotes or claims. */
+export function distributorNav(): NavItem[] {
+  return [
+    { href: "/partner", label: "Dashboard" },
+    { href: "/partner/widget", label: "Widget" },
+    { href: "/partner/links", label: "Links" },
+    { href: "/partner/settings?tab=developer", label: "API keys" },
+    { href: "/partner/revenue-share", label: "Statements" },
+    { href: "/partner/settings", label: "Team settings" },
+  ];
+}
+
 /** Left nav (needs the org type, so it streams). */
 export async function SideNav() {
   const ctx = await getPartnerContext();
+  if (ctx.kind === "distributor") return <NavLinks items={distributorNav()} />;
   const items = ctx.kind === "insurer" ? insurerNav() : brokerNav();
   // Inspection partners (organizations.settings.inspection_partner = true) also see property inspections.
   if ((ctx.membership.org.settings as { inspection_partner?: boolean } | null)?.inspection_partner === true) items.splice(items.length - 1, 0, { href: "/partner/inspections", label: "Inspections" });

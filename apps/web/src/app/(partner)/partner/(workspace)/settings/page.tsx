@@ -4,7 +4,7 @@ import { Checkbox, DemoBadge, Field, Input, Notice, PageHeader, Pill, Select, Ta
 import { GHANA_REGIONS, formatDate, formatDateTime, formatGHS, humanize, roleLabel as partnerRoleLabel, rolesFor, type MemberRole, type PartnerKind } from "@im/core";
 import { can, getPartnerContext, ROLES, type PartnerContext } from "../../_lib/context";
 import { nowMs, getTeam, teamsOf } from "../../_lib/data";
-import { API_SCOPES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
+import { API_SCOPES, DISTRIBUTOR_API_SCOPES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
 import { ActionForm } from "@/components/partner/action-form";
 import { ApiKeyForm, InviteForm, LogoUpload } from "@/components/partner/settings-forms";
 import { Bars, Empty, KV, PageSkeleton, Section } from "@/components/partner/ui";
@@ -42,7 +42,7 @@ async function Settings({ searchParams }: { searchParams: Promise<Record<string,
   const tabs = [
     { key: "team", label: "Team" },
     { key: "organisation", label: "Organisation" },
-    { key: "licence", label: "NIC licence" },
+    ...(ctx.kind !== "distributor" ? [{ key: "licence", label: "NIC licence" }] : []),
     { key: "billing", label: "Billing" },
     { key: "terms", label: "Commercial terms" },
     { key: "developer", label: "Developer" },
@@ -362,7 +362,7 @@ async function DeveloperTab({ ctx }: { ctx: PartnerContext }) {
             </tbody>
           </Table>
         )}
-        <ApiKeyForm action={createApiKey} scopes={API_SCOPES} />
+        <ApiKeyForm action={createApiKey} scopes={ctx.kind === "distributor" ? DISTRIBUTOR_API_SCOPES : API_SCOPES} />
       </Section>
 
       <Section title="Webhooks" description="We POST signed JSON events to your HTTPS endpoint. Verify the signature with the endpoint's signing secret.">

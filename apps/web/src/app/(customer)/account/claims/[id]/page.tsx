@@ -25,6 +25,7 @@ import { PageSkeleton } from "@/components/customer/skeletons";
 import { UploadDropzone } from "@/components/customer/upload";
 import { formatBytes } from "@/components/customer/utils";
 import { VideoUpload } from "@/components/customer/video-upload";
+import { JobReviewPrompt } from "@/components/customer/job-review";
 import { listClaimJobs, listClaimMessages, listServicePartners } from "@/server/claims";
 import { ORG_COLS, UUID_RE, account, signUrls, type OrgLite } from "../../_lib/data";
 import { PARTY_LABEL } from "../../_lib/labels";
@@ -324,6 +325,7 @@ async function ClaimDetail({ params, searchParams }: Pick<PageProps<"/account/cl
                     {j.partner?.phone && <a href={`tel:${j.partner.phone}`} className="mt-1 flex items-center gap-1 text-xs font-medium text-brand hover:underline"><Phone aria-hidden className="size-3.5" />{j.partner.phone}</a>}
                     {j.direct_billing ? <p className="mt-2 rounded-lg bg-mint px-2 py-1 text-xs font-medium text-brand-deep">Direct billing — you don&apos;t pay upfront. {insurerName} settles with the partner.</p> : j.estimate != null ? <p className="mt-1 text-xs text-muted">Estimate {formatGHS(Number(j.estimate))}</p> : null}
                     {j.notes && <p className="mt-1 text-xs text-ink-2">{j.notes}</p>}
+                    {isCustomer && j.status === "completed" && <JobReviewPrompt supabase={supabase} claimId={id} jobId={j.id} partnerName={j.partner?.name ?? "the partner"} />}
                   </li>
                 ))}
               </ul>

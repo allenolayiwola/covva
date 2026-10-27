@@ -12,6 +12,9 @@ import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
 import { acknowledgeDisclosure, startPayment, submitApplication } from "./actions";
 import type { Declaration } from "./declarations";
+import { InstalmentChoice } from "./instalment-choice";
+import { buildSchedule, type InstalmentPlan, type InstalmentPlanKey } from "@im/core";
+import { T } from "@/lib/i18n/client";
 
 // ---------------------------------------------------------------------------
 export function DisclosureStep({ requestId, quoteId, text, brokerName }: { requestId: string; quoteId: string; text: string; brokerName: string }) {
@@ -21,7 +24,7 @@ export function DisclosureStep({ requestId, quoteId, text, brokerName }: { reque
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="quoteId" value={quoteId} />
       <div>
-        <h2 className="text-xl font-semibold text-ink">Before you apply: who provides what</h2>
+        <h2 className="text-xl font-semibold text-ink"><T k="checkout.whoProvides" /></h2>
         <p className="mt-1 text-[15px] text-muted">
           {brokerName} is your broker of record for this request. They advise you and arrange the cover. The insurer accepts the risk, issues the
           policy and decides claims. We provide the technology only.
@@ -192,6 +195,7 @@ export function PaymentStep({
   marginPct = 0,
   applePay = false,
   sponsor,
+  instalmentPlans = [],
 }: {
   requestId: string;
   quoteId: string;
@@ -205,8 +209,11 @@ export function PaymentStep({
   marginPct?: number;
   applePay?: boolean;
   sponsor?: SponsorOffer | null;
+  /** Phase 3: the insurer's instalment plans for this product version. */
+  instalmentPlans?: InstalmentPlan[];
 }) {
   const [state, action] = useActionState(startPayment, initialActionState);
+  const [instalmentPlan, setInstalmentPlan] = React.useState<"" | InstalmentPlanKey>("");
   const [chosenMethod, setMethod] = React.useState<string>("mtn");
   const [currency, setCurrency] = React.useState<DisplayCurrency>(currencies.some((c) => c.code === defaultCurrency) ? defaultCurrency : "GHS");
   const [sponsorMode, setSponsorMode] = React.useState<"" | "monthly" | "annual">("");
@@ -215,15 +222,18 @@ export function PaymentStep({
   const fx = currencies.find((c) => c.code === currency) ?? { code: "GHS" as const, rate: 1, source: "manual" as const, quotedAt: "", manual: false };
   const foreign = currency !== "GHS";
   const cardOnly = foreign || sponsorMode !== "";
+  // Instalments are GHS only (MoMo or card) and not combined with a sponsor plan.
+  const instalmentPreviews = React.useMemo(() => Object.fromEntries(instalmentPlans.flatMap((p) => { try { return [[p.key, buildSchedule(amount, p, new Date())]]; } catch { return []; } })), [instalmentPlans, amount]);
+  const activePlan = !foreign && sponsorMode === "" ? instalmentPlan : "";
   // Foreign currency and sponsor plans are card only: derive the effective method rather than syncing state.
-  const method = cardOnly ? "card" : chosenMethod;
+  const method = cardOnly ? "card" : activePlan && chosenMethod === "bank_transfer" ? "mtn" : chosenMethod;
   const monthlyOffered = !!sponsor?.offered && (sponsor.billingPeriod === "month" || sponsor.instalmentsAllowed);
   const annualGhs = sponsor?.billingPeriod === "month" ? amount * 12 : amount;
-  const dueGhs = sponsorMode === "monthly" ? (sponsor?.billingPeriod === "month" ? amount : instalmentAmount(annualGhs, "monthly")) : sponsorMode === "annual" ? annualGhs : amount;
+  const dueGhs = activePlan && instalmentPreviews[activePlan] ? instalmentPreviews[activePlan].deposit : sponsorMode === "monthly" ? (sponsor?.billingPeriod === "month" ? amount : instalmentAmount(annualGhs, "monthly")) : sponsorMode === "annual" ? annualGhs : amount;
   const dueDisplay = foreign ? convertFromGhs(dueGhs, fx.rate) : dueGhs;
   const payLabel = foreign ? `≈ ${formatMoney(dueDisplay, currency)}` : formatGHS(dueGhs);
   const disclosure = foreign ? fxDisclosure(currency, fx.rate, fx.source, fx.quotedAt || new Date(0), { ghsAmount: dueGhs, displayAmount: dueDisplay, marginPct }) : null;
-  const methodsForDisplay = METHODS.filter((m) => !cardOnly || m.value === "card");
+  const methodsForDisplay = METHODS.filter((m) => (!cardOnly || m.value === "card") && (!activePlan || m.value !== "bank_transfer"));
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="requestId" value={requestId} />
@@ -231,8 +241,9 @@ export function PaymentStep({
       <input type="hidden" name="applicationId" value={applicationId} />
       <input type="hidden" name="currency" value={currency} />
       <input type="hidden" name="sponsor" value={sponsorMode} />
+      <input type="hidden" name="instalment_plan" value={activePlan} />
       <div>
-        <h2 className="text-h4 text-ink">Pay {insurer}</h2>
+        <h2 className="text-h4 text-ink"><T k="checkout.pay" vars={{ insurer }} /></h2>
         <p className="mt-1 text-[15px] text-muted">
           Secure checkout by Paystack. You pay the insurer directly through an authorised payment provider — we never hold your premium.
         </p>
@@ -290,6 +301,10 @@ export function PaymentStep({
         </fieldset>
       )}
 
+      {instalmentPlans.length > 0 && !foreign && sponsorMode === "" && (
+        <InstalmentChoice plans={instalmentPlans} previews={instalmentPreviews} value={instalmentPlan} onChange={setInstalmentPlan} insurer={insurer} />
+      )}
+
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-ink-2">How would you like to pay?</legend>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -327,7 +342,7 @@ export function PaymentStep({
           <div className="flex justify-between gap-4 py-2"><dt className="text-muted">Insurer</dt><dd className="font-medium text-ink">{insurer}</dd></div>
           <div className="flex justify-between gap-4 py-2"><dt className="text-muted">Pay with</dt><dd className="font-medium text-ink">{methodsForDisplay.find((m) => m.value === method)?.label}</dd></div>
           <div className="flex flex-wrap items-baseline justify-between gap-2 py-2">
-            <dt className="text-muted">{sponsorMode === "monthly" ? "First monthly instalment" : "Amount due"} to {insurer}</dt>
+            <dt className="text-muted">{activePlan ? "First instalment" : sponsorMode === "monthly" ? "First monthly instalment" : "Amount due"} to {insurer}</dt>
             <dd className="text-2xl font-semibold text-ink">{foreign ? `≈ ${formatMoney(dueDisplay, currency)}` : formatGHS(dueGhs)}</dd>
           </div>
         </dl>
@@ -374,7 +389,7 @@ export function BankTransferPanel({ detail, requestId, retryHref }: { detail: Ba
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-semibold text-ink">Pay by bank transfer</h2>
+        <h2 className="text-2xl font-semibold text-ink"><T k="checkout.bankTransfer" /></h2>
         <p className="mt-1 text-[15px] text-muted">
           {detail.kind === "paystack_dva"
             ? "This account number is unique to you. Transfer the exact amount and we confirm it automatically — usually within minutes."
@@ -456,7 +471,7 @@ export function PaymentWaiting({ paymentId, requestId, retryHref }: { paymentId:
             <Smartphone aria-hidden className="size-7" />
           </span>
           <div>
-            <h2 className="text-2xl font-semibold text-ink">Approve the prompt on your phone</h2>
+            <h2 className="text-2xl font-semibold text-ink"><T k="checkout.approvePrompt" /></h2>
             <p className="mx-auto mt-1 max-w-md text-[15px] text-muted">
               Enter your mobile money PIN to approve the payment. Keep this page open — it updates by itself.
             </p>

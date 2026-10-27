@@ -50,6 +50,10 @@ export const PERMS = {
   whatsapp: ["platform_admin", "platform_ops", "support"],
   /** WhatsApp template registry (what we submit to Meta). */
   whatsappTemplates: ["platform_admin", "platform_ops"],
+  /** Embedded distribution partners (segment, categories, widget domains, status; revenue share). */
+  distribution: ["platform_admin", "platform_ops"],
+  /** Switching reward rules on/off (customer inducements need NIC + insurer approval). */
+  rewardRules: ["platform_admin", "compliance"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 export type PermKey = keyof typeof PERMS;

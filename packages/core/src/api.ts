@@ -286,7 +286,7 @@ export const PartnerClaimStatusInput = z.object({
 export const IssuePolicyBody = IssuePolicyInput.omit({ policyId: true });
 
 /** Scopes for partner API keys (`x-api-key`). `*` grants all. */
-export const API_KEY_SCOPES = ["requests:read", "quotes:write", "policies:issue", "claims:write", "policies:read", "claims:read", "finance:read"] as const;
+export const API_KEY_SCOPES = ["requests:read", "quotes:write", "policies:issue", "claims:write", "policies:read", "claims:read", "finance:read", "distribution:quote", "distribution:lead", "distribution:read"] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 // ---------------------------------------------------------------------------
@@ -615,3 +615,157 @@ export type ProxyClaimInput = z.infer<typeof ProxyClaimInput>;
 
 /** Push / in-app kinds the sponsor and beneficiary apps must handle for family cover. */
 export const FAMILY_PUSH_KINDS = ["consent.granted", "consent.declined", "gift.received", "policy.issued", "renewal.reminder", "claim.reported", "claim.status"] as const;
+
+// ---------------------------------------------------------------------------
+// Embedded distribution (Phase 3) — `/api/v1/distribution/*` and `/api/v1/me/referrals`.
+// ---------------------------------------------------------------------------
+/** `POST /distribution/quotes`: indicative estimates for a risk payload (never binding, nothing stored). */
+export const DistributionQuoteInput = z.object({
+  categorySlug: z.string().min(1).max(60),
+  risk: z.record(z.string(), z.unknown()).default({}),
+});
+export type DistributionQuoteInput = z.infer<typeof DistributionQuoteInput>;
+
+/** `POST /distribution/leads`: hand a customer over to Covva, with their recorded consent. */
+export const DistributionLeadInput = z
+  .object({
+    categorySlug: z.string().min(1).max(60),
+    customer: z.object({
+      name: z.string().trim().min(2).max(200),
+      phone: z.string().trim().regex(/^\+?\d{9,15}$/, "Enter a valid phone number").optional(),
+      email: z.string().trim().email().max(200).optional(),
+    }),
+    risk: z.record(z.string(), z.unknown()).default({}),
+    consent: z.object({
+      /** The customer agreed to be contacted by Covva about this cover. Must be true. */
+      contact: z.literal(true, { error: "The customer's consent to be contacted is required" }),
+      /** When and how the partner captured consent (shown to Covva staff for audit). */
+      capturedAt: z.string().datetime({ offset: true }),
+      method: z.enum(["web_form", "in_person", "phone", "app"]).default("web_form"),
+    }),
+    /** Optional campaign link code owned by the calling partner (defaults to the partner's widget code). */
+    code: z.string().trim().max(20).optional(),
+    externalRef: z.string().trim().max(100).optional(),
+    sendLink: z.enum(["sms", "email", "both", "none"]).default("sms"),
+  })
+  .refine((v) => !!v.customer.phone || !!v.customer.email, { message: "Provide the customer's phone or email", path: ["customer"] });
+export type DistributionLeadInput = z.infer<typeof DistributionLeadInput>;
+
+export const DistributionReferralsQuery = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Instalments and micro cover (Phase 3) — `/api/v1/policies/{id}/instalments`, `/api/v1/instalments/*`,
+// `/api/v1/micro/*`. Every payment settles to the insurer in GHS.
+// ---------------------------------------------------------------------------
+export const MomoInput = z.object({
+  phone: z.string().trim().regex(/^\+?\d{9,15}$/, "Enter the mobile money number, e.g. 0241234567"),
+  network: z.enum(["mtn", "vod", "atl"]),
+});
+export type MomoInput = z.infer<typeof MomoInput>;
+
+/** `POST /instalments/{id}/pay` — pay one instalment now (MoMo prompt, saved card, or a hosted pay link). */
+export const PayInstalmentInput = z.object({
+  channel: z.enum(["mobile_money", "card", "link"]).default("mobile_money"),
+  momo: MomoInput.optional(),
+  paymentMethodId: uuid.optional(),
+});
+export type PayInstalmentInput = z.infer<typeof PayInstalmentInput>;
+
+/** `POST /instalments/schedules/{id}/reinstate` — pay the arrears on a lapsed schedule. */
+export const ReinstateScheduleInput = z.object({
+  channel: z.enum(["mobile_money", "card", "link"]).default("mobile_money"),
+  momo: MomoInput.optional(),
+  paymentMethodId: uuid.optional(),
+});
+export type ReinstateScheduleInput = z.infer<typeof ReinstateScheduleInput>;
+
+export const MicroProductsQuery = z.object({
+  audience: z.enum(["okada", "trotro", "ride_hailing", "trader", "artisan", "event"]).optional(),
+});
+export type MicroProductsQuery = z.infer<typeof MicroProductsQuery>;
+
+/** `POST /micro/buy` — one-step micro purchase (request + quote + application + payment). */
+export const MicroBuyInput = z
+  .object({
+    productVersionId: uuid,
+    period: z.enum(["day", "week", "month"]),
+    channel: z.enum(["app", "whatsapp", "ussd", "web"]).default("app"),
+    payment: z.enum(["mobile_money", "card"]).default("mobile_money"),
+    momo: MomoInput.optional(),
+    autoRenew: z.boolean().default(false),
+    risk: z.record(z.string(), z.unknown()).default({}),
+  })
+  .refine((v) => v.payment !== "mobile_money" || !!v.momo, { message: "Enter the mobile money number to charge", path: ["momo"] });
+export type MicroBuyInput = z.infer<typeof MicroBuyInput>;
+
+/** `POST /micro/{policyId}/renew` — one-tap renewal for another window. */
+export const MicroRenewInput = z.object({
+  period: z.enum(["day", "week", "month"]).optional(),
+  channel: z.enum(["mobile_money", "card", "link"]).default("mobile_money"),
+  momo: MomoInput.optional(),
+  paymentMethodId: uuid.optional(),
+});
+export type MicroRenewInput = z.infer<typeof MicroRenewInput>;
+
+/** `PATCH /micro/{policyId}` */
+export const MicroUpdateInput = z.object({ autoRenew: z.boolean() });
+export type MicroUpdateInput = z.infer<typeof MicroUpdateInput>;
+
+// ---------------------------------------------------------------------------
+// Endorsements (policy changes) and service partner reviews
+// ---------------------------------------------------------------------------
+const ENDORSEMENT_KIND_ENUM = ["change_vehicle", "add_driver", "remove_driver", "change_address", "change_sum_insured", "add_member", "remove_member", "change_use", "cancel_policy", "other"] as const;
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+
+/** `POST /policies/{id}/endorsements` — ask for a change; `changes` is validated per kind (see ENDORSEMENT_KINDS). */
+export const StartEndorsementInput = z.object({
+  kind: z.enum(ENDORSEMENT_KIND_ENUM),
+  changes: z.record(z.string(), z.unknown()),
+  effectiveFrom: isoDay,
+  submit: z.boolean().default(true),
+});
+export type StartEndorsementInput = z.infer<typeof StartEndorsementInput>;
+
+/** `POST /endorsements/{id}/accept` — the policyholder agrees to the quoted adjustment (and pays any additional premium). */
+export const AcceptEndorsementInput = z.object({
+  channel: z.enum(["mobile_money", "card", "bank_transfer"]).default("mobile_money"),
+  callbackUrl: z.string().url().optional(),
+});
+export type AcceptEndorsementInput = z.infer<typeof AcceptEndorsementInput>;
+
+/** `POST /partner/endorsements/{id}/quote` — broker of record or insurer: positive = additional premium, negative = refund, 0 = none. */
+export const QuoteEndorsementInput = z.object({
+  premiumAdjustment: z.coerce.number().min(-10_000_000).max(10_000_000),
+  note: z.string().trim().max(2000).optional(),
+});
+export type QuoteEndorsementInput = z.infer<typeof QuoteEndorsementInput>;
+
+/** `POST /partner/endorsements/{id}/decide` — insurer only. */
+export const DecideEndorsementInput = z.object({
+  decision: z.enum(["accept", "reject"]),
+  note: z.string().trim().max(2000).optional(),
+  /** Insurer may set the final adjustment when accepting directly from `submitted`. */
+  premiumAdjustment: z.coerce.number().min(-10_000_000).max(10_000_000).optional(),
+});
+export type DecideEndorsementInput = z.infer<typeof DecideEndorsementInput>;
+
+/** `POST /partner/endorsements/{id}/apply` — insurer only: updates the policy and regenerates its documents. */
+export const ApplyEndorsementInput = z.object({ note: z.string().trim().max(2000).optional() });
+export type ApplyEndorsementInput = z.infer<typeof ApplyEndorsementInput>;
+
+export const PartnerEndorsementsQuery = z.object({
+  status: z.enum(["draft", "submitted", "quoted", "accepted", "rejected", "applied", "cancelled", "open"]).default("open"),
+  orgId: uuid.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type PartnerEndorsementsQuery = z.infer<typeof PartnerEndorsementsQuery>;
+
+/** `POST /claims/{id}/jobs/{jobId}/review` — rate a completed repair / tow / treatment (one per job). */
+export const ClaimJobReviewInput = z.object({
+  rating: z.coerce.number().int().min(1, "Choose 1 to 5 stars").max(5, "Choose 1 to 5 stars"),
+  comment: z.string().trim().max(1000).optional(),
+});
+export type ClaimJobReviewInput = z.infer<typeof ClaimJobReviewInput>;

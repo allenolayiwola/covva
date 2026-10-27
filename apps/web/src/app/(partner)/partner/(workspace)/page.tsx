@@ -7,6 +7,7 @@ import { nowMs, DAY, getCategoryMap, getCustomers, getOrgNames, isAtRisk, reques
 import { Bars, DueCell, Empty, PageSkeleton, Section, TitleSkeleton } from "@/components/partner/ui";
 import { BrokerAnalytics, InsurerAnalytics } from "@/components/partner/analytics-panels";
 import { OnboardingChecklist } from "@/components/partner/onboarding-checklist";
+import { DistributorOverview } from "@/components/partner/distributor-overview";
 import { parseRange, type DashboardRange } from "@/server/partner-analytics";
 
 export default function OverviewPage({ searchParams }: PageProps<"/partner">) {
@@ -20,12 +21,13 @@ export default function OverviewPage({ searchParams }: PageProps<"/partner">) {
 async function Overview({ searchParams }: Pick<PageProps<"/partner">, "searchParams">) {
   const [ctx, sp] = await Promise.all([getPartnerContext(), searchParams]);
   const days = parseRange(sp.days);
+  if (ctx.kind === "distributor") return <DistributorOverview ctx={ctx} days={days} />;
   return ctx.kind === "insurer" ? <InsurerOverview ctx={ctx} days={days} /> : <BrokerOverview ctx={ctx} days={days} />;
 }
 
 /** Analytics panels stream in after the queue counters (they run several aggregate RPCs). */
 function AnalyticsSlot({ ctx, days }: { ctx: PartnerContext; days: DashboardRange }) {
-  const scope = { supabase: ctx.supabase, orgId: ctx.orgId, kind: ctx.kind, canSeeMoney: can(ctx, ROLES.billing) };
+  const scope = { supabase: ctx.supabase, orgId: ctx.orgId, kind: ctx.kind === "insurer" ? ("insurer" as const) : ("broker" as const), canSeeMoney: can(ctx, ROLES.billing) };
   return (
     <div className="mt-8">
       <Suspense fallback={<PageSkeleton stats={5} rows={3} />}>

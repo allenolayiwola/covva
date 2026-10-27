@@ -12,7 +12,7 @@
 import type { Enum } from "@im/db";
 
 export type MemberRole = Enum<"member_role">;
-export type PartnerKind = "broker" | "insurer";
+export type PartnerKind = "broker" | "insurer" | "distributor";
 
 export interface PartnerRoleOption {
   /** Database enum value. */
@@ -40,9 +40,17 @@ export const BROKER_ROLE_OPTIONS: readonly PartnerRoleOption[] = [
   { value: "viewer", label: "Read-only", description: "Can see the workspace but not change anything." },
 ];
 
+/** Embedded distribution partners (dealers, banks, landlords…): no advice, quoting or claims roles. */
+export const DISTRIBUTOR_ROLE_OPTIONS: readonly PartnerRoleOption[] = [
+  { value: "admin", label: "Admin", description: "Manages users, the widget, referral links and API keys." },
+  { value: "finance", label: "Finance", description: "Revenue share statements and reports." },
+  { value: "viewer", label: "Read-only", description: "Can see referrals and conversions but not change anything." },
+];
+
 export const PARTNER_ROLE_OPTIONS: Record<PartnerKind, readonly PartnerRoleOption[]> = {
   insurer: INSURER_ROLE_OPTIONS,
   broker: BROKER_ROLE_OPTIONS,
+  distributor: DISTRIBUTOR_ROLE_OPTIONS,
 };
 
 /** Roles offered in the invite / edit-member pickers for an organisation kind. */

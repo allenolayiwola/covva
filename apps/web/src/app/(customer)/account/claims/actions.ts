@@ -88,6 +88,12 @@ export async function reportClaim(_prev: ActionState, formData: FormData): Promi
     if (e instanceof ApiError) return { ok: false, error: e.message, fieldErrors: e.code === "invalid_input" ? { incidentDate: e.message } : undefined };
     return { ok: false, error: dbError(null, "We couldn't report your claim. Please try again.") };
   }
+  // Voice notes recorded for the description: link them so the broker and insurer can listen.
+  const voiceIds = formData.getAll("voiceNoteId").map(String);
+  if (voiceIds.length) {
+    const { linkVoiceNotes } = await import("@/server/voice");
+    await linkVoiceNotes(supabase, voiceIds, { claimId }).catch(() => 0);
+  }
   revalidatePath("/account", "layout");
   redirect(`/account/claims/${claimId}?reported=1`);
 }

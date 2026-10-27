@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, Menu, UserRound, X } from "lucide-react";
 import { buttonClass, cn } from "@im/ui";
-import { PRIMARY_NAV, SECONDARY_NAV, isGroup } from "./nav-links";
+import { T, useT } from "@/lib/i18n/client";
+import { PRIMARY_NAV, SECONDARY_NAV, isGroup, navText } from "./nav-links";
 
 /** Small, dependency-free mobile menu (< md). Groups expand inline; closes on Escape and on navigation. */
 export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
@@ -13,6 +14,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const id = React.useId();
+  const t = useT();
 
   const close = React.useCallback((restoreFocus = true) => {
     setOpen(false);
@@ -46,7 +48,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
         type="button"
         aria-expanded={open}
         aria-controls={id}
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
         onClick={() => setOpen((o) => !o)}
         className="grid size-10 place-items-center rounded-[10px] text-ink transition-colors hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
@@ -59,7 +61,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
         hidden={!open}
         className="fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-line bg-white motion-safe:animate-fade-up"
       >
-        <nav aria-label="Mobile" className="px-4 pb-10 pt-2">
+        <nav aria-label={t("header.mobileNav")} className="px-4 pb-10 pt-2">
           <ul className="divide-y divide-line">
             {PRIMARY_NAV.map((entry) =>
               isGroup(entry) ? (
@@ -71,14 +73,14 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
                     onClick={() => setExpanded((e) => (e === entry.label ? null : entry.label))}
                     className={cn(itemClass, "w-full text-left")}
                   >
-                    {entry.label}
+                    {navText(t, entry).label}
                     <ChevronDown aria-hidden className={cn("size-4 text-subtle transition-transform motion-reduce:transition-none", expanded === entry.label && "rotate-180")} />
                   </button>
                   <ul id={`${id}-${entry.label}`} hidden={expanded !== entry.label} className="mb-3 grid grid-cols-1 gap-0.5 rounded-xl bg-mist p-2">
                     {entry.items.map((item) => (
                       <li key={item.href}>
                         <Link href={item.href} onClick={() => close(false)} className="block rounded-lg px-3 py-2.5 text-[15px] font-medium text-ink-2 hover:bg-white hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-                          {item.label}
+                          {navText(t, item).label}
                         </Link>
                       </li>
                     ))}
@@ -87,31 +89,31 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
               ) : (
                 <li key={entry.href}>
                   <Link href={entry.href} onClick={() => close(false)} className={itemClass}>
-                    {entry.label}
+                    {navText(t, entry).label}
                     <ArrowRight aria-hidden className="size-4 text-subtle" />
                   </Link>
                 </li>
               ),
             )}
           </ul>
-          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-subtle">More</p>
+          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.12em] text-subtle"><T k="header.more" /></p>
           <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
             {SECONDARY_NAV.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} onClick={() => close(false)} className="block rounded-lg py-2 text-[15px] text-ink-2 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-                  {l.label}
+                  {navText(t, l).label}
                 </Link>
               </li>
             ))}
           </ul>
           <div className="mt-8 grid gap-3">
             <Link href="/get-started" onClick={() => close(false)} className={buttonClass("primary", "lg", "w-full")}>
-              Get a quote
+              <T k="header.getQuote" />
             </Link>
             {showAccount && (
               <Link href="/account" onClick={() => close(false)} className={buttonClass("secondary", "lg", "w-full")}>
                 <UserRound aria-hidden className="size-4" />
-                My account
+                <T k="header.myAccount" />
               </Link>
             )}
           </div>

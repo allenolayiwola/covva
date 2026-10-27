@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@im/ui";
-import { PRIMARY_NAV, isGroup, type NavGroup } from "./nav-links";
+import { useT } from "@/lib/i18n/client";
+import { PRIMARY_NAV, isGroup, navText, type NavGroup } from "./nav-links";
 
 const linkClass =
   "relative inline-flex h-10 items-center gap-1 rounded-md px-1.5 text-[14.5px] font-medium transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:px-2 lg:text-[15px]";
@@ -29,6 +30,7 @@ function isActive(pathname: string, href: string) {
 const fromClass = { lg: "hidden lg:block", xl: "hidden xl:block" } as const;
 
 function NavItems({ pathname }: { pathname: string }) {
+  const t = useT();
   return (
     <ul className="flex items-center gap-1 lg:gap-2">
       {PRIMARY_NAV.map((entry) =>
@@ -39,7 +41,7 @@ function NavItems({ pathname }: { pathname: string }) {
         ) : (
           <li key={entry.href} className={entry.from && fromClass[entry.from]}>
             <Link href={entry.href} aria-current={isActive(pathname, entry.href) ? "page" : undefined} className={cn(linkClass, isActive(pathname, entry.href) ? "text-brand" : "text-ink-2")}>
-              {entry.label}
+              {navText(t, entry).label}
             </Link>
           </li>
         ),
@@ -60,6 +62,8 @@ function Dropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
   const panelId = React.useId();
   const active = group.items.some((i) => isActive(pathname, i.href));
   const closeTimer = React.useRef<number | undefined>(undefined);
+  const t = useT();
+  const groupLabel = navText(t, group).label;
 
   React.useEffect(() => {
     if (!open) return;
@@ -148,7 +152,7 @@ function Dropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
         onClick={() => setOpen((o) => !o)}
         className={cn(linkClass, active || open ? "text-brand" : "text-ink-2")}
       >
-        {group.label}
+        {groupLabel}
         <ChevronDown aria-hidden className={cn("size-4 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
       </button>
       <div
@@ -156,7 +160,7 @@ function Dropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
         hidden={!open}
         className="absolute left-1/2 top-full z-50 w-[320px] -translate-x-1/2 pt-2"
       >
-        <ul className="rounded-card border border-line bg-white p-2 shadow-float motion-safe:animate-fade-up" aria-label={group.label}>
+        <ul className="rounded-card border border-line bg-white p-2 shadow-float motion-safe:animate-fade-up" aria-label={groupLabel}>
           {group.items.map((item) => (
             <li key={item.href}>
               <Link
@@ -169,8 +173,8 @@ function Dropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
                   isActive(pathname, item.href) ? "bg-mint-2" : "",
                 )}
               >
-                <span className={cn("block text-[15px] font-semibold", isActive(pathname, item.href) ? "text-brand" : "text-ink")}>{item.label}</span>
-                {item.description && <span className="block text-[12.5px] leading-snug text-muted">{item.description}</span>}
+                <span className={cn("block text-[15px] font-semibold", isActive(pathname, item.href) ? "text-brand" : "text-ink")}>{navText(t, item).label}</span>
+                {item.description && <span className="block text-[12.5px] leading-snug text-muted">{navText(t, item).description}</span>}
               </Link>
             </li>
           ))}

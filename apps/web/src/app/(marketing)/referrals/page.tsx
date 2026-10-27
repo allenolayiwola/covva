@@ -31,7 +31,7 @@ export default function ReferralsPage() {
         title={<>Good cover is worth <span className="text-brand">sharing.</span></>}
         lede="Refer friends and family — in Ghana or abroad — and earn MoMo credit or a premium discount when they buy their first policy. Launching with the public app."
       >
-        <div className="mt-6"><Pill tone="wait">Coming at launch — sign up for early access</Pill></div>
+        <div className="mt-6 flex flex-wrap items-center gap-3"><Link href="/account/referrals" className="inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-deep">Get my referral link</Link><Pill tone="wait">Rewards start once approved by the NIC and insurers</Pill></div>
       </PageHero>
 
       <Section labelledBy="how-r-title">

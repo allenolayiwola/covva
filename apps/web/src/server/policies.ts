@@ -8,6 +8,7 @@ import { refundPayment } from "@/server/payments";
 import { recordPolicyActive } from "@/server/usage";
 import { log } from "@/server/log";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
+import { onPolicyActivated } from "@/server/referrals";
 
 /**
  * Policy issuance helpers. Only the insurer activates cover. `issuePolicyForInsurer`
@@ -87,6 +88,7 @@ export async function onPolicyIssued(policyId: string): Promise<void> {
   const issued = { policy_id: policy.id, internal_reference: policy.internal_reference, policy_number: policy.policy_number, request_id: policy.request_id, status: "active", cover_start: policy.cover_start, cover_end: policy.cover_end };
   await emitEvent(policy.broker_org_id, "policy.issued", issued);
   await emitEvent(policy.insurer_org_id, "policy.issued", issued);
+  await onPolicyActivated(policy.id).catch((err) => log.warn("policy.issued.referral_failed", { policyId: policy.id, err }));
 }
 
 /**

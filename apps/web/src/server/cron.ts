@@ -14,6 +14,9 @@ import { expireReviewWindows, retryIssuanceJobs } from "@/server/issuance";
 import { escalateTimers } from "@/server/sla";
 import { refreshRates } from "@/server/fx";
 import { chargeDueSubscriptions } from "@/server/subscriptions";
+import { evaluateReferralRewards } from "@/server/referrals";
+import { collectDueInstalments } from "@/server/instalments";
+import { microRenewals } from "@/server/micro";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -437,6 +440,17 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "fx-rates": (svc) => refreshRates(svc),
   // Diaspora: daily 03:00 sponsor subscription collections (stored card → GHS to the insurer; retries 1d/3d/7d).
   "sponsor-collections": (svc) => chargeDueSubscriptions(svc),
+  // Referrals: daily 04:00 — credits / partner revenue share after the holding period (append-only reward_ledger).
+  "referral-rewards": (svc) => evaluateReferralRewards(svc),
+  // Phase 3: instalment collections 06:30 and 18:30 (MoMo prompt / saved card / pay link; retries day 0, +2, +5; grace → lapse per plan).
+  "instalment-collections": (svc) => collectDueInstalments(svc),
+  // Phase 3: hourly at :40 — micro cover auto-renewals before the window ends; ended windows marked expired.
+  "micro-renewals": (svc) => microRenewals(svc),
+  // Phase 3 SME: 1st of the month 05:00 — consolidated business statements for last month (one payment per insurer line) + overdue marking.
+  // Lazy import: business.ts imports requests/payments, which import back into cron-adjacent modules.
+  "business-invoices": async (svc) => (await import("@/server/business")).buildDueInvoices(svc),
+  // Phase 3: monthly on the 2nd at 04:00 — last month's insurer statements, commission reports, platform revenue and tax report (CSV exports).
+  "accounting-exports": async (svc) => (await import("@/server/accounting")).monthlyAccountingExports(svc),
 };
 
 export async function runCron(job: string) {

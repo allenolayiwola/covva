@@ -69,17 +69,18 @@ export async function requireUser(next?: string) {
 }
 
 /**
- * Partner workspace guard. Returns the active partner membership (broker or insurer).
+ * Partner workspace guard. Returns the active partner membership (broker, insurer or distributor —
+ * distributors get a reduced workspace: dashboard, widget, links, API keys, statements).
  * `kind` restricts to one org type. Platform staff may view the workspace for support.
  *
  * MFA gate: when `partnerMfaRequired()` and at least one of the user's partner organisations has
  * `require_mfa` on, the session must be AAL2 — otherwise the user is sent to `/partner/mfa` to
  * enrol or verify a TOTP factor and comes back to `next`.
  */
-export async function requirePartner(kind?: Extract<Enum<"org_type">, "broker" | "insurer">, next = "/partner") {
+export async function requirePartner(kind?: Extract<Enum<"org_type">, "broker" | "insurer" | "distributor">, next = "/partner") {
   await requireUser(next);
   const memberships = await getMemberships();
-  const partner = memberships.filter((m) => (kind ? m.org.type === kind : m.org.type === "broker" || m.org.type === "insurer"));
+  const partner = memberships.filter((m) => (kind ? m.org.type === kind : m.org.type === "broker" || m.org.type === "insurer" || m.org.type === "distributor"));
   if (!partner.length) redirect("/partner/no-access");
   if (partnerMfaRequired() && partner.some((m) => m.org.require_mfa !== false)) {
     const aal = await getAssuranceLevel();

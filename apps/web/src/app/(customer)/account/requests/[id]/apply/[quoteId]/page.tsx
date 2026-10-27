@@ -16,7 +16,8 @@ import { declarationsFor } from "./declarations";
 import { feeBreakdownForQuoteId } from "@/server/commercial";
 import { fxSettings, getRates } from "@/server/fx";
 import { applePayEnabled } from "@/server/env";
-import { SUPPORTED_DISPLAY_CURRENCIES, fxMargin, parseDisplayCurrency } from "@im/core";
+import { SUPPORTED_DISPLAY_CURRENCIES, fxMargin, parseDisplayCurrency, parseInstalmentPlans } from "@im/core";
+import { T } from "@/lib/i18n/client";
 
 export const metadata: Metadata = { title: "Apply" };
 
@@ -138,6 +139,8 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
     const prof = (profile ?? {}) as { preferred_currency?: string | null; is_sponsor?: boolean | null };
     const defaultCurrency = parseDisplayCurrency(prof.preferred_currency) ?? "GHS";
     const insurerSettings = (quote.insurer?.settings ?? {}) as { instalments_allowed?: boolean };
+    // Phase 3: the insurer's instalment plans on this product version (not for monthly-priced or micro quotes).
+    const { data: versionPlans } = quote.product_version_id && quote.billing_period === "year" ? await supabase.from("product_versions").select("instalment_plans").eq("id", quote.product_version_id).maybeSingle() : { data: null };
     body = (
       <>
         {payment && ["pending", "processing"].includes(payment.status) && payment.authorization_url && !sp.retry && (
@@ -158,6 +161,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           marginPct={fxConf.marginPct}
           applePay={applePayEnabled()}
           sponsor={{ offered: prof.is_sponsor !== false, billingPeriod: quote.billing_period, instalmentsAllowed: insurerSettings.instalments_allowed === true }}
+          instalmentPlans={parseInstalmentPlans(versionPlans?.instalment_plans)}
         />
       </>
     );
@@ -173,7 +177,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           { label: "Apply" },
         ]}
       />
-      <h1 className="mb-2 text-h3 text-ink">Apply for {insurerName}</h1>
+      <h1 className="mb-2 text-h3 text-ink"><T k="checkout.applyFor" vars={{ insurer: insurerName }} /></h1>
       <p className="mb-6 text-sm text-muted">Step {step + 1} of {STEPS.length} · A quote request is not cover. Payment does not make cover active until the insurer accepts.</p>
       <Stepper current={step} />
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">

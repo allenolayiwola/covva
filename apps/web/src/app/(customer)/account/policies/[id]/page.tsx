@@ -18,6 +18,8 @@ import { attachPolicyDocument } from "../actions";
 import { RenameForm } from "./rename-form";
 import { PropertyUpdatesCard } from "@/components/customer/property-updates";
 import { isPropertyCategory } from "@/server/property";
+import { InstalmentBlock } from "@/components/customer/instalment-block";
+import { PolicyChangesSection } from "@/components/customer/policy-changes";
 
 export const metadata: Metadata = { title: "Policy" };
 
@@ -168,6 +170,7 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-8">
+          <InstalmentBlock policyId={policy.id} />
           {days !== null && days >= 0 && days <= 60 && (
             <Card className="flex flex-wrap items-center gap-4 p-5">
               <span className="grid size-11 place-items-center rounded-xl bg-amber-bg text-amber">
@@ -297,6 +300,8 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
               </ul>
             </section>
           )}
+
+          <PolicyChangesSection supabase={supabase} policy={policy} />
 
           <section aria-labelledby="manage" className="space-y-3">
             <h2 id="manage" className="text-lg font-semibold text-ink">Manage this policy</h2>
