@@ -1,0 +1,128 @@
+name: Integration (database rules + browser e2e)
+
+# Runs against the shared Supabase project, so it is manual only and never part of PR checks.
+# PR checks (build, typecheck, lint, unit tests) live in ci.yml.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Public Supabase values (the publishable key is safe to expose; see .env.example). Secrets override them.
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://krmnyqaweawkpygjmdry.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_31vynddS7Uu45RJAYp0MUQ_OaBkDx22' }}
+  NEXT_PUBLIC_SITE_URL: http://localhost:3100
+  NEXT_PUBLIC_ADMIN_URL: http://localhost:3101
+  # Demo accounts used by the db-rules and browser suites (defaults live in the test helpers).
+  E2E_PASSWORD: ${{ secrets.E2E_PASSWORD || 'Demo-UtEjEEuvXJWZJm' }}
+  E2E_CUSTOMER_EMAIL: ${{ vars.E2E_CUSTOMER_EMAIL || 'ama@demo-customer.example' }}
+  E2E_BROKER_EMAIL: ${{ vars.E2E_BROKER_EMAIL || 'kofi@demo-broker.example' }}
+  E2E_ADVISER_EMAIL: ${{ vars.E2E_ADVISER_EMAIL || 'abena@demo-broker.example' }}
+  E2E_UNDERWRITER_EMAIL: ${{ vars.E2E_UNDERWRITER_EMAIL || 'underwriter@coastline.example' }}
+  E2E_CLAIMS_EMAIL: ${{ vars.E2E_CLAIMS_EMAIL || 'claims@coastline.example' }}
+  E2E_ADMIN_EMAIL: ${{ vars.E2E_ADMIN_EMAIL || 'admin@demo.insurance-marketplace.example' }}
+  PLAYWRIGHT_VERSION: "1.63.0"
+  CI: "true"
+
+jobs:
+  verify:
+    name: Database rules, build, e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # reads "packageManager" from package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Next.js build caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/web/.next/cache
+            apps/admin/.next/cache
+          key: next-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/**/src/**', 'packages/**/src/**') }}
+          restore-keys: |
+            next-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Database rule tests (PostgREST as each role)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: pnpm --filter @im/web test:db
+
+      - name: Build web and admin
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: pnpm turbo run build --filter=@im/web --filter=@im/admin
+
+      # The Playwright runner ships inside the `playwright` package (playwright/test). It is not a workspace
+      # dependency (adding it needs a lockfile update), so install it globally and expose it through NODE_PATH.
+      - name: Install Playwright
+        id: pw-install
+        run: |
+          npm install -g "playwright@${PLAYWRIGHT_VERSION}"
+          echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Chromium
+        run: playwright install --with-deps chromium
+
+      - name: Browser e2e — web (marketing, customer, partner, a11y, mobile)
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: pnpm --filter @im/web e2e
+
+      - name: Browser e2e — admin portal
+        if: ${{ always() && steps.pw-install.outcome == 'success' }}
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ADMIN_MFA_REQUIRED: "false"
+        run: pnpm --filter @im/admin e2e
+
+      - name: Purge E2E rows from the shared demo database
+        if: always()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: pnpm --filter @im/web test:purge
+
+      - name: Upload Playwright report (web)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-web
+          path: |
+            apps/web/e2e/.report
+            apps/web/e2e/.results
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Playwright report (admin)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-admin
+          path: |
+            apps/admin/e2e/.report
+            apps/admin/e2e/.results
+          if-no-files-found: ignore
+          retention-days: 14

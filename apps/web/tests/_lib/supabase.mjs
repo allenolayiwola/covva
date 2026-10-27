@@ -1,6 +1,6 @@
 // Dependency-free helpers for talking to Supabase Auth + PostgREST from Node's test runner.
 // Reads env first, then apps/web/.env.local (public values only), then the known demo defaults.
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,16 +59,70 @@ async function parse(res) {
   return { status: res.status, body, code: body && typeof body === "object" && !Array.isArray(body) ? body.code : undefined, message: body && typeof body === "object" && !Array.isArray(body) ? body.message : undefined };
 }
 
-/** Password sign-in through the Auth REST API. Returns { token, userId, email }. */
+// ---------------------------------------------------------------------------
+// Sessions: sign in once per role per run (tests/_lib/global-setup.mjs) and reuse the tokens.
+// Every test file used to sign each role in again, which tripped Supabase Auth's rate limit (429
+// over_request_rate_limit) once the suite grew. The cache lives in tests/.auth (gitignored).
+// ---------------------------------------------------------------------------
+export const SESSION_CACHE = resolve(here, "../.auth/sessions.json");
+const SKEW_MS = 120_000; // treat a token as expired two minutes early
+
+function readCache() {
+  try {
+    return JSON.parse(readFileSync(SESSION_CACHE, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeCache(cache) {
+  mkdirSync(dirname(SESSION_CACHE), { recursive: true });
+  const tmp = `${SESSION_CACHE}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(cache, null, 2));
+  renameSync(tmp, SESSION_CACHE); // atomic: parallel test files never read a half-written file
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Live password sign-in through the Auth REST API, retrying on 429 with backoff (honours Retry-After). */
+export async function signInLive(email, password = PASSWORD, { attempts = 5 } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const r = await parse(res);
+    if (res.ok && r.body?.access_token) {
+      return { token: r.body.access_token, userId: r.body.user.id, email, expiresAt: Date.now() + Number(r.body.expires_in ?? 3600) * 1000 };
+    }
+    if (res.status === 429 && attempt < attempts) {
+      const retryAfter = Number(res.headers.get("retry-after"));
+      await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000 * 2 ** (attempt - 1));
+      continue;
+    }
+    throw new Error(`Sign-in failed for ${email}: ${res.status} ${JSON.stringify(r.body)}`);
+  }
+}
+
+/**
+ * Returns { token, userId, email } for `email`: from the per-run session cache written by the global
+ * setup when it is still valid, otherwise a live sign-in (which then refreshes the cache).
+ */
 export async function signIn(email, password = PASSWORD) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: PUBLISHABLE_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const r = await parse(res);
-  if (!res.ok || !r.body?.access_token) throw new Error(`Sign-in failed for ${email}: ${res.status} ${JSON.stringify(r.body)}`);
-  return { token: r.body.access_token, userId: r.body.user.id, email };
+  const cached = readCache()[email];
+  if (cached?.token && cached.expiresAt - SKEW_MS > Date.now()) return { token: cached.token, userId: cached.userId, email };
+  const session = await signInLive(email, password);
+  writeCache({ ...readCache(), [email]: session });
+  return { token: session.token, userId: session.userId, email };
+}
+
+/** Signs every demo role in once (sequentially) and replaces the cache. Used by the global setup. */
+export async function primeSessions(emails) {
+  const cache = {};
+  for (const email of [...new Set(emails)]) cache[email] = await signInLive(email);
+  writeCache(cache);
+  return Object.keys(cache).length;
 }
 
 /**
