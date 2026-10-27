@@ -158,11 +158,11 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 ### Phase 3 — Instalments, USSD, embedded partners, SME
 - [ ] Instalment premiums (monthly/quarterly): schedules, automated MoMo collections, retries, grace periods, lapse/reinstatement per insurer rules; ledger entries.
-- [ ] USSD flow: basic quote, renew, pay (aggregator-dependent).
+- [x] USSD flow: basic quote, renew, pay (aggregator-dependent) — provider-agnostic engine (`server/ussd/*`, Africa's Talking / Hubtel / Arkesel adapters, `/api/ussd/{provider}`), quote / renew / pay instalment / check policy / claim callback / talk to us, ≤ 160-char screens; admin `/ussd` simulator + session log. Go-live needs an aggregator account and the NCA short code.
 - [ ] Embedded distribution: partner API + embeddable quote widget; partner portal with referral tracking and revenue share; customer referral programme and page.
 - [ ] SME & group: business accounts with multiple users, bulk member/vehicle upload, group health/life, fleet, property, liability; centralised billing; business admin dashboard.
 - [ ] Micro and on-demand insurance: daily/weekly/monthly periods, pay-as-you-go premiums (product model + rating + instalment engine).
-- [ ] Local language UI (English, Twi, Ga, Ewe) with a translation layer; language switcher on the site; voice-note capture with transcription for quote help and claims.
+- [~] Local language UI (English, Twi, Ga, Ewe) with a translation layer; language switcher on the site; voice-note capture with transcription for quote help and claims — layer (`@im/core` i18n, `translations` table, admin `/translations`, `GET /api/v1/i18n/{locale}`), header switcher and voice notes done; Twi/Ga/Ewe strings still need human translators (nothing is machine-translated).
 - [~] Post-claim partner network: directory (`service_partners`, admin CRUD + approval, public `/claims/network`), direct billing per insurer, job tracking (`claim_jobs`) — done; partner self-onboarding and ratings pending.
 - [ ] Endorsement workflows (change vehicle, add driver) as structured flows.
 - [ ] Accounting exports: statements per insurer, commission reports, VAT/levy handling.

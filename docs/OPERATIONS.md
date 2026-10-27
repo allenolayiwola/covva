@@ -488,3 +488,70 @@ publishes the version only then. Covva applies the rules; it never lapses or rei
 * **Channels.** USSD and WhatsApp call the same server functions (`buyMicroCover`, `renewMicro`, `payInstalment`,
   `reinstate`); `microQuoteText` produces an SMS / USSD-length (≤ 160 chars) quote.
 
+
+## 12. USSD: aggregator setup, short code, menus, limits (Phase 3)
+
+Migration `20261030100100_i18n_ussd_voice.sql` (`ussd_sessions`); engine `apps/web/src/server/ussd/engine.ts`, pure menu
+and screen builders `packages/core/src/ussd.ts`, adapters `server/ussd/{africastalking,hubtel,arkesel,simulator}.ts`,
+route `POST /api/ussd/{provider}`, staff simulator + session log in admin **USSD** (`/ussd`).
+
+**Aggregator-dependent.** USSD needs a short code (e.g. `*920*44#`) routed by every network (MTN, Telecel,
+AirtelTigo) to an aggregator, who calls our webhook on every hop. Steps:
+
+1. **Choose an aggregator** — Africa's Talking (shared codes / dedicated codes), Hubtel (Programmable Services) or
+   Arkesel. Ask for: shared vs. dedicated code, per-session pricing per network, session timeout (typically 20–180 s),
+   max screen length (182 chars on most networks — we cap at **160**), and their callback egress IPs.
+2. **Short code.** Dedicated codes are allocated by the **NCA (National Communications Authority)** — the aggregator
+   usually files the application with the networks; allow several weeks. Start on the aggregator's shared code with an
+   extension (`*920*44#`) and set `USSD_DIAL_EXTENSION=44` if they prepend it to the first input.
+3. **Configure** on the web project: `USSD_PROVIDER`, `USSD_SERVICE_CODE`, `USSD_SHARED_SECRET` (random, ≥ 32 chars),
+   optional `USSD_IP_ALLOWLIST[_<PROVIDER>]` with the aggregator's IPs, and the SMS provider (`SMS_PROVIDER` — links are
+   sent by SMS). Set `USSD_SHARED_SECRET` + `USSD_SERVICE_CODE` on the admin project for the simulator.
+4. **Callback URL** in the aggregator dashboard: `https://covva.com.gh/api/ussd/<provider>?key=<USSD_SHARED_SECRET>`.
+   - *Africa's Talking*: form POST (`sessionId, serviceCode, phoneNumber, networkCode, text` — `text` is the whole
+     history joined by `*`); we answer `text/plain` `CON …` / `END …`. AT does not sign callbacks → secret in the URL
+     + IP allowlist.
+   - *Hubtel*: JSON (`Type` Initiation/Response/Release/Timeout, `Message`, `SessionId`, `Mobile`, `Operator`); we answer
+     `{ SessionId, Type: Response|Release, Message, … }`. One input per hop — the engine keeps the history.
+     Hubtel can also send basic auth or a custom header: put the secret in `X-USSD-Secret` if the dashboard allows.
+   - *Arkesel*: JSON (`sessionID, userID, newSession, msisdn, userData, network`); we answer
+     `{ sessionID, userID, msisdn, message, continueSession }`.
+   Field names vary between aggregator products — confirm against the account's docs before go-live and test with the
+   aggregator's simulator plus our admin simulator.
+5. **Test** with admin → USSD (the simulator runs the production engine; END actions are real: SMS, leads, MoMo prompts).
+
+**Menus** (all copy from the i18n catalogue, `ussd.*` keys — English until approved translations exist; every screen
+≤ 160 characters, enforced by `packages/core/src/ussd.test.ts`; `0` back, `00` main menu):
+
+| Option | Flow | Ends with |
+|---|---|---|
+| 1 Get a quote | Motor third-party (registration → use) · Micro cover (day/week/month) · Funeral (people 1–10) | Indicative "from" price (approved products' rating rules; the insurer confirms before payment) → SMS link to buy / call me back; micro: buy now with a MoMo prompt (`buyMicroCover`) |
+| 2 Renew a policy | Up to 4 policies of the number's profile | Micro: MoMo prompt (`renewMicro`); others: SMS renewal link or a callback for the broker |
+| 3 Pay an instalment | Due instalments (next 7 days, `listSchedulesForUser`) | MoMo prompt (`payInstalment`) or an SMS pay link |
+| 4 Check my policy | Policies on the number | Status, end date, insurer |
+| 5 Make a claim | Policies (+ "not listed") | Callback booked with a `CL-XXXXX` reference (lead + broker notified). Reporting is not approval |
+| 6 Talk to us | | Callback (`CB-XXXXX`) or SMS with WhatsApp/help links |
+
+**Customer identity.** The MSISDN is normalised to E.164 and matched to `profiles.phone`. Unknown numbers can get
+quotes and callbacks (a lightweight `leads` row, `source_page = ussd`) but not policy data. USSD never shows personal
+data beyond the caller's own policy names, and never takes payment details — MoMo prompts are approved on the handset
+with the PIN; money goes to the insurer through the PSP, never to Covva.
+
+**Limits.** Sessions time out on the network side (often 20–60 s per screen); keep hops fast (each hop is one DB read +
+write; the customer snapshot is loaded once per session). Re-sent final hops are answered with a neutral END and never
+re-run an action. Screens over 160 characters are truncated with "…" (tests prevent this in the catalogue). Retention:
+`ussd_sessions` hold MSISDNs and inputs — purge after 90 days once the retention policy is approved (§10).
+
+## 13. Languages and voice notes (Phase 3)
+
+* **Translation layer.** English source catalogue `packages/core/src/i18n/en.ts`; Twi (`tw`), Ga (`gaa`) and Ewe (`ee`)
+  contain **only strings a human translator supplied** — in code (rare) or in admin → **Translations** (draft →
+  reviewed → approved; CSV import/export; placeholders must match). Approving revalidates the web app's `translations`
+  tag. Visitors choose a language in the header (`covva_lang` cookie; signed-in users also get `profiles.locale`);
+  partial/planned locales show "<Language> translations are in progress — untranslated text is shown in English".
+  The mobile app reads `GET /api/v1/i18n/{locale}`.
+* **Voice notes** (claim description, request help): MediaRecorder ≤ 120 s or an audio file → `documents` bucket
+  `voice/<owner>/…` → transcript in `after()` via `TRANSCRIPTION_PROVIDER` (gateway / openai / none). The customer
+  edits the "Automatic transcript — please check" and adds it to the form; nothing is auto-submitted. Notes are linked
+  to the request/claim on submit so the broker and insurer can listen. Twi/Ga/Ewe transcription is unreliable today —
+  the UI says so.
