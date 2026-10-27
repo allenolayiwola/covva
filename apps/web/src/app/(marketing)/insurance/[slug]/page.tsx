@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Ban, Clock, CreditCard, FileText, Info, QrCode, ShieldCheck } from "lucide-react";
@@ -36,16 +35,12 @@ export async function generateMetadata({ params }: PageProps<"/insurance/[slug]"
   };
 }
 
-/** `params` is request-time data under Cache Components, so the content streams inside Suspense. */
-export default function ProductLinePage({ params }: PageProps<"/insurance/[slug]">) {
-  return (
-    <Suspense fallback={<ProductSkeleton />}>
-      <ProductLineContent params={params} />
-    </Suspense>
-  );
-}
-
-async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]">, "params">) {
+/**
+ * Every slug is listed in generateStaticParams, so the whole page is prerendered into the HTML.
+ * No Suspense fallback here: a skeleton in the static shell painted with the footer on screen,
+ * then the swap to real content pushed the footer down (CLS ~0.18 on mobile).
+ */
+export default async function ProductLinePage({ params }: PageProps<"/insurance/[slug]">) {
   const { slug } = await params;
   const line = findProductLine(slug);
   if (!line) notFound();
@@ -235,19 +230,5 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
         secondary={{ label: "Help me choose", href: "/get-started" }}
       />
     </>
-  );
-}
-
-function ProductSkeleton() {
-  return (
-    <div aria-busy="true" aria-live="polite" className="border-b border-line bg-gradient-to-b from-mist to-white">
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-20 sm:px-6 lg:px-8">
-        <span className="sr-only">Loading cover details…</span>
-        <div className="h-4 w-40 animate-pulse rounded bg-line motion-reduce:animate-none" />
-        <div className="mt-6 h-12 w-2/3 max-w-xl animate-pulse rounded-lg bg-line motion-reduce:animate-none" />
-        <div className="mt-5 h-5 w-full max-w-2xl animate-pulse rounded bg-line/70 motion-reduce:animate-none" />
-        <div className="mt-8 h-72 w-full max-w-md animate-pulse rounded-[24px] bg-mint-2 motion-reduce:animate-none" />
-      </div>
-    </div>
   );
 }

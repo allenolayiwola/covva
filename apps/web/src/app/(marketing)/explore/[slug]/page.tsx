@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Ban, Clock, FileText, Gauge, Hourglass, Info, PlusCircle, Receipt, ShieldCheck, TriangleAlert } from "lucide-react";
@@ -38,11 +37,7 @@ export async function generateMetadata({ params }: PageProps<"/explore/[slug]">)
 }
 
 export default function CategoryPage({ params }: PageProps<"/explore/[slug]">) {
-  return (
-    <Suspense fallback={<CategorySkeleton />}>
-      <CategoryContent params={params} />
-    </Suspense>
-  );
+  return <CategoryContent params={params} />;
 }
 
 /* --------------------------------------------------------------------------- */
@@ -394,23 +389,5 @@ function TagList({ items }: { items: string[] }) {
         <li key={t} className="rounded-full bg-mist px-3 py-1 text-[13px] font-medium text-ink-2">{t}</li>
       ))}
     </ul>
-  );
-}
-
-function CategorySkeleton() {
-  return (
-    <div aria-busy="true" aria-live="polite" className="border-b border-line bg-gradient-to-b from-mist to-white">
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-20 sm:px-6 lg:px-8">
-        <span className="sr-only">Loading cover details…</span>
-        <div className="h-4 w-40 animate-pulse rounded bg-line motion-reduce:animate-none" />
-        <div className="mt-6 h-12 w-2/3 max-w-xl animate-pulse rounded-lg bg-line motion-reduce:animate-none" />
-        <div className="mt-5 h-5 w-full max-w-2xl animate-pulse rounded bg-line/70 motion-reduce:animate-none" />
-        <div className="mt-2 h-5 w-4/5 max-w-xl animate-pulse rounded bg-line/70 motion-reduce:animate-none" />
-        <div className="mt-8 flex gap-3">
-          <div className="h-12 w-36 animate-pulse rounded-[10px] bg-mint motion-reduce:animate-none" />
-          <div className="h-12 w-52 animate-pulse rounded-[10px] bg-mint-2 motion-reduce:animate-none" />
-        </div>
-      </div>
-    </div>
   );
 }

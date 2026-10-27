@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Globe2, Package } from "lucide-react";
@@ -28,13 +27,8 @@ export async function generateMetadata({ params }: PageProps<"/bundles/[slug]">)
   return { title: `${bundle.name} — cover for family in Ghana`, description, alternates: { canonical: `/bundles/${bundle.slug}` }, openGraph: { title: bundle.name, description, url: `/bundles/${bundle.slug}` } };
 }
 
-/** `params` is request-time data under Cache Components: the content streams inside Suspense. */
 export default function BundlePage({ params }: PageProps<"/bundles/[slug]">) {
-  return (
-    <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-16"><div className="h-10 w-2/3 animate-pulse rounded bg-mist" /><div className="mt-6 h-40 animate-pulse rounded-card bg-mist" /></div>}>
-      <BundleContent params={params} />
-    </Suspense>
-  );
+  return <BundleContent params={params} />;
 }
 
 async function BundleContent({ params }: Pick<PageProps<"/bundles/[slug]">, "params">) {

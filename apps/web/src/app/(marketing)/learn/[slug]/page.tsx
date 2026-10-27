@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Clock, Lightbulb } from "lucide-react";
@@ -28,11 +27,7 @@ export async function generateMetadata({ params }: PageProps<"/learn/[slug]">): 
 }
 
 export default function ArticlePage({ params }: PageProps<"/learn/[slug]">) {
-  return (
-    <Suspense fallback={<ArticleSkeleton />}>
-      <ArticleContent params={params} />
-    </Suspense>
-  );
+  return <ArticleContent params={params} />;
 }
 
 function Block({ b }: { b: ArticleBlock }) {
@@ -145,18 +140,5 @@ async function ArticleContent({ params }: Pick<PageProps<"/learn/[slug]">, "para
 
       <CtaBand title="Ready to compare?" body="Get indicative quotes in minutes from participating licensed insurers." primary={{ label: "Get quotes", href: "/#quote" }} secondary={{ label: "More guides", href: "/learn" }} />
     </>
-  );
-}
-
-function ArticleSkeleton() {
-  return (
-    <div aria-busy="true" aria-live="polite" className="border-b border-line bg-gradient-to-b from-mist to-white">
-      <Container className="py-20">
-        <span className="sr-only">Loading article…</span>
-        <div className="h-4 w-40 animate-pulse rounded bg-line motion-reduce:animate-none" />
-        <div className="mt-6 h-12 w-2/3 max-w-xl animate-pulse rounded-lg bg-line motion-reduce:animate-none" />
-        <div className="mt-5 h-5 w-full max-w-2xl animate-pulse rounded bg-line/70 motion-reduce:animate-none" />
-      </Container>
-    </div>
   );
 }
