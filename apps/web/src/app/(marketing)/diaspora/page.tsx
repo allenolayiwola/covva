@@ -109,7 +109,7 @@ export default async function DiasporaPage() {
               <Pill tone="ok">Most popular</Pill>
             </div>
             <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">Parents’ Care Pack</h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted">Funeral cover for both parents plus a private health plan with a hospital network near them, paid together.</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted">Funeral cover, a private health plan and personal accident cover for one or both parents, quoted together and paid as one monthly amount by you.</p>
             <CheckList className="mt-5" items={["Entry ages up to 70+ on selected plans", "One monthly or annual payment", "Both parents get their own membership cards", "You and they get every notification"]} />
             <Link href="/get-started?category=life-funeral&people=2" className={buttonClass("primary", "md", "mt-6")}>Price a Care Pack <ArrowRight aria-hidden className="size-4" /></Link>
           </article>
@@ -124,8 +124,11 @@ export default async function DiasporaPage() {
             <IconTile><Church /></IconTile>
             <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">Group plans for churches & associations</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-muted">Enrol members in bulk, pay one group premium in your currency and give every family its own funeral or health policy in the app.</p>
-            <CheckList className="mt-5" items={["From 20 members", "Welfare committee dashboard", "Members add beneficiaries themselves"]} />
-            <a href="#group" className={buttonClass("secondary", "md", "mt-auto")}>Ask about a group plan <ArrowRight aria-hidden className="size-4" /></a>
+            <CheckList className="mt-5" items={["Welfare committee dashboard: who is paid up, who is in arrears", "Members join by link and add beneficiaries themselves", "Relatives abroad pay a member's contributions in their currency"]} />
+            <div className="mt-auto flex flex-wrap gap-2">
+              <Link href="/account/groups/new" className={buttonClass("secondary", "md")}>Set up a welfare group <ArrowRight aria-hidden className="size-4" /></Link>
+              <a href="#group" className={buttonClass("ghost", "md")}>Ask a broker first</a>
+            </div>
           </article>
         </div>
       </Section>

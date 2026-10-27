@@ -144,6 +144,7 @@ export async function completeInspection(
     .maybeSingle();
   if (error || !data) throw new BusinessRuleError(ruleMessage(error, "This inspection can't be completed."));
   const svc = createServiceClient();
+  await registerInspectionPhotos(svc, supabase, data, photos);
   await notifyParties(svc, data, "inspection.completed", args.outcome === "completed" ? "Site inspection completed" : "Site inspection could not be done", args.outcome === "completed" ? "The report has been shared with the insurer, who decides what it means for your cover." : "The partner could not inspect the property. Your broker will be in touch.");
   // The insurer (and broker) on the policy see the report in their workspace.
   if (data.policy_id) {
@@ -153,6 +154,40 @@ export async function completeInspection(
     }
   }
   return data;
+}
+
+/**
+ * The partner's photos sit in the partner's own storage folder. Registering them as `documents` of the policy
+ * (owner = the policy customer) is what lets the customer, the sponsor abroad, the broker and the insurer sign and
+ * view them on the photo timeline (storage RLS reads through `documents`). Idempotent; never blocks the flow.
+ */
+async function registerInspectionPhotos(svc: Svc, inspector: UserClient, insp: PropertyInspection, photos: InspectionPhoto[]) {
+  if (!photos.length) return;
+  try {
+    const report = (insp.report ?? {}) as { inspector_user_id?: string };
+    const uploadedBy = report.inspector_user_id ?? (await inspector.auth.getUser()).data.user?.id ?? null;
+    let ownerId: string | null = null;
+    if (insp.policy_id) ownerId = (await svc.from("policies").select("customer_id").eq("id", insp.policy_id).maybeSingle()).data?.customer_id ?? null;
+    else if (insp.request_id) ownerId = (await svc.from("requests").select("customer_id").eq("id", insp.request_id).maybeSingle()).data?.customer_id ?? null;
+    if (!ownerId) return;
+    const { error } = await svc.from("documents").upsert(
+      photos.map((p) => ({
+        owner_id: ownerId!,
+        uploaded_by: uploadedBy,
+        uploaded_by_party: "broker" as const,
+        policy_id: insp.policy_id,
+        request_id: insp.policy_id ? null : insp.request_id,
+        kind: "photo" as const,
+        storage_path: p.storage_path,
+        file_name: (p.caption ?? p.storage_path.split("/").pop() ?? "inspection-photo").slice(0, 255),
+        mime_type: /\.(png)$/i.test(p.storage_path) ? "image/png" : /\.(webp)$/i.test(p.storage_path) ? "image/webp" : "image/jpeg",
+      })),
+      { onConflict: "storage_path", ignoreDuplicates: true },
+    );
+    if (error) log.warn("property.register_photos_failed", { inspectionId: insp.id, err: error });
+  } catch (err) {
+    log.warn("property.register_photos_failed", { inspectionId: insp.id, err });
+  }
 }
 
 /** Notify the policy customer (and the sponsor, when the diaspora model has one) or the request customer. */

@@ -451,6 +451,8 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "business-invoices": async (svc) => (await import("@/server/business")).buildDueInvoices(svc),
   // Phase 3: monthly on the 2nd at 04:00 — last month's insurer statements, commission reports, platform revenue and tax report (CSV exports).
   "accounting-exports": async (svc) => (await import("@/server/accounting")).monthlyAccountingExports(svc),
+  // Phase 4: daily 07:30 — welfare group contribution reminders (3 days before and 3 days after the due date) to members and their sponsors abroad.
+  "welfare-reminders": async (svc) => (await import("@/server/welfare")).sendWelfareReminders(svc),
 };
 
 export async function runCron(job: string) {
