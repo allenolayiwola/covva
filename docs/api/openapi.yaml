@@ -575,6 +575,44 @@ paths:
         "201": { $ref: "#/components/responses/Ok" }
         "409": { $ref: "#/components/responses/Error" }
 
+  /me/policies/{id}/explain:
+    post:
+      tags: [AI, Policies]
+      summary: Policy explainer — answers grounded in the caller's own schedule and wording, with clause citations
+      description: |
+        For the signed-in policyholder side only (the customer, the sponsor or the linked beneficiary); brokers, insurers
+        and staff get 404. One endpoint, four actions (`action` in the body):
+        * `clauses` — the grounding set: `groups[]` of `{ id, heading, group, text }` clauses (schedule fields such as
+          `schedule.excess` / `schedule.cover_end`, `cover.*`, `limit.*`, `excess.*`, `exclusion.*`, `benefit.*`,
+          `conditions.*`, `claims.*`, `doc.schedule.*`), `versionKey`, `aiAvailable`, `handoff`, `suggestions`, `disclaimer`.
+        * `summary` — "Your cover in plain words": `summary.statements[]`, cached per policy and wording version
+          (`source: cache | generated | fallback`). Without AI, `fallback` lists the key schedule facts.
+        * `ask` — `{ question }` (3–500 chars). Returns `statements[]` of `{ text, citations[] }`; every citation is a
+          clause id from the grounding set (checked server-side — unknown ids are dropped and uncited statements removed),
+          with `text` (the exact clause) and `quote` (verbatim excerpt or null). `status: not_in_wording` means the wording
+          does not answer it: never guess cover; offer the broker. `advisory: true` (should I…, which is better, am I
+          covered if…, can I claim for this incident) means only the factual part is given and the broker must advise.
+          `mode: clauses_only` (no AI on this environment, or the model failed) returns keyword `matches[]` instead.
+          `logId` identifies the Q&A log row for the hand-off.
+        * `handoff` — `{ question, clauseIds[], logId? }` posts a customer message to the broker of record on the
+          policy's request thread (question, policy reference and the clauses shown) and notifies the broker. 201 with
+          `{ sent, requestId, messageId, threadHref, brokerName }`; 422 when there is no broker or thread to post on.
+        Always show `disclaimer`: "This explains your policy wording. It isn't advice. Your policy documents decide what's covered."
+        Rate limit: the AI limit (15 burst, ~6/min) for every action. Usage is logged to `ai_usage`
+        (`policy_explainer`, `policy_explainer_summary`).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PolicyExplainInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "201": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
   /claims:
     get:
       tags: [Claims]
@@ -2495,6 +2533,18 @@ components:
         requestId: { type: string, format: uuid }
         policyId: { type: string, format: uuid }
         threadId: { type: string, format: uuid }
+
+    PolicyExplainInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [clauses, summary, ask, handoff] }
+        question: { type: string, minLength: 3, maxLength: 500, description: Required for ask and handoff }
+        clauseIds: { type: array, maxItems: 12, items: { type: string, maxLength: 80 }, description: "handoff: the clause ids shown with the answer" }
+        logId: { type: string, format: uuid, description: "handoff: the logId returned by ask" }
+      examples:
+        - { action: ask, question: "What is my excess?" }
+        - { action: handoff, question: "Should I add the excess protector?", clauseIds: [benefit.excess-protector, schedule.excess] }
 
     BrokerQuoteInput:
       type: object

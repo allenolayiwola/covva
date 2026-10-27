@@ -174,7 +174,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] Funeral cover and welfare groups: group admin, member enrolment, contribution collection, beneficiary records, claims support; linked to sponsors abroad — `supabase/migrations/20261031100300_welfare_groups_diaspora.sql` (groups, members with consent, beneficiaries, sponsors, contributions; placement sync; RLS + guards), `@im/core/welfare` (schedule, arrears, sponsor allocation, claim checklist, CSV), `apps/web/src/server/welfare.ts` (contributions paid through `initiatePolicyCollection` → settle to the insurer; reminders cron `welfare-reminders`; claims via `createClaim`), `/account/groups/*`, partner `/partner/groups`, `apps/web/tests/welfare-rules.test.mjs`. Docs: `docs/WELFARE_GROUPS.md` (migration still to apply).
 - [ ] Loyalty and rewards: no-claims rewards, bundle discounts, referral credits, renewal perks; per-insurer rules engine.
 - [ ] Motor telematics: consented phone-based driving score; safe-driver discounts at renewal where supported.
-- [ ] Policy explainer AI grounded in the customer's own wording and schedule, citing clauses, handing off advisory questions to the broker.
+- [x] Policy explainer AI grounded in the customer's own wording and schedule, citing clauses, handing off advisory questions to the broker. Grounding, clause ids, citation checks and advice heuristics are in `@im/core` `policy-explainer.ts`; the server is `server/ai/policy-explainer.ts`; the API is `POST /api/v1/me/policies/{id}/explain`; the UI is the "Explain my policy" panel on `/account/policies/[id]`. Cached summaries and the Q&A log are in migration `20261031100200_policy_explainer.sql` (not applied yet). It works without an AI key: clause browser, keyword matches and broker hand-off. Docs: `docs/POLICY_EXPLAINER.md`.
 - [ ] Insurer Level 3 adapters (one per insurer behind the common interface) as partners expose APIs.
 
 ### Marketing site (Addendum 5, brand correction applied) — runs alongside Phases 1–2
@@ -191,7 +191,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 ### Cross-cutting (every phase)
 - [x] RBAC, audit log, encryption, secure document storage, rate limiting, feature flags, consent capture.
-- [ ] Data-subject requests (export/delete) workflow; retention jobs (Act 843).
+- [x] Data-subject requests (export/delete) workflow; retention jobs (Act 843) — access/export, correction, deletion (anonymisation; insurance records retained with a reason), objection and immediate marketing opt-out; staff queue with identity check and audited actions; `privacy-retention` cron (dry run until enforced). (`supabase/migrations/20261031100100_data_subject_requests.sql`, `packages/core/src/privacy.ts`, `apps/web/src/app/(customer)/account/privacy/`, `apps/admin/src/app/(admin)/privacy-requests/`, `apps/web/src/server/privacy.ts`; docs: `docs/PRIVACY_REQUESTS.md`. Migration not yet applied; retention durations and the statutory deadline to confirm with counsel.)
 - [~] Notification abstraction gains WhatsApp (done); payment abstraction gains Hubtel (done) and a diaspora card PSP (to do).
 - [ ] Tests added with every feature; CI gates merges.
 
