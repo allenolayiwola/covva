@@ -8650,12 +8650,13 @@ export type Database = {
           phone: string
         }[]
       }
-      generate_welfare_contributions: {
-        Args: { p_group_id: string; p_through?: string }
-        Returns: number
       fulfil_privacy_deletion: {
         Args: { p_dry_run?: boolean; p_id: string; p_note?: string }
         Returns: Json
+      }
+      generate_welfare_contributions: {
+        Args: { p_group_id: string; p_through?: string }
+        Returns: number
       }
       invitation_preview: {
         Args: { p_token: string }
