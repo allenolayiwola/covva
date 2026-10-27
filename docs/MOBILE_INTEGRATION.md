@@ -894,3 +894,42 @@ number on their profile, so ask users to keep it current.
    no transcript — the broker can still listen (`audioUrl`, a 10-minute signed link).
 6. Pass the note ids when creating the claim/request so they are linked (web forms send `voiceNoteId`; via the API,
    create the note with `claimId`/`requestId` after the claim/request exists).
+
+## Policy changes (endorsements)
+
+Structured mid-term changes — change vehicle, add / remove a driver, change address, change sum insured, add /
+remove a member (group or family cover), change how a car is used, cancel the policy, or "something else".
+**Only the insurer changes cover**: the broker of record (or the insurer) quotes the change in premium, the customer
+agrees, the insurer accepts and then applies it to the policy. Additional premium is paid to the insurer.
+
+1. `GET /api/v1/policies/{id}/endorsements` → `items` (this policy's change requests) and `available` (the kinds
+   allowed for its category, each with `fields: [{ key, label, type, required, options?, hint?, riskKey? }]`). Build
+   the form from `fields`; prefill from the policy's risk using `riskKey`. For "change vehicle" you can prefill make,
+   model and year with `POST /api/v1/lookups/vehicle`. Show "Your insurer will confirm any change in premium".
+2. `POST /api/v1/policies/{id}/endorsements` `{ kind, changes: { <field key>: value }, effectiveFrom: "YYYY-MM-DD" }`
+   → `201 { endorsement, requestId, proposal }`. `changes` is validated per kind (`400 invalid_input` with
+   `details`). `effectiveFrom` must be today or later and before cover ends. `proposal` is an indicative pro-rata
+   estimate from the rating engine — label it as an estimate. A second open change of the same kind → `409`.
+3. Status (`endorsement.status`): `submitted` (with the broker / insurer) → `quoted` (`premiumAdjustment` set:
+   positive = additional premium, negative = refund, 0 = no change) → `accepted` (insurer) → `applied` (policy
+   updated, new documents in the wallet). Also `rejected` (insurer) and `cancelled` (withdrawn). Push kinds:
+   `endorsement.submitted`, `endorsement.quoted`, `endorsement.decided`, `policy.endorsed`. `GET /api/v1/endorsements/{id}`
+   returns the latest state and `paymentStatus`; show `adjustmentLabel` as-is.
+4. When `quoted`, show the change in premium and an "Agree" button →
+   `POST /api/v1/endorsements/{id}/accept` `{ channel: "mobile_money" | "card" | "bank_transfer" }`. For additional
+   premium the response has `payment.authorizationUrl` — open it (hosted checkout; the money settles to the insurer).
+   For a refund, `refundDue` is returned by the insurer once it applies the change (to the original payment method).
+5. Partners (broker / insurer apps and API keys): `GET /api/v1/partner/endorsements?status=open`,
+   `POST …/{id}/quote { premiumAdjustment, note? }` (broker of record or insurer), and insurer-only
+   `POST …/{id}/decide { decision: "accept" | "reject", note? }` and `POST …/{id}/apply { note? }`. The database
+   refuses `accepted` / `rejected` / `applied` from anyone but the insurer, accepting a priced change before the
+   customer agreed, and applying before additional premium is paid.
+
+## Rating a repair or service partner
+
+After a claim job (repair, tow, treatment, assessment) is `completed`, ask the customer "How did it go?" on the claim
+screen: `POST /api/v1/claims/{id}/jobs/{jobId}/review` `{ rating: 1–5, comment? (≤ 1000) }` → `201`. One rating per
+job (`409` if already rated); only the claim's customer can rate, and only completed jobs (`422`). Ratings show on
+the public partner directory once a partner has **three** published reviews (`service_partners.rating`,
+`review_count`); the reviewer is never shown. Staff can hide abusive reviews. Businesses can apply to join the network
+at `/claims/network/join` (web).

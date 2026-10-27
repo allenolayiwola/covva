@@ -115,6 +115,10 @@ tags:
     description: UI language (English complete; Twi, Ga and Ewe only as human translators supply them) — catalogue, preferred locale. Send `Accept-Language` or `X-Covva-Locale`.
   - name: Voice notes
     description: Voice recordings with automatic transcripts the user checks and edits before using.
+  - name: Policy changes
+    description: Endorsements — structured mid-term changes. The broker or insurer quotes any change in premium; only the insurer accepts, rejects and applies a change. Additional premium is paid to the insurer.
+  - name: Partner network
+    description: Post-claim partner network — ratings of garages, towing, hospitals and other service partners after a completed job.
 paths:
   /me:
     get:
@@ -1823,6 +1827,131 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Ok" }
         "404": { $ref: "#/components/responses/Error" }
+  /policies/{id}/endorsements:
+    get:
+      tags: [Policy changes]
+      summary: The policy's change requests and the kinds of change available for its category (with field definitions)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: Changes and available kinds
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          items: { type: array, items: { $ref: "#/components/schemas/Endorsement" } }
+                          available: { type: array, items: { $ref: "#/components/schemas/EndorsementKind" } }
+                          note: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Policy changes]
+      summary: Ask for a structured change (endorsement); routed to the broker of record, else the insurer
+      description: "`changes` is validated per `kind` (see the `fields` of `GET` → `available`). Underwriting rules and the rating engine are re-run on the changed risk; `proposal` is indicative only — the broker or insurer quotes the adjustment and only the insurer changes cover."
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StartEndorsementInput" } } } }
+      responses:
+        "201":
+          description: Change requested
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { type: object, properties: { endorsement: { $ref: "#/components/schemas/Endorsement" }, requestId: { type: [string, "null"], format: uuid }, proposal: { type: [object, "null"], properties: { amount: { type: number }, note: { type: string } } }, underwriting: { type: [string, "null"], enum: [accept, refer, decline, null] } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /endorsements/{id}:
+    get:
+      tags: [Policy changes]
+      summary: One change request with its status, quoted adjustment and payment status
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Change request, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { endorsement: { allOf: [{ $ref: "#/components/schemas/Endorsement" }, { properties: { paymentStatus: { type: [string, "null"] } } }] } } } } }] } } } }
+        "404": { $ref: "#/components/responses/Error" }
+  /endorsements/{id}/accept:
+    post:
+      tags: [Policy changes]
+      summary: The policyholder agrees to the quoted premium adjustment (and pays any additional premium to the insurer)
+      description: "Additional premium returns `payment` — open `authorizationUrl` (hosted checkout; the money settles to the insurer). A refund (negative adjustment) is returned by the insurer when it applies the change (`refundDue`)."
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: false, content: { application/json: { schema: { $ref: "#/components/schemas/AcceptEndorsementInput" } } } }
+      responses:
+        "200": { description: Agreed, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { endorsement: { $ref: "#/components/schemas/Endorsement" }, payment: { type: [object, "null"], properties: { paymentId: { type: string }, reference: { type: string }, authorizationUrl: { type: [string, "null"] }, status: { type: string } } }, refundDue: { type: [number, "null"] } } } } }] } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/endorsements:
+    get:
+      tags: [Policy changes]
+      summary: Policy changes for the broker of record or the insurer (API keys need policies:read)
+      security: [{ bearerAuth: [] }, { apiKey: [] }]
+      parameters:
+        - { $ref: "#/components/parameters/OrgId" }
+        - { name: status, in: query, schema: { type: string, enum: [open, draft, submitted, quoted, accepted, rejected, applied, cancelled], default: open } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200": { description: Changes, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { items: { type: array, items: { allOf: [{ $ref: "#/components/schemas/Endorsement" }, { properties: { customerId: { type: string, format: uuid }, party: { type: string, enum: [broker, insurer] } } }] } } } } } }] } } } }
+        "403": { $ref: "#/components/responses/Error" }
+  /partner/endorsements/{id}/quote:
+    post:
+      tags: [Policy changes]
+      summary: Broker of record or insurer quotes the premium adjustment (API keys need quotes:write)
+      security: [{ bearerAuth: [] }, { apiKey: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/QuoteEndorsementInput" } } } }
+      responses:
+        "200": { description: Quoted, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { endorsement: { $ref: "#/components/schemas/Endorsement" } } } } }] } } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/endorsements/{id}/decide:
+    post:
+      tags: [Policy changes]
+      summary: Insurer only — accept or reject the change (API keys need policies:issue)
+      description: Accepting a priced change requires the customer to have agreed to the adjustment. Rejecting refunds any additional premium already paid.
+      security: [{ bearerAuth: [] }, { apiKey: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/DecideEndorsementInput" } } } }
+      responses:
+        "200": { description: Decided, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { endorsement: { $ref: "#/components/schemas/Endorsement" } } } } }] } } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/endorsements/{id}/apply:
+    post:
+      tags: [Policy changes]
+      summary: Insurer only — apply the accepted change to the policy and regenerate its documents (API keys need policies:issue)
+      description: Updates the insured items, sum insured and premium, regenerates the schedule / certificate, and notifies the customer, any sponsor and the broker. Additional premium must be paid first. A refund is recorded in the ledger with an insurer task to return it.
+      security: [{ bearerAuth: [] }, { apiKey: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: false, content: { application/json: { schema: { type: object, properties: { note: { type: string, maxLength: 2000 } } } } } }
+      responses:
+        "200": { description: Applied, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { endorsement: { $ref: "#/components/schemas/Endorsement" }, documents: { type: integer }, refund: { type: string, enum: [not_needed, manual] } } } } }] } } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /claims/{id}/jobs/{jobId}/review:
+    post:
+      tags: [Partner network]
+      summary: Rate a completed repair, tow or treatment (1–5, one per job)
+      description: Ratings appear on the public partner directory once a partner has 3 published reviews. Staff may hide abusive reviews; the reviewer is never shown publicly.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClaimJobReviewInput" } } } }
+      responses:
+        "201": { description: Rated, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { review: { type: object, properties: { id: { type: string, format: uuid }, rating: { type: integer }, comment: { type: [string, "null"] }, status: { type: string, enum: [published, hidden] }, createdAt: { type: string, format: date-time } } } } } } }] } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
 
 webhooks:
   request.created:
@@ -2033,7 +2162,7 @@ components:
       enum: [integrated, broker_assisted, planned]
     DocumentKind:
       type: string
-      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other]
+      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other, sticker, claim_video, medical_report, repair_estimate]
     ConsentType:
       type: string
       enum: [terms, privacy, marketing, data_sharing_broker, data_sharing_insurer, ai_assistance]
@@ -2468,9 +2597,6 @@ components:
         request: { type: object, description: "id, reference, title, type, status, risk_data, talk_to_expert, complexity_flags, category" }
 
     # --- Broker workspace on mobile (Addendum 4 §2) ---
-    DocumentKind:
-      type: string
-      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other]
     SalesDay:
       type: object
       description: One day of the sales funnel (from `partner_sales_summary`).
@@ -3183,3 +3309,85 @@ components:
         editedAt: { type: [string, "null"], format: date-time }
         createdAt: { type: string, format: date-time }
         audioUrl: { type: [string, "null"], format: uri, description: Signed link (10 minutes); GET only }
+    EndorsementKindValue:
+      type: string
+      enum: [change_vehicle, add_driver, remove_driver, change_address, change_sum_insured, add_member, remove_member, change_use, cancel_policy, other]
+    EndorsementKind:
+      type: object
+      properties:
+        kind: { $ref: "#/components/schemas/EndorsementKindValue" }
+        label: { type: string, examples: [Change vehicle] }
+        description: { type: string }
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              type: { type: string, enum: [text, number, date, select, textarea] }
+              required: { type: boolean }
+              hint: { type: string }
+              riskKey: { type: string, description: Prefill from the policy's current risk under this key }
+              options: { type: array, items: { type: object, properties: { value: { type: string }, label: { type: string } } } }
+    Endorsement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string, examples: [END-1001] }
+        policyId: { type: string, format: uuid }
+        requestId: { type: [string, "null"], format: uuid }
+        kind: { $ref: "#/components/schemas/EndorsementKindValue" }
+        kindLabel: { type: string }
+        status: { type: string, enum: [draft, submitted, quoted, accepted, rejected, applied, cancelled] }
+        effectiveFrom: { type: string, format: date }
+        changes:
+          type: object
+          properties:
+            before: { type: object }
+            after: { type: object }
+            lines: { type: array, items: { type: object, properties: { key: { type: string }, label: { type: string }, before: { type: string }, after: { type: string } } } }
+        premiumAdjustment: { type: [number, "null"], description: "Positive = additional premium (paid to the insurer), negative = refund, null = not quoted yet" }
+        proposedAdjustment: { type: [number, "null"], description: Indicative pro-rata amount from the rating engine (never binding) }
+        adjustmentLabel: { type: string, examples: ["Additional premium GHS 120.00", "Your insurer will confirm any change in premium"] }
+        currency: { type: string, examples: [GHS] }
+        customerAcceptedAt: { type: [string, "null"], format: date-time }
+        insurerNote: { type: [string, "null"] }
+        brokerNote: { type: [string, "null"] }
+        decidedAt: { type: [string, "null"], format: date-time }
+        appliedAt: { type: [string, "null"], format: date-time }
+        refundStatus: { type: [string, "null"], enum: [not_needed, requested, manual, processed, null] }
+        paymentId: { type: [string, "null"], format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    StartEndorsementInput:
+      type: object
+      required: [kind, changes, effectiveFrom]
+      properties:
+        kind: { $ref: "#/components/schemas/EndorsementKindValue" }
+        changes: { type: object, description: "The new values, keyed by the kind's field keys (e.g. change_vehicle: registration_number, vehicle_make, vehicle_model, vehicle_year, vehicle_value)" }
+        effectiveFrom: { type: string, format: date, description: Today or later, before cover ends }
+        submit: { type: boolean, default: true }
+    AcceptEndorsementInput:
+      type: object
+      properties:
+        channel: { type: string, enum: [mobile_money, card, bank_transfer], default: mobile_money }
+        callbackUrl: { type: string, format: uri }
+    QuoteEndorsementInput:
+      type: object
+      required: [premiumAdjustment]
+      properties:
+        premiumAdjustment: { type: number, description: "Positive = additional premium, negative = refund, 0 = no change" }
+        note: { type: string, maxLength: 2000 }
+    DecideEndorsementInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [accept, reject] }
+        note: { type: string, maxLength: 2000 }
+    ClaimJobReviewInput:
+      type: object
+      required: [rating]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, maxLength: 1000 }

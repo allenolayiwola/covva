@@ -718,7 +718,10 @@ export interface BusinessDashboard {
 
 export async function businessDashboard(ctx: BusinessCtx, orgId: string, now = new Date()): Promise<BusinessDashboard> {
   const account = await requireBusinessRole(ctx, orgId, "view");
-  const svc = requireSvc();
+  // Access is already checked above. The service client lets the dashboard count employees' claims
+  // (counts only); without it, fall back to the member's own client so the page still renders
+  // (RLS covers the business's schemes, requests and policies; claim counts then show what RLS allows).
+  const svc = svcOrNull() ?? (ctx.supabase as unknown as Svc);
   const sdb = db(svc);
   const today = now.toISOString().slice(0, 10);
   const horizon = new Date(now.getTime() + 60 * 86_400_000).toISOString().slice(0, 10);
