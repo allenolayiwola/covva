@@ -191,7 +191,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 ### Cross-cutting (every phase)
 - [x] RBAC, audit log, encryption, secure document storage, rate limiting, feature flags, consent capture.
-- [ ] Data-subject requests (export/delete) workflow; retention jobs (Act 843).
+- [x] Data-subject requests (export/delete) workflow; retention jobs (Act 843) — access/export, correction, deletion (anonymisation; insurance records retained with a reason), objection and immediate marketing opt-out; staff queue with identity check and audited actions; `privacy-retention` cron (dry run until enforced). (`supabase/migrations/20261031100100_data_subject_requests.sql`, `packages/core/src/privacy.ts`, `apps/web/src/app/(customer)/account/privacy/`, `apps/admin/src/app/(admin)/privacy-requests/`, `apps/web/src/server/privacy.ts`; docs: `docs/PRIVACY_REQUESTS.md`. Migration not yet applied; retention durations and the statutory deadline to confirm with counsel.)
 - [~] Notification abstraction gains WhatsApp (done); payment abstraction gains Hubtel (done) and a diaspora card PSP (to do).
 - [ ] Tests added with every feature; CI gates merges.
 

@@ -150,6 +150,7 @@ export const en = {
   "account.nav.payments": "Payments",
   "account.nav.business": "Business",
   "account.nav.referrals": "Refer a friend",
+  "account.nav.privacy": "Privacy & data",
   "account.nav.profile": "Profile",
   "account.nav.accountTab": "Account",
   "account.menu.myAccount": "My account",

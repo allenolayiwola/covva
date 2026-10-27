@@ -60,6 +60,11 @@ export const PERMS = {
   distribution: ["platform_admin", "platform_ops"],
   /** Switching reward rules on/off (customer inducements need NIC + insurer approval). */
   rewardRules: ["platform_admin", "compliance"],
+  /**
+   * Act 843 privacy requests: verify identity, generate exports, approve / refuse, run the deletion (anonymisation),
+   * close. Mirrors private.is_privacy_officer() in the database; support reads only.
+   */
+  privacy: ["platform_admin", "platform_ops", "compliance"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 export type PermKey = keyof typeof PERMS;
