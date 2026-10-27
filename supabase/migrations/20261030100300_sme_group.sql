@@ -575,7 +575,8 @@ begin
   values (v_org, v_uid, 'owner', 'Account owner', true)
   on conflict (org_id, user_id) do nothing;
 
-  update public.profiles set account_type = 'business', business_name = coalesce(business_name, v_name) where id = v_uid;
+  -- The owner's personal profile is left untouched (a person can own a business account and still buy personal
+  -- cover; profiles.business_name feeds customer display/masking elsewhere).
   return v_org;
 end $$;
 revoke all on function public.create_business_account(text, jsonb) from public, anon;

@@ -179,3 +179,28 @@ test.describe("customer referrals", () => {
     await expect(page.getByText(/Credits are not cash/)).toBeVisible();
   });
 });
+
+test.describe("customer policy changes", () => {
+  test.use({ storageState: STATE.customer });
+
+  test("an insurer-issued policy shows a 'Make a change' section with structured forms (read-only check)", async ({ page }) => {
+    await page.goto("/account/policies");
+    await expect(page.getByRole("heading", { level: 1, name: "My policies" })).toBeVisible();
+    const hrefs = await page.locator("a[href^='/account/policies/']:not([href$='/new'])").evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute("href")).filter((h) => /^\/account\/policies\/[0-9a-f-]{36}$/.test(h ?? "")))]);
+    let found = false;
+    for (const href of hrefs.slice(0, 6)) {
+      await page.goto(href);
+      const heading = page.getByRole("heading", { level: 2, name: "Make a change" });
+      if (!(await heading.isVisible().catch(() => false))) continue;
+      const address = page.locator("details[data-kind='change_address']");
+      if (!(await address.count())) continue; // not active yet: changes open once the insurer issues it
+      found = true;
+      await expect(address).toBeVisible();
+      await address.locator("summary").click();
+      await expect(address.getByText("Your insurer will confirm any change in premium")).toBeVisible();
+      await expect(address.getByLabel("Change starts on")).toBeVisible();
+      break;
+    }
+    test.skip(!found, "no insurer-issued active policy in the demo data");
+  });
+});
