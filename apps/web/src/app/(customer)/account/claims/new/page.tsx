@@ -7,13 +7,14 @@ import { PageSkeleton } from "@/components/customer/skeletons";
 import { CATEGORY_COLS, ORG_COLS, UUID_RE, account, policyTitle, type CategoryLite, type OrgLite } from "../../_lib/data";
 import { DEFAULT_INCIDENTS, INCIDENT_TYPES } from "../../_lib/labels";
 import { ClaimForm, type ClaimPolicy } from "./claim-form";
+import { T } from "@/lib/i18n/client";
 
 export const metadata: Metadata = { title: "Report a claim" };
 
 export default function NewClaimPage({ searchParams }: PageProps<"/account/claims/new">) {
   return (
     <div className="max-w-xl">
-      <p className="mb-1 text-sm font-medium text-muted">Report a claim</p>
+      <p className="mb-1 text-sm font-medium text-muted"><T k="claim.report" /></p>
       <Suspense fallback={<PageSkeleton rows={5} />}>
         <Body searchParams={searchParams} />
       </Suspense>

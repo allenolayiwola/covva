@@ -1,6 +1,6 @@
 import type { Enum } from "@im/db";
 
-export const ORG_TYPES: Enum<"org_type">[] = ["broker", "insurer", "enterprise", "platform"];
+export const ORG_TYPES: Enum<"org_type">[] = ["broker", "insurer", "enterprise", "distributor", "platform"];
 export const ORG_STATUSES: Enum<"org_status">[] = ["pending", "active", "suspended", "offboarded"];
 export const INTEGRATION_LEVELS: Enum<"integration_level">[] = ["portal", "quote_api", "policy_api"];
 
@@ -16,6 +16,7 @@ export const ROLES_BY_ORG_TYPE: Record<Enum<"org_type">, Enum<"member_role">[]> 
   broker: ["owner", "admin", "supervisor", "adviser", "finance", "viewer"],
   insurer: ["owner", "admin", "underwriter", "claims_officer", "finance", "viewer"],
   enterprise: ["owner", "admin", "finance", "viewer"],
+  distributor: ["owner", "admin", "finance", "viewer"],
   platform: ["platform_admin", "platform_ops", "compliance", "support"],
 };
 

@@ -20,13 +20,15 @@ import {
   Store,
   type LucideIcon,
 } from "lucide-react";
-import { CLAIM_DISCLAIMER } from "@im/core";
+import { CLAIM_DISCLAIMER, appendTranscript } from "@im/core";
 import { Button, Field, Input, Notice, Textarea, cn } from "@im/ui";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { MultiUpload } from "@/components/customer/upload";
 import { VideoUpload } from "@/components/customer/video-upload";
 import { initialActionState } from "@/components/customer/utils";
 import { reportClaim } from "../actions";
+import { VoiceRecorder } from "@/components/voice-recorder";
+import { useT } from "@/lib/i18n/client";
 
 const ICONS: Record<string, LucideIcon> = {
   car: Car,
@@ -65,6 +67,8 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
   const [description, setDescription] = React.useState("");
   const [amount, setAmount] = React.useState("");
   const [thirdParty, setThirdParty] = React.useState("");
+  const [voiceIds, setVoiceIds] = React.useState<string[]>([]);
+  const t = useT();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const policy = policies.find((p) => p.id === policyId);
   const fe = { ...state.fieldErrors, ...errors };
@@ -101,10 +105,13 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
       <input type="hidden" name="incidentType" value={incident} />
       <input type="hidden" name="lat" value={gps?.lat ?? ""} />
       <input type="hidden" name="lng" value={gps?.lng ?? ""} />
+      {voiceIds.map((id) => (
+        <input key={id} type="hidden" name="voiceNoteId" value={id} />
+      ))}
 
       <div className="mb-6 flex items-center justify-between text-sm">
-        <Link href={policy ? `/account/policies/${policy.id}` : "/account/claims"} className="font-medium text-brand hover:underline">Cancel</Link>
-        <span className="text-muted">Step {step} of 4</span>
+        <Link href={policy ? `/account/policies/${policy.id}` : "/account/claims"} className="font-medium text-brand hover:underline">{t("common.cancel")}</Link>
+        <span className="text-muted">{t("claim.step", { step, total: 4 })}</span>
       </div>
       <ol className="mb-8 grid grid-cols-4 gap-2" aria-hidden>
         {[1, 2, 3, 4].map((n) => (
@@ -114,8 +121,8 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
 
       {/* Step 1 — which policy */}
       <section hidden={step !== 1} aria-labelledby="s1">
-        <h2 id="s1" className="text-[28px] font-bold tracking-tight text-ink">Which policy?</h2>
-        <p className="mt-1 text-muted">Choose the cover you&apos;re claiming on.</p>
+        <h2 id="s1" className="text-[28px] font-bold tracking-tight text-ink">{t("claim.whichPolicy")}</h2>
+        <p className="mt-1 text-muted">{t("claim.whichPolicyBody")}</p>
         <div className="mt-5 space-y-2" role="radiogroup" aria-label="Policy">
           {policies.map((p) => (
             <label
@@ -139,7 +146,7 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
 
       {/* Step 2 — what happened (mobile-claim-report.jpg) */}
       <section hidden={step !== 2} aria-labelledby="s2">
-        <h2 id="s2" className="text-[28px] font-bold tracking-tight text-ink">What happened?</h2>
+        <h2 id="s2" className="text-[28px] font-bold tracking-tight text-ink">{t("claim.whatHappened")}</h2>
         {policy && <p className="mt-1 text-muted">{policy.subtitle}</p>}
         <div className="mt-5 grid grid-cols-2 gap-3" role="radiogroup" aria-label="What happened">
           {(policy?.incidents ?? []).map((i) => {
@@ -165,15 +172,15 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
 
         <div className="mt-5 divide-y divide-line rounded-card border border-line">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <label htmlFor="incidentDate" className="text-ink">Date</label>
+            <label htmlFor="incidentDate" className="text-ink">{t("claim.date")}</label>
             <div className="flex gap-2">
               <Input id="incidentDate" name="incidentDate" type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} className="h-10 w-40" aria-invalid={!!fe.incidentDate} />
-              <label htmlFor="incidentTime" className="sr-only">Time</label>
+              <label htmlFor="incidentTime" className="sr-only">{t("claim.time")}</label>
               <Input id="incidentTime" name="incidentTime" type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-10 w-28" />
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <label htmlFor="location" className="text-ink">Location</label>
+            <label htmlFor="location" className="text-ink">{t("claim.location")}</label>
             <div className="relative w-full sm:w-72">
               <MapPin aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brand" />
               <Input id="location" name="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Spintex Road, Accra" className="h-10 pl-9" maxLength={300} />
@@ -216,24 +223,30 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
 
       {/* Step 3 — details */}
       <section hidden={step !== 3} aria-labelledby="s3" className="space-y-5">
-        <h2 id="s3" className="text-[28px] font-bold tracking-tight text-ink">Tell us more</h2>
-        <Field label="What happened, in your own words" htmlFor="description" error={fe.description} hint="Include who was involved, what was damaged or lost, and anything you did afterwards (e.g. police report).">
+        <h2 id="s3" className="text-[28px] font-bold tracking-tight text-ink">{t("claim.tellUsMore")}</h2>
+        <Field label={t("claim.descriptionLabel")} htmlFor="description" error={fe.description} hint={t("claim.descriptionHint")}>
           <Textarea id="description" name="description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} className="min-h-40" aria-invalid={!!fe.description} />
         </Field>
-        <Field label={<>Amount you think it will cost <span className="font-normal text-subtle">(if known)</span></>} htmlFor="amountClaimed" error={fe.amountClaimed}>
+        <VoiceRecorder
+          purpose="claim_description"
+          titleKey="voice.claimTitle"
+          onUseTranscript={(text) => setDescription((d) => appendTranscript(d, text).slice(0, 5000))}
+          onSaved={(id) => setVoiceIds((ids) => (ids.includes(id) ? ids : [...ids, id].slice(-5)))}
+        />
+        <Field label={<>{t("claim.amountLabel")} <span className="font-normal text-subtle">{t("claim.ifKnown")}</span></>} htmlFor="amountClaimed" error={fe.amountClaimed}>
           <div className="flex">
             <span className="inline-flex items-center rounded-l-field border border-r-0 border-line bg-mist px-3 text-sm text-muted">GH₵</span>
             <Input id="amountClaimed" name="amountClaimed" type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} className="rounded-l-none" />
           </div>
         </Field>
-        <Field label={<>Anyone else involved? <span className="font-normal text-subtle">(optional)</span></>} htmlFor="thirdParty" hint="Names, phone numbers, vehicle registrations, witnesses.">
+        <Field label={<>{t("claim.othersLabel")} <span className="font-normal text-subtle">{t("common.optional")}</span></>} htmlFor="thirdParty" hint={t("claim.othersHint")}>
           <Textarea id="thirdParty" name="thirdParty" value={thirdParty} onChange={(e) => setThirdParty(e.target.value)} maxLength={500} className="min-h-20" />
         </Field>
       </section>
 
       {/* Step 4 — review */}
       <section hidden={step !== 4} aria-labelledby="s4" className="space-y-5">
-        <h2 id="s4" className="text-[28px] font-bold tracking-tight text-ink">Check and send</h2>
+        <h2 id="s4" className="text-[28px] font-bold tracking-tight text-ink">{t("claim.checkAndSend")}</h2>
         <dl className="divide-y divide-line rounded-card border border-line px-4 text-sm">
           {[
             ["Policy", policy?.label],
@@ -252,7 +265,7 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
             <dd className="mt-1 whitespace-pre-wrap text-ink">{description}</dd>
           </div>
         </dl>
-        <Notice tone="wait" icon={<Info className="size-4" />} title="Reporting is not approval">
+        <Notice tone="wait" icon={<Info className="size-4" />} title={t("claim.notApproval")}>
           {CLAIM_DISCLAIMER} Your broker checks your report and sends it to the insurer; we&apos;ll show when the insurer has it.
         </Notice>
       </section>
@@ -260,12 +273,12 @@ export function ClaimForm({ userId, policies, initialPolicyId }: { userId: strin
       <FormMessage state={state} className="mt-6" />
       <div className="mt-8 flex gap-3">
         {step > (initialPolicyId ? 2 : 1) && (
-          <Button type="button" variant="outline" size="lg" onClick={() => setStep((s) => s - 1)}>Back</Button>
+          <Button type="button" variant="outline" size="lg" onClick={() => setStep((s) => s - 1)}>{t("common.back")}</Button>
         )}
         {step < 4 ? (
-          <Button type="button" size="lg" className="flex-1" onClick={next}>Continue</Button>
+          <Button type="button" size="lg" className="flex-1" onClick={next}>{t("common.continue")}</Button>
         ) : (
-          <SubmitButton size="lg" className="flex-1" pendingText="Sending…">Report claim to my broker</SubmitButton>
+          <SubmitButton size="lg" className="flex-1" pendingText={t("common.sending")}>{t("claim.submit")}</SubmitButton>
         )}
       </div>
     </form>
