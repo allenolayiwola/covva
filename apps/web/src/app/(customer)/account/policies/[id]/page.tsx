@@ -20,6 +20,7 @@ import { PropertyUpdatesCard } from "@/components/customer/property-updates";
 import { isPropertyCategory } from "@/server/property";
 import { InstalmentBlock } from "@/components/customer/instalment-block";
 import { PolicyChangesSection } from "@/components/customer/policy-changes";
+import { PolicyExplainerSection } from "@/components/customer/policy-explainer-section";
 
 export const metadata: Metadata = { title: "Policy" };
 
@@ -244,6 +245,10 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
               <p className="mt-2 text-xs text-subtle">Key exclusions only. The full policy wording applies.</p>
             </section>
           )}
+
+          <Suspense fallback={<div className="h-40 animate-pulse rounded-card bg-mist" aria-hidden />}>
+            <PolicyExplainerSection supabase={supabase} userId={user.id} policyId={policy.id} isDemo={isDemo} />
+          </Suspense>
 
           {isPropertyCategory(policy.category?.slug) && !policy.external_source && <PropertyUpdatesCard policyId={policy.id} userId={user.id} supabase={supabase} />}
 

@@ -4356,6 +4356,130 @@ export type Database = {
           },
         ]
       }
+      policy_explainer_logs: {
+        Row: {
+          ai_assisted: boolean
+          answer_text: string | null
+          cited_ids: string[]
+          classification: string
+          created_at: string
+          dropped_ids: string[]
+          handed_off_at: string | null
+          handoff_message_id: string | null
+          handoff_request_id: string | null
+          id: string
+          model: string | null
+          outcome: string
+          policy_id: string
+          question: string
+          user_id: string
+          wording_hash: string
+        }
+        Insert: {
+          ai_assisted?: boolean
+          answer_text?: string | null
+          cited_ids?: string[]
+          classification: string
+          created_at?: string
+          dropped_ids?: string[]
+          handed_off_at?: string | null
+          handoff_message_id?: string | null
+          handoff_request_id?: string | null
+          id?: string
+          model?: string | null
+          outcome: string
+          policy_id: string
+          question: string
+          user_id: string
+          wording_hash: string
+        }
+        Update: {
+          ai_assisted?: boolean
+          answer_text?: string | null
+          cited_ids?: string[]
+          classification?: string
+          created_at?: string
+          dropped_ids?: string[]
+          handed_off_at?: string | null
+          handoff_message_id?: string | null
+          handoff_request_id?: string | null
+          id?: string
+          model?: string | null
+          outcome?: string
+          policy_id?: string
+          question?: string
+          user_id?: string
+          wording_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_explainer_logs_handoff_message_id_fkey"
+            columns: ["handoff_message_id"]
+            isOneToOne: false
+            referencedRelation: "request_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_explainer_logs_handoff_request_id_fkey"
+            columns: ["handoff_request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_explainer_logs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_explainer_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          model: string | null
+          policy_id: string
+          product_version_id: string | null
+          summary: Json
+          wording_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          model?: string | null
+          policy_id: string
+          product_version_id?: string | null
+          summary: Json
+          wording_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          model?: string | null
+          policy_id?: string
+          product_version_id?: string | null
+          summary?: Json
+          wording_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_explainer_summaries_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_explainer_summaries_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "product_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_number_blocks: {
         Row: {
           active: boolean

@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { Bell, User } from "lucide-react";
 import { DemoBadge, buttonClass } from "@im/ui";
 import { SiteHeader } from "@/components/site-header";
-import { getProfile, requireUser } from "@/lib/auth";
+import { getMemberships, getProfile, requireUser } from "@/lib/auth";
 import { getFlags } from "@/lib/catalog";
 import { AccountSidebar, AccountTabBar, SidebarList, TabBarList } from "@/components/customer/account-nav";
 import { AccountMenu } from "@/components/customer/account-menu";
@@ -32,7 +32,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
       <div className="mx-auto flex w-full max-w-[1200px] px-0 lg:px-8">
         <aside className="hidden w-60 shrink-0 border-r border-line lg:block">
           <Suspense fallback={<SidebarList pathname={null} />}>
-            <AccountSidebar />
+            <AccountSidebarForUser />
           </Suspense>
         </aside>
         <main id="main" className="min-w-0 flex-1 px-4 pb-32 pt-6 sm:px-6 lg:pb-16 lg:pl-12 lg:pr-0 lg:pt-8">
@@ -66,6 +66,13 @@ function HeaderFallback() {
       </span>
     </>
   );
+}
+
+/** The "Business" link only appears for members of a business (enterprise) account. */
+async function AccountSidebarForUser() {
+  await connection();
+  const memberships = await getMemberships();
+  return <AccountSidebar showBusiness={memberships.some((m) => m.org.type === "enterprise")} />;
 }
 
 /** Customers must finish onboarding (profile + consents) before using the account area. */

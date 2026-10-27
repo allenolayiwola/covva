@@ -556,3 +556,37 @@ re-run an action. Screens over 160 characters are truncated with "…" (tests pr
   edits the "Automatic transcript — please check" and adds it to the form; nothing is auto-submitted. Notes are linked
   to the request/claim on submit so the broker and insurer can listen. Twi/Ga/Ewe transcription is unreliable today —
   the UI says so.
+
+## 14. Accounting exports and tax rules (rates need confirmation)
+
+**Exports.** Built from the append-only ledger (`ledger_entries`) and stored privately in the `documents` bucket at
+`exports/<org id | platform>/<kind>-<YYYY-MM>.csv`; every run adds an `accounting_exports` row (history kept) and
+downloads are 10-minute signed URLs.
+
+| Kind | Who | Contents |
+|---|---|---|
+| `insurer_statement` | insurer, staff | Premiums customers paid the insurer directly, refunds, broker commission and platform fees payable, running balance, net retained |
+| `commission_report` | broker, insurer, staff | Commission by broker × insurer, reversals on refunds, Covva revenue share, broker net |
+| `tax_report` | broker, insurer, staff | VAT / levy lines on the earner's income for **active** rules; unconfirmed rules listed as "Not applied" |
+| `platform_revenue` | staff | Covva platform fees, revenue share, subscriptions and reversals by month and payer |
+| `xero_csv` / `quickbooks_csv` / `sage_csv` | broker, insurer, staff | Balanced journals (Xero Manual Journals, QuickBooks Online Journal Entries, Sage 50 Audit Trail) using the default chart in `@im/core` `DEFAULT_ACCOUNTS` (1000 bank, 1200 receivable, 2100 payable, 4000 premium, 4100 commission income, 4200 platform fee income, 5100/5200 expenses…) — map to the client's chart after import; dates are DD/MM/YYYY |
+
+* Partners: `/partner/reports/accounting` (owners, admins, finance). Staff: admin **Accounting** (generate per
+  organisation or platform, download, tax rules).
+* Cron `accounting-exports` (`0 4 2 * *`, the 2nd at 04:00 UTC): last month's insurer statements and commission
+  reports for every organisation with ledger activity, plus the platform's commission report, revenue and tax report.
+* Endorsement money: additional premium is a normal premium payment to the insurer (ledger premium / commission / fee
+  entries against the endorsed policy). A **refund** from a negative adjustment is posted as a ledger `refund` row
+  (`<END-ref>:refund`) and an insurer task to return the money — provider refunds are full-payment only, so the
+  insurer returns it and marks the task done. Commission on a mid-term refund is not reversed automatically; post an
+  `adjustment` if the agreement requires it.
+
+**Tax rules — rates need confirmation.** `tax_rules` is seeded with `VAT`, `NHIL`, `GETFUND`, `COVID_LEVY`,
+`NIC_LEVY` and `FIRE_SERVICE_LEVY`, all with **no rate** and status `needs_confirmation`. Nothing is applied until
+finance / the tax adviser confirms each one. Most insurance premiums are VAT-exempt in Ghana, but platform and broker
+fees may be VATable, and levies change with each budget (some may no longer be in force). For each rule confirm:
+the rate (percentage), the base (`platform_fee`, `broker_commission`, `premium`, `subscription`), whether amounts are
+tax-inclusive, the effective date and who remits it (premium levies are usually remitted by the insurer — record them
+for reporting only). Then set the rate and status `active` in admin → Accounting (the database refuses `active`
+without a rate; `retired` instead of deleting). Computed tax lines are recorded in `tax_entries` (append-only, one per
+ledger entry and tax code); levies are computed on the original base, not compounded.

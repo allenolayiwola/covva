@@ -157,15 +157,15 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] WhatsApp Business channel: notifications (renewals, documents, claims), quote links, payment links; one-tap broker accept; chat button on every page with AI FAQ handoff to a human/broker (`wa_*` tables, `server/whatsapp/*`, admin `/whatsapp`, partner `/partner/whatsapp`, `/api/webhooks/whatsapp`, `/api/ai/faq`; Twi/Ga/Ewe replies still to come).
 
 ### Phase 3 — Instalments, USSD, embedded partners, SME
-- [ ] Instalment premiums (monthly/quarterly): schedules, automated MoMo collections, retries, grace periods, lapse/reinstatement per insurer rules; ledger entries.
+- [x] Instalment premiums (monthly/quarterly): schedules from the insurer's plan, automated collections (saved card, MoMo prompt or pay link) twice daily, retries (day 0, +2, +5), grace, lapse and reinstatement (insurer review where the plan requires it); every instalment is a premium payment to the insurer with ledger entries.
 - [x] USSD flow: basic quote, renew, pay (aggregator-dependent) — provider-agnostic engine (`server/ussd/*`, Africa's Talking / Hubtel / Arkesel adapters, `/api/ussd/{provider}`), quote / renew / pay instalment / check policy / claim callback / talk to us, ≤ 160-char screens; admin `/ussd` simulator + session log. Go-live needs an aggregator account and the NCA short code.
-- [ ] Embedded distribution: partner API + embeddable quote widget; partner portal with referral tracking and revenue share; customer referral programme and page.
-- [ ] SME & group: business accounts with multiple users, bulk member/vehicle upload, group health/life, fleet, property, liability; centralised billing; business admin dashboard.
-- [ ] Micro and on-demand insurance: daily/weekly/monthly periods, pay-as-you-go premiums (product model + rating + instalment engine).
+- [x] Embedded distribution: partner API (`/api/v1/distribution/*`, `distribution:*` scopes) + embeddable quote widget (`/embed/quote`, `widget.js`, per-partner `frame-ancestors`); distributor workspace with referral tracking and revenue share (from Covva's fee only); customer referral page. Customer referral rewards are seeded **off** pending NIC/insurer approval.
+- [x] SME & group: business accounts (owner/admin/finance/viewer), bulk member and fleet CSV upload, group schemes, fleet, property and liability quotes (always broker-routed; census counts only in risk data), consolidated monthly statements paid per insurer, business dashboard, broker "Business clients" view.
+- [x] Micro and on-demand insurance: day/week/month periods on product versions, period pricing, 3-tap purchase, one-tap renew and auto-renew, public `/micro` page; insurer-direct sale for instant products.
 - [~] Local language UI (English, Twi, Ga, Ewe) with a translation layer; language switcher on the site; voice-note capture with transcription for quote help and claims — layer (`@im/core` i18n, `translations` table, admin `/translations`, `GET /api/v1/i18n/{locale}`), header switcher and voice notes done; Twi/Ga/Ewe strings still need human translators (nothing is machine-translated).
-- [~] Post-claim partner network: directory (`service_partners`, admin CRUD + approval, public `/claims/network`), direct billing per insurer, job tracking (`claim_jobs`) — done; partner self-onboarding and ratings pending.
-- [ ] Endorsement workflows (change vehicle, add driver) as structured flows.
-- [ ] Accounting exports: statements per insurer, commission reports, VAT/levy handling.
+- [x] Post-claim partner network: directory, direct billing per insurer, job tracking, public self-onboarding (`/claims/network/join` → admin review) and customer ratings (shown from 3 reviews, staff moderation).
+- [x] Endorsement workflows: structured changes per category (vehicle, drivers, address, sum insured, members, use, cancel), pro-rata premium adjustments, insurer-only accept/apply, regenerated documents, additional premium settles to the insurer.
+- [x] Accounting exports: insurer statements, commission and tax reports, Xero / QuickBooks / Sage CSV (monthly cron + on demand). Tax and levy rules are seeded with **no rates** (`needs_confirmation`) until finance confirms them.
 
 ### Phase 4 — Scorecards, analytics, advanced diaspora, retention
 - [ ] Broker scorecards (response, fulfilment, claims support, ratings/reviews) feeding routing priority and shown to customers.
@@ -174,7 +174,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [ ] Funeral cover and welfare groups: group admin, member enrolment, contribution collection, beneficiary records, claims support; linked to sponsors abroad.
 - [ ] Loyalty and rewards: no-claims rewards, bundle discounts, referral credits, renewal perks; per-insurer rules engine.
 - [ ] Motor telematics: consented phone-based driving score; safe-driver discounts at renewal where supported.
-- [ ] Policy explainer AI grounded in the customer's own wording and schedule, citing clauses, handing off advisory questions to the broker.
+- [x] Policy explainer AI grounded in the customer's own wording and schedule, citing clauses, handing off advisory questions to the broker. Grounding, clause ids, citation checks and advice heuristics are in `@im/core` `policy-explainer.ts`; the server is `server/ai/policy-explainer.ts`; the API is `POST /api/v1/me/policies/{id}/explain`; the UI is the "Explain my policy" panel on `/account/policies/[id]`. Cached summaries and the Q&A log are in migration `20261031100200_policy_explainer.sql` (not applied yet). It works without an AI key: clause browser, keyword matches and broker hand-off. Docs: `docs/POLICY_EXPLAINER.md`.
 - [ ] Insurer Level 3 adapters (one per insurer behind the common interface) as partners expose APIs.
 
 ### Marketing site (Addendum 5, brand correction applied) — runs alongside Phases 1–2

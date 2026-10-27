@@ -29,17 +29,22 @@ function isActive(pathname: string | null, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Left sidebar from web-account-dashboard.jpg. */
-export function AccountSidebar() {
-  return <SidebarList pathname={usePathname()} />;
+/** Left sidebar from web-account-dashboard.jpg. `showBusiness`: the user belongs to a business account. */
+export function AccountSidebar({ showBusiness = false }: { showBusiness?: boolean }) {
+  return <SidebarList pathname={usePathname()} showBusiness={showBusiness} />;
+}
+
+/** "Business" is shown to business-account members, and to anyone already on a business page (e.g. creating one). */
+function visibleNav(pathname: string | null, showBusiness: boolean) {
+  return ACCOUNT_NAV.filter((item) => item.href !== "/account/business" || showBusiness || isActive(pathname, item.href));
 }
 
 /** Static variant used as the Suspense fallback (usePathname needs a boundary with dynamic params). */
-export function SidebarList({ pathname }: { pathname: string | null }) {
+export function SidebarList({ pathname, showBusiness = false }: { pathname: string | null; showBusiness?: boolean }) {
   const t = useT();
   return (
     <nav aria-label={t("account.nav.label")} className="sticky top-20 space-y-1 py-6 pr-4">
-      {ACCOUNT_NAV.map((item) => {
+      {visibleNav(pathname, showBusiness).map((item) => {
         const active = isActive(pathname, item.href);
         return (
           <Link
