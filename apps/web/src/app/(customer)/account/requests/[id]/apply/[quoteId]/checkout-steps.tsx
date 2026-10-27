@@ -12,6 +12,7 @@ import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
 import { acknowledgeDisclosure, startPayment, submitApplication } from "./actions";
 import type { Declaration } from "./declarations";
+import { T } from "@/lib/i18n/client";
 
 // ---------------------------------------------------------------------------
 export function DisclosureStep({ requestId, quoteId, text, brokerName }: { requestId: string; quoteId: string; text: string; brokerName: string }) {
@@ -21,7 +22,7 @@ export function DisclosureStep({ requestId, quoteId, text, brokerName }: { reque
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="quoteId" value={quoteId} />
       <div>
-        <h2 className="text-xl font-semibold text-ink">Before you apply: who provides what</h2>
+        <h2 className="text-xl font-semibold text-ink"><T k="checkout.whoProvides" /></h2>
         <p className="mt-1 text-[15px] text-muted">
           {brokerName} is your broker of record for this request. They advise you and arrange the cover. The insurer accepts the risk, issues the
           policy and decides claims. We provide the technology only.
@@ -211,7 +212,7 @@ export function PaymentStep({
       <input type="hidden" name="currency" value={currency} />
       <input type="hidden" name="sponsor" value={sponsorMode} />
       <div>
-        <h2 className="text-xl font-semibold text-ink">Pay {insurer}</h2>
+        <h2 className="text-xl font-semibold text-ink"><T k="checkout.pay" vars={{ insurer }} /></h2>
         <p className="mt-1 text-[15px] text-muted">
           You pay the insurer directly through an authorised payment provider. We never hold your premium.
         </p>
@@ -348,7 +349,7 @@ export function BankTransferPanel({ detail, requestId, retryHref }: { detail: Ba
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-semibold text-ink">Pay by bank transfer</h2>
+        <h2 className="text-2xl font-semibold text-ink"><T k="checkout.bankTransfer" /></h2>
         <p className="mt-1 text-[15px] text-muted">
           {detail.kind === "paystack_dva"
             ? "This account number is unique to you. Transfer the exact amount and we confirm it automatically — usually within minutes."
@@ -430,7 +431,7 @@ export function PaymentWaiting({ paymentId, requestId, retryHref }: { paymentId:
             <Smartphone aria-hidden className="size-7" />
           </span>
           <div>
-            <h2 className="text-2xl font-semibold text-ink">Approve the prompt on your phone</h2>
+            <h2 className="text-2xl font-semibold text-ink"><T k="checkout.approvePrompt" /></h2>
             <p className="mx-auto mt-1 max-w-md text-[15px] text-muted">
               Enter your mobile money PIN to approve the payment. Keep this page open — it updates by itself.
             </p>

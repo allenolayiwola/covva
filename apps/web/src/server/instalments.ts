@@ -19,8 +19,8 @@ import { notify, notifyOrg } from "@/server/notify";
 import { log } from "@/server/log";
 import { recordPaymentLedger } from "@/server/ledger";
 import { resolvePaymentMethod } from "@/server/payment-methods";
-import { chargeStoredMethod, initiatePayment, initiatePolicyCollection, type InitiatePaymentResult, type PaymentOutcome } from "@/server/payments";
-import { siteUrl } from "@/server/env";
+import { chargeStoredMethod, initiatePayment, initiatePolicyCollection, refundPayment, type InitiatePaymentResult, type PaymentOutcome } from "@/server/payments";
+import { simulatorEnabled, siteUrl } from "@/server/env";
 import { planDb, type InstalmentRow, type InstalmentScheduleRow, type PlanDb } from "@/server/plan-db";
 
 /**
@@ -246,7 +246,7 @@ async function collect(svc: Svc, schedule: InstalmentScheduleRow, rows: Instalme
   const wantsCard = args.channel === "card" || (!args.channel && schedule.channel === "card");
   if (wantsCard) {
     const method = await resolvePaymentMethod(svc, schedule.payer_user_id, args.paymentMethodId ?? schedule.payment_method_id);
-    if (method || process.env.PAYMENT_SIMULATOR === "true") {
+    if (method || simulatorEnabled()) {
       const r = await chargeStoredMethod({
         subscription: { id: schedule.id, ghs_amount: amount, display_currency: "GHS", sponsor_user_id: schedule.payer_user_id },
         collection: { tags, idempotencyKey: key },
@@ -484,7 +484,6 @@ export async function decideReinstatement(scheduleId: string, args: { approve: b
     await db.from("instalment_schedules").update({ reinstatement_review: "declined", metadata: { ...asObject(schedule.metadata), reinstatement_declined: { by: args.actorId, note: args.note?.slice(0, 500) ?? null, at: new Date().toISOString() } } as Json }).eq("id", schedule.id);
     // Refund what was paid for the reinstatement (the insurer keeps nothing it won't cover).
     const { data: payments } = await svc.from("payments").select("id, raw_event, status, paid_at, created_at").eq("policy_id", schedule.policy_id ?? "").eq("status", "succeeded").gte("created_at", schedule.lapsed_at ?? schedule.created_at);
-    const { refundPayment } = await import("@/server/payments");
     for (const p of payments ?? []) {
       if (asObject(p.raw_event).reinstatement !== true) continue;
       await refundPayment(p.id, `Reinstatement declined by the insurer${args.note ? `: ${args.note}` : ""}`).catch((err) => log.error("instalment.refund_failed", { paymentId: p.id, err }));

@@ -15,6 +15,8 @@ import { escalateTimers } from "@/server/sla";
 import { refreshRates } from "@/server/fx";
 import { chargeDueSubscriptions } from "@/server/subscriptions";
 import { evaluateReferralRewards } from "@/server/referrals";
+import { collectDueInstalments } from "@/server/instalments";
+import { microRenewals } from "@/server/micro";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -440,6 +442,10 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "sponsor-collections": (svc) => chargeDueSubscriptions(svc),
   // Referrals: daily 04:00 — credits / partner revenue share after the holding period (append-only reward_ledger).
   "referral-rewards": (svc) => evaluateReferralRewards(svc),
+  // Phase 3: instalment collections 06:30 and 18:30 (MoMo prompt / saved card / pay link; retries day 0, +2, +5; grace → lapse per plan).
+  "instalment-collections": (svc) => collectDueInstalments(svc),
+  // Phase 3: hourly at :40 — micro cover auto-renewals before the window ends; ended windows marked expired.
+  "micro-renewals": (svc) => microRenewals(svc),
 };
 
 export async function runCron(job: string) {

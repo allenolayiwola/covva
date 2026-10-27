@@ -17,6 +17,7 @@ import { feeBreakdownForQuoteId } from "@/server/commercial";
 import { fxSettings, getRates } from "@/server/fx";
 import { applePayEnabled } from "@/server/env";
 import { SUPPORTED_DISPLAY_CURRENCIES, fxMargin, parseDisplayCurrency } from "@im/core";
+import { T } from "@/lib/i18n/client";
 
 export const metadata: Metadata = { title: "Apply" };
 
@@ -173,7 +174,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           { label: "Apply" },
         ]}
       />
-      <h1 className="mb-6 text-[30px] font-bold leading-tight tracking-tight text-ink sm:text-[36px]">Apply for {insurerName}</h1>
+      <h1 className="mb-6 text-[30px] font-bold leading-tight tracking-tight text-ink sm:text-[36px]"><T k="checkout.applyFor" vars={{ insurer: insurerName }} /></h1>
       <Stepper current={step} />
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">{body}</div>

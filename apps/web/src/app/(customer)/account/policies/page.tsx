@@ -7,6 +7,9 @@ import { EmptyState, PageHeader, Pill, StatusPill, buttonClass } from "@im/ui";
 import { CategoryIcon } from "@/components/customer/category-icon";
 import { ListSkeleton } from "@/components/customer/skeletons";
 import { POLICY_SELECT, account, coverLabel, policyTitle, type PolicyWithRefs } from "../_lib/data";
+import type { Translator } from "@im/core";
+import { T } from "@/lib/i18n/client";
+import { getT } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "My policies" };
 
@@ -14,13 +17,13 @@ export default function PoliciesPage() {
   return (
     <>
       <PageHeader
-        title="My policies"
-        description="Your policy wallet: every policy, its documents and who to call."
+        title={<T k="wallet.title" />}
+        description={<T k="wallet.description" />}
         actions={
           <>
-            <Link href="/account/policies/new" className={buttonClass("secondary")}>Add a policy bought elsewhere</Link>
+            <Link href="/account/policies/new" className={buttonClass("secondary")}><T k="wallet.addElsewhere" /></Link>
             <Link href="/account/requests/new" className={buttonClass("primary")}>
-              <Plus aria-hidden className="size-4" /> Get a new quote
+              <Plus aria-hidden className="size-4" /> <T k="wallet.newQuote" />
             </Link>
           </>
         }
@@ -34,18 +37,19 @@ export default function PoliciesPage() {
 
 async function Wallet() {
   const { user, supabase } = await account("/account/policies");
+  const t = await getT();
   const { data } = await supabase.from("policies").select(POLICY_SELECT).eq("customer_id", user.id).order("cover_end", { ascending: true, nullsFirst: false });
   const policies = (data ?? []) as unknown as PolicyWithRefs[];
   if (!policies.length) {
     return (
       <EmptyState
         icon={<Shield className="size-5" />}
-        title="Your wallet is empty"
-        body="Policies you buy here appear automatically once the insurer issues them. You can also add policies you bought elsewhere to keep everything in one place."
+        title={t("wallet.emptyTitle")}
+        body={t("wallet.emptyBody")}
         action={
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/explore" className={buttonClass("primary")}>Explore cover</Link>
-            <Link href="/account/policies/new" className={buttonClass("secondary")}>Add a policy</Link>
+            <Link href="/explore" className={buttonClass("primary")}>{t("wallet.explore")}</Link>
+            <Link href="/account/policies/new" className={buttonClass("secondary")}>{t("wallet.addPolicy")}</Link>
           </div>
         }
       />
@@ -55,13 +59,13 @@ async function Wallet() {
   const past = policies.filter((p) => !current.includes(p));
   return (
     <div className="space-y-10">
-      <PolicyGrid title="Current" policies={current} empty="No current policies." />
-      {past.length > 0 && <PolicyGrid title="Past" policies={past} />}
+      <PolicyGrid t={t} title={t("wallet.current")} policies={current} empty={t("wallet.noCurrent")} />
+      {past.length > 0 && <PolicyGrid t={t} title={t("wallet.past")} policies={past} />}
     </div>
   );
 }
 
-function PolicyGrid({ title, policies, empty }: { title: string; policies: PolicyWithRefs[]; empty?: string }) {
+function PolicyGrid({ t, title, policies, empty }: { t: Translator; title: string; policies: PolicyWithRefs[]; empty?: string }) {
   return (
     <section aria-label={title}>
       <h2 className="mb-3 text-lg font-semibold text-ink">{title}</h2>
@@ -77,23 +81,23 @@ function PolicyGrid({ title, policies, empty }: { title: string; policies: Polic
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted">{coverLabel(p.category?.name, p.insured_items as Record<string, unknown>)}</p>
                     <p className="truncate text-[17px] font-semibold text-ink">{policyTitle(p)}</p>
-                    <p className="truncate text-sm text-muted">{p.insurer?.name ?? p.external_insurer_name ?? "Insurer not listed"} · {p.policy_number ?? p.internal_reference}</p>
+                    <p className="truncate text-sm text-muted">{p.insurer?.name ?? p.external_insurer_name ?? t("wallet.insurerNotListed")} · {p.policy_number ?? p.internal_reference}</p>
                   </div>
                   <StatusPill meta={POLICY_STATUS[p.status]} />
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <dt className="text-muted">Cover ends</dt>
+                    <dt className="text-muted">{t("wallet.coverEnds")}</dt>
                     <dd className="font-medium text-ink">{formatDate(p.cover_end)}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Premium</dt>
+                    <dt className="text-muted">{t("wallet.premium")}</dt>
                     <dd className="font-medium text-ink">{p.premium ? `${formatGHS(Number(p.premium))} / ${p.billing_period === "month" ? "mo" : "yr"}` : "—"}</dd>
                   </div>
                 </dl>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {days !== null && days >= 0 && days <= 60 && <Pill tone="wait">Renewal in {days} day{days === 1 ? "" : "s"}</Pill>}
-                  {p.external_source && <Pill tone="neutral">Added by you</Pill>}
+                  {days !== null && days >= 0 && days <= 60 && <Pill tone="wait">{t("wallet.renewalIn", { days })}</Pill>}
+                  {p.external_source && <Pill tone="neutral">{t("wallet.addedByYou")}</Pill>}
                 </div>
               </Link>
             </li>

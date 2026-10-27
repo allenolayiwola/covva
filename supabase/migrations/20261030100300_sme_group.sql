@@ -713,3 +713,6 @@ grant select, insert, update on public.group_schemes, public.scheme_members, pub
 grant select on public.business_invoices to authenticated;
 grant select, insert, update on public.group_schemes, public.scheme_members, public.fleet_vehicles, public.business_assets, public.business_invoices to service_role;
 grant usage, select on sequence public.group_scheme_ref_seq, public.business_invoice_ref_seq to authenticated, service_role;
+-- Rows are never deleted (members/vehicles/assets are 'removed', schemes 'cancelled'); Supabase's default table
+-- privileges would otherwise give the service role DELETE/TRUNCATE on new tables.
+revoke delete, truncate on public.group_schemes, public.scheme_members, public.fleet_vehicles, public.business_assets, public.business_invoices from service_role;
