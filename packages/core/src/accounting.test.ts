@@ -149,3 +149,22 @@ test("monthPeriod", () => {
   assert.deepEqual(monthPeriod("2026-02"), { start: "2026-02-01", end: "2026-02-28" });
   assert.equal(monthPeriod("2026-13"), null);
 });
+
+test("buildExportCsv: tax report lists unconfirmed rules as not applied and taxes the earner's fees for active rules", async () => {
+  const { buildExportCsv, exportStoragePath, periodLabel } = await import("./accounting.ts");
+  const period = { start: "2026-09-01", end: "2026-09-30" };
+  const pending = buildExportCsv("tax_report", { entries: LEDGER, orgId: null, platformOrgId: PLT, taxRules: [rule({ code: "VAT" })], period });
+  assert.equal(pending.rows, 0);
+  assert.equal(pending.taxLines.length, 0);
+  assert.match(pending.csv, /Not applied,,,VAT,,,,,Rate needs confirmation/);
+  const active = buildExportCsv("tax_report", { entries: LEDGER, orgId: null, platformOrgId: PLT, taxRules: [rule({ id: "r1", code: "VAT", status: "active", rate: 10 })], period });
+  // Covva's own fees only: platform_fee 30 → 3.00, revenue_share 25.10 → 2.51 (adjustments are not a tax base).
+  assert.deepEqual(active.taxLines.map((t) => [t.ledgerEntryId, t.code, t.amount]), [[3, "VAT", 3], [4, "VAT", 2.51]]);
+  assert.equal(active.rows, 2);
+  const statement = buildExportCsv("insurer_statement", { entries: LEDGER, orgId: INS, orgType: "insurer", platformOrgId: PLT, names: { [INS]: "Coastline" }, period });
+  assert.equal(statement.rows, 8);
+  assert.match(statement.csv, /Net retained,Coastline · 2026-09-01 to 2026-09-30,,,,,1750.00,GHS/);
+  assert.equal(periodLabel(period), "2026-09");
+  assert.equal(periodLabel({ start: "2026-09-01", end: "2026-09-15" }), "2026-09-01_2026-09-15");
+  assert.equal(exportStoragePath("xero_csv", null, period), "exports/platform/xero_csv-2026-09.csv");
+});

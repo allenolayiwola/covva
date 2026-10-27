@@ -351,6 +351,8 @@ the insurer receives**; foreign-currency figures are a display only.
 | `/api/cron/sla-monitor` (extended) | every 15 min | Also escalates `sla_timers` (level 1 at due → insurer contacts; level 2 at due + 50% → Covva ops; level 3 at 2× due → customer notified to choose refund or re-route) and closes delegated review windows that have passed (`issuance_jobs.review_window` → `issued`) |
 | `/api/cron/issuance-retry` | every 30 min | Re-runs `startIssuance` for `issuance_jobs` left `queued` or `failed` (adapter outage, missing number block) whose policy is still `pending_issuance`; the admin "Retry" action re-queues a job for this run |
 | `/api/cron/settlement-statements` | monthly, 1st 02:00 | Drafts a settlement statement per broker/insurer for the previous month from the ledger (idempotent; issued statements untouched). See "Settlement and splits" |
+| `/api/cron/instalment-collections` | daily 06:30 and 18:30 | Collects due instalments (MoMo prompt / saved card / pay link), retries day 0, +2, +5, then moves schedules to grace → lapsed per the insurer's plan. See "Instalments and micro cover" |
+| `/api/cron/micro-renewals` | hourly :40 | Marks ended micro windows expired; auto-renews micro policies with `auto_renew` before the window ends (saved card charged, else a pay link by WhatsApp/SMS) |
 
 Each run writes `platform_settings['cron_last_run:<job>'] = { at, ok, ms, result }` (visible in admin
 system health). Sub-daily schedules need a Vercel Pro plan. Manual run:
@@ -442,3 +444,47 @@ once, set `scopes` (`requests:read`, `quotes:write`, `policies:issue`, `claims:w
 Implement purges as additional cron jobs once the policy is approved. Customers' data-subject requests
 (access, correction, deletion) are handled by platform support with the broker of record; regulated
 records under retention are restricted rather than deleted.
+
+## 11. Instalments and micro cover (Phase 3)
+
+Migration `20261030100000_instalments_micro.sql`; code in `apps/web/src/server/{instalments,micro}.ts`, pure rules in
+`packages/core/src/{instalments,micro}.ts`. **Every instalment and every micro window is an ordinary premium payment** —
+a `payments` row in GHS whose payee is the insurer, split pro rata (`splitForPayment` with the instalment amount) and
+posted to the ledger. Covva never holds client funds.
+
+**The rules are the insurer's.** Grace days, the lapse point, reinstatement (allowed, window, review) and any deposit /
+surcharge come from the insurer's plan on the product version (`product_versions.instalment_plans`, edited by the
+insurer under Products → version → "Periods, instalments and micro cover" on a draft version) and are snapshotted on
+each `instalment_schedules.plan`. **NIC / insurer approval is needed per product** before short periods, instalments or
+micro cover are sold: the insurer confirms the product (and its instalment terms) is approved and Covva compliance
+publishes the version only then. Covva applies the rules; it never lapses or reinstates on its own judgement.
+
+* **Checkout.** When the version has plans, checkout shows "Pay in full or in instalments?" with the schedule preview and
+  the rules in plain words. The first instalment is paid through the normal checkout (`initiatePayment` with
+  `plan.instalmentId`; the amount is read from the DB). Instalments are GHS only (MoMo or card), not with bank transfer
+  or a sponsor plan. The policy records the full premium and `instalment_schedule_id`.
+* **MoMo collection behaviour.** Mobile money "direct debit" is a prompt the payer must approve with their PIN, so a
+  collection can stay `processing` until they do (or fail when they ignore / decline it). The cron prompts the payer's
+  profile number when it matches the masked number chosen at checkout (`momo_phone`); otherwise — and for numbers we
+  cannot prompt — it sends a pay link by in-app / push / WhatsApp / SMS (`/account/payments/instalments?pay=<id>`).
+  Card plans are charged with the saved authorisation (`chargeStoredMethod`). The insurer's provider switch applies
+  (Paystack mobile money charge, Hubtel checkout, or the sandbox simulator).
+* **Retries:** on the due date, +2 days and +5 days (`instalments.next_attempt_at`); runs at 06:30 and 18:30. Admin →
+  **Instalments** can schedule one more attempt ("Retry") or record a waiver the insurer agreed ("Waive").
+* **Grace → lapse.** Past the due date the schedule is `grace` (cover in force; customer + payer notified with the
+  grace end and lapse date). At `lapse_after_days` the schedule and the policy become `lapsed`; the customer, payer,
+  insurer and broker are notified. Issuance hooks are not re-run.
+* **Reinstatement.** Within the plan's window the customer pays all arrears (`/account/payments/instalments` or
+  `POST /api/v1/instalments/schedules/{id}/reinstate`). Without review the schedule becomes `reinstated` and the policy
+  `active` again (it keeps the insurer's number). With review an insurer task (`request_tasks`, kind `review`) is
+  created and the insurer decides under Partner → **Instalments**; a decline refunds the arrears.
+* **Micro cover.** Versions flagged `micro` with `periods` day / week / month are listed on `/micro` ("from GH₵ X/day";
+  short-period prices from `rating.period_factors` / `period_min_premium`, else pro rata with a default minimum).
+  Purchase is three taps (`/account/micro/buy`). Instant products — the insurer's line integration is **L2** (delegated)
+  — are sold **insurer-direct** (no broker of record; `order_routing.mode = insurer_direct`, the applications guard
+  allows this case only) and issued by delegated issuance; others are routed with `createRequest`. Each window is a
+  `micro_sessions` row; renewal starts when the current window ends; `auto_renew` renews before the end. Cover is live
+  only while the policy is active (only the insurer / delegated issuance activates it).
+* **Channels.** USSD and WhatsApp call the same server functions (`buyMicroCover`, `renewMicro`, `payInstalment`,
+  `reinstate`); `microQuoteText` produces an SMS / USSD-length (≤ 160 chars) quote.
+

@@ -68,7 +68,6 @@ function asObject(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const digits = (p: string | null | undefined) => (p ?? "").replace(/\D/g, "");
 
 /** The insurer's plans on a product version (`product_versions.instalment_plans`). */
 export async function instalmentPlansForVersion(client: Svc | PlanDb, versionId: string | null | undefined): Promise<InstalmentPlan[]> {

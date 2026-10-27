@@ -104,6 +104,8 @@ export async function startEndorsement(customerId: string, policyId: string, kin
   if (!policy || policy.customer_id !== customerId) throw new BusinessRuleError("Policy not found.", "not_found");
   if (policy.external_source) throw new BusinessRuleError("This policy was bought elsewhere — contact that insurer to change it.");
   if (policy.status !== "active") throw new BusinessRuleError("Only an active policy can be changed.");
+  if (!policy.insurer_org_id) throw new BusinessRuleError("This policy has no insurer on Covva to confirm a change.");
+  const insurerOrgId = policy.insurer_org_id;
   if (!isEndorsementKind(kind)) throw new BusinessRuleError("Choose what you want to change.", "invalid_input");
   const slug = policy.category?.slug ?? null;
   const schema = endorsementSchemaFor(slug, kind);
@@ -161,7 +163,7 @@ export async function startEndorsement(customerId: string, policyId: string, kin
     .insert({
       policy_id: policy.id,
       customer_id: policy.customer_id,
-      insurer_org_id: policy.insurer_org_id,
+      insurer_org_id: insurerOrgId,
       broker_org_id: policy.broker_org_id,
       kind,
       changes: { before, after, lines: describeChanges(before, after), risk_after: nextRisk } as unknown as Json,

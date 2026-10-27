@@ -769,3 +769,75 @@ export const ClaimJobReviewInput = z.object({
   comment: z.string().trim().max(1000).optional(),
 });
 export type ClaimJobReviewInput = z.infer<typeof ClaimJobReviewInput>;
+
+// ---------------------------------------------------------------------------
+// Business accounts (SME & group, Phase 3)
+// ---------------------------------------------------------------------------
+const optText = (max: number) => z.string().trim().max(max).optional();
+
+/** `POST /business` — create a business account; the caller becomes its owner. */
+export const CreateBusinessInput = z.object({
+  name: z.string().trim().min(2).max(160),
+  legal_name: optText(160),
+  industry: z.string().trim().min(2).max(120),
+  employees: z.coerce.number().int().min(0).max(9_999_999),
+  tin: optText(40),
+  registration_number: optText(60),
+  billing_email: z.string().trim().toLowerCase().email(),
+  billing_contact: z.string().trim().min(2).max(120),
+  phone: optText(20),
+  region: optText(60),
+  address: optText(300),
+});
+export type CreateBusinessInput = z.infer<typeof CreateBusinessInput>;
+
+/** `POST /business/{orgId}/members` — add one member to a scheme (owner/admin). */
+export const AddSchemeMemberInput = z.object({
+  schemeId: uuid,
+  full_name: z.string().trim().min(2).max(160),
+  employee_ref: optText(60),
+  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  gender: z.enum(["female", "male", "other"]).optional(),
+  phone: optText(20),
+  email: z.string().trim().email().max(200).optional(),
+  ghana_card: optText(20),
+  relationship: z.enum(["employee", "spouse", "child", "parent"]).default("employee"),
+  principal_member_id: uuid.optional(),
+  cover_tier: optText(60),
+  salary_band: optText(60),
+});
+export type AddSchemeMemberInput = z.infer<typeof AddSchemeMemberInput>;
+
+/** `POST /business/{orgId}/members/import` — CSV text (≤ 900 KB); `preview` validates only. */
+export const ImportSchemeMembersInput = z.object({
+  schemeId: uuid,
+  csv: z.string().min(1).max(900 * 1024),
+  mode: z.enum(["preview", "import"]).default("preview"),
+});
+export type ImportSchemeMembersInput = z.infer<typeof ImportSchemeMembersInput>;
+
+/** `POST /business/{orgId}/fleet` — one vehicle, or `csv` for a bulk upload (`mode` as for members). */
+export const AddFleetInput = z.union([
+  z.object({
+    registration: z.string().trim().min(2).max(20),
+    make: optText(60),
+    model: optText(60),
+    year: z.coerce.number().int().min(1950).max(2100).optional(),
+    value: z.coerce.number().min(0).max(100_000_000).optional(),
+    use: z.enum(["private", "commercial", "hire"]).default("private"),
+    driver_name: optText(120),
+  }),
+  z.object({ csv: z.string().min(1).max(900 * 1024), mode: z.enum(["preview", "import"]).default("preview") }),
+]);
+export type AddFleetInput = z.infer<typeof AddFleetInput>;
+
+/** `POST /business/invoices/{id}/pay` — one payment per insurer line (optionally one insurer only). */
+export const PayBusinessInvoiceInput = z
+  .object({
+    channel: z.enum(["mobile_money", "card", "bank_transfer"]),
+    momo: z.object({ phone: z.string().trim().min(9).max(20), provider: z.enum(["mtn", "vod", "atl"]) }).optional(),
+    insurerOrgId: uuid.optional(),
+    callbackUrl: z.string().url().max(500).optional(),
+  })
+  .refine((v) => v.channel !== "mobile_money" || !!v.momo, { message: "Mobile money needs momo.phone and momo.provider", path: ["momo"] });
+export type PayBusinessInvoiceInput = z.infer<typeof PayBusinessInvoiceInput>;

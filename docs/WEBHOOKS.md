@@ -79,6 +79,8 @@ Subscribe per endpoint to any of these (or `*` via the database for everything).
 | `claim.reported` | Broker + insurer | `claim_id, reference, policy_id, status, incident_type` |
 | `claim.status_changed` | Broker + insurer | `claim_id, reference, from_status, status` |
 | `complaint.filed` | Owning organisation | `complaint_id, reference, status, category, against_party, request_id, policy_id, claim_id` |
+| `referral.converted` | Distribution partner (or broker) that owns the referral code | `attribution_id, code, source, request_id, reference, policy_id, category, converted_at` — the referred customer's policy is now active |
+| `referral.rewarded` | Distribution partner | `attribution_id, code, policy_id, kind, amount, currency` — revenue share accrued from **Covva's platform fee** (never the premium) after the 14-day holding period; paid by statement |
 | `test.ping` | The endpoint you test from settings | `message, org_id, sent_at` |
 
 The canonical list lives in `apps/web/src/server/webhook-events.ts`; the dispatcher is

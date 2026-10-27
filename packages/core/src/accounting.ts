@@ -475,3 +475,111 @@ export function monthPeriod(month: string): { start: string; end: string } | nul
   const end = new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10);
   return { start, end };
 }
+
+// ---------------------------------------------------------------------------
+// One export, from loaded data (shared by the web app and the admin console)
+// ---------------------------------------------------------------------------
+export interface ExportTaxLine { ledgerEntryId: number; ruleId: string | null; code: string; orgId: string; base: number; rate: number; inclusive: boolean; amount: number; currency: string }
+export interface BuildExportInput {
+  entries: readonly LedgerEntryLike[];
+  /** Null = platform-level export. */
+  orgId: string | null;
+  orgType?: "insurer" | "broker" | "platform" | string | null;
+  platformOrgId: string | null;
+  names?: Record<string, string>;
+  taxRules?: readonly TaxRuleLike[];
+  period: { start: string; end: string };
+}
+
+const n2 = (v: number) => v.toFixed(2);
+
+/**
+ * Builds the CSV for an accounting export. Tax lines are computed for ACTIVE rules only, on the
+ * earner's own income (the org's, or Covva's fees for a platform export), and returned so the caller
+ * can record them (`tax_entries`). Rules awaiting confirmation are listed in the tax report as "Not applied".
+ */
+export function buildExportCsv(kind: AccountingExportKind, input: BuildExportInput): { csv: string; rows: number; taxLines: ExportTaxLine[] } {
+  const { entries, orgId, platformOrgId: platformId, period: p } = input;
+  const names = input.names ?? {};
+  const name = (id: string | null | undefined) => (id ? names[id] ?? id : "");
+  switch (kind) {
+    case "insurer_statement": {
+      if (!orgId) throw new Error("An insurer statement needs an insurer organisation");
+      const s = insurerStatement(entries, { orgId, periodStart: p.start, periodEnd: p.end });
+      const body = s.lines.map((l) => [l.date, l.type, l.description, l.reference, l.policyId, n2(l.credit), n2(l.debit), n2(l.balance), s.currency]);
+      const totals = [
+        ["", "Total premiums received", "Paid by customers directly to the insurer", "", "", n2(s.totals.premiums), "", "", s.currency],
+        ["", "Total refunds", "", "", "", "", n2(s.totals.refunds), "", s.currency],
+        ["", "Broker commission payable", "", "", "", "", n2(s.totals.commissionPayable), "", s.currency],
+        ["", "Platform fees payable", "", "", "", "", n2(s.totals.platformFeesPayable), "", s.currency],
+        ["", "Net retained", `${name(orgId)} · ${p.start} to ${p.end}`, "", "", "", "", n2(s.totals.netRetained), s.currency],
+      ];
+      return { csv: csvString(["date", "type", "description", "reference", "policy_id", "credit", "debit", "balance", "currency"], [...body, ...totals]), rows: body.length, taxLines: [] };
+    }
+    case "commission_report": {
+      const r = commissionReport(entries, orgId && input.orgType === "broker" ? { brokerOrgId: orgId } : orgId && input.orgType === "insurer" ? { insurerOrgId: orgId } : {});
+      const body: (string | number)[][] = r.rows.map((x) => [name(x.brokerOrgId), name(x.insurerOrgId) || "(revenue share)", x.entries, x.policies, n2(x.grossCommission), n2(x.reversals), n2(x.netCommission), n2(x.revenueShare), n2(x.brokerNet), x.currency]);
+      body.push(["Total", "", r.totals.entries, r.totals.policies, n2(r.totals.grossCommission), n2(r.totals.reversals), n2(r.totals.netCommission), n2(r.totals.revenueShare), n2(r.totals.brokerNet), "GHS"]);
+      return { csv: csvString(["broker", "insurer", "entries", "policies", "gross_commission", "reversals", "net_commission", "revenue_share_to_covva", "broker_net", "currency"], body), rows: r.rows.length, taxLines: [] };
+    }
+    case "tax_report": {
+      const rules = input.taxRules ?? [];
+      const active = rules.filter((r) => r.status === "active" && r.rate !== null);
+      const earnerOf = orgId ?? platformId;
+      const taxLines: ExportTaxLine[] = [];
+      const body: (string | number | null)[][] = [];
+      if (active.length && earnerOf) {
+        for (const e of entries) {
+          const base = taxBaseForEntry(e.entry_type);
+          if (!base || e.org_id !== earnerOf) continue;
+          for (const l of applyTaxRules(Number(e.amount), active, e.created_at, { appliesTo: base }).lines) {
+            taxLines.push({ ledgerEntryId: Number(e.id), ruleId: l.ruleId ?? null, code: l.code, orgId: e.org_id, base: l.base, rate: l.rate, inclusive: l.inclusive, amount: l.amount, currency: e.currency });
+            body.push([e.created_at.slice(0, 10), LEDGER_ENTRY_LABEL[e.entry_type] ?? e.entry_type, e.reference ?? null, String(e.id), l.code, l.rate, l.inclusive ? "inclusive" : "exclusive", n2(l.base), n2(l.amount), e.currency]);
+          }
+        }
+      }
+      const rows = body.length;
+      for (const rule of rules.filter((x) => x.status !== "active" || x.rate === null)) {
+        body.push(["", "Not applied", null, null, rule.code, null, "", "", "", rule.status === "needs_confirmation" ? "Rate needs confirmation by finance / tax adviser" : String(rule.status)]);
+      }
+      return { csv: csvString(["date", "entry", "reference", "ledger_entry_id", "tax_code", "rate_pct", "basis", "base_amount", "tax_amount", "currency_or_note"], body), rows, taxLines };
+    }
+    case "platform_revenue": {
+      const mine = entries.filter((e) => platformId && e.org_id === platformId && ["platform_fee", "revenue_share", "subscription_fee", "adjustment"].includes(e.entry_type));
+      const groups = new Map<string, { month: string; type: string; payer: string; entries: number; minor: number; currency: string }>();
+      for (const e of mine) {
+        const month = e.created_at.slice(0, 7);
+        const key = `${month}|${e.entry_type}|${e.counterparty_org_id ?? ""}|${e.currency}`;
+        const g = groups.get(key) ?? { month, type: LEDGER_ENTRY_LABEL[e.entry_type] ?? e.entry_type, payer: name(e.counterparty_org_id), entries: 0, minor: 0, currency: e.currency };
+        g.entries++;
+        g.minor += toMinor(Number(e.amount));
+        groups.set(key, g);
+      }
+      const list = [...groups.values()].sort((a, b) => a.month.localeCompare(b.month) || a.type.localeCompare(b.type) || a.payer.localeCompare(b.payer));
+      const total = list.reduce((s, g) => s + g.minor, 0);
+      const body: (string | number)[][] = list.map((g) => [g.month, g.type, g.payer, g.entries, n2(fromMinor(g.minor)), g.currency]);
+      body.push(["Total", "", "", mine.length, n2(fromMinor(total)), "GHS"]);
+      return { csv: csvString(["month", "revenue_type", "paid_by", "entries", "amount", "currency"], body), rows: list.length, taxLines: [] };
+    }
+    case "xero_csv":
+    case "quickbooks_csv":
+    case "sage_csv": {
+      const subject = orgId ?? platformId;
+      if (!subject) throw new Error("No platform organisation configured");
+      const journal = ledgerToJournal(entries, subject, { names });
+      return { csv: kind === "xero_csv" ? toXeroCsv(journal) : kind === "quickbooks_csv" ? toQuickBooksCsv(journal) : toSageCsv(journal), rows: journal.length, taxLines: [] };
+    }
+  }
+}
+
+/** `2026-09` for a whole calendar month, else `2026-09-01_2026-09-15`. */
+export function periodLabel(p: { start: string; end: string }): string {
+  const [y, m] = p.start.split("-");
+  const lastDay = new Date(Date.UTC(Number(y), Number(m), 0)).toISOString().slice(0, 10);
+  return p.start.endsWith("-01") && p.end === lastDay ? `${y}-${m}` : `${p.start}_${p.end}`;
+}
+
+/** Storage path in the private documents bucket: `exports/<org|platform>/<kind>-<period>.csv`. */
+export function exportStoragePath(kind: AccountingExportKind, orgId: string | null, p: { start: string; end: string }): string {
+  return `exports/${orgId ?? "platform"}/${kind}-${periodLabel(p)}.csv`;
+}

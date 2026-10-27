@@ -385,3 +385,79 @@ test.describe("marketing site", () => {
     await expect(drawer).toBeHidden();
   });
 });
+
+test.describe("embedded quote widget", () => {
+  test("an unknown partner code renders a friendly not-available state (and is never framable by others)", async ({ page }) => {
+    const res = await page.goto("/embed/quote?partner=bad");
+    expect(res?.status()).toBe(200);
+    expect(res?.headers()["x-frame-options"]).toBeUndefined();
+    expect(res?.headers()["content-security-policy"] ?? "").toContain("frame-ancestors 'self'");
+    await expect(page.getByTestId("embed-unavailable")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /aren.t available here right now/ })).toBeVisible();
+    await expect(page.getByText("Technology provided by Covva. Insurance provided by licensed insurers and brokers.")).toBeVisible();
+  });
+});
+
+test.describe("site-wide language switcher (Phase 3 i18n)", () => {
+  test("English pages are unchanged by the translation layer", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+    await expect(page.getByRole("heading", { level: 2, name: "What do you want to insure?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Get quotes" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "For partners" })).toBeVisible();
+    await expect(page.getByRole("contentinfo")).toContainText("Technology platform. Not an insurer or broker.");
+    await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Diaspora" })).toBeVisible();
+    await expect(page.getByTestId("locale-notice")).toHaveCount(0);
+  });
+
+  test("choosing Twi in the header is honest: English text with an in-progress notice", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto("/");
+    const header = page.getByRole("banner");
+    await header.getByRole("button", { name: "Language: English" }).click();
+    await header.getByRole("button", { name: /^Twi/ }).click();
+    await expect(page.getByTestId("locale-notice")).toContainText("Twi translations are in progress — untranslated text is shown in English.");
+    await expect(page.locator("html")).toHaveAttribute("lang", "tw");
+    const cookies = await context.cookies();
+    expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
+    // Nothing is machine-translated: the page stays in English.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+
+    // The choice survives a reload (cookie → <html lang> script, notice after hydration).
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "tw");
+    await expect(page.getByTestId("locale-notice")).toBeVisible();
+    await expect(header.getByRole("button", { name: "Language: Twi" })).toBeVisible();
+
+    // The catalogue API reports the honest status.
+    const res = await page.request.get("/api/v1/i18n/tw");
+    expect(res.ok()).toBe(true);
+    const body = await res.json();
+    expect(["planned", "partial", "complete"]).toContain(body.data.status);
+    expect(body.data.fallback).toBe("en");
+
+    // Back to English: notice gone.
+    await header.getByRole("button", { name: "Language: Twi" }).click();
+    await header.getByRole("button", { name: /^English/ }).click();
+    await expect(page.getByTestId("locale-notice")).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
+  });
+});
+
+test.describe("micro cover page (Phase 3)", () => {
+  test("/micro renders one h1, the audiences and a product grid or the coming-soon note", async ({ page }) => {
+    const res = await page.goto("/micro");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Cover by the day/i);
+    await expect(page.getByRole("list", { name: "Who it is for" })).toContainText("Okada riders");
+    const buy = page.getByRole("link", { name: "Buy cover" });
+    if ((await buy.count()) > 0) await expect(buy.first()).toHaveAttribute("href", /\/account\/micro\/buy\?version=/);
+    else await expect(page.getByText(/Micro cover is coming soon/)).toBeVisible();
+    const api = await page.request.get("/api/v1/micro/products?audience=okada");
+    expect(api.ok()).toBe(true);
+    expect(Array.isArray((await api.json()).data.items)).toBe(true);
+  });
+});

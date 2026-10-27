@@ -169,3 +169,15 @@ test.describe("customer account", () => {
     await expect(page.getByLabel(/What should we call you/)).toHaveValue(original);
   });
 });
+
+test.describe("customer referrals", () => {
+  test.use({ storageState: STATE.customer });
+
+  test("/account/referrals renders the link card, friends and honest credit copy", async ({ page }) => {
+    await page.goto("/account/referrals");
+    await expect(page.getByRole("heading", { level: 1, name: "Refer a friend" })).toBeVisible();
+    await expect(page.getByTestId("referrals-page")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Your link" })).toBeVisible();
+    await expect(page.getByText(/Credits are not cash/)).toBeVisible();
+  });
+});

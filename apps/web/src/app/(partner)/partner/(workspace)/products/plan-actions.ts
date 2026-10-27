@@ -36,7 +36,7 @@ export async function setVersionPlans(_prev: ActionState, formData: FormData): P
       const parsed = z
         .object({ count: num(2, 24), deposit_pct: num(0, 100), surcharge_pct: num(0, 100), grace_days: num(0, 90), lapse_after_days: num(0, 180), within_days: num(0, 365) })
         .safeParse({ count: f("count"), deposit_pct: f("deposit_pct") || 0, surcharge_pct: f("surcharge_pct") || 0, grace_days: f("grace_days") || 0, lapse_after_days: f("lapse_after_days") || 0, within_days: f("within_days") || 0 });
-      if (!parsed.success) return { ok: false, error: `${key === "monthly" ? "Monthly" : "Quarterly"} plan: ${parsed.error.issues[0]?.path[0]} ${parsed.error.issues[0]?.message}` };
+      if (!parsed.success) return { ok: false, error: `${key === "monthly" ? "Monthly" : "Quarterly"} plan: ${String(parsed.error.issues[0]?.path[0] ?? "")} ${parsed.error.issues[0]?.message ?? ""}` };
       if (parsed.data.lapse_after_days < parsed.data.grace_days) return { ok: false, error: "Cover can't lapse before the grace period ends." };
       const plan = parseInstalmentPlan({ key, ...parsed.data, reinstatement: { allowed: f("rein_on") === "on", within_days: parsed.data.within_days, requires_review: f("rein_review") === "on" } });
       if (plan) plans.push(plan as unknown as Record<string, unknown>);

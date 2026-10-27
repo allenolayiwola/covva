@@ -2,16 +2,8 @@ import "server-only";
 import {
   ACCOUNTING_EXPORT_KINDS,
   ACCOUNTING_EXPORT_LABEL,
-  LEDGER_ENTRY_LABEL,
-  applyTaxRules,
-  commissionReport,
-  csvString,
-  insurerStatement,
-  ledgerToJournal,
-  taxBaseForEntry,
-  toQuickBooksCsv,
-  toSageCsv,
-  toXeroCsv,
+  buildExportCsv,
+  exportStoragePath,
   type AccountingExportKind,
   type LedgerEntryLike,
   type TaxRuleLike,
@@ -49,15 +41,8 @@ export function isExportKind(v: unknown): v is AccountingExportKind {
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const nextDay = (iso: string) => new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 
-/** `2026-09` for a whole calendar month, else `2026-09-01_2026-09-15`. */
-export function periodLabel(p: Period): string {
-  const [y, m] = p.start.split("-");
-  const lastDay = new Date(Date.UTC(Number(y), Number(m), 0)).toISOString().slice(0, 10);
-  return p.start.endsWith("-01") && p.end === lastDay ? `${y}-${m}` : `${p.start}_${p.end}`;
-}
-
 export function exportPath(kind: AccountingExportKind, orgId: string | null, p: Period): string {
-  return `exports/${orgId ?? "platform"}/${kind}-${periodLabel(p)}.csv`;
+  return exportStoragePath(kind, orgId, p);
 }
 
 async function ledgerFor(svc: Svc, orgId: string | null, p: Period): Promise<LedgerEntryLike[]> {
@@ -93,99 +78,24 @@ async function taxRules(svc: Svc): Promise<TaxRuleLike[]> {
   return (data ?? []) as TaxRuleLike[];
 }
 
-/** Tax lines for the period (active rules only), recorded idempotently in `tax_entries`. */
-async function taxLines(svc: Svc, entries: LedgerEntryLike[], orgId: string | null, platformId: string | null) {
-  const rules = await taxRules(svc);
-  const active = rules.filter((r) => r.status === "active" && r.rate !== null);
-  const rows: { entry: LedgerEntryLike; earner: string; base: number; code: string; rate: number; inclusive: boolean; amount: number; ruleId?: string }[] = [];
-  if (active.length) {
-    for (const e of entries) {
-      const base = taxBaseForEntry(e.entry_type);
-      if (!base) continue;
-      // Only the earner's own income is taxed in its report (platform: Covva's fees).
-      const earner = e.org_id;
-      if (orgId ? earner !== orgId : earner !== platformId) continue;
-      const res = applyTaxRules(Number(e.amount), active, e.created_at, { appliesTo: base });
-      for (const l of res.lines) rows.push({ entry: e, earner, base: l.base, code: l.code, rate: l.rate, inclusive: l.inclusive, amount: l.amount, ruleId: l.ruleId });
-    }
-    if (rows.length) {
-      const { error } = await svc.from("tax_entries").upsert(
-        rows.map((r) => ({ ledger_entry_id: Number(r.entry.id), tax_rule_id: r.ruleId ?? null, tax_code: r.code, org_id: r.earner, base_amount: r.base, rate: r.rate, inclusive: r.inclusive, amount: r.amount, currency: r.entry.currency })),
-        { onConflict: "ledger_entry_id,tax_code", ignoreDuplicates: true },
-      );
-      if (error) log.warn("accounting.tax_entries_failed", { err: error });
-    }
-  }
-  return { rows, rules };
-}
-
-function n2(v: number) {
-  return v.toFixed(2);
-}
-
-/** Build the CSV text for an export (pure given the loaded data). */
+/** Load the ledger and build the CSV; tax lines (active rules only) are recorded idempotently in `tax_entries`. */
 async function buildCsv(svc: Svc, kind: AccountingExportKind, orgId: string | null, p: Period): Promise<{ csv: string; rows: number }> {
   const entries = await ledgerFor(svc, orgId, p);
-  const platformId = await platformOrgId(svc);
-  const names = await orgNames(svc, entries.flatMap((e) => [e.org_id, e.counterparty_org_id]));
-  const name = (id: string | null | undefined) => (id ? names[id] ?? id : "");
-
-  switch (kind) {
-    case "insurer_statement": {
-      if (!orgId) throw new Error("An insurer statement needs an insurer organisation");
-      const s = insurerStatement(entries, { orgId, periodStart: p.start, periodEnd: p.end });
-      const body = s.lines.map((l) => [l.date, l.type, l.description, l.reference, l.policyId, n2(l.credit), n2(l.debit), n2(l.balance), s.currency]);
-      const totals = [
-        ["", "Total premiums received", "Paid by customers directly to the insurer", "", "", n2(s.totals.premiums), "", "", s.currency],
-        ["", "Total refunds", "", "", "", "", n2(s.totals.refunds), "", s.currency],
-        ["", "Broker commission payable", "", "", "", "", n2(s.totals.commissionPayable), "", s.currency],
-        ["", "Platform fees payable", "", "", "", "", n2(s.totals.platformFeesPayable), "", s.currency],
-        ["", "Net retained", `${name(orgId)} · ${p.start} to ${p.end}`, "", "", "", "", n2(s.totals.netRetained), s.currency],
-      ];
-      return { csv: csvString(["date", "type", "description", "reference", "policy_id", "credit", "debit", "balance", "currency"], [...body, ...totals]), rows: body.length };
-    }
-    case "commission_report": {
-      const { data: org } = orgId ? await svc.from("organizations").select("type").eq("id", orgId).maybeSingle() : { data: null };
-      const r = commissionReport(entries, org?.type === "broker" ? { brokerOrgId: orgId! } : org?.type === "insurer" ? { insurerOrgId: orgId! } : {});
-      const body = r.rows.map((x) => [name(x.brokerOrgId), name(x.insurerOrgId) || "(revenue share)", x.entries, x.policies, n2(x.grossCommission), n2(x.reversals), n2(x.netCommission), n2(x.revenueShare), n2(x.brokerNet), x.currency]);
-      body.push(["Total", "", r.totals.entries, r.totals.policies, n2(r.totals.grossCommission), n2(r.totals.reversals), n2(r.totals.netCommission), n2(r.totals.revenueShare), n2(r.totals.brokerNet), "GHS"]);
-      return { csv: csvString(["broker", "insurer", "entries", "policies", "gross_commission", "reversals", "net_commission", "revenue_share_to_covva", "broker_net", "currency"], body), rows: r.rows.length };
-    }
-    case "tax_report": {
-      const { rows, rules } = await taxLines(svc, entries, orgId, platformId);
-      const body: (string | number | null)[][] = rows.map((r) => [r.entry.created_at.slice(0, 10), LEDGER_ENTRY_LABEL[r.entry.entry_type] ?? r.entry.entry_type, r.entry.reference ?? null, String(r.entry.id), r.code, r.rate, r.inclusive ? "inclusive" : "exclusive", n2(r.base), n2(r.amount), r.entry.currency]);
-      for (const rule of rules.filter((x) => x.status !== "active" || x.rate === null)) {
-        body.push(["", "Not applied", null, null, rule.code, null, "", "", "", rule.status === "needs_confirmation" ? "Rate needs confirmation by finance / tax adviser" : rule.status]);
-      }
-      return { csv: csvString(["date", "entry", "reference", "ledger_entry_id", "tax_code", "rate_pct", "basis", "base_amount", "tax_amount", "currency_or_note"], body), rows: rows.length };
-    }
-    case "platform_revenue": {
-      const mine = entries.filter((e) => platformId && e.org_id === platformId && ["platform_fee", "revenue_share", "subscription_fee", "adjustment"].includes(e.entry_type));
-      const groups = new Map<string, { month: string; type: string; payer: string; entries: number; minor: number; currency: string }>();
-      for (const e of mine) {
-        const month = e.created_at.slice(0, 7);
-        const key = `${month}|${e.entry_type}|${e.counterparty_org_id ?? ""}|${e.currency}`;
-        const g = groups.get(key) ?? { month, type: LEDGER_ENTRY_LABEL[e.entry_type] ?? e.entry_type, payer: name(e.counterparty_org_id), entries: 0, minor: 0, currency: e.currency };
-        g.entries++;
-        g.minor += Math.round(Number(e.amount) * 100);
-        groups.set(key, g);
-      }
-      const list = [...groups.values()].sort((a, b) => a.month.localeCompare(b.month) || a.type.localeCompare(b.type) || a.payer.localeCompare(b.payer));
-      const total = list.reduce((s, g) => s + g.minor, 0);
-      const body = list.map((g) => [g.month, g.type, g.payer, g.entries, n2(g.minor / 100), g.currency]);
-      body.push(["Total", "", "", mine.length, n2(total / 100), "GHS"]);
-      return { csv: csvString(["month", "revenue_type", "paid_by", "entries", "amount", "currency"], body), rows: list.length };
-    }
-    case "xero_csv":
-    case "quickbooks_csv":
-    case "sage_csv": {
-      const subject = orgId ?? platformId;
-      if (!subject) throw new Error("No platform organisation configured");
-      const journal = ledgerToJournal(entries, subject, { names });
-      const csv = kind === "xero_csv" ? toXeroCsv(journal) : kind === "quickbooks_csv" ? toQuickBooksCsv(journal) : toSageCsv(journal);
-      return { csv, rows: journal.length };
-    }
+  const [platformId, names, rules, org] = await Promise.all([
+    platformOrgId(svc),
+    orgNames(svc, entries.flatMap((e) => [e.org_id, e.counterparty_org_id]).concat(orgId)),
+    kind === "tax_report" ? taxRules(svc) : Promise.resolve([] as TaxRuleLike[]),
+    orgId ? svc.from("organizations").select("type").eq("id", orgId).maybeSingle().then((r) => r.data) : Promise.resolve(null),
+  ]);
+  const built = buildExportCsv(kind, { entries, orgId, orgType: org?.type ?? (orgId ? null : "platform"), platformOrgId: platformId, names, taxRules: rules, period: p });
+  if (built.taxLines.length) {
+    const { error } = await svc.from("tax_entries").upsert(
+      built.taxLines.map((t) => ({ ledger_entry_id: t.ledgerEntryId, tax_rule_id: t.ruleId, tax_code: t.code, org_id: t.orgId, base_amount: t.base, rate: t.rate, inclusive: t.inclusive, amount: t.amount, currency: t.currency })),
+      { onConflict: "ledger_entry_id,tax_code", ignoreDuplicates: true },
+    );
+    if (error) log.warn("accounting.tax_entries_failed", { err: error });
   }
+  return { csv: built.csv, rows: built.rows };
 }
 
 export interface ExportResult { id: string | null; kind: AccountingExportKind; storagePath: string | null; rowCount: number; url: string | null; status: "ready" | "failed"; error?: string }

@@ -2,12 +2,14 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { ArrowLeft, Check, ChevronDown, CloudOff, Save, Search } from "lucide-react";
-import { CATEGORY_AVAILABILITY, GHANA_REGIONS, normaliseRegistration, prefillFromLookup, quickQuoteFields, riskSchemaToZod, type RiskField, type VehicleData } from "@im/core";
+import { CATEGORY_AVAILABILITY, GHANA_REGIONS, appendTranscript, type MessageKey, normaliseRegistration, prefillFromLookup, quickQuoteFields, riskSchemaToZod, type RiskField, type VehicleData } from "@im/core";
 import { Button, Checkbox, Field, Input, Notice, Pill, Select, Textarea, cn } from "@im/ui";
 import { CategoryIcon } from "@/components/customer/category-icon";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
 import { submitRequest } from "./actions";
+import { VoiceRecorder } from "@/components/voice-recorder";
+import { useT } from "@/lib/i18n/client";
 
 export interface CategoryOption {
   slug: string;
@@ -24,20 +26,26 @@ type Value = string | string[];
 type Values = Record<string, Value>;
 type RequestType = "new_cover" | "renewal" | "switch" | "endorsement";
 
-const TYPE_COPY: Record<RequestType, { title: string; body?: string; noteLabel?: string }> = {
-  new_cover: { title: "Tell us what you need" },
+const TYPE_COPY: Record<RequestType, { title: string; titleKey: MessageKey; submitKey: MessageKey; body?: string; noteLabel?: string }> = {
+  new_cover: { title: "Tell us what you need", titleKey: "request.type.newCover", submitKey: "request.submit.newCover" },
   renewal: {
     title: "Renewal details",
+    titleKey: "request.type.renewal",
+    submitKey: "request.submit.renewal",
     body: "Check your details are still right. Your broker will prepare renewal options; your current cover continues until it ends.",
     noteLabel: "Anything that has changed since last year?",
   },
   switch: {
     title: "Switch insurer",
+    titleKey: "request.type.switch",
+    submitKey: "request.submit.switch",
     body: "This starts a review with your broker. Your existing cover is not cancelled until the replacement is accepted by the new insurer, the start date is agreed and payment is confirmed.",
     noteLabel: "Why do you want to switch? (optional)",
   },
   endorsement: {
     title: "Request a change to your policy",
+    titleKey: "request.type.endorsement",
+    submitKey: "request.submit.endorsement",
     body: "Tell your broker what you'd like to change. Changes take effect only when the insurer confirms them and issues an endorsement.",
     noteLabel: "What would you like to change?",
   },
@@ -112,10 +120,11 @@ export function RequestForm({
 }
 
 function CategoryPicker({ categories, onPick }: { categories: CategoryOption[]; onPick: (slug: string) => void }) {
+  const t = useT();
   const groups = [
-    { key: "personal", label: "For you and your family" },
-    { key: "business", label: "For your business" },
-    { key: "specialist", label: "Specialist" },
+    { key: "personal", label: t("request.group.personal") },
+    { key: "business", label: t("request.group.business") },
+    { key: "specialist", label: t("request.group.specialist") },
   ];
   return (
     <div className="space-y-8">
@@ -209,6 +218,8 @@ function RiskForm({
   const [beneficiaryId, setBeneficiaryId] = React.useState(initialBeneficiaryId ?? "");
   const beneficiary = beneficiaries.find((b) => b.id === beneficiaryId);
   const showCoverFor = type === "new_cover" && !policyId;
+  const t = useT();
+  const [voiceIds, setVoiceIds] = React.useState<string[]>([]);
 
   async function findVehicle() {
     const reg = normaliseRegistration(typeof values.registration_number === "string" ? values.registration_number : "");
@@ -344,20 +355,23 @@ function RiskForm({
       <input type="hidden" name="risk" value={JSON.stringify(riskPayload())} />
       <input type="hidden" name="beneficiary" value={showCoverFor && coverFor === "family" ? beneficiaryId : ""} />
       <input type="hidden" name="bundle" value={bundle ?? ""} />
+      {voiceIds.map((id) => (
+        <input key={id} type="hidden" name="voiceNoteId" value={id} />
+      ))}
 
       <div className="flex flex-wrap items-center gap-3">
         {onBack && (
           <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-            <ArrowLeft aria-hidden className="size-4" /> Change cover type
+            <ArrowLeft aria-hidden className="size-4" /> {t("request.changeType")}
           </button>
         )}
         <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-subtle" aria-live="polite">
           {saved === "unavailable" ? (
-            <><CloudOff aria-hidden className="size-3.5" /> Drafts can&apos;t be saved on this device</>
+            <><CloudOff aria-hidden className="size-3.5" /> {t("request.draftUnavailable")}</>
           ) : saved === "restored" ? (
-            <><Save aria-hidden className="size-3.5" /> We restored your saved answers</>
+            <><Save aria-hidden className="size-3.5" /> {t("request.draftRestored")}</>
           ) : saved === "saved" ? (
-            <><Check aria-hidden className="size-3.5" /> Draft saved on this device</>
+            <><Check aria-hidden className="size-3.5" /> {t("request.draftSaved")}</>
           ) : null}
         </span>
       </div>
@@ -365,8 +379,8 @@ function RiskForm({
       <div className="flex items-start gap-3">
         <CategoryIcon icon={category.icon} />
         <div>
-          <h2 className="text-xl font-semibold text-ink">{category.name} · {copy.title}</h2>
-          {policyLabel && <p className="text-sm text-muted">For {policyLabel}</p>}
+          <h2 className="text-xl font-semibold text-ink">{category.name} · {t(copy.titleKey)}</h2>
+          {policyLabel && <p className="text-sm text-muted">{t("request.forPolicy", { policy: policyLabel })}</p>}
         </div>
       </div>
 
@@ -380,13 +394,13 @@ function RiskForm({
 
       {showCoverFor && (
         <fieldset className="rounded-card border border-line p-4 sm:p-5" aria-describedby="cover-for-hint">
-          <legend className="px-1 font-semibold text-ink">Who is this cover for?</legend>
-          <p id="cover-for-hint" className="mb-3 text-sm text-muted">Living abroad? You can arrange and pay for cover for family in Ghana. They are named on the policy; you are the payer.</p>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Who is this cover for?">
+          <legend className="px-1 font-semibold text-ink">{t("request.coverFor")}</legend>
+          <p id="cover-for-hint" className="mb-3 text-sm text-muted">{t("request.coverForHint")}</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("request.coverFor")}>
             {(
               [
-                { v: "self", l: "Myself" },
-                { v: "family", l: "A family member in Ghana" },
+                { v: "self", l: t("request.coverFor.self") },
+                { v: "family", l: t("request.coverFor.family") },
               ] as const
             ).map((o) => (
               <label
@@ -429,15 +443,15 @@ function RiskForm({
       {hasQuick ? (
         <>
           <section aria-labelledby="quick-start" className="rounded-card border border-brand/30 bg-mint-2/30 p-4 sm:p-5">
-            <h3 id="quick-start" className="font-semibold text-ink">Start with three details</h3>
-            <p className="mt-0.5 text-sm text-muted">Registration, use and value. We look up the make, model and year for you — a motor quote in under two minutes.</p>
+            <h3 id="quick-start" className="font-semibold text-ink">{t("request.quickStart")}</h3>
+            <p className="mt-0.5 text-sm text-muted">{t("request.quickStartBody")}</p>
             <div className="mt-4 grid gap-5 sm:grid-cols-2">
               {quick.map((f) => (
                 <RiskInput key={f.key} field={f} value={values[f.key] ?? ""} error={errors[f.key] ?? state.fieldErrors?.[f.key]} onChange={(v) => set(f.key, v)} />
               ))}
               <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
                 <Button type="button" variant="secondary" size="sm" loading={lookup.state === "searching"} onClick={findVehicle}>
-                  <Search aria-hidden className="size-4" /> Find my vehicle
+                  <Search aria-hidden className="size-4" /> {t("request.findVehicle")}
                 </Button>
                 <p aria-live="polite" className="text-sm text-muted">
                   {lookup.state === "found"
@@ -462,7 +476,7 @@ function RiskForm({
               className="flex w-full items-center justify-between rounded-xl border border-line px-4 py-3 text-left font-semibold text-ink hover:bg-mist"
             >
               <span>
-                Check details
+                {t("request.checkDetails")}
                 {!detailsOpen && lookup.state === "found" && (
                   <span className="ml-2 font-normal text-muted">{[values.vehicle_make, values.vehicle_model, values.vehicle_year].filter(Boolean).join(" ")} · prefilled from the registration</span>
                 )}
@@ -489,8 +503,8 @@ function RiskForm({
           name="talk_to_expert"
           label={
             <span>
-              <span className="font-medium text-ink">Talk to an expert first</span>
-              <span className="block text-sm text-muted">A licensed broker calls you before any quote is prepared — useful if you&apos;re not sure what cover you need. It doesn&apos;t cost you anything.</span>
+              <span className="font-medium text-ink">{t("request.talkToExpert")}</span>
+              <span className="block text-sm text-muted">{t("request.talkToExpertBody")}</span>
             </span>
           }
         />
@@ -498,7 +512,7 @@ function RiskForm({
 
       {(copy.noteLabel || type === "new_cover") && (
         <Field
-          label={copy.noteLabel ?? <>Anything else your broker should know? <span className="font-normal text-subtle">(optional)</span></>}
+          label={copy.noteLabel ?? <>{t("request.noteLabel")} <span className="font-normal text-subtle">{t("common.optional")}</span></>}
           htmlFor="f-note"
           error={errors.__note}
         >
@@ -508,14 +522,25 @@ function RiskForm({
             }} maxLength={4000} aria-invalid={!!errors.__note} />
         </Field>
       )}
+      {(copy.noteLabel || type === "new_cover") && (
+        <VoiceRecorder
+          purpose="quote_help"
+          titleKey="voice.requestTitle"
+          onUseTranscript={(text) => {
+            dirty.current = true;
+            setNote((n) => appendTranscript(n, text).slice(0, 4000));
+          }}
+          onSaved={(id) => setVoiceIds((ids) => (ids.includes(id) ? ids : [...ids, id].slice(-5)))}
+        />
+      )}
 
       <FormMessage state={state} />
       <div className="flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-subtle">
-          Your request goes to a named, licensed broker of record. You&apos;ll see who before you apply. No cover starts until an insurer accepts it.
+          {t("request.footnote")}
         </p>
-        <SubmitButton size="lg" pendingText="Sending…" className="shrink-0">
-          {type === "renewal" ? "Request renewal options" : type === "switch" ? "Start switch review" : type === "endorsement" ? "Send change request" : "Send request"}
+        <SubmitButton size="lg" pendingText={t("common.sending")} className="shrink-0">
+          {t(copy.submitKey)}
         </SubmitButton>
       </div>
     </form>

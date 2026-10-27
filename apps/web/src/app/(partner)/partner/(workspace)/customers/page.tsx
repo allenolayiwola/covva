@@ -15,7 +15,7 @@ export default function CustomersPage({ searchParams }: PageProps<"/partner/cust
       <PageHeader
         title="Customers"
         description="Customers whose requests or policies are routed to your organisation."
-        actions={<Link href="/partner/customers/import" className={buttonClass("outline", "sm")}>Import existing clients</Link>}
+        actions={<><Link href="/partner/customers/business" className={buttonClass("outline", "sm")}>Business clients</Link><Link href="/partner/customers/import" className={buttonClass("outline", "sm")}>Import existing clients</Link></>}
       />
       <Suspense fallback={<PageSkeleton stats={0} />}>
         <Customers searchParams={searchParams} />
