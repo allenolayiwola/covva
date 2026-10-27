@@ -1,3 +1,6 @@
+# WARNING: local development only. Auth settings here (site_url, redirect URLs, minimum password length 6)
+# do not match production. Never run `supabase config push` from this file.
+
 # For detailed configuration reference documentation, visit:
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
