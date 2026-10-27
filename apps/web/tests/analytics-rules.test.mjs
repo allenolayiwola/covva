@@ -185,9 +185,13 @@ describe("renewals and masking", () => {
     const pipeline = await c.get("partner_renewal_pipeline?select=policy_id,customer_id&limit=50");
     expectOk(pipeline);
     for (const row of pipeline.body) assert.equal(row.customer_id, sessions.customer.userId);
-    const activity = await c.get("partner_activity?select=id&limit=5");
+    // The demo customer may own business accounts (SME suites / e2e, never deleted): only their activity is visible.
+    const business = await c.get("organizations?select=id&type=eq.enterprise");
+    expectOk(business);
+    const own = new Set(business.body.map((o) => o.id));
+    const activity = await c.get("partner_activity?select=id,org_id&limit=50");
     expectOk(activity);
-    assert.equal(activity.body.length, 0, "customers have no audit visibility");
+    assert.ok(activity.body.every((a) => own.has(a.org_id)), "customers have no audit visibility beyond their own business accounts");
     // An adviser (not owner/admin/supervisor) sees no org activity either.
     const adviserRole = (await asUser(sessions.adviser).get(`memberships?select=role,is_supervisor&org_id=eq.${ids.broker}&active=eq.true`)).body[0];
     const adviserActivity = await asUser(sessions.adviser).get(`partner_activity?select=id&org_id=eq.${ids.broker}&limit=5`);

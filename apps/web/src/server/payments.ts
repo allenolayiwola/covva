@@ -1002,6 +1002,21 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
     payment.quote_id ? svc.from("quotes").select("*").eq("id", payment.quote_id).single() : Promise.resolve({ data: null }),
     svc.from("requests").select("id, reference, title, category_id, broker_org_id, customer_id, risk_data, source_broker_org_id").eq("id", payment.request_id).single(),
   ]);
+  // Endorsement additional premium: the payment is pre-linked to the existing policy (no quote of its own),
+  // so it must not create a policy. Post its ledger + notifications through the endorsements module.
+  if (!quote && payment.policy_id) {
+    try {
+      const { data: endorsement } = await svc.from("endorsements").select("id").eq("adjustment_payment_id", payment.id).maybeSingle();
+      if (endorsement) {
+        const { syncEndorsementPayment } = await import("@/server/endorsements");
+        await syncEndorsementPayment(endorsement.id);
+        return { status: "succeeded", policyId: payment.policy_id };
+      }
+    } catch (err) {
+      log.error("payment.endorsement_sync_failed", { paymentId: payment.id, err });
+      return { status: "succeeded", policyId: payment.policy_id };
+    }
+  }
   if (!quote || !request) {
     log.error("payment.missing_quote_or_request", { paymentId: payment.id });
     return { status: "succeeded" };
