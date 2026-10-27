@@ -18,10 +18,10 @@
   :focus-visible {
     outline-color: var(--color-brand);
   }
-  /* Brand guide: display & headings in Outfit (300–400); body in Inter (300–500). */
+  /* Type: Plus Jakarta Sans throughout; headings SemiBold (600), body Regular (400). */
   h1, h2 {
     font-family: var(--font-display);
-    font-weight: 400 !important;
+    font-weight: 600 !important;
     letter-spacing: -0.015em;
   }
   h3, h4 {

@@ -101,7 +101,7 @@ export default async function PressPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-[13px] text-muted">Typefaces: Outfit (display and headings, 300–400) and Inter (body and UI, 300–500).</p>
+        <p className="mt-4 text-[13px] text-muted">Typeface: Plus Jakarta Sans (headings SemiBold 600, body and UI Regular 400 and Medium 500).</p>
       </Section>
 
       <Section tone="mist" labelledBy="press-form-title">
