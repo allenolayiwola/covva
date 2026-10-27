@@ -16,8 +16,10 @@ import { TransactionParties } from "@/components/transaction-parties";
 import { CATEGORY_COLS, account, getRequestOr404, signUrls } from "../../_lib/data";
 import { PARTY_LABEL, REQUEST_TYPE_LABEL } from "../../_lib/labels";
 import { attachRequestDocument } from "./actions";
+import { BrokerRatingPrompt } from "@/components/customer/broker-rating";
 import { BrokerChangeForm } from "./broker-change-form";
 import { CancelRequestForm } from "./cancel-form";
+import { rateBrokerForRequest } from "./rating-actions";
 import { SlaChoiceForm } from "./sla-choice-form";
 
 export const metadata: Metadata = { title: "Request" };
@@ -355,6 +357,9 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
             messageHref={`/account/requests/${request.id}/messages`}
             quote={lastBrokerMsg ? (lastBrokerMsg.body.length > 180 ? `${lastBrokerMsg.body.slice(0, 177)}…` : lastBrokerMsg.body) : undefined}
           />
+          {status === "completed" && broker && (
+            <BrokerRatingPrompt supabase={supabase} subjectType="request" subjectId={request.id} brokerName={broker.name} action={rateBrokerForRequest.bind(null, request.id, broker.id)} />
+          )}
           <TransactionParties
             stage="request"
             insurers={partyInsurers}

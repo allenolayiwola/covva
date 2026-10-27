@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  DEFAULT_SCORECARD_ROUTING_WEIGHT,
   decideRouting,
   offerDeadline,
   offerRoundState,
@@ -49,17 +50,27 @@ export interface RoutingSettings {
   offerBatchSize: number;
   maxRounds: number;
   sumInsuredThreshold: number | null;
+  /** Scorecard factor: ± at most this many routing points from the 90-day score (0 = off). */
+  scorecardWeight: number;
 }
 
 export async function routingSettings(svc: Svc): Promise<RoutingSettings> {
-  const [offerTimeoutMinutes, offerBatchSize, maxRounds, sumInsured] = await Promise.all([
+  const [offerTimeoutMinutes, offerBatchSize, maxRounds, sumInsured, scorecardWeightRaw] = await Promise.all([
     settingNumber(svc, "routing.offer_timeout_minutes", 30),
     settingNumber(svc, "routing.offer_batch_size", 3),
     settingNumber(svc, "routing.max_rounds", 3),
     setting<unknown>(svc, "routing.sum_insured_threshold", 2_000_000),
+    setting<unknown>(svc, "routing.scorecard_weight", DEFAULT_SCORECARD_ROUTING_WEIGHT),
   ]);
   const threshold = Number(sumInsured);
-  return { offerTimeoutMinutes, offerBatchSize, maxRounds, sumInsuredThreshold: sumInsured === null ? null : Number.isFinite(threshold) && threshold > 0 ? threshold : 2_000_000 };
+  const weight = Number(scorecardWeightRaw);
+  return {
+    offerTimeoutMinutes,
+    offerBatchSize,
+    maxRounds,
+    sumInsuredThreshold: sumInsured === null ? null : Number.isFinite(threshold) && threshold > 0 ? threshold : 2_000_000,
+    scorecardWeight: Number.isFinite(weight) && weight >= 0 ? Math.min(weight, 100) : DEFAULT_SCORECARD_ROUTING_WEIGHT,
+  };
 }
 
 type Category = Pick<Row<"product_categories">, "id" | "slug" | "name" | "segment">;
@@ -82,11 +93,14 @@ export async function loadBrokerCandidates(svc: Svc, categoryId: string): Promis
   if (!rules?.length) return [];
   const brokerIds = [...new Set(rules.map((r) => r.broker_org_id))];
 
-  const [{ data: appts }, { data: todays }, { data: recent }] = await Promise.all([
+  const [{ data: appts }, { data: todays }, { data: recent }, { data: cards }] = await Promise.all([
     svc.from("insurer_broker_appointments").select("broker_org_id, insurer_org_id, category_id, ends_on, insurer:organizations!insurer_broker_appointments_insurer_org_id_fkey(status)").eq("active", true).in("broker_org_id", brokerIds).or(`category_id.eq.${categoryId},category_id.is.null`),
     svc.from("requests").select("broker_org_id").in("broker_org_id", brokerIds).gte("created_at", today.toISOString()),
     svc.from("requests").select("broker_org_id, sla_breached_at").in("broker_org_id", brokerIds).gte("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(5000),
+    // Phase 4 scorecard factor: the 90-day composite score (null = no history yet → neutral).
+    svc.from("broker_scorecards").select("broker_org_id, score").in("broker_org_id", brokerIds).eq("window_days", 90),
   ]);
+  const scores = new Map((cards ?? []).map((c) => [c.broker_org_id, c.score == null ? null : Number(c.score)]));
 
   const out: EngineCandidate[] = [];
   for (const r of rules) {
@@ -116,6 +130,7 @@ export async function loadBrokerCandidates(svc: Svc, categoryId: string): Promis
         !!broker.nic_licence_number &&
         (!broker.nic_licence_expires_on || new Date(broker.nic_licence_expires_on) >= today),
       slaBreachRate30d: mine.length ? mine.filter((x) => x.sla_breached_at).length / mine.length : 0,
+      scorecardScore: scores.get(broker.id) ?? null,
     });
   }
   return out;
@@ -180,6 +195,7 @@ export async function decideForRequest(svc: Svc, req: RequestLite, category: Cat
     offerTimeoutMinutes: settings.offerTimeoutMinutes,
     offerBatchSize: settings.offerBatchSize,
     maxRounds: settings.maxRounds,
+    scorecardWeight: settings.scorecardWeight,
   });
 }
 

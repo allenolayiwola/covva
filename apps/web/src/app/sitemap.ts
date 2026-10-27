@@ -18,6 +18,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/insurers", priority: 0.7, changeFrequency: "monthly" },
   { path: "/partners/embedded", priority: 0.7, changeFrequency: "monthly" },
   { path: "/partners", priority: 0.6, changeFrequency: "weekly" },
+  { path: "/partners/how-we-score", priority: 0.4, changeFrequency: "monthly" },
   { path: "/referrals", priority: 0.6, changeFrequency: "monthly" },
   { path: "/waitlist", priority: 0.6, changeFrequency: "monthly" },
   { path: "/press", priority: 0.4, changeFrequency: "monthly" },

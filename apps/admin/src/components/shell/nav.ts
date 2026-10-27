@@ -2,7 +2,7 @@ import {
   Languages, Smartphone,
   Activity, BadgeCheck, Banknote, Bot, Building2, ChartNoAxesColumn, ClipboardList, FileCheck2, FileSignature, Flag, Gauge, Globe2, Handshake,
   HeartPulse, Inbox, Kanban, LayoutGrid, ListChecks, LockKeyhole, MessageCircle, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
-  Tags, Users, Wallet, Wrench, Gift, Store, type LucideIcon,
+  Tags, Users, Wallet, Wrench, Gift, Star, Store, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem { href: string; label: string; icon: LucideIcon; keywords?: string }
@@ -22,6 +22,7 @@ export const NAV: NavGroup[] = [
       { href: "/service-partners", label: "Service partners", icon: Wrench, keywords: "garages towing hospitals clinics direct billing network" },
       { href: "/service-partners/applications", label: "Partner applications", icon: FileSignature, keywords: "service partner self-onboarding garage towing hospital apply join network approve" },
       { href: "/service-partners/reviews", label: "Partner reviews", icon: Wrench, keywords: "ratings stars moderation hide reviews service partners" },
+      { href: "/scorecards/reviews", label: "Broker reviews", icon: Star, keywords: "broker ratings stars moderation approve hide reviews customers scorecard" },
       { href: "/complaints", label: "Complaints", icon: MessageSquareWarning, keywords: "nic escalation sla" },
       { href: "/kyc", label: "KYC review", icon: BadgeCheck, keywords: "ghana card verify identity" },
       { href: "/privacy-requests", label: "Privacy requests", icon: LockKeyhole, keywords: "act 843 data protection subject access export correction deletion erasure anonymise objection marketing opt-out retention" },
@@ -39,6 +40,7 @@ export const NAV: NavGroup[] = [
       { href: "/routing", label: "Routing", icon: Network, keywords: "broker rules simulate" },
       { href: "/routing/integrations", label: "Integrations & offers", icon: Network, keywords: "insurer line level direct sales nominated brokers order routing offers" },
       { href: "/appointments", label: "Appointments", icon: Handshake, keywords: "insurer broker matrix" },
+      { href: "/scorecards", label: "Broker scorecards", icon: Star, keywords: "scorecard score response fulfilment claims sla ratings routing weight" },
     ],
   },
   {
@@ -81,6 +83,7 @@ export const NAV: NavGroup[] = [
   {
     label: "Platform",
     items: [
+      { href: "/analytics", label: "Analytics", icon: ChartNoAxesColumn, keywords: "warehouse facts funnel pricing renewals claims by category region partner rollup backfill insight" },
       { href: "/ai", label: "AI", icon: Bot, keywords: "usage cost models insights" },
       { href: "/translations", label: "Translations", icon: Languages, keywords: "i18n locale twi ga ewe translator review approve csv import coverage language" },
       { href: "/ussd", label: "USSD", icon: Smartphone, keywords: "short code simulator feature phone sessions aggregator africastalking hubtel arkesel" },

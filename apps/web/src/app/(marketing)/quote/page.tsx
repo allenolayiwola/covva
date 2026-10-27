@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import type { RiskField } from "@im/core";
 import { Container, Spinner } from "@im/ui";
 import { getCategories, getPartnerDirectory } from "@/lib/catalog";
+import { getPublicScoreSummaries } from "@/server/scorecards";
 import { isDemoOrg } from "@/components/marketing/brand";
 import { QuoteFlow } from "@/components/marketing/quote-flow/quote-flow";
 import type { FlowBroker, FlowCategory } from "@/components/marketing/quote-flow/model";
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
  */
 export default async function QuotePage() {
   const [categories, directory] = await Promise.all([getCategories(), getPartnerDirectory()]);
+  const scores = await getPublicScoreSummaries(directory.brokers.map((b) => b.id));
   const flowCategories: FlowCategory[] = categories.map((c) => ({
     slug: c.slug,
     name: c.name,
@@ -40,6 +42,7 @@ export default async function QuotePage() {
     logo_url: b.logo_url,
     brand_color: b.brand_color,
     demo: isDemoOrg(b.settings),
+    score: scores[b.id] ? { ratingAvg: scores[b.id]!.ratingAvg, reviewCount: scores[b.id]!.reviewCount, responseBand: scores[b.id]!.responseBand, scoreBand: scores[b.id]!.scoreBand } : null,
   }));
 
   return (

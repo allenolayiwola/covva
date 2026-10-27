@@ -596,6 +596,71 @@ export type Database = {
           },
         ]
       }
+      broker_reviews: {
+        Row: {
+          broker_org_id: string
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
+          rating: number
+          replied_at: string | null
+          replied_by: string | null
+          reply: string | null
+          status: string
+          subject_id: string
+          subject_type: string
+          updated_at: string
+        }
+        Insert: {
+          broker_org_id: string
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          rating: number
+          replied_at?: string | null
+          replied_by?: string | null
+          reply?: string | null
+          status?: string
+          subject_id: string
+          subject_type: string
+          updated_at?: string
+        }
+        Update: {
+          broker_org_id?: string
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          rating?: number
+          replied_at?: string | null
+          replied_by?: string | null
+          reply?: string | null
+          status?: string
+          subject_id?: string
+          subject_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broker_reviews_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broker_routing_rules: {
         Row: {
           active: boolean
@@ -649,6 +714,101 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broker_scorecards: {
+        Row: {
+          broker_org_id: string
+          claims_ack_median_hours: number | null
+          claims_samples: number
+          claims_settle_median_days: number | null
+          components: Json
+          computed_at: string
+          first_response_median_minutes: number | null
+          first_response_samples: number
+          id: string
+          issuance_median_hours: number | null
+          issuance_samples: number
+          quote_fulfilment_rate: number | null
+          quote_fulfilment_samples: number
+          quote_median_hours: number | null
+          rating_avg: number | null
+          rating_count: number
+          requests_completed: number
+          requests_received: number
+          score: number | null
+          score_band: string
+          sla_breach_rate: number | null
+          sla_breached: number
+          sla_measured: number
+          suggestions: Json
+          updated_at: string
+          window_days: number
+        }
+        Insert: {
+          broker_org_id: string
+          claims_ack_median_hours?: number | null
+          claims_samples?: number
+          claims_settle_median_days?: number | null
+          components?: Json
+          computed_at?: string
+          first_response_median_minutes?: number | null
+          first_response_samples?: number
+          id?: string
+          issuance_median_hours?: number | null
+          issuance_samples?: number
+          quote_fulfilment_rate?: number | null
+          quote_fulfilment_samples?: number
+          quote_median_hours?: number | null
+          rating_avg?: number | null
+          rating_count?: number
+          requests_completed?: number
+          requests_received?: number
+          score?: number | null
+          score_band?: string
+          sla_breach_rate?: number | null
+          sla_breached?: number
+          sla_measured?: number
+          suggestions?: Json
+          updated_at?: string
+          window_days: number
+        }
+        Update: {
+          broker_org_id?: string
+          claims_ack_median_hours?: number | null
+          claims_samples?: number
+          claims_settle_median_days?: number | null
+          components?: Json
+          computed_at?: string
+          first_response_median_minutes?: number | null
+          first_response_samples?: number
+          id?: string
+          issuance_median_hours?: number | null
+          issuance_samples?: number
+          quote_fulfilment_rate?: number | null
+          quote_fulfilment_samples?: number
+          quote_median_hours?: number | null
+          rating_avg?: number | null
+          rating_count?: number
+          requests_completed?: number
+          requests_received?: number
+          score?: number | null
+          score_band?: string
+          sla_breach_rate?: number | null
+          sla_breached?: number
+          sla_measured?: number
+          suggestions?: Json
+          updated_at?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broker_scorecards_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -8834,6 +8994,40 @@ export type Database = {
         Args: { p_category?: string; p_insurer: string }
         Returns: string
       }
+      analytics_facts: {
+        Args: {
+          p_broker_org_id?: string
+          p_category_id?: string
+          p_from: string
+          p_group?: string
+          p_insurer_org_id?: string
+          p_region?: string
+          p_to: string
+        }
+        Returns: {
+          binding_quotes: number
+          claims_opened: number
+          claims_settled: number
+          conversions: number
+          key: string
+          payments_failed: number
+          payments_succeeded: number
+          policies_issued: number
+          premium_2k_to_10k: number
+          premium_500_to_2k: number
+          premium_over_10k: number
+          premium_sum: number
+          premium_under_500: number
+          quotes: number
+          renewals_due: number
+          renewals_renewed: number
+          requests: number
+        }[]
+      }
+      analytics_rollup: {
+        Args: { p_dry_run?: boolean; p_from?: string; p_to?: string }
+        Returns: Json
+      }
       approve_partner_application: {
         Args: { p_id: string; p_note?: string }
         Returns: {
@@ -8841,6 +9035,34 @@ export type Database = {
           org_id: string
           slug: string
         }[]
+      }
+      broker_public_reviews: {
+        Args: { p_broker_org_id: string; p_limit?: number }
+        Returns: {
+          comment: string
+          created_at: string
+          display_name: string
+          id: string
+          rating: number
+          replied_at: string
+          reply: string
+          subject_type: string
+        }[]
+      }
+      broker_score_summary: {
+        Args: { p_broker_org_ids: string[] }
+        Returns: {
+          broker_org_id: string
+          computed_at: string
+          rating_avg: number
+          response_band: string
+          review_count: number
+          score_band: string
+        }[]
+      }
+      broker_scorecard_inputs: {
+        Args: { p_broker_org_id: string; p_days?: number }
+        Returns: Json
       }
       build_settlement_statement: {
         Args: { p_end: string; p_org: string; p_start: string }
@@ -9078,6 +9300,10 @@ export type Database = {
       generate_welfare_contributions: {
         Args: { p_group_id: string; p_through?: string }
         Returns: number
+      }
+      insurer_insight_report: {
+        Args: { p_insurer_org_id: string; p_month?: string }
+        Returns: Json
       }
       invitation_preview: {
         Args: { p_token: string }

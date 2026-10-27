@@ -353,6 +353,8 @@ the insurer receives**; foreign-currency figures are a display only.
 | `/api/cron/settlement-statements` | monthly, 1st 02:00 | Drafts a settlement statement per broker/insurer for the previous month from the ledger (idempotent; issued statements untouched). See "Settlement and splits" |
 | `/api/cron/instalment-collections` | daily 06:30 and 18:30 | Collects due instalments (MoMo prompt / saved card / pay link), retries day 0, +2, +5, then moves schedules to grace → lapsed per the insurer's plan. See "Instalments and micro cover" |
 | `/api/cron/micro-renewals` | hourly :40 | Marks ended micro windows expired; auto-renews micro policies with `auto_renew` before the window ends (saved card charged, else a pay link by WhatsApp/SMS) |
+| `/api/cron/scorecard-refresh` | daily 01:40 | Recomputes every broker's 30- and 90-day scorecard (`broker_scorecard_inputs` → `@im/core` `computeScorecard` → `broker_scorecards`); feeds the public summary and the routing factor. See `docs/SCORECARDS_ANALYTICS.md` |
+| `/api/cron/analytics-rollup` | daily 01:50 | Rebuilds `analytics.daily_facts` for yesterday and today (`analytics_rollup`, idempotent per day; backfill and dry run from admin → Analytics) |
 | `/api/cron/privacy-retention` | daily 03:50 | Act 843: deletes expired data-export files and closes their requests, then applies the retention rules per data class (`public.run_privacy_retention`, logged in `privacy_retention_runs`). Dry run until `platform_settings.privacy_retention.mode = "enforce"`; `?dry_run=1` forces one. See `docs/PRIVACY_REQUESTS.md` |
 
 Each run writes `platform_settings['cron_last_run:<job>'] = { at, ok, ms, result }` (visible in admin
