@@ -40,3 +40,4 @@ export * from "./sme";
 export * from "./endorsements";
 export * from "./accounting";
 export * from "./voice";
+export * from "./privacy";

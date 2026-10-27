@@ -4410,6 +4410,209 @@ export type Database = {
           },
         ]
       }
+      privacy_request_events: {
+        Row: {
+          actor_id: string | null
+          actor_party: Database["public"]["Enums"]["party"]
+          created_at: string
+          event: string
+          from_status:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          id: number
+          note: string | null
+          request_id: string
+          to_status:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          visible_to_customer: boolean
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_party?: Database["public"]["Enums"]["party"]
+          created_at?: string
+          event: string
+          from_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          id?: never
+          note?: string | null
+          request_id: string
+          to_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          visible_to_customer?: boolean
+        }
+        Update: {
+          actor_id?: string | null
+          actor_party?: Database["public"]["Enums"]["party"]
+          created_at?: string
+          event?: string
+          from_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          id?: never
+          note?: string | null
+          request_id?: string
+          to_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          visible_to_customer?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "privacy_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_requests: {
+        Row: {
+          anonymisation_summary: Json | null
+          anonymised_at: string | null
+          channel: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_reason: string | null
+          due_at: string
+          export_bytes: number | null
+          export_download_count: number
+          export_downloaded_at: string | null
+          export_expires_at: string | null
+          export_generated_at: string | null
+          export_path: string | null
+          export_sha256: string | null
+          fulfilled_at: string | null
+          fulfilment_note: string | null
+          id: string
+          identity_method: string | null
+          identity_verified_at: string | null
+          identity_verified_by: string | null
+          note: string | null
+          reference: string
+          retention_note: string | null
+          status: Database["public"]["Enums"]["privacy_request_status"]
+          type: Database["public"]["Enums"]["privacy_request_type"]
+          updated_at: string
+          user_id: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          anonymisation_summary?: Json | null
+          anonymised_at?: string | null
+          channel?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          due_at?: string
+          export_bytes?: number | null
+          export_download_count?: number
+          export_downloaded_at?: string | null
+          export_expires_at?: string | null
+          export_generated_at?: string | null
+          export_path?: string | null
+          export_sha256?: string | null
+          fulfilled_at?: string | null
+          fulfilment_note?: string | null
+          id?: string
+          identity_method?: string | null
+          identity_verified_at?: string | null
+          identity_verified_by?: string | null
+          note?: string | null
+          reference?: string
+          retention_note?: string | null
+          status?: Database["public"]["Enums"]["privacy_request_status"]
+          type: Database["public"]["Enums"]["privacy_request_type"]
+          updated_at?: string
+          user_id: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          anonymisation_summary?: Json | null
+          anonymised_at?: string | null
+          channel?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          due_at?: string
+          export_bytes?: number | null
+          export_download_count?: number
+          export_downloaded_at?: string | null
+          export_expires_at?: string | null
+          export_generated_at?: string | null
+          export_path?: string | null
+          export_sha256?: string | null
+          fulfilled_at?: string | null
+          fulfilment_note?: string | null
+          id?: string
+          identity_method?: string | null
+          identity_verified_at?: string | null
+          identity_verified_by?: string | null
+          note?: string | null
+          reference?: string
+          retention_note?: string | null
+          status?: Database["public"]["Enums"]["privacy_request_status"]
+          type?: Database["public"]["Enums"]["privacy_request_type"]
+          updated_at?: string
+          user_id?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      privacy_retention_runs: {
+        Row: {
+          actor_id: string | null
+          dry_run: boolean
+          error: string | null
+          finished_at: string | null
+          id: string
+          ok: boolean
+          plan: Json
+          results: Json
+          started_at: string
+          triggered_by: string
+        }
+        Insert: {
+          actor_id?: string | null
+          dry_run: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          ok?: boolean
+          plan?: Json
+          results?: Json
+          started_at?: string
+          triggered_by?: string
+        }
+        Update: {
+          actor_id?: string | null
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          ok?: boolean
+          plan?: Json
+          results?: Json
+          started_at?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       product_bundles: {
         Row: {
           audience: string
@@ -4709,6 +4912,7 @@ export type Database = {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
           active_workspace: Json | null
+          anonymised_at: string | null
           assisted_service: boolean
           avatar_url: string | null
           business_name: string | null
@@ -4738,6 +4942,7 @@ export type Database = {
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"]
           active_workspace?: Json | null
+          anonymised_at?: string | null
           assisted_service?: boolean
           avatar_url?: string | null
           business_name?: string | null
@@ -4767,6 +4972,7 @@ export type Database = {
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
           active_workspace?: Json | null
+          anonymised_at?: string | null
           assisted_service?: boolean
           avatar_url?: string | null
           business_name?: string | null
@@ -7816,6 +8022,10 @@ export type Database = {
           phone: string
         }[]
       }
+      fulfil_privacy_deletion: {
+        Args: { p_dry_run?: boolean; p_id: string; p_note?: string }
+        Returns: Json
+      }
       invitation_preview: {
         Args: { p_token: string }
         Returns: {
@@ -7978,6 +8188,25 @@ export type Database = {
         }[]
       }
       policy_sponsor_name: { Args: { p_policy_id: string }; Returns: string }
+      privacy_request_action: {
+        Args: {
+          p_action: string
+          p_id: string
+          p_method?: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      record_privacy_export: {
+        Args: {
+          p_bytes: number
+          p_id: string
+          p_path: string
+          p_sha256: string
+        }
+        Returns: Json
+      }
+      record_privacy_export_download: { Args: { p_id: string }; Returns: Json }
       refresh_licence_status: { Args: never; Returns: Json }
       reject_partner_application: {
         Args: { p_id: string; p_note: string }
@@ -7995,6 +8224,10 @@ export type Database = {
       reveal_gift: { Args: { p_sponsorship_id: string }; Returns: Json }
       revoke_my_session: { Args: { p_session_id: string }; Returns: boolean }
       run_claim_fraud_checks: { Args: { p_claim_id: string }; Returns: Json }
+      run_privacy_retention: {
+        Args: { p_dry_run?: boolean; p_plan: Json; p_triggered_by?: string }
+        Returns: Json
+      }
       set_commercial_terms: {
         Args: {
           p_broker_commission_pct?: number
@@ -8011,6 +8244,14 @@ export type Database = {
       set_referral_link_disabled: {
         Args: { p_disabled: boolean; p_link_id: string }
         Returns: undefined
+      }
+      submit_privacy_request: {
+        Args: {
+          p_channel?: string
+          p_note?: string
+          p_type: Database["public"]["Enums"]["privacy_request_type"]
+        }
+        Returns: Json
       }
       transition_settlement_statement: {
         Args: { p_id: string; p_status: string }
@@ -8057,6 +8298,7 @@ export type Database = {
         Args: { p_code?: string; p_insurer?: string; p_policy_number?: string }
         Returns: Json
       }
+      withdraw_privacy_request: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
       account_type: "individual" | "business"
@@ -8156,6 +8398,21 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "renewed"
+      privacy_request_status:
+        | "submitted"
+        | "identity_verified"
+        | "approved"
+        | "export_ready"
+        | "fulfilled"
+        | "refused"
+        | "closed"
+        | "withdrawn"
+      privacy_request_type:
+        | "access"
+        | "correction"
+        | "deletion"
+        | "objection"
+        | "marketing_opt_out"
       product_status:
         | "draft"
         | "pending_approval"
@@ -8439,6 +8696,23 @@ export const Constants = {
         "cancelled",
         "expired",
         "renewed",
+      ],
+      privacy_request_status: [
+        "submitted",
+        "identity_verified",
+        "approved",
+        "export_ready",
+        "fulfilled",
+        "refused",
+        "closed",
+        "withdrawn",
+      ],
+      privacy_request_type: [
+        "access",
+        "correction",
+        "deletion",
+        "objection",
+        "marketing_opt_out",
       ],
       product_status: [
         "draft",

@@ -45,8 +45,8 @@ async function Body() {
   for (const c of consents ?? []) if (!latest.has(c.type)) latest.set(c.type, c);
   const support = brand?.support_email ?? "support@covva.com.gh";
   const prefs = (profile?.notification_prefs ?? {}) as Record<string, boolean>;
-  const exportSubject = encodeURIComponent("Data export request");
-  const exportBody = encodeURIComponent(`Please send me a copy of the personal data you hold about me.\n\nAccount email: ${user.email ?? ""}\nAccount ID: ${user.id}`);
+  const exportSubject = encodeURIComponent("Privacy request");
+  const exportBody = encodeURIComponent(`I'd like to make a privacy request about my personal data:\n\n\n\nAccount email: ${user.email ?? ""}\nAccount ID: ${user.id}`);
 
   return (
     <div className="space-y-10">
@@ -132,12 +132,17 @@ async function Body() {
         <h2 id="data" className="mb-1 text-lg font-semibold text-ink">Your data</h2>
         <Card className="p-5">
           <p className="text-sm text-ink-2">
-            Under Ghana&apos;s Data Protection Act you can ask for a copy of your data, ask us to correct it, or ask us to delete it where we don&apos;t need to
-            keep it by law. Insurers and brokers keep their own records of policies they issued or arranged.
+            Under Ghana&apos;s Data Protection Act you can ask for a copy of your data, ask us to correct it, object to how we use it, stop marketing, or ask
+            us to delete it where we don&apos;t need to keep it by law. Insurers and brokers keep their own records of policies they issued or arranged.
           </p>
-          <a href={`mailto:${support}?subject=${exportSubject}&body=${exportBody}`} className={buttonClass("secondary", "sm", "mt-4")}>
-            <Download aria-hidden className="size-4" /> Request a copy of my data
-          </a>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link href="/account/privacy" className={buttonClass("secondary", "sm", "min-h-10")}>
+              <Download aria-hidden className="size-4" /> Privacy &amp; your data
+            </Link>
+            <a href={`mailto:${support}?subject=${exportSubject}&body=${exportBody}`} className="inline-flex min-h-10 items-center text-sm font-medium text-brand hover:underline">
+              Or email support
+            </a>
+          </div>
         </Card>
       </section>
 
