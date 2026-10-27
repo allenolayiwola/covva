@@ -158,6 +158,7 @@ test("every default retention period respects the 30-day floor and has a unique 
     classes.add(r.class);
     assert.ok(r.description.length > 20);
   }
+  assert.equal(RETENTION_RULES.find((r) => r.class === "policy_explainer_logs")?.days, 180, "explainer logs: proposal from the explainer migration");
   // Insurance records are never subject to a retention erase rule.
   for (const t of ["policies", "claims", "payments", "documents", "ledger_entries", "audit_events"]) {
     assert.ok(!RETENTION_RULES.some((r) => r.tables.includes(t)), t);
@@ -189,7 +190,7 @@ test("deletion scope documents what is scrubbed and retained, with reasons", () 
   const retainedTables = DELETION_RETAINED.map((e) => e.table).join(" ");
   for (const t of ["policies", "claims", "payments", "documents", "ledger", "audit_events", "kyc_verifications"]) assert.ok(retainedTables.includes(t), t);
   const scrubbedTables = DELETION_SCRUBBED.map((e) => e.table).join(" ");
-  for (const t of ["profiles", "leads", "ai_threads", "wa_messages", "consents", "drafts"]) assert.ok(scrubbedTables.includes(t), t);
+  for (const t of ["profiles", "leads", "ai_threads", "wa_messages", "consents", "drafts", "policy_explainer_logs"]) assert.ok(scrubbedTables.includes(t), t);
 });
 
 test("retained records are described in plain words", () => {

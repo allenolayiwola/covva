@@ -54,8 +54,8 @@ customer-visible steps and internal staff notes (`visible_to_customer = false`).
   `buildPrivacyExport()` in `@im/core` — format `covva.personal-data-export` v1, with sections: profile, privacy
   requests, consents, requests, quotes, applications, policies, payments (metadata only), claims and their customer-visible
   timeline, complaints, documents (file details), households, beneficiaries, sponsorships, request and claim messages,
-  WhatsApp messages, AI chats, notifications, identity checks (status only), saved cards (brand / last 4), voice-note
-  transcripts and needs-assessment answers.
+  WhatsApp messages, AI chats, policy-explainer questions, notifications, identity checks (status only), saved cards
+  (brand / last 4), voice-note transcripts and needs-assessment answers.
 * **Redaction rules** (`redactExportRow`): internal notes (`internal = true`) and staff-only timeline rows are dropped;
   secrets and internals are removed (payment provider tokens and raw events, idempotency keys, consent code hashes,
   share tokens, checksums, hash-chain fields, storage paths, fraud scores, AI extraction); staff / partner user ids are
@@ -87,6 +87,7 @@ dashboard.* If any of these steps fails, the console says so and an internal not
 | `consents` (marketing, AI help only) | IP address and user agent removed; a final `granted = false` row recorded. |
 | `leads` | Enquiries matching the email or phone: name, email, phone, organisation, message, notes, UTM cleared; `metadata.erased_at` set. |
 | `ai_threads` | Deleted. `ai_usage` rows are detached (`user_id = null`; costs only). |
+| `policy_explainer_logs` | Questions asked about a policy and the answers shown: deleted. (Cached plain-words summaries in `policy_explainer_summaries` follow the policy and are retained with it.) |
 | `wa_messages`, `wa_contacts` | Message text and payload erased. The contact is opted out and unlinked; the number stays **only as a suppression entry** so we never message it again. |
 | `requests` (drafts), `claims` (drafts) | Unsent drafts: answers erased, draft cancelled / withdrawn. |
 | `needs_assessments` | Answers cleared. |
@@ -147,6 +148,7 @@ days or longer than 10 years are ignored with a warning.
 | `anonymous_needs_assessments` — needs checks made without signing in | 180 days | scrub |
 | `ussd_sessions` — finished USSD sessions | 90 days | delete |
 | `stale_device_tokens` — push tokens of devices not seen | 400 days | delete |
+| `policy_explainer_logs` — policy explainer Q&A kept for quality review (the 180-day proposal from `20261031100200_policy_explainer.sql`) | 180 days | delete |
 
 Override per class with `platform_settings.privacy_retention.periods`, e.g.
 `{"mode": "enforce", "periods": {"ai_chat_logs": 180}}`. Insurance records (policies, claims, payments, documents,

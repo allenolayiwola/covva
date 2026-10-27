@@ -15,7 +15,8 @@
 -- were submitted, quotes, applications, policies, claims, payments, documents, complaints, KYC checks, ledger entries,
 -- request/claim correspondence, lawful-basis consents and the audit log) are retained untouched. Data that does not
 -- need keeping is erased or scrubbed: profile contact details, optional consents' metadata, leads, AI / WhatsApp
--- transcripts, saved drafts, push tokens, notifications, saved cards, avatar and voice notes (see private.anonymise_subject).
+-- transcripts (incl. policy explainer questions), saved drafts, push tokens, notifications, saved cards, avatar and voice
+-- notes (see private.anonymise_subject).
 --
 -- Customers see only their own requests; platform staff see all; partners see nothing. Every write goes through a
 -- SECURITY DEFINER RPC that validates input and raises P0001 with a message people can act on; status transitions are
@@ -471,6 +472,15 @@ begin
     delete from public.ai_threads where user_id = p_user;
     update public.ai_usage set user_id = null where user_id = p_user;
   end if;
+  -- Policy explainer questions (table added by 20261031100200_policy_explainer.sql; skipped where it is not there yet —
+  -- plpgsql only resolves a statement when it runs).
+  if to_regclass('public.policy_explainer_logs') is not null then
+    select count(*) into v_n from public.policy_explainer_logs where user_id = p_user;
+    v_scrubbed := v_scrubbed || jsonb_build_object('policy_explainer_logs', v_n);
+    if not p_dry_run then
+      delete from public.policy_explainer_logs where user_id = p_user;
+    end if;
+  end if;
 
   -- Needs-assessment answers.
   select count(*) into v_n from public.needs_assessments where user_id = p_user and answers <> '{}'::jsonb;
@@ -913,6 +923,19 @@ begin
         delete from public.ai_threads a using t where a.id = t.id and not p_dry_run returning 1
       )
       select case when p_dry_run then (select count(*) from t) else (select count(*) from d) end into v_n;
+
+    -- Policy explainer Q&A logs (quality review only; table from 20261031100200_policy_explainer.sql).
+    when 'policy_explainer_logs' then
+      if to_regclass('public.policy_explainer_logs') is not null then
+        with t as (
+          select x.id from public.policy_explainer_logs x
+           where x.created_at < p_cutoff and not private.is_test_subject(x.user_id)
+           limit v_limit
+        ), d as (
+          delete from public.policy_explainer_logs x using t where x.id = t.id and not p_dry_run returning 1
+        )
+        select case when p_dry_run then (select count(*) from t) else (select count(*) from d) end into v_n;
+      end if;
 
     -- WhatsApp message bodies in conversations with no activity since the cutoff (contacts and opt-outs are kept).
     when 'whatsapp_transcripts' then

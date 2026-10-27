@@ -17,7 +17,7 @@ const rows = (data: unknown): ExportRow[] => (Array.isArray(data) ? (data as Exp
 const ids = (list: ExportRow[]) => list.map((r) => String(r.id)).filter(Boolean);
 
 export async function collectExportSections(svc: Svc, userId: string): Promise<Partial<Record<ExportSection, ExportRow[] | ExportRow | null>>> {
-  const [profile, privacy, consents, requests, applications, policies, payments, claims, complaints, documents, households, beneficiaries, sponsorships, ai, notifications, kyc, cards, voice, needs, contacts] =
+  const [profile, privacy, consents, requests, applications, policies, payments, claims, complaints, documents, households, beneficiaries, sponsorships, ai, notifications, kyc, cards, voice, needs, contacts, explainer] =
     await Promise.all([
       svc.from("profiles").select("*").eq("id", userId).maybeSingle(),
       svc.from("privacy_requests")
@@ -41,6 +41,7 @@ export async function collectExportSections(svc: Svc, userId: string): Promise<P
       svc.from("voice_notes").select("*").eq("owner_id", userId).limit(MAX),
       svc.from("needs_assessments").select("id, answers, suggested_categories, created_at").eq("user_id", userId).limit(MAX),
       svc.from("wa_contacts").select("id").eq("user_id", userId).limit(50),
+      svc.from("policy_explainer_logs").select("*").eq("user_id", userId).order("created_at").limit(MAX),
     ]);
   for (const r of [profile, privacy, consents, requests, applications, policies, payments, claims, complaints, documents]) {
     if (r.error) throw r.error;
@@ -86,6 +87,7 @@ export async function collectExportSections(svc: Svc, userId: string): Promise<P
     payment_methods: rows(cards.data),
     voice_notes: rows(voice.data),
     needs_assessments: rows(needs.data),
+    policy_explainer: rows(explainer.data),
   };
 }
 

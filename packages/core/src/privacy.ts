@@ -198,7 +198,8 @@ export type RetentionClass =
   | "abandoned_drafts"
   | "anonymous_needs_assessments"
   | "ussd_sessions"
-  | "stale_device_tokens";
+  | "stale_device_tokens"
+  | "policy_explainer_logs";
 
 export interface RetentionRule {
   class: RetentionClass;
@@ -223,6 +224,7 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
   { class: "abandoned_drafts", label: "Abandoned quote drafts", days: 180, action: "scrub", tables: ["requests"], description: "Quote requests left as drafts: the answers are erased and the draft cancelled." },
   { class: "anonymous_needs_assessments", label: "Anonymous needs checks", days: 180, action: "scrub", tables: ["needs_assessments"], description: "Answers to the 'what cover do I need' questions from people who never signed in." },
   { class: "ussd_sessions", label: "USSD sessions", days: 90, action: "delete", tables: ["ussd_sessions"], description: "Phone number and menu state of finished USSD sessions." },
+  { class: "policy_explainer_logs", label: "Policy explainer questions", days: 180, action: "delete", tables: ["policy_explainer_logs"], description: "Questions asked about a policy and the answers shown, kept for quality review only." },
   { class: "stale_device_tokens", label: "Unused push tokens", days: 400, action: "delete", tables: ["device_tokens"], description: "Push notification tokens of devices not seen for the period." },
 ];
 
@@ -312,6 +314,7 @@ export const DELETION_SCRUBBED: readonly ScopeEntry[] = [
   { table: "consents (marketing, AI help)", what: "Device details (IP address, browser) removed; a final 'withdrawn' entry recorded.", reason: "Optional consents end with the account." },
   { table: "leads", what: "Name, email, phone, organisation, message and notes of enquiries matching the email or phone.", reason: "Marketing enquiries are not insurance records." },
   { table: "ai_threads / ai_usage", what: "AI assistant chats deleted; usage rows detached from the person (costs only).", reason: "Chat transcripts are not needed." },
+  { table: "policy_explainer_logs", what: "Questions asked about a policy and the answers shown, deleted. Cached plain-words summaries follow the policy.", reason: "Kept for quality review only." },
   { table: "wa_messages / wa_contacts", what: "WhatsApp message text erased; contact opted out and unlinked (the number is kept only so we never message it again).", reason: "Chat transcripts are not needed; the opt-out must be honoured." },
   { table: "requests / claims (drafts)", what: "Unsent quote drafts and draft claims: answers erased, draft cancelled or withdrawn.", reason: "Never sent to an insurer or broker." },
   { table: "needs_assessments", what: "Answers to the cover questions.", reason: "Only used to suggest cover." },
@@ -391,7 +394,8 @@ export type ExportSection =
   | "kyc_verifications"
   | "payment_methods"
   | "voice_notes"
-  | "needs_assessments";
+  | "needs_assessments"
+  | "policy_explainer";
 
 export const EXPORT_SECTIONS: readonly { key: ExportSection; label: string }[] = [
   { key: "profile", label: "Your profile" },
@@ -413,6 +417,7 @@ export const EXPORT_SECTIONS: readonly { key: ExportSection; label: string }[] =
   { key: "claim_messages", label: "Messages about your claims" },
   { key: "whatsapp_messages", label: "WhatsApp messages" },
   { key: "ai_threads", label: "AI assistant chats" },
+  { key: "policy_explainer", label: "Questions about your policies" },
   { key: "notifications", label: "Notifications" },
   { key: "kyc_verifications", label: "Identity checks" },
   { key: "payment_methods", label: "Saved cards" },
@@ -440,6 +445,7 @@ const EXPORT_ALLOW: Partial<Record<ExportSection, readonly string[]>> = {
   payment_methods: ["id", "psp", "brand", "last4", "exp_month", "exp_year", "billing_country", "currency", "is_default", "status", "created_at"],
   notifications: ["id", "kind", "title", "body", "link", "read_at", "created_at"],
   voice_notes: ["id", "purpose", "request_id", "claim_id", "duration_seconds", "transcript", "transcript_language", "created_at"],
+  policy_explainer: ["id", "policy_id", "question", "classification", "outcome", "answer_text", "handed_off_at", "created_at"],
 };
 
 export type ExportRow = Record<string, unknown>;
