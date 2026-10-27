@@ -859,3 +859,38 @@ app stays in the customer workspace. All endpoints below use the customer's bear
 Group schemes, fleets, property and liability are always handled by a licensed broker: quote requests are created on the
 web (or by the broker) from the census summary — counts only, never member names or contact details. Push kinds:
 `business.invoice.issued`, `business.member.added`, plus the usual `request.*` / `quote.ready` for business requests.
+
+## Locales, USSD fallback and voice notes
+
+**Language.** Send the user's choice on every request as `X-Covva-Locale: tw` (or rely on `Accept-Language`); the
+server resolves `X-Covva-Locale` → profile → `Accept-Language` → English. Supported codes: `en`, `tw` (Twi), `gaa` (Ga),
+`ee` (Ewe); `ga`, `twi`, `ak` and `en-GH` are accepted aliases.
+
+* Bundle the English catalogue (`packages/core/src/i18n/en.ts` — the source of truth, same keys as the web) and fetch
+  `GET /api/v1/i18n/{locale}` (public, cached ~1 h) on start-up and when the language changes. `messages` contains only
+  approved, human-translated keys: render `messages[key] ?? en[key]`, interpolating `{name}` / ICU-light
+  `{count, plural, one {…} other {…}}` (use `createTranslator` from `@im/core` if you share the package).
+* `status` is `planned` | `partial` | `complete`. For anything but `complete`, show
+  "<Language> translations are in progress — untranslated text is shown in English." Never machine-translate.
+* Save the choice for signed-in users with `PUT /api/v1/me/locale { locale }` (stored in `profiles.locale`, read back in
+  `GET /api/v1/me`).
+
+**USSD fallback.** For customers without data, the app can show "No data? Dial `*920*44#`" (`USSD_SERVICE_CODE`; the
+code is aggregator-dependent until the NCA short code is live). USSD covers quote (motor third-party, micro, funeral),
+renew, pay an instalment, check a policy, a claim callback and "talk to us"; it identifies the customer by the phone
+number on their profile, so ask users to keep it current.
+
+**Voice notes.** Offer "Describe what happened by voice" on the claim report and "Explain what you need" on a request:
+
+1. Record ≤ 120 s (AAC/M4A `audio/mp4` on iOS, `audio/webm`/`audio/ogg` or M4A on Android), ≤ 10 MB.
+2. `POST /api/v1/voice-notes` — multipart (`file`, `purpose` = `claim_description` | `quote_help` | `support`,
+   `durationSeconds`, `languageHint` = `en`|`tw`|`gaa`|`ee`, optional `requestId`/`claimId`) or JSON
+   `{ audioBase64, mimeType, purpose, … }`. Response 201 with `voiceNote.transcriptStatus = "pending"`.
+3. Poll `GET /api/v1/voice-notes/{id}` (every 2–3 s, give up after ~90 s) until `done` or `failed`.
+4. Show the transcript in an editable field labelled **"Automatic transcript — please check"** (add "less accurate
+   for Twi, Ga and Ewe" when `lowerAccuracy` is true). Save corrections with `PATCH /api/v1/voice-notes/{id}`.
+5. Only when the user taps "Add to my description", append the text to the claim description / request note. Never
+   submit automatically. `failed` with `failureReason = "transcription_disabled"` means the note is saved but there is
+   no transcript — the broker can still listen (`audioUrl`, a 10-minute signed link).
+6. Pass the note ids when creating the claim/request so they are linked (web forms send `voiceNoteId`; via the API,
+   create the note with `claimId`/`requestId` after the claim/request exists).

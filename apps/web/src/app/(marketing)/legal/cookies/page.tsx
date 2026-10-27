@@ -20,7 +20,7 @@ export default async function CookiesPage() {
     { name: "Form drafts", purpose: "Saves request forms so you can resume on a slow connection", type: "Functional", duration: "Until submitted or [90] days" },
     { name: "covva_consent", purpose: PIXELS_CONFIGURED ? "Remembers your cookie choice (all, analytics only or essential only)" : "Remembers your cookie choice (analytics or essential only)", type: "Strictly necessary", duration: "180 days" },
     { name: EXPERIMENT_COOKIE, purpose: "Keeps you on the same version of a page while we test two designs (a random letter, no personal data)", type: "Functional", duration: "90 days" },
-    { name: "covva_lang", purpose: "Remembers your preferred language on the Learn pages", type: "Functional", duration: "1 year" },
+    { name: "covva_lang", purpose: "Remembers your preferred language across the site", type: "Functional", duration: "1 year" },
     { name: "Session storage: covva:app-banner:dismissed", purpose: "Remembers that you closed the Android app banner", type: "Functional (stays on your device)", duration: "Until you close the browser" },
     { name: "_ga, _ga_*", purpose: "Google Analytics 4 — only after you accept analytics in the consent banner; IP addresses anonymised", type: "Analytics (consent required)", duration: "Up to 2 years" },
     ...(META_PIXEL_ID ? [{ name: "_fbp, _fbc", purpose: "Meta pixel — measures our own adverts on Facebook and Instagram; only after you accept marketing cookies", type: "Marketing (consent required)", duration: "Up to 90 days" }] : []),
