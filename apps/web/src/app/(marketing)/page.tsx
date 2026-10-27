@@ -78,6 +78,7 @@ export default async function HomePage() {
       <JsonLd data={faqJsonLd(faqs)} />
 
       <HomeHero
+        insurers={heroInsurers}
         examples={[
           { label: "Motor · third party, private car", monthly: monthlyFrom(prices, ["motor"], 45).monthly },
           { label: "Health · family outpatient plan", monthly: monthlyFrom(prices, ["health"], 180).monthly },

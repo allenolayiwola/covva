@@ -28,13 +28,15 @@ test.describe("marketing site", () => {
   test("home renders the hero, quote card and product tiles", async ({ page }) => {
     await page.goto("/");
     const h1 = page.getByRole("heading", { level: 1 });
-    await expect(h1).toContainText("Real quotes. Your broker.");
-    await expect(h1).toContainText("Pay by MoMo");
+    await expect(h1).toHaveText("Three quotes. One tap to pay.");
     const card = page.getByRole("form", { name: "What do you want to insure?" }).locator("visible=true").first();
     await expect(card).toBeVisible();
     await expect(card.getByRole("button", { name: /Get quotes/ })).toBeVisible();
-    await expect(card.getByText("Example · DEMO").first()).toBeVisible();
     await expect(card.getByText("A quote request is not cover.")).toBeVisible();
+    // Example prices are always labelled: in the phone illustration on desktop, in the picker on phones.
+    const hero = page.locator("section[aria-labelledby='hero-title']");
+    await expect(hero.getByText("Example · DEMO").locator("visible=true").first()).toBeVisible();
+    await expect(hero.getByText(/GH₵ \d+/).locator("visible=true").first()).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Cover for what matters to you" })).toBeVisible();
     const tiles = page.locator("a[href^='/insurance/']");
     expect(await tiles.count()).toBeGreaterThanOrEqual(7);
@@ -209,14 +211,14 @@ test.describe("marketing site", () => {
   test("A/B hooks: control by default, ?exp= override is sticky and limited to known variants", async ({ page }) => {
     await page.goto("/");
     const h1 = page.getByRole("heading", { level: 1 });
-    await expect(h1).toContainText("Real quotes. Your broker.");
+    await expect(h1).toHaveText("Three quotes. One tap to pay.");
     const exp = page.locator("[data-experiment='home_hero_headline']");
     await expect(exp).toHaveAttribute("data-variant", "control");
     expect((await page.context().cookies()).find((c) => c.name === "covva_exp")).toBeUndefined();
     // QA override forces a variant and persists it for the browser.
     await page.goto("/?exp=home_hero_headline:instant");
     await expect(exp).toHaveAttribute("data-variant", "instant");
-    await expect(exp).toContainText("Compare, buy and manage insurance");
+    await expect(exp).toContainText("Real quotes from licensed brokers in minutes");
     expect(decodeURIComponent((await page.context().cookies()).find((c) => c.name === "covva_exp")?.value ?? "")).toBe("home_hero_headline:instant");
     await page.goto("/");
     await expect(exp).toHaveAttribute("data-variant", "instant");
@@ -224,7 +226,7 @@ test.describe("marketing site", () => {
     await page.goto("/?exp=home_hero_headline:nope");
     await expect(exp).toHaveAttribute("data-variant", "instant");
     await page.goto("/?exp=home_hero_headline:control");
-    await expect(exp).toContainText("Tell us what you want to insure");
+    await expect(exp).toContainText("Licensed brokers compete for your cover");
   });
 
   test("header navigation exposes the Insurance and Partners menus to the keyboard", async ({ page }) => {
@@ -403,7 +405,7 @@ test.describe("site-wide language switcher (Phase 3 i18n)", () => {
     await context.clearCookies();
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Three quotes. One tap to pay.");
     await expect(page.getByRole("heading", { level: 2, name: "What do you want to insure?" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Get quotes" })).toBeVisible();
     await expect(page.getByRole("link", { name: "For partners" })).toBeVisible();
@@ -423,7 +425,7 @@ test.describe("site-wide language switcher (Phase 3 i18n)", () => {
     const cookies = await context.cookies();
     expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
     // Nothing is machine-translated: the page stays in English.
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Three quotes. One tap to pay.");
 
     // The choice survives a reload (cookie → <html lang> script, notice after hydration).
     await page.reload();

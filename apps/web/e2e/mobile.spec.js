@@ -11,7 +11,7 @@ async function noHorizontalOverflow(page) {
 test("home on a phone: hero, menu button, no horizontal scroll", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Real quotes. Your broker.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Three quotes. One tap to pay.");
   await expect(page.getByRole("link", { name: "Help me choose" }).first()).toBeVisible();
   await structuralChecks(page);
   await noHorizontalOverflow(page);
