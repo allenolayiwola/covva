@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Check, ChevronDown, Languages } from "lucide-react";
-import { LOCALES, localeDef, localeNotice, type Locale } from "@im/core";
+import { LOCALES, localeDef, localeNotice, type Locale, type LocaleStatus } from "@im/core";
 import { cn } from "@im/ui";
 import { chooseLocale, useLocaleStatus, useT } from "@/lib/i18n/client";
 
@@ -88,6 +88,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
         <ul id={listId} onKeyDown={onListKey} className="absolute right-0 top-full z-50 mt-2 w-60 rounded-card border border-line bg-white p-1.5 shadow-float">
           {LOCALES.map((l) => {
             const active = l.code === locale;
+            const declared = l.status as LocaleStatus;
             return (
               <li key={l.code}>
                 <button
@@ -106,7 +107,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
                     {l.native !== l.label && <span className="ml-1.5 text-[12.5px] font-normal text-muted" lang="en">{l.label}</span>}
                   </span>
                   <span className="flex items-center gap-1.5 text-[12px] font-normal text-muted" lang="en">
-                    {l.status === "complete" ? null : t(l.status === "partial" ? "locale.status.partial" : "locale.status.planned")}
+                    {declared === "complete" ? null : t(declared === "partial" ? "locale.status.partial" : "locale.status.planned")}
                     {active && <Check aria-hidden className="size-4 text-brand" />}
                   </span>
                 </button>

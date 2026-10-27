@@ -50,6 +50,7 @@ export const NAV: NavGroup[] = [
       { href: "/plans", label: "Plans", icon: Tags, keywords: "pricing saas" },
       { href: "/subscriptions", label: "Subscriptions", icon: ClipboardList, keywords: "trial billing" },
       { href: "/subscriptions/sponsors", label: "Sponsor subscriptions", icon: Wallet, keywords: "diaspora recurring premium collections past due retry sponsor card" },
+      { href: "/instalments", label: "Instalments", icon: Wallet, keywords: "instalment premiums monthly quarterly momo collections grace lapse reinstatement micro cover" },
       { href: "/fx", label: "FX rates", icon: Globe2, keywords: "diaspora exchange rate gbp usd eur cad manual override margin display currency" },
       { href: "/invoices", label: "Invoices", icon: Receipt, keywords: "billing generate" },
       { href: "/commercial", label: "Commercial terms", icon: Scale, keywords: "revenue share commission ledger settlement statements splits" },

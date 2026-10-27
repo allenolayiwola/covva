@@ -71,6 +71,12 @@ export async function submitRequest(_prev: ActionState, formData: FormData): Pro
   if (v.note) {
     await supabase.from("request_messages").insert({ request_id: requestId, sender_id: user.id, sender_party: "customer", body: v.note });
   }
+  // Voice notes recorded on the form ("Explain what you need"): link them so the broker can listen.
+  const voiceIds = formData.getAll("voiceNoteId").map(String);
+  if (voiceIds.length) {
+    const { linkVoiceNotes } = await import("@/server/voice");
+    await linkVoiceNotes(supabase, voiceIds, { requestId }).catch(() => 0);
+  }
   // Diaspora bundle: tag this request and save the pack's other items as drafts (server/bundles.ts; never blocks).
   if (v.bundle) await attachBundleRequests({ bundleSlug: v.bundle, primaryRequestId: requestId, customerId: user.id, primaryCategorySlug: v.category, sharedRisk: risk });
 

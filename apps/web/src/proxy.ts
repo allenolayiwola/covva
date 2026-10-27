@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
 
   // Embedded widget: frame-ancestors from the partner's allowed domains (global X-Frame-Options skips /embed).
   if (path === "/embed" || path.startsWith("/embed/")) {
-    response.headers.set("Content-Security-Policy", frameAncestors(await embedDomains(request.nextUrl.searchParams.get("partner"))));
+    response.headers.set("Content-Security-Policy", frameAncestors(await embedDomains(request.nextUrl.searchParams.get("partner")), { includeSelf: true }));
     return response;
   }
 

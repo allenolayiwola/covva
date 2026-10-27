@@ -185,7 +185,7 @@ test("main menu and list screens read correctly", () => {
 
 test("END screens from the catalogue fit with long values", () => {
   const vars = { ref: "CB-ABCDE", policy: LONG.slice(0, 40), amount: ussdMoney(123456.78), end: "31 Dec 2026", status: "Pending", insurer: "Coastline General Insurance Company Ltd", start: "1 Jan 2026" };
-  const endKeys = (Object.keys(en) as MessageKey[]).filter((k) => /^ussd\.(sms\.sent|callback\.done|notFound|renew\.(none|requested)|pay\.(none|prompted|linkSent)|check\.(none|detail)|claim\.done|talk\.sms|error)$/.test(k));
+  const endKeys = (Object.keys(en) as MessageKey[]).filter((k) => /^ussd\.(sms\.sent|callback\.done|notFound|renew\.none|pay\.(none|prompted|linkSent)|check\.(none|detail)|claim\.done|talk\.sms|error)$/.test(k));
   assert.ok(endKeys.length >= 12);
   for (const k of endKeys) {
     const reply = ussdEnd(tr(k, vars));

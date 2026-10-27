@@ -170,7 +170,7 @@ export async function buyMicroCover(
   const { data: line } = await svc.from("insurer_line_integrations").select("level, active, issuance_type").eq("insurer_org_id", insurer.id).eq("category_id", category.id).maybeSingle();
   const instant = !!line?.active && String(line.level).toUpperCase() === "L2" && !!amount;
   if (!instant) {
-    const { request } = await createRequest({ categorySlug: category.slug, risk, source: SOURCE[channel], submit: true }, { supabase: svc as unknown as Parameters<typeof createRequest>[1]["supabase"], userId: customerId });
+    const { request } = await createRequest({ categorySlug: category.slug, risk, source: SOURCE[channel], submit: true }, { supabase: svc as unknown as NonNullable<NonNullable<Parameters<typeof createRequest>[1]>["supabase"]>, userId: customerId });
     return { mode: "routed", requestId: request.id, amount, period, nextStep: request.next_step ?? "We'll confirm your quote shortly." };
   }
 
@@ -323,7 +323,7 @@ export async function renewMicro(
     await notify({ userId: policy.customer_id, kind: "micro.renew_link", title: `Renew ${loaded.product.name}: ${formatMoney(amount, "GHS")}`, body: `Your cover ends ${fmtWhen(session.starts_at)}. Renew for 1 ${PERIOD_LABEL[period].noun} by mobile money: ${siteUrl()}/account/micro?renew=${policy.id}`, link: `/account/micro?renew=${policy.id}`, data: { policy_id: policy.id, session_id: session.id }, channels: ["in_app", "push", "whatsapp", "sms"] });
     return { sessionId: session.id, startsAt: session.starts_at, endsAt: session.ends_at, amount, paymentId: null, status: "link_sent", authorizationUrl: null, displayText: "We sent a payment link." };
   }
-  const r = await initiatePolicyCollection({ policyId: policy.id, payerUserId: policy.customer_id, amount, tags, idempotencyKey: key, channel: opts.momo ? "mobile_money" : opts.channel === "card" ? "card" : "link", momo: opts.momo ? { phone: opts.momo.phone, provider: opts.momo.network } : null, callbackUrl: `${siteUrl()}/account/micro`, description });
+  const r = await initiatePolicyCollection({ policyId: policy.id, payerUserId: policy.customer_id, amount, tags, idempotencyKey: key, channel: opts.momo ? "mobile_money" : "link", momo: opts.momo ? { phone: opts.momo.phone, provider: opts.momo.network } : null, callbackUrl: `${siteUrl()}/account/micro`, description });
   await db.from("micro_sessions").update({ payment_id: r.paymentId }).eq("id", session.id).eq("status", "pending");
   return { sessionId: session.id, startsAt: session.starts_at, endsAt: session.ends_at, amount, paymentId: r.paymentId, status: r.status, authorizationUrl: r.authorizationUrl, displayText: r.displayText };
 }
@@ -458,4 +458,14 @@ export async function microRenewals(svc: Svc): Promise<Record<string, unknown>> 
     }
   }
   return { expired_windows: ended?.length ?? 0, auto_renew_policies: policies?.length ?? 0, charged, links_sent: linked, skipped };
+}
+
+/** Buy page: one micro version with its price per supported micro period (null when not on sale). */
+export async function microProductForBuy(versionId: string): Promise<{ versionId: string; productName: string; insurerName: string; prices: { period: MicroCoverPeriod; amount: number }[]; keyExclusion: string | null } | null> {
+  const svc = createServiceClient();
+  const loaded = await loadMicroVersion(svc, versionId);
+  if (!loaded || !loaded.version.micro || loaded.version.status !== "approved" || loaded.product.status !== "approved" || loaded.product.current_version_id !== loaded.version.id) return null;
+  const byPeriod = await microPricing(svc, loaded.version);
+  const prices = (["day", "week", "month"] as const).filter((p) => supportedPeriods(loaded.version.periods).includes(p) && (byPeriod[p] ?? 0) > 0).map((p) => ({ period: p, amount: byPeriod[p]! }));
+  return { versionId, productName: loaded.product.name, insurerName: loaded.insurer.name, prices, keyExclusion: loaded.version.key_exclusion };
 }

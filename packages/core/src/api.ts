@@ -713,3 +713,59 @@ export type MicroRenewInput = z.infer<typeof MicroRenewInput>;
 /** `PATCH /micro/{policyId}` */
 export const MicroUpdateInput = z.object({ autoRenew: z.boolean() });
 export type MicroUpdateInput = z.infer<typeof MicroUpdateInput>;
+
+// ---------------------------------------------------------------------------
+// Endorsements (policy changes) and service partner reviews
+// ---------------------------------------------------------------------------
+const ENDORSEMENT_KIND_ENUM = ["change_vehicle", "add_driver", "remove_driver", "change_address", "change_sum_insured", "add_member", "remove_member", "change_use", "cancel_policy", "other"] as const;
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
+
+/** `POST /policies/{id}/endorsements` — ask for a change; `changes` is validated per kind (see ENDORSEMENT_KINDS). */
+export const StartEndorsementInput = z.object({
+  kind: z.enum(ENDORSEMENT_KIND_ENUM),
+  changes: z.record(z.string(), z.unknown()),
+  effectiveFrom: isoDay,
+  submit: z.boolean().default(true),
+});
+export type StartEndorsementInput = z.infer<typeof StartEndorsementInput>;
+
+/** `POST /endorsements/{id}/accept` — the policyholder agrees to the quoted adjustment (and pays any additional premium). */
+export const AcceptEndorsementInput = z.object({
+  channel: z.enum(["mobile_money", "card", "bank_transfer"]).default("mobile_money"),
+  callbackUrl: z.string().url().optional(),
+});
+export type AcceptEndorsementInput = z.infer<typeof AcceptEndorsementInput>;
+
+/** `POST /partner/endorsements/{id}/quote` — broker of record or insurer: positive = additional premium, negative = refund, 0 = none. */
+export const QuoteEndorsementInput = z.object({
+  premiumAdjustment: z.coerce.number().min(-10_000_000).max(10_000_000),
+  note: z.string().trim().max(2000).optional(),
+});
+export type QuoteEndorsementInput = z.infer<typeof QuoteEndorsementInput>;
+
+/** `POST /partner/endorsements/{id}/decide` — insurer only. */
+export const DecideEndorsementInput = z.object({
+  decision: z.enum(["accept", "reject"]),
+  note: z.string().trim().max(2000).optional(),
+  /** Insurer may set the final adjustment when accepting directly from `submitted`. */
+  premiumAdjustment: z.coerce.number().min(-10_000_000).max(10_000_000).optional(),
+});
+export type DecideEndorsementInput = z.infer<typeof DecideEndorsementInput>;
+
+/** `POST /partner/endorsements/{id}/apply` — insurer only: updates the policy and regenerates its documents. */
+export const ApplyEndorsementInput = z.object({ note: z.string().trim().max(2000).optional() });
+export type ApplyEndorsementInput = z.infer<typeof ApplyEndorsementInput>;
+
+export const PartnerEndorsementsQuery = z.object({
+  status: z.enum(["draft", "submitted", "quoted", "accepted", "rejected", "applied", "cancelled", "open"]).default("open"),
+  orgId: uuid.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type PartnerEndorsementsQuery = z.infer<typeof PartnerEndorsementsQuery>;
+
+/** `POST /claims/{id}/jobs/{jobId}/review` — rate a completed repair / tow / treatment (one per job). */
+export const ClaimJobReviewInput = z.object({
+  rating: z.coerce.number().int().min(1, "Choose 1 to 5 stars").max(5, "Choose 1 to 5 stars"),
+  comment: z.string().trim().max(1000).optional(),
+});
+export type ClaimJobReviewInput = z.infer<typeof ClaimJobReviewInput>;

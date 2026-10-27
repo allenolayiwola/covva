@@ -12,6 +12,8 @@ import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
 import { acknowledgeDisclosure, startPayment, submitApplication } from "./actions";
 import type { Declaration } from "./declarations";
+import { InstalmentChoice } from "./instalment-choice";
+import { buildSchedule, type InstalmentPlan, type InstalmentPlanKey } from "@im/core";
 import { T } from "@/lib/i18n/client";
 
 // ---------------------------------------------------------------------------
@@ -172,6 +174,7 @@ export function PaymentStep({
   marginPct = 0,
   applePay = false,
   sponsor,
+  instalmentPlans = [],
 }: {
   requestId: string;
   quoteId: string;
@@ -185,8 +188,11 @@ export function PaymentStep({
   marginPct?: number;
   applePay?: boolean;
   sponsor?: SponsorOffer | null;
+  /** Phase 3: the insurer's instalment plans for this product version. */
+  instalmentPlans?: InstalmentPlan[];
 }) {
   const [state, action] = useActionState(startPayment, initialActionState);
+  const [instalmentPlan, setInstalmentPlan] = React.useState<"" | InstalmentPlanKey>("");
   const [chosenMethod, setMethod] = React.useState<string>("mtn");
   const [currency, setCurrency] = React.useState<DisplayCurrency>(currencies.some((c) => c.code === defaultCurrency) ? defaultCurrency : "GHS");
   const [sponsorMode, setSponsorMode] = React.useState<"" | "monthly" | "annual">("");
@@ -195,15 +201,18 @@ export function PaymentStep({
   const fx = currencies.find((c) => c.code === currency) ?? { code: "GHS" as const, rate: 1, source: "manual" as const, quotedAt: "", manual: false };
   const foreign = currency !== "GHS";
   const cardOnly = foreign || sponsorMode !== "";
+  // Instalments are GHS only (MoMo or card) and not combined with a sponsor plan.
+  const instalmentPreviews = React.useMemo(() => Object.fromEntries(instalmentPlans.flatMap((p) => { try { return [[p.key, buildSchedule(amount, p, new Date())]]; } catch { return []; } })), [instalmentPlans, amount]);
+  const activePlan = !foreign && sponsorMode === "" ? instalmentPlan : "";
   // Foreign currency and sponsor plans are card only: derive the effective method rather than syncing state.
-  const method = cardOnly ? "card" : chosenMethod;
+  const method = cardOnly ? "card" : activePlan && chosenMethod === "bank_transfer" ? "mtn" : chosenMethod;
   const monthlyOffered = !!sponsor?.offered && (sponsor.billingPeriod === "month" || sponsor.instalmentsAllowed);
   const annualGhs = sponsor?.billingPeriod === "month" ? amount * 12 : amount;
-  const dueGhs = sponsorMode === "monthly" ? (sponsor?.billingPeriod === "month" ? amount : instalmentAmount(annualGhs, "monthly")) : sponsorMode === "annual" ? annualGhs : amount;
+  const dueGhs = activePlan && instalmentPreviews[activePlan] ? instalmentPreviews[activePlan].deposit : sponsorMode === "monthly" ? (sponsor?.billingPeriod === "month" ? amount : instalmentAmount(annualGhs, "monthly")) : sponsorMode === "annual" ? annualGhs : amount;
   const dueDisplay = foreign ? convertFromGhs(dueGhs, fx.rate) : dueGhs;
   const payLabel = foreign ? `≈ ${formatMoney(dueDisplay, currency)}` : formatGHS(dueGhs);
   const disclosure = foreign ? fxDisclosure(currency, fx.rate, fx.source, fx.quotedAt || new Date(0), { ghsAmount: dueGhs, displayAmount: dueDisplay, marginPct }) : null;
-  const methodsForDisplay = METHODS.filter((m) => !cardOnly || m.value === "card");
+  const methodsForDisplay = METHODS.filter((m) => (!cardOnly || m.value === "card") && (!activePlan || m.value !== "bank_transfer"));
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="requestId" value={requestId} />
@@ -211,6 +220,7 @@ export function PaymentStep({
       <input type="hidden" name="applicationId" value={applicationId} />
       <input type="hidden" name="currency" value={currency} />
       <input type="hidden" name="sponsor" value={sponsorMode} />
+      <input type="hidden" name="instalment_plan" value={activePlan} />
       <div>
         <h2 className="text-xl font-semibold text-ink"><T k="checkout.pay" vars={{ insurer }} /></h2>
         <p className="mt-1 text-[15px] text-muted">
@@ -270,6 +280,10 @@ export function PaymentStep({
         </fieldset>
       )}
 
+      {instalmentPlans.length > 0 && !foreign && sponsorMode === "" && (
+        <InstalmentChoice plans={instalmentPlans} previews={instalmentPreviews} value={instalmentPlan} onChange={setInstalmentPlan} insurer={insurer} />
+      )}
+
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-ink-2">How would you like to pay?</legend>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -303,7 +317,7 @@ export function PaymentStep({
       )}
       <div className="rounded-card bg-mist p-4" aria-live="polite">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-sm text-muted">{sponsorMode === "monthly" ? "First monthly instalment" : "Amount due"} to {insurer}</span>
+          <span className="text-sm text-muted">{activePlan ? "First instalment" : sponsorMode === "monthly" ? "First monthly instalment" : "Amount due"} to {insurer}</span>
           <span className="text-2xl font-bold text-ink">{foreign ? `≈ ${formatMoney(dueDisplay, currency)}` : formatGHS(dueGhs)}</span>
         </div>
         {foreign ? (

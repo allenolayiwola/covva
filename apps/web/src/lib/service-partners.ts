@@ -7,9 +7,9 @@ import { createPublicClient } from "@/lib/supabase/server";
 /**
  * Public, cacheable post-claim partner directory (approved partners only — RLS "service partners: public directory").
  * Used by the marketing page /claims/network and the customer claim page's "near you" card.
- * Admin changes call revalidateTag("service-partners").
+ * Admin changes call revalidateTag("service-partners"). `rating` is null until a partner has 3 published reviews (DB trigger).
  */
-export type PublicServicePartner = Pick<Row<"service_partners">, "id" | "kind" | "name" | "phone" | "address" | "region" | "services" | "direct_billing_insurer_ids" | "rating">;
+export type PublicServicePartner = Pick<Row<"service_partners">, "id" | "kind" | "name" | "phone" | "address" | "region" | "services" | "direct_billing_insurer_ids" | "rating" | "review_count">;
 
 export async function getApprovedServicePartners(): Promise<PublicServicePartner[]> {
   "use cache";
@@ -17,7 +17,7 @@ export async function getApprovedServicePartners(): Promise<PublicServicePartner
   cacheTag("service-partners");
   const { data } = await createPublicClient()
     .from("service_partners")
-    .select("id, kind, name, phone, address, region, services, direct_billing_insurer_ids, rating")
+    .select("id, kind, name, phone, address, region, services, direct_billing_insurer_ids, rating, review_count")
     .eq("status", "approved")
     .order("region")
     .order("name");

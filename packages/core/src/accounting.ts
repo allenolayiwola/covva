@@ -348,21 +348,23 @@ export function ledgerToJournal(entries: readonly LedgerEntryLike[], orgId: stri
     if (amountMinor === 0) continue;
     let dr: AccountKey;
     let cr: AccountKey;
+    // Reversal adjustments (refunds) post to the same accounts as the entry they reverse.
+    const type = isCommissionReversal(e) ? "broker_commission" : isFeeReversal(e) ? "platform_fee" : isRevenueShareReversal(e) ? "revenue_share" : e.entry_type;
     if (mine) {
       cr =
-        e.entry_type === "premium_received" || e.entry_type === "premium_to_insurer" ? "premiumIncome"
-        : e.entry_type === "refund" ? "refunds"
-        : e.entry_type === "broker_commission" ? "commissionIncome"
-        : e.entry_type === "platform_fee" ? "feeIncome"
-        : e.entry_type === "revenue_share" ? "revenueShareIncome"
-        : e.entry_type === "subscription_fee" ? "subscriptionIncome"
+        type === "premium_received" || type === "premium_to_insurer" ? "premiumIncome"
+        : type === "refund" ? "refunds"
+        : type === "broker_commission" ? "commissionIncome"
+        : type === "platform_fee" ? "feeIncome"
+        : type === "revenue_share" ? "revenueShareIncome"
+        : type === "subscription_fee" ? "subscriptionIncome"
         : "adjustments";
-      dr = e.entry_type === "premium_received" || e.entry_type === "premium_to_insurer" || e.entry_type === "refund" ? "bank" : "receivable";
+      dr = type === "premium_received" || type === "premium_to_insurer" || type === "refund" ? "bank" : "receivable";
     } else {
       dr =
-        e.entry_type === "broker_commission" ? "commissionExpense"
-        : e.entry_type === "platform_fee" ? "feeExpense"
-        : e.entry_type === "revenue_share" ? "revenueShareExpense"
+        type === "broker_commission" ? "commissionExpense"
+        : type === "platform_fee" ? "feeExpense"
+        : type === "revenue_share" ? "revenueShareExpense"
         : "adjustments";
       cr = "payable";
     }
@@ -382,7 +384,7 @@ export function csvString(header: readonly string[], rows: readonly (readonly (s
   const cell = (v: string | number | null | undefined) => {
     if (v === null || v === undefined) return "";
     let s = String(v);
-    if (typeof v === "string" && /^[=+\-@]/.test(s)) s = `'${s}`;
+    if (typeof v === "string" && /^[=+\-@]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`;
     return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return [header, ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";

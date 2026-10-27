@@ -39,7 +39,12 @@ async function Subscriptions() {
       <PageHeader
         title="Recurring payments"
         description="Premiums you pay for family in Ghana, collected automatically from your saved card. Each collection goes straight to the insurer in cedis; the amount in your currency is indicative."
-        actions={<Link href="/account/payments/methods" className={buttonClass("secondary", "sm")}><CreditCard aria-hidden className="size-4" /> Saved cards</Link>}
+        actions={
+          <>
+            <Link href="/account/payments/instalments" className={buttonClass("ghost", "sm")}>Instalments</Link>
+            <Link href="/account/payments/methods" className={buttonClass("secondary", "sm")}><CreditCard aria-hidden className="size-4" /> Saved cards</Link>
+          </>
+        }
       />
       {pastDue.length > 0 && (
         <Notice tone="danger" className="mb-5" title={`${pastDue.length} collection${pastDue.length === 1 ? "" : "s"} failed`}>

@@ -29,11 +29,12 @@ export default function NetworkPage() {
           <Directory />
         </Suspense>
         <Notice tone="neutral" className="mt-8">
-          Covva lists partners approved for the network; it does not carry out repairs or treatment and does not decide claims. Only the insurer approves and pays a claim. Ratings will appear once customers have used a partner through the app.
+          Covva lists partners approved for the network; it does not carry out repairs or treatment and does not decide claims. Only the insurer approves and pays a claim. Ratings come from customers after a completed job and show once a partner has three reviews.
         </Notice>
         <p className="mt-6 text-[14.5px]">
           <Link href="/claims" className={textLinkClass}>Back to how claims work <ArrowRight aria-hidden className="size-4" /></Link>
         </p>
+        <p className="mt-2 text-[14.5px]"><Link href="/claims/network/join" className={textLinkClass}>Run a garage, towing service, hospital, clinic, pharmacy or assessor firm? Apply to join the network <ArrowRight aria-hidden className="size-4" /></Link></p>
       </Section>
     </>
   );
@@ -73,6 +74,7 @@ async function Directory() {
                   return (
                     <li key={p.id} className="rounded-card border border-line bg-white p-4">
                       <p className="font-semibold text-ink">{p.name}</p>
+                      {p.rating != null && <p className="text-[13px] text-ink-2" aria-label={`Rated ${Number(p.rating).toFixed(1)} out of 5 from ${p.review_count} reviews`}><span aria-hidden className="text-amber">★</span> {Number(p.rating).toFixed(1)} <span className="text-muted">({p.review_count} reviews)</span></p>}
                       {p.address && <p className="mt-0.5 text-[13.5px] text-muted">{p.address}</p>}
                       {p.phone && <a href={`tel:${p.phone}`} className="mt-1 inline-flex items-center gap-1 text-[13.5px] font-medium text-brand hover:underline"><Phone aria-hidden className="size-3.5" />{p.phone}</a>}
                       {p.services?.length ? <p className="mt-2 text-[12.5px] text-muted">{p.services.join(" · ")}</p> : null}

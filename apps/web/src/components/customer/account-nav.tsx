@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, FileText, HeartHandshake, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
+import { Camera, FileText, Gift, HeartHandshake, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@im/ui";
 import type { MessageKey } from "@im/core";
 import { useT } from "@/lib/i18n/client";
@@ -17,6 +17,7 @@ export const ACCOUNT_NAV: { href: string; label: string; k: MessageKey; icon: Lu
   { href: "/account/claims", label: "Claims", k: "account.nav.claims", icon: Camera, mobile: "Claims", mobileKey: "account.nav.claims" },
   { href: "/account/complaints", label: "Complaints", k: "account.nav.complaints", icon: Megaphone },
   { href: "/account/payments", label: "Payments", k: "account.nav.payments", icon: Wallet },
+  { href: "/account/referrals", label: "Refer a friend", k: "account.nav.referrals", icon: Gift },
   { href: "/account/profile", label: "Profile", k: "account.nav.profile", icon: User, mobile: "Account", mobileKey: "account.nav.accountTab" },
 ];
 

@@ -149,6 +149,8 @@ test("widget domains, frame-ancestors and the snippet", () => {
   assert.equal(normaliseWidgetDomain("http://localhost:3000"), "http://localhost:3000");
   assert.equal(frameAncestors([]), "frame-ancestors 'none'");
   assert.equal(frameAncestors(["https://a.example", "bad value"]), "frame-ancestors https://a.example");
+  assert.equal(frameAncestors([], { includeSelf: true }), "frame-ancestors 'self'");
+  assert.equal(frameAncestors(["https://a.example"], { includeSelf: true }), "frame-ancestors 'self' https://a.example");
   assert.equal(widgetSnippet("ABCDEFGH", "motor", "https://covva.com.gh/"), '<script src="https://covva.com.gh/embed/widget.js" data-partner="ABCDEFGH" data-category="motor" async></script>');
   assert.match(EMBED_DISCLOSURE, /^Technology provided by Covva\. Insurance provided by licensed insurers and brokers\.$/);
 });

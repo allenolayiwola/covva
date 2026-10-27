@@ -246,6 +246,13 @@ export interface CreateRequestArgs {
    * granted). The caller becomes `sponsor_user_id`; a draft sponsorship is created by the caller.
    */
   beneficiaryId?: string | null;
+  /**
+   * SME & group (Phase 3, server/business.ts): the request is for a business account (`requests.business_org_id`;
+   * the DB guard requires the caller to be its owner/admin). Business requests always go to a broker
+   * (talk_to_expert). With `groupRisk`, `risk` is the server-built census / fleet summary (counts only, never member
+   * PII) and is not validated against the category's personal-lines form.
+   */
+  business?: { orgId: string; title?: string; groupRisk?: boolean } | null;
 }
 
 export async function createRequest(
@@ -277,15 +284,16 @@ export async function createRequest(
     throw new BusinessRuleError(`${category.name} is not available yet. We only open a category when advice, underwriting and servicing can support it.`);
   }
 
-  const parsed = riskSchemaToZod(category.risk_schema as unknown as RiskField[]).safeParse(args.risk);
-  if (!parsed.success) {
+  const parsed = args.business?.groupRisk ? null : riskSchemaToZod(category.risk_schema as unknown as RiskField[]).safeParse(args.risk);
+  if (parsed && !parsed.success) {
     throw new BusinessRuleError(parsed.error.issues.map((i) => i.message).join(" "), "invalid_input");
   }
-  const risk = parsed.data as Record<string, unknown>;
+  const risk = (parsed ? parsed.data : args.risk) as Record<string, unknown>;
+  const talkToExpert = (args.talkToExpert ?? false) || !!args.business;
   const fingerprint = await riskFingerprint({ customerId: user.id, categorySlug: category.slug, risk });
 
   const submit = args.submit ?? true;
-  const needsReview = category.availability === "broker_assisted" || category.segment !== "personal";
+  const needsReview = category.availability === "broker_assisted" || category.segment !== "personal" || !!args.business;
 
   const { data: request, error } = await supabase
     .from("requests")
@@ -295,13 +303,14 @@ export async function createRequest(
       type: args.type ?? "new_cover",
       status: submit ? "submitted" : "draft",
       source: args.source ?? "web",
-      title: riskTitle(category.slug, risk),
+      title: args.business?.title ?? riskTitle(category.slug, risk),
       risk_data: risk as Json,
       risk_fingerprint: fingerprint,
       related_policy_id: args.relatedPolicyId ?? null,
       needs_assessment_id: args.needsAssessmentId ?? null,
       needs_adviser_review: needsReview,
-      talk_to_expert: args.talkToExpert ?? false,
+      talk_to_expert: talkToExpert,
+      business_org_id: args.business?.orgId ?? null,
       beneficiary_id: args.beneficiaryId ?? null,
       sponsor_user_id: args.beneficiaryId ? user.id : null,
       next_step: submit ? "We are routing your request." : "Finish and submit your request when you're ready.",
@@ -320,7 +329,7 @@ export async function createRequest(
 
   // Routing engine (Addendum 2 D): fixed broker, broker offers, direct to insurer, or ops hold.
   // Writes order_routing (+ offers), requests.routing_mode/broker_org_id and the timeline event.
-  const routing = await routeNewRequest(svc, { ...request, talk_to_expert: args.talkToExpert ?? false }, { category, fixedBrokerOrgId: args.brokerOfRecordId ?? null });
+  const routing = await routeNewRequest(svc, { ...request, talk_to_expert: talkToExpert }, { category, fixedBrokerOrgId: args.brokerOfRecordId ?? null });
   request.broker_org_id = routing.brokerOrgId;
   request.routing_mode = routing.mode;
 

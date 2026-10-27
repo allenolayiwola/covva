@@ -446,6 +446,11 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "instalment-collections": (svc) => collectDueInstalments(svc),
   // Phase 3: hourly at :40 — micro cover auto-renewals before the window ends; ended windows marked expired.
   "micro-renewals": (svc) => microRenewals(svc),
+  // Phase 3 SME: 1st of the month 05:00 — consolidated business statements for last month (one payment per insurer line) + overdue marking.
+  // Lazy import: business.ts imports requests/payments, which import back into cron-adjacent modules.
+  "business-invoices": async (svc) => (await import("@/server/business")).buildDueInvoices(svc),
+  // Phase 3: monthly on the 2nd at 04:00 — last month's insurer statements, commission reports, platform revenue and tax report (CSV exports).
+  "accounting-exports": async (svc) => (await import("@/server/accounting")).monthlyAccountingExports(svc),
 };
 
 export async function runCron(job: string) {

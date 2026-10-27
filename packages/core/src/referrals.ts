@@ -262,9 +262,13 @@ export function normaliseWidgetDomain(value: string): string | null {
   return ORIGIN_RE.test(v) ? v : null;
 }
 
-/** CSP `frame-ancestors` directive for a partner (`'none'` when nothing is allowed). */
-export function frameAncestors(domains: readonly string[] | null | undefined): string {
+/**
+ * CSP `frame-ancestors` directive for a partner (`'none'` when nothing is allowed). `includeSelf` also
+ * lets Covva frame its own widget (the live preview in the partner workspace).
+ */
+export function frameAncestors(domains: readonly string[] | null | undefined, opts: { includeSelf?: boolean } = {}): string {
   const list = (domains ?? []).map(normaliseWidgetDomain).filter((d): d is string => !!d);
+  if (opts.includeSelf) list.unshift("'self'");
   return `frame-ancestors ${list.length ? list.join(" ") : "'none'"}`;
 }
 
