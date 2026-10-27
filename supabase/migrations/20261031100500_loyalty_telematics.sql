@@ -42,13 +42,14 @@ language sql stable security definer set search_path = '' as $$
   );
 $$;
 
--- Latest telematics consent decision for a user (true only when the newest row is `granted`).
+-- Latest telematics consent decision for a user (true only when the newest row is `granted`). Rows written in
+-- the same instant (same transaction) tie on created_at: the withdrawal wins, which is the privacy-safe reading.
 create or replace function private.telematics_consent_granted(p_user uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select coalesce((
     select c.granted from public.consents c
     where c.user_id = p_user and c.type::text = 'telematics'
-    order by c.created_at desc, c.id desc
+    order by c.created_at desc, c.granted asc, c.id desc
     limit 1
   ), false);
 $$;
@@ -576,8 +577,8 @@ begin
   returning * into v_row;
   -- No other active enrolment → the person's telematics consent is withdrawn too.
   if not exists (select 1 from public.telematics_enrolments e where e.user_id = v_row.user_id and e.status = 'active') then
-    insert into public.consents (user_id, type, version, granted, context)
-    values (v_row.user_id, 'telematics'::public.consent_type, v_row.consent_version, false, 'telematics_withdrawal');
+    insert into public.consents (user_id, type, version, granted, context, created_at)
+    values (v_row.user_id, 'telematics'::public.consent_type, v_row.consent_version, false, 'telematics_withdrawal', clock_timestamp());
   end if;
   return v_row;
 end $$;
