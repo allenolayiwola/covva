@@ -165,7 +165,7 @@ export function safeDriverSummary(months: ScoredMonth[], now: Date = new Date(),
 }
 
 /** Plain-language band for a score (customer UI). */
-export function scoreBand(score: number | null): { label: string; tone: "ok" | "wait" | "danger" | "neutral" } {
+export function drivingScoreBand(score: number | null): { label: string; tone: "ok" | "wait" | "danger" | "neutral" } {
   if (score === null) return { label: "Not enough trips yet", tone: "neutral" };
   if (score >= 85) return { label: "Very safe", tone: "ok" };
   if (score >= 70) return { label: "Safe", tone: "ok" };

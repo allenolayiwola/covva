@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Car, Gauge, ShieldCheck } from "lucide-react";
-import { TELEMATICS_FACTOR_LABEL, formatDate, formatDateTime, scoreBand, type TelematicsFactor } from "@im/core";
+import { TELEMATICS_FACTOR_LABEL, formatDate, formatDateTime, drivingScoreBand, type TelematicsFactor } from "@im/core";
 import { Card, Notice, PageHeader, Pill, StatCard, buttonClass } from "@im/ui";
 import { getFlags } from "@/lib/catalog";
 import { ListSkeleton } from "@/components/customer/skeletons";
@@ -27,7 +27,7 @@ function ScoreRing({ score }: { score: number | null }) {
   const r = 42;
   const c = 2 * Math.PI * r;
   const pct = score === null ? 0 : Math.max(0.02, score / 100);
-  const band = scoreBand(score);
+  const band = drivingScoreBand(score);
   const stroke = band.tone === "ok" ? "var(--color-brand)" : band.tone === "wait" ? "var(--color-gold)" : band.tone === "danger" ? "var(--color-danger)" : "var(--color-line)";
   return (
     <svg viewBox="0 0 100 100" className="size-28 shrink-0" role="img" aria-label={score === null ? "No score yet" : `Driving score ${score} out of 100`}>
@@ -58,7 +58,7 @@ async function Telematics() {
         const policy = policyById.get(e.policyId);
         const latestFinal = e.months.find((m) => m.final && m.score !== null) ?? null;
         const shown = latestFinal ? { score: latestFinal.score, label: `Last full month (${formatDate(latestFinal.period)})` } : { score: e.current.score, label: "This month so far (provisional)" };
-        const band = scoreBand(shown.score);
+        const band = drivingScoreBand(shown.score);
         const factors = latestFinal ? (latestFinal.factors as Record<TelematicsFactor, { score: number; detail: string }>) : e.current.factors;
         return (
           <Card key={e.id} className="p-5" data-testid="telematics-enrolment">

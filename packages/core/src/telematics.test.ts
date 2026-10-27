@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { TELEMATICS_CONSENT, TELEMATICS_SCORING, monthKey, previousMonthKey, safeDriverSummary, scoreBand, scoreTrips, tripsInMonth, type TripSummary } from "./telematics.ts";
+import { TELEMATICS_CONSENT, TELEMATICS_SCORING, monthKey, previousMonthKey, safeDriverSummary, drivingScoreBand, scoreTrips, tripsInMonth, type TripSummary } from "./telematics.ts";
 
 const trip = (over: Partial<TripSummary> = {}): TripSummary => ({
   startedAt: "2026-09-10T08:00:00Z",
@@ -96,10 +96,10 @@ test("safe-driver summary averages FINAL months in the look-back window only", (
 });
 
 test("score bands and consent wording are plain and complete", () => {
-  assert.equal(scoreBand(null).label, "Not enough trips yet");
-  assert.equal(scoreBand(90).tone, "ok");
-  assert.equal(scoreBand(55).tone, "wait");
-  assert.equal(scoreBand(20).tone, "danger");
+  assert.equal(drivingScoreBand(null).label, "Not enough trips yet");
+  assert.equal(drivingScoreBand(90).tone, "ok");
+  assert.equal(drivingScoreBand(55).tone, "wait");
+  assert.equal(drivingScoreBand(20).tone, "danger");
   assert.ok(TELEMATICS_CONSENT.collected.length >= 5);
   assert.ok(TELEMATICS_CONSENT.notCollected.some((t) => /GPS/.test(t)));
   assert.match(TELEMATICS_CONSENT.withdrawal, /any time/);
