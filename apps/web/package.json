@@ -2,14 +2,13 @@
   "name": "@im/web",
   "version": "0.1.0",
   "private": true,
-  "browserslist": ["chrome >= 100", "safari >= 15.4", "firefox >= 100", "edge >= 100", "and_chr >= 100", "ios_saf >= 15.4"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:db": "node --test tests/*.test.mjs",
+    "test:db": "node tests/_lib/global-setup.mjs && node --test tests/*.test.mjs",
     "test:purge": "node tests/purge-e2e-data.mjs",
     "e2e": "playwright test",
     "e2e:report": "playwright show-report e2e/.report"
