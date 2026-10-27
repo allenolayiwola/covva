@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
 import { DemoBadge, Notice, Pill } from "@im/ui";
 import { getPartnerDirectory, type PublicOrg } from "@/lib/catalog";
+import { getPublicScoreSummaries, type PublicScoreSummary } from "@/server/scorecards";
+import { ScoreSummary } from "@/components/score-summary";
 import { displayOrgName, isDemoMode, isDemoOrg } from "@/components/marketing/brand";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Section } from "@/components/marketing/section";
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/partners" },
 };
 
-function OrgCard({ org, demo }: { org: PublicOrg; demo: boolean }) {
+function OrgCard({ org, demo, score }: { org: PublicOrg; demo: boolean; score?: PublicScoreSummary | null }) {
   const isDemo = demo && isDemoOrg(org.settings);
   return (
     <li className="flex flex-col rounded-card border border-line bg-white p-6">
@@ -31,6 +33,7 @@ function OrgCard({ org, demo }: { org: PublicOrg; demo: boolean }) {
         </div>
       </div>
       {org.description && <p className="mt-4 text-[15px] leading-relaxed text-muted">{org.description}</p>}
+      {org.type === "broker" && <ScoreSummary summary={score ?? null} className="mt-4" />}
       <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="text-muted">NIC licence</dt>
@@ -49,6 +52,7 @@ function OrgCard({ org, demo }: { org: PublicOrg; demo: boolean }) {
 
 export default async function PartnersPage() {
   const [{ brokers, insurers }, demo] = await Promise.all([getPartnerDirectory(), isDemoMode()]);
+  const scores = await getPublicScoreSummaries(brokers.map((b) => b.id));
   const anyDemo = demo && [...brokers, ...insurers].some((o) => isDemoOrg(o.settings));
 
   return (
@@ -87,11 +91,15 @@ export default async function PartnersPage() {
         </div>
         {brokers.length ? (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {brokers.map((o) => <OrgCard key={o.id} org={o} demo={demo} />)}
+            {brokers.map((o) => <OrgCard key={o.id} org={o} demo={demo} score={scores[o.id]} />)}
           </ul>
         ) : (
           <p className="text-muted">Broker partners will be listed here once agreements are in place.</p>
         )}
+        <p className="mt-6 text-sm text-muted">
+          Broker ratings come from verified customers after a completed request or settled claim, are checked before they are shown, and appear from three reviews.{" "}
+          <Link href="/partners/how-we-score" className={textLinkClass}>How we calculate broker scores <ArrowRight aria-hidden className="size-4" /></Link>
+        </p>
         <div className="mt-10 flex flex-col gap-4 rounded-card border border-line bg-white p-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[15px] text-ink-2">Verify any licence with the regulator, or find out how to join.</p>
           <div className="flex flex-wrap gap-x-6 gap-y-2">

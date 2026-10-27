@@ -41,3 +41,4 @@ export * from "./endorsements";
 export * from "./accounting";
 export * from "./voice";
 export * from "./policy-explainer";
+export * from "./scorecards";

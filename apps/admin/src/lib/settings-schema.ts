@@ -53,6 +53,9 @@ export const KNOWN_SETTINGS: Record<string, { schema: z.ZodType; hint: string; e
   quote_validity_days: { schema: z.number().int().min(1).max(90), hint: "Default validity of binding quotes.", example: 14 },
   ai_models: { schema: z.object({ default: modelId, fast: modelId, vision: modelId.optional() }).passthrough(), hint: "AI Gateway model ids per tier (default, fast, vision).", example: { default: "anthropic/claude-sonnet-5.5", fast: "anthropic/claude-haiku-5.5", vision: "anthropic/claude-sonnet-5.5" } },
   invoice_tax_rate: { schema: z.number().min(0).max(1), hint: "Tax rate applied to new invoices (0–1, e.g. 0.219).", example: 0 },
+  "routing.scorecard_weight": { schema: z.number().min(0).max(100), hint: "Routing points (± at most this many) a broker's 90-day scorecard adds to its pool ranking. 0 disables the factor. Brokers without a score are neutral.", example: 10 },
+  "scorecards.min_reviews": { schema: z.number().int().min(1).max(50), hint: "Approved reviews needed before a broker's average rating is shown to customers (the database summary uses 3).", example: 3 },
+  "scorecards.min_samples": { schema: z.number().int().min(1).max(100), hint: "Measured requests / claims needed before a scorecard component counts (the refresh job uses 5).", example: 5 },
 };
 
 export const READ_ONLY_PREFIXES = ["cron_last_run:"];
