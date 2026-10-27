@@ -154,7 +154,7 @@ export const RecordConsentsInput = z.object({
   consents: z
     .array(
       z.object({
-        type: z.enum(["terms", "privacy", "marketing", "data_sharing_broker", "data_sharing_insurer", "ai_assistance"]),
+        type: z.enum(["terms", "privacy", "marketing", "data_sharing_broker", "data_sharing_insurer", "ai_assistance", "telematics"]),
         granted: z.boolean(),
         version: z.string().max(40).optional(),
         context: z.string().max(200).optional(),
@@ -856,3 +856,39 @@ export const PayBusinessInvoiceInput = z
   })
   .refine((v) => v.channel !== "mobile_money" || !!v.momo, { message: "Mobile money needs momo.phone and momo.provider", path: ["momo"] });
 export type PayBusinessInvoiceInput = z.infer<typeof PayBusinessInvoiceInput>;
+
+// ---------------------------------------------------------------------------
+// Phase 4: motor telematics (/me/telematics/*)
+// ---------------------------------------------------------------------------
+/** `POST /me/telematics/enrol` — enrol a motor policy after the telematics consent has been recorded. */
+export const TelematicsEnrolInput = z.object({
+  policyId: uuid,
+  /** Stable, app-generated device identifier (never the IMEI). */
+  deviceId: z.string().trim().min(4).max(120),
+  deviceLabel: z.string().trim().max(80).optional(),
+  /** Set when the consent is captured in the same step (recorded before enrolment). */
+  consent: z.object({ granted: z.literal(true), version: z.string().max(40).optional() }).optional(),
+});
+
+export const TelematicsWithdrawInput = z.object({ enrolmentId: uuid });
+
+/** One trip SUMMARY as the phone records it — no GPS trace, no exact speed. */
+export const TelematicsTripInput = z.object({
+  /** App-generated id; the same id sent twice is accepted once. */
+  tripId: z.string().trim().min(6).max(80),
+  startedAt: z.string().datetime({ offset: true }),
+  endedAt: z.string().datetime({ offset: true }),
+  distanceKm: z.coerce.number().min(0.1).max(2000),
+  maxSpeedBand: z.enum(["under_50", "50_80", "80_100", "100_120", "over_120"]),
+  harshBrakeCount: z.coerce.number().int().min(0).max(500),
+  harshAccelCount: z.coerce.number().int().min(0).max(500),
+  nightShare: z.coerce.number().min(0).max(1),
+  phoneUse: z.boolean(),
+});
+
+/** `POST /me/telematics/trips` — batch upload (idempotent by trip id). */
+export const TelematicsTripsInput = z.object({
+  enrolmentId: uuid,
+  trips: z.array(TelematicsTripInput).min(1).max(200),
+});
+export type TelematicsTripsInput = z.infer<typeof TelematicsTripsInput>;

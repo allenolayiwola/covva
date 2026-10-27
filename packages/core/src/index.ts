@@ -45,3 +45,5 @@ export * from "./property";
 export * from "./remittance";
 export * from "./policy-explainer";
 export * from "./privacy";
+export * from "./loyalty";
+export * from "./telematics";

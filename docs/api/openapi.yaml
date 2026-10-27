@@ -96,6 +96,21 @@ tags:
       on Covva. Every surface shows "Technology provided by Covva. Insurance provided by licensed insurers and brokers."
       Revenue share is a share of Covva's platform fee, never of the premium.
   - name: Referrals
+  - name: Loyalty
+    description: |
+      Phase 4 loyalty and rewards. Each insurer publishes versioned reward rules (no-claims years, loyalty tiers,
+      bundles, early renewal, safe driver, referral-credit redemption; stacking order, per-rule caps and a maximum
+      combined discount). When a quote or renewal is priced the engine records explicit **discount lines** on the
+      quote — the insurer's base premium is never changed — and the customer, broker and insurer all see "what you
+      saved and why". Discounts are the insurer's money; Covva only records them.
+  - name: Telematics
+    description: |
+      Consented, phone-based driving score for motor policies. The app uploads **trip summaries only** (times,
+      distance, highest speed band, harsh brake / acceleration counts, night share, phone-use flag) — never a GPS
+      trace. A monthly score (0–100, factor breakdown) is computed by the `telematics-scoring` job; the insurer of
+      the policy sees monthly scores only, never trips, and may give a safe-driver discount at renewal where its
+      rules support it. Consent (`telematics`) is recorded before enrolment and can be withdrawn at any time:
+      collection stops at once and trip summaries are deleted by the retention job.
   - name: Instalments & micro cover
     description: |
       Phase 3. Premiums paid in instalments under the insurer's plan (grace, lapse and reinstatement are the insurer's
@@ -1537,6 +1552,84 @@ paths:
           content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/MyReferrals" } } }] } } }
         "401": { $ref: "#/components/responses/Error" }
 
+  /me/loyalty:
+    get:
+      tags: [Loyalty]
+      summary: My rewards position — claim-free years, tier per insurer, credit balance, upcoming renewal perks, recent savings
+      description: |
+        `history` (claim-free years counted from cover bought through Covva; policies the customer added themselves
+        cannot be verified and give `externalOnly`), `insurers[]` (years with each insurer and the tier under its
+        published rules; `isPlatformFallback` when the insurer has none), `upcomingRenewals[]` (policies ending within
+        120 days with `perks[]`: what each active rule would give at renewal — `qualifies` — or what is still needed),
+        `recentSavings[]` (discount lines on the customer's quotes in the last year), `telematics` (active enrolments and
+        latest score) and `howToEarnMore[]` in plain words. Always show `note`.
+      responses:
+        "200":
+          description: Summary
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/LoyaltySummary" } } }] } } }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /me/telematics:
+    get:
+      tags: [Telematics]
+      summary: Consent state, my motor policies with their enrolment, monthly scores and a provisional score for this month
+      responses:
+        "200":
+          description: Overview
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/TelematicsOverview" } } }] } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /me/telematics/enrol:
+    post:
+      tags: [Telematics]
+      summary: Enrol one of my motor policies in driving scoring (consent first)
+      description: |
+        Show the consent wording from `GET /me/telematics` (`consent.wording`) first. Either record the consent with
+        `POST /me/consents` (`type: telematics`) or pass `consent: { granted: true }` here and it is recorded in the
+        same call (version defaults to the current wording version). `deviceId` is an app-generated stable id, never
+        the IMEI. Refused (422) for non-motor, external or ended policies, when the consent is not on file, or when the
+        policy already has an active enrolment; 404 for a policy that is not the caller's.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TelematicsEnrolInput" } } }
+      responses:
+        "201":
+          description: Enrolment created
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { enrolment: { $ref: "#/components/schemas/TelematicsEnrolment" }, overview: { $ref: "#/components/schemas/TelematicsOverview" } } } } }] } } }
+        "422": { $ref: "#/components/responses/Error" }
+  /me/telematics/withdraw:
+    post:
+      tags: [Telematics]
+      summary: Stop driving scoring for an enrolment (withdraws the consent when no other enrolment is active)
+      description: Collection stops immediately (further trip uploads are refused), a consent-withdrawn record is written, trip summaries are deleted by the retention job (within 30 days) and monthly scores stay with the policy. Idempotent.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [enrolmentId], properties: { enrolmentId: { type: string, format: uuid } } } } }
+      responses:
+        "200":
+          description: Enrolment withdrawn
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { enrolment: { $ref: "#/components/schemas/TelematicsEnrolment" }, overview: { $ref: "#/components/schemas/TelematicsOverview" } } } } }] } } }
+        "403": { $ref: "#/components/responses/Error" }
+  /me/telematics/trips:
+    post:
+      tags: [Telematics]
+      summary: Upload a batch of trip summaries (idempotent by tripId)
+      description: |
+        Up to 200 trips per call for one of the caller's **active** enrolments. Only summary fields are accepted —
+        there is no field for a route or positions. A `tripId` seen before counts as a `duplicate` (never an error),
+        so the app can retry safely. Per-trip validation failures are listed in `rejected[]` and do not fail the
+        batch. 422 once the enrolment is withdrawn or the consent is no longer granted. Rate limit: 30 calls, then one
+        every 20 seconds per user.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/TelematicsTripsInput" } } }
+      responses:
+        "200":
+          description: Batch result
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/TelematicsTripsResult" } } }] } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
   /business:
     get:
       tags: [Business accounts]
@@ -2165,7 +2258,7 @@ components:
       enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other, sticker, claim_video, medical_report, repair_estimate]
     ConsentType:
       type: string
-      enum: [terms, privacy, marketing, data_sharing_broker, data_sharing_insurer, ai_assistance]
+      enum: [terms, privacy, marketing, data_sharing_broker, data_sharing_insurer, ai_assistance, telematics]
 
     RiskField:
       type: object
@@ -3120,6 +3213,150 @@ components:
         currency: { type: string }
         programmeActive: { type: boolean }
         note: { type: string }
+    DiscountLine:
+      type: object
+      description: One explicit discount the insurer's rules applied to a quote. The base premium is unchanged.
+      properties:
+        id: { type: string, format: uuid }
+        ruleKey: { type: string }
+        ruleType: { type: string, enum: [no_claims, loyalty_tier, bundle, early_renewal, safe_driver, referral_credit] }
+        label: { type: string }
+        explanation: { type: string, description: Plain-language reason shown to the customer, broker and insurer }
+        basis: { type: string, enum: [premium, credit] }
+        pct: { type: [number, "null"] }
+        amount: { type: number, description: GHS taken off (positive) }
+        capped: { type: boolean }
+        capNote: { type: [string, "null"] }
+    LoyaltySummary:
+      type: object
+      properties:
+        history:
+          type: object
+          properties:
+            hasHistory: { type: boolean }
+            claimFreeYears: { type: integer }
+            yearsWithInsurer: { type: integer }
+            yearsOnCovva: { type: integer }
+            externalOnly: { type: boolean, description: Only self-added policies (cannot be verified) }
+        creditBalance: { type: number }
+        currency: { type: string, enum: [GHS] }
+        insurers:
+          type: array
+          items:
+            type: object
+            properties:
+              insurerOrgId: { type: string, format: uuid }
+              insurerName: { type: string }
+              yearsWithInsurer: { type: integer }
+              tier: { type: [object, "null"], properties: { name: { type: string }, pct: { type: number }, years: { type: integer }, next: { type: [object, "null"], properties: { name: { type: string }, years: { type: integer }, pct: { type: number }, yearsToGo: { type: integer } } } } }
+              rulesVersion: { type: [integer, "null"] }
+              isPlatformFallback: { type: boolean }
+        upcomingRenewals:
+          type: array
+          items:
+            type: object
+            properties:
+              policyId: { type: string, format: uuid }
+              policyNumber: { type: [string, "null"] }
+              categoryName: { type: string }
+              insurerName: { type: string }
+              coverEnd: { type: [string, "null"], format: date }
+              daysLeft: { type: [integer, "null"] }
+              perks: { type: array, items: { type: object, properties: { ruleKey: { type: string }, ruleType: { type: string }, label: { type: string }, text: { type: string }, qualifies: { type: boolean } } } }
+        recentSavings: { type: array, items: { type: object, properties: { quoteId: { type: string }, requestId: { type: [string, "null"] }, label: { type: string }, amount: { type: number }, explanation: { type: string }, createdAt: { type: string, format: date-time } } } }
+        telematics: { type: object, properties: { activeEnrolments: { type: integer }, latestScore: { type: [integer, "null"] } } }
+        howToEarnMore: { type: array, items: { type: string } }
+        note: { type: string }
+    TelematicsEnrolment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        policy_id: { type: string, format: uuid }
+        status: { type: string, enum: [active, withdrawn] }
+        device_label: { type: [string, "null"] }
+        consent_version: { type: string }
+        enrolled_at: { type: string, format: date-time }
+        withdrawn_at: { type: [string, "null"], format: date-time }
+        months_of_data: { type: integer }
+        latest_score: { type: [integer, "null"] }
+    TelematicsFactor:
+      type: object
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        detail: { type: string, description: The measured input behind the score, in words }
+    TelematicsMonthlyScore:
+      type: object
+      properties:
+        period: { type: string, format: date, description: First day of the month }
+        score: { type: [integer, "null"], description: Null when the month had too few trips }
+        final: { type: boolean, description: False for the provisional current month }
+        trips: { type: integer }
+        distanceKm: { type: number }
+        factors: { type: object, properties: { speed: { $ref: "#/components/schemas/TelematicsFactor" }, harsh: { $ref: "#/components/schemas/TelematicsFactor" }, night: { $ref: "#/components/schemas/TelematicsFactor" }, phone: { $ref: "#/components/schemas/TelematicsFactor" } } }
+    TelematicsOverview:
+      type: object
+      properties:
+        consent:
+          type: object
+          properties:
+            granted: { type: boolean }
+            version: { type: [string, "null"] }
+            at: { type: [string, "null"], format: date-time }
+            wording: { type: object, description: "The in-app consent text: title, collected[], notCollected[], use, retention, withdrawal, version" }
+        policies:
+          type: array
+          description: The caller's current motor policies arranged through Covva, with their enrolment (if any)
+          items: { type: object, properties: { id: { type: string }, policyNumber: { type: [string, "null"] }, label: { type: string }, insurerName: { type: string }, status: { type: string }, coverEnd: { type: [string, "null"] }, enrolment: { type: [object, "null"] } } }
+        enrolments:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              policyId: { type: string, format: uuid }
+              status: { type: string, enum: [active, withdrawn] }
+              enrolledAt: { type: string, format: date-time }
+              withdrawnAt: { type: [string, "null"] }
+              monthsOfData: { type: integer }
+              current: { allOf: [{ $ref: "#/components/schemas/TelematicsMonthlyScore" }], description: Provisional score for the current month, computed from the trips uploaded so far }
+              months: { type: array, items: { $ref: "#/components/schemas/TelematicsMonthlyScore" } }
+              summary: { type: [object, "null"], properties: { averageScore: { type: integer }, monthsOfData: { type: integer } }, description: What the safe-driver rule reads — mean of FINAL monthly scores in the look-back window }
+              trips: { type: object, properties: { last30Days: { type: integer }, distanceKm30Days: { type: number }, total: { type: integer }, lastTripAt: { type: [string, "null"] } } }
+        scoring: { type: object, properties: { version: { type: integer }, weights: { type: object, additionalProperties: { type: number } }, minTrips: { type: integer }, minDistanceKm: { type: number }, lookbackMonths: { type: integer } } }
+    TelematicsEnrolInput:
+      type: object
+      required: [policyId, deviceId]
+      properties:
+        policyId: { type: string, format: uuid }
+        deviceId: { type: string, minLength: 4, maxLength: 120, description: Stable app-generated id (never the IMEI) }
+        deviceLabel: { type: string, maxLength: 80 }
+        consent: { type: object, properties: { granted: { type: boolean, enum: [true] }, version: { type: string } }, description: Record the telematics consent in the same call }
+    TelematicsTrip:
+      type: object
+      required: [tripId, startedAt, endedAt, distanceKm, maxSpeedBand, harshBrakeCount, harshAccelCount, nightShare, phoneUse]
+      properties:
+        tripId: { type: string, minLength: 6, maxLength: 80, description: App-generated; the same id sent twice is accepted once }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        distanceKm: { type: number, minimum: 0.1, maximum: 2000 }
+        maxSpeedBand: { type: string, enum: [under_50, 50_80, 80_100, 100_120, over_120], description: Highest speed band reached — never the exact speed }
+        harshBrakeCount: { type: integer, minimum: 0, maximum: 500 }
+        harshAccelCount: { type: integer, minimum: 0, maximum: 500 }
+        nightShare: { type: number, minimum: 0, maximum: 1, description: Share of the trip's distance between 22:00 and 05:00 }
+        phoneUse: { type: boolean, description: The phone was handled while the car was moving }
+    TelematicsTripsInput:
+      type: object
+      required: [enrolmentId, trips]
+      properties:
+        enrolmentId: { type: string, format: uuid }
+        trips: { type: array, minItems: 1, maxItems: 200, items: { $ref: "#/components/schemas/TelematicsTrip" } }
+    TelematicsTripsResult:
+      type: object
+      properties:
+        enrolmentId: { type: string, format: uuid }
+        accepted: { type: integer }
+        duplicates: { type: integer, description: Trip ids already stored (safe retries) }
+        rejected: { type: array, items: { type: object, properties: { tripId: { type: string }, reason: { type: string } } } }
     Momo:
       type: object
       required: [phone, network]

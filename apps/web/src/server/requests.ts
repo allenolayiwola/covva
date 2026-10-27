@@ -18,6 +18,7 @@ import { notify, notifyOrg } from "@/server/notify";
 import { emitEvent } from "@/server/webhooks";
 import { routeNewRequest, type RoutingResult } from "@/server/routing";
 import { recordAttribution } from "@/server/referrals";
+import { applyLoyaltyToQuote } from "@/server/loyalty";
 
 export class BusinessRuleError extends Error {
   constructor(message: string, public code = "business_rule") {
@@ -190,6 +191,8 @@ export async function generateEstimates(svc: Service, req: Pick<Row<"requests">,
       .single();
     if (qErr) throw qErr;
     if (status === "ready_to_accept") ready++;
+    // Phase 4 loyalty: the insurer's reward rules add explicit discount lines (never a change to the premium).
+    await applyLoyaltyToQuote(q.id, { svc });
 
     comparable.push({
       id: q.id,

@@ -75,6 +75,7 @@ export const NAV: NavGroup[] = [
       { href: "/partners/remittance", label: "Remittance partners", icon: Banknote, keywords: "diaspora bank remittance embedded partner api placeholder" },
       { href: "/distribution", label: "Distribution partners", icon: Store, keywords: "embedded widget dealers banks landlords fleets travel agents revenue share api" },
       { href: "/referrals", label: "Referrals & rewards", icon: Gift, keywords: "referral attribution credits reward ledger rules loyalty nic approval" },
+      { href: "/loyalty", label: "Loyalty & telematics", icon: Gauge, keywords: "loyalty rules engine no-claims bundle discount renewal perks safe driver telematics driving score platform fallback" },
     ],
   },
   {

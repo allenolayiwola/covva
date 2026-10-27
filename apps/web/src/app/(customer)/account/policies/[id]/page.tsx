@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowLeftRight, Camera, Check, FileText, Mail, PenLine, Phone, QrCode as QrIcon, RefreshCw, TrendingUp, X } from "lucide-react";
+import { ArrowLeftRight, Camera, Check, FileText, Gauge, Mail, PenLine, Phone, QrCode as QrIcon, RefreshCw, TrendingUp, X } from "lucide-react";
 import { CLAIM_STATUS, POLICY_STATUS, buildDisclosure, daysUntil, formatDate, formatGHS, humanize, verifyUrl } from "@im/core";
 import type { Row } from "@im/db";
 import { Card, DefinitionList, DemoBadge, DisclosureBlock, Notice, Pill, StatusPill, buttonClass } from "@im/ui";
@@ -249,6 +249,19 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
           <Suspense fallback={<div className="h-40 animate-pulse rounded-card bg-mist" aria-hidden />}>
             <PolicyExplainerSection supabase={supabase} userId={user.id} policyId={policy.id} isDemo={isDemo} />
           </Suspense>
+
+          {policy.category?.slug === "motor" && !policy.external_source && policy.customer_id === user.id && (
+            <Card className="flex flex-wrap items-center gap-4 p-5" aria-label="Driving score">
+              <span className="grid size-11 place-items-center rounded-xl bg-mint text-brand">
+                <Gauge aria-hidden className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-ink">Driving score (optional)</p>
+                <p className="text-sm text-muted">Share trip summaries from your phone — never a GPS route — and {insurer?.name ?? "your insurer"} can reward safe driving at renewal. Stop at any time.</p>
+              </div>
+              <Link href="/account/telematics" className={buttonClass("secondary", "sm")}>Driving score</Link>
+            </Card>
+          )}
 
           {isPropertyCategory(policy.category?.slug) && !policy.external_source && <PropertyUpdatesCard policyId={policy.id} userId={user.id} supabase={supabase} />}
 

@@ -461,6 +461,9 @@ export const CRON_JOBS: Record<string, CronJob> = {
   // Act 843: daily 03:50 — expired data exports removed, then retention rules applied per data class (dry run until
   // platform_settings.privacy_retention.mode = "enforce"; ?dry_run=1 forces one). Logged in privacy_retention_runs.
   "privacy-retention": async (svc, opts) => (await import("@/server/privacy")).runPrivacyRetention(svc, { dryRun: opts?.dryRun }),
+  // Phase 4: monthly on the 1st at 02:20 — last month's FINAL driving score per enrolment (+ a provisional one for
+  // this month); upserts on (enrolment, period) so a re-run is a no-op. Trips stay summaries; no GPS is stored.
+  "telematics-scoring": async (svc) => (await import("@/server/telematics")).telematicsScoring(svc),
 };
 
 export async function runCron(job: string, opts: CronOptions = {}) {

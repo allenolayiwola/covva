@@ -60,6 +60,8 @@ export const PERMS = {
   distribution: ["platform_admin", "platform_ops"],
   /** Switching reward rules on/off (customer inducements need NIC + insurer approval). */
   rewardRules: ["platform_admin", "compliance"],
+  /** Publishing the platform-fallback loyalty rule set (insurer-funded discounts; defaults need insurer sign-off). */
+  loyalty: ["platform_admin", "compliance"],
   /**
    * Act 843 privacy requests: verify identity, generate exports, approve / refuse, run the deletion (anonymisation),
    * close. Mirrors private.is_privacy_officer() in the database; support reads only.

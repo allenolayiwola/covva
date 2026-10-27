@@ -6,6 +6,8 @@ import { daysUntil, formatDate, formatGHS, humanize, renewalOptions, type Renewa
 import { Card, Notice, Pill, buttonClass } from "@im/ui";
 import { getProfile } from "@/lib/auth";
 import { PageSkeleton } from "@/components/customer/skeletons";
+import { DiscountLines } from "@/components/customer/discount-lines";
+import { quoteDiscountLines, toDiscountLine, type DiscountRow } from "@/server/loyalty";
 import { account, getPolicyOr404, requestTime } from "../../../_lib/data";
 import { RenewForm, type RenewToggle } from "./renew-form";
 
@@ -97,6 +99,8 @@ async function Renew({ params, searchParams }: Pick<PageProps<"/account/policies
 
   // One-tap renewal: refreshed estimates for the same risk → "Renew with <insurer>" or "Switch insurer".
   let options: ReturnType<typeof renewalOptions> | null = null;
+  // Phase 4 loyalty: the explicit discount lines recorded on each renewal quote ("What you saved and why").
+  let discounts = new Map<string, DiscountRow[]>();
   if (existing) {
     const { data: quotes } = await supabase
       .from("quotes")
@@ -115,7 +119,9 @@ async function Renew({ params, searchParams }: Pick<PageProps<"/account/policies
       { insurerOrgId: policy.insurer_org_id ?? "", insurerName: policy.insurer?.name, premium: policy.premium == null ? null : Number(policy.premium), brokerOrgId: policy.broker_org_id },
       estimates,
     );
+    discounts = await quoteDiscountLines(supabase, (quotes ?? []).map((q) => q.id));
   }
+  const linesFor = (quoteId: string) => (discounts.get(quoteId) ?? []).map(toDiscountLine);
 
   return (
     <>
@@ -162,6 +168,12 @@ async function Renew({ params, searchParams }: Pick<PageProps<"/account/policies
                     : `${options.sameInsurer.deltaFromLastYear > 0 ? "+" : "−"}${formatGHS(Math.abs(options.sameInsurer.deltaFromLastYear))} (${options.sameInsurer.deltaPct! > 0 ? "+" : ""}${options.sameInsurer.deltaPct}%) vs last year.`}
                 </p>
               )}
+              <DiscountLines lines={linesFor(options.sameInsurer.quoteId)} premium={options.sameInsurer.premium} className="mt-4" />
+              {!linesFor(options.sameInsurer.quoteId).length && (
+                <p className="mt-2 text-[13px] text-muted">
+                  No renewal discounts apply to this estimate yet. <Link href="/account/loyalty" className="font-medium text-brand hover:underline">See what you could earn</Link>
+                </p>
+              )}
               <div className="mt-4 flex flex-wrap gap-3">
                 {options.sameInsurer.oneTap ? (
                   <Link href={`/account/requests/${existing.id}/apply/${options.sameInsurer.quoteId}`} className={buttonClass("primary")}>
@@ -185,6 +197,7 @@ async function Renew({ params, searchParams }: Pick<PageProps<"/account/policies
           {options.savings && (
             <Card className="p-5">
               <p className="font-semibold text-ink">Switch and save {formatGHS(options.savings.amount)} ({options.savings.pct}%)</p>
+              <DiscountLines compact lines={linesFor(options.savings.quoteId)} premium={options.alternatives.find((a) => a.quoteId === options!.savings!.quoteId)?.premium ?? 0} className="mt-1" />
               <p className="mt-1 text-sm text-muted">{options.savings.insurerName} quoted less for the same risk. Compare the cover before you decide — cheaper isn&apos;t always better.</p>
               <Link href={`/account/requests/${existing.id}/quotes`} className={buttonClass("secondary", "sm", "mt-3")}>Compare the cover</Link>
             </Card>

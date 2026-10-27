@@ -14,6 +14,7 @@ import { hubtelEnabled, hubtelInitiate, hubtelVerify } from "@/server/providers/
 import { stripeEnabled, stripeSettlementApproved } from "@/server/providers/stripe";
 import { quoteFx } from "@/server/fx";
 import { savePaymentMethodFromOutcome } from "@/server/payment-methods";
+import { discountTotalForQuote } from "@/server/loyalty";
 
 /**
  * Payment service (owner: Backend stream). Premiums are paid through Paystack and
@@ -219,7 +220,11 @@ export async function initiatePayment(args: {
   const selected = new Set(Array.isArray(app.selected_benefits) ? (app.selected_benefits as unknown[]).map(String) : []);
   const benefits = (Array.isArray(quote.optional_benefits) ? quote.optional_benefits : []) as { key?: string; premium?: number }[];
   const benefitTotal = benefits.filter((b) => b.key && selected.has(b.key)).reduce((s, b) => s + (Number(b.premium) || 0), 0);
-  let amount = Math.round((Number(quote.premium) + Number(quote.taxes) + Number(quote.fees) + benefitTotal) * 100) / 100;
+  // Phase 4 loyalty: explicit discount lines recorded on the quote (insurer-funded) come off what is paid;
+  // the base premium on the quote is untouched. The split below is computed on the net premium.
+  const discount = await discountTotalForQuote(svc, quote.id);
+  const netPremium = Math.max(0, roundHalfUp(Number(quote.premium) - discount));
+  let amount = Math.round((netPremium + Number(quote.taxes) + Number(quote.fees) + benefitTotal) * 100) / 100;
   if (!(amount > 0)) throw new BusinessRuleError("The amount due could not be calculated.");
   const quotedTotal = amount;
   const instalmentId = args.plan?.instalmentId ?? null;
@@ -289,13 +294,14 @@ export async function initiatePayment(args: {
     sponsor_subscription: sponsorPlan ? { cadence: sponsorPlan.cadence, beneficiary_id: sponsorPlan.beneficiaryId ?? null, quoted_total: quotedTotal, charge_amount: amount, billing_period: quote.billing_period } : null,
     instalment_id: instalmentId,
     micro: args.plan?.micro ?? null,
+    loyalty_discount: discount > 0 ? { total: discount, net_premium: netPremium } : null,
   };
   const psp: Psp = provider === "paystack" && displayCurrency !== "GHS" ? "paystack_intl" : provider;
   // Three-party split (insurer / broker commission / platform fee) — see server/commercial.ts.
   // Paystack settles one subaccount per transaction unless a split group is configured.
   // An instalment scales the quote's taxes and fees pro rata so commission stays a % of the net premium.
   const scale = amount / quotedTotal;
-  const commercial = await splitForPayment(svc, { amount, quote: { ...quote, taxes: roundHalfUp(Number(quote.taxes) * scale), fees: roundHalfUp(Number(quote.fees) * scale) }, request, insurer, provider });
+  const commercial = await splitForPayment(svc, { amount, quote: { ...quote, premium: netPremium, taxes: roundHalfUp(Number(quote.taxes) * scale), fees: roundHalfUp(Number(quote.fees) * scale) }, request, insurer, provider });
   if (provider === "bank_transfer") {
     bankTransfer = await bankTransferInstructions(svc, { insurer: { id: insurer.id, name: insurer.name, settings: insurer.settings }, customerId: callerId, email, reference, amount, currency: quote.currency });
   }

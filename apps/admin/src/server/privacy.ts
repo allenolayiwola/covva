@@ -43,6 +43,12 @@ export async function collectExportSections(svc: Svc, userId: string): Promise<P
       svc.from("wa_contacts").select("id").eq("user_id", userId).limit(50),
       svc.from("policy_explainer_logs").select("*").eq("user_id", userId).order("created_at").limit(MAX),
     ]);
+  // Phase 4: driving-score enrolments + monthly scores (one section, `kind` tells them apart) and trip summaries.
+  const [enrolments, telematicsScores, telematicsTrips] = await Promise.all([
+    svc.from("telematics_enrolments").select("id, policy_id, status, device_label, consent_version, enrolled_at, withdrawn_at, created_at").eq("user_id", userId).limit(MAX),
+    svc.from("telematics_scores").select("id, policy_id, enrolment_id, period, score, factors, trips, distance_km, final, computed_at, created_at").eq("user_id", userId).order("period").limit(MAX),
+    svc.from("telematics_trips").select("id, trip_id, policy_id, started_at, ended_at, distance_km, max_speed_band, harsh_brake_count, harsh_accel_count, night_share, phone_use, created_at").eq("user_id", userId).order("started_at").limit(MAX),
+  ]);
   for (const r of [profile, privacy, consents, requests, applications, policies, payments, claims, complaints, documents]) {
     if (r.error) throw r.error;
   }
@@ -50,12 +56,13 @@ export async function collectExportSections(svc: Svc, userId: string): Promise<P
   const requestIds = ids(rows(requests.data));
   const claimIds = ids(rows(claims.data));
   const contactIds = ids(rows(contacts.data));
-  const [quotes, messages, claimEvents, claimMessages, conversations] = await Promise.all([
+  const [quotes, messages, claimEvents, claimMessages, conversations, loyaltyDiscounts] = await Promise.all([
     requestIds.length ? svc.from("quotes").select("*").in("request_id", requestIds).limit(MAX) : Promise.resolve({ data: [], error: null }),
     requestIds.length ? svc.from("request_messages").select("*").in("request_id", requestIds).eq("internal", false).order("created_at").limit(MAX) : Promise.resolve({ data: [], error: null }),
     claimIds.length ? svc.from("claim_events").select("*").in("claim_id", claimIds).eq("visible_to_customer", true).order("created_at").limit(MAX) : Promise.resolve({ data: [], error: null }),
     claimIds.length ? svc.from("claim_messages").select("*").in("claim_id", claimIds).eq("internal", false).order("created_at").limit(MAX) : Promise.resolve({ data: [], error: null }),
     contactIds.length ? svc.from("wa_conversations").select("id").in("contact_id", contactIds).limit(500) : Promise.resolve({ data: [], error: null }),
+    requestIds.length ? svc.from("quote_discounts").select("id, quote_id, request_id, rule_type, label, explanation, pct, amount, currency, capped, cap_note, created_at").in("request_id", requestIds).limit(MAX) : Promise.resolve({ data: [], error: null }),
   ]);
   const conversationIds = ids(rows(conversations.data));
   const wa = conversationIds.length
@@ -88,6 +95,9 @@ export async function collectExportSections(svc: Svc, userId: string): Promise<P
     voice_notes: rows(voice.data),
     needs_assessments: rows(needs.data),
     policy_explainer: rows(explainer.data),
+    loyalty_discounts: rows(loyaltyDiscounts.data),
+    telematics: [...rows(enrolments.data).map((r) => ({ kind: "enrolment", enrolment_id: r.id, ...r })), ...rows(telematicsScores.data).map((r) => ({ kind: "monthly_score", ...r }))],
+    telematics_trips: rows(telematicsTrips.data),
   };
 }
 

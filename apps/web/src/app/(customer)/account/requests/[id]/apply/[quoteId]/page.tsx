@@ -14,6 +14,8 @@ import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite 
 import { BankTransferPanel, DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting, type BankTransferDetail, type CheckoutCurrency } from "./checkout-steps";
 import { declarationsFor } from "./declarations";
 import { feeBreakdownForQuoteId } from "@/server/commercial";
+import { discountTotal, quoteDiscountLines, toDiscountLine } from "@/server/loyalty";
+import { DiscountLines } from "@/components/customer/discount-lines";
 import { fxSettings, getRates } from "@/server/fx";
 import { applePayEnabled } from "@/server/env";
 import { SUPPORTED_DISPLAY_CURRENCIES, fxMargin, parseDisplayCurrency, parseInstalmentPlans } from "@im/core";
@@ -90,8 +92,11 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
   const expired = !!quote.valid_until && new Date(quote.valid_until).getTime() < requestTime();
   const benefits = (Array.isArray(quote.optional_benefits) ? quote.optional_benefits : []) as { key: string; label: string; premium?: number }[];
   const chosenBenefits = application ? ((Array.isArray(application.selected_benefits) ? application.selected_benefits : []) as string[]) : [];
+  // Phase 4 loyalty: explicit discount lines come off what is paid (server/payments.ts does the same from the DB).
+  const discountLines = ((await quoteDiscountLines(supabase, [quote.id])).get(quote.id) ?? []).map(toDiscountLine);
+  const discount = discountTotal(discountLines);
   const amount =
-    Number(quote.premium) + Number(quote.taxes ?? 0) + Number(quote.fees ?? 0) + benefits.filter((b) => chosenBenefits.includes(b.key)).reduce((s, b) => s + (b.premium ?? 0), 0);
+    Math.max(0, Number(quote.premium) - discount) + Number(quote.taxes ?? 0) + Number(quote.fees ?? 0) + benefits.filter((b) => chosenBenefits.includes(b.key)).reduce((s, b) => s + (b.premium ?? 0), 0);
   const step = !disclosed ? 0 : !application ? 1 : 2;
   const waitingPaymentId = typeof sp.payment === "string" && UUID_RE.test(sp.payment) ? sp.payment : null;
   const failure = payment && ["failed", "abandoned", "reversed"].includes(payment.status) ? payment.failure_reason ?? "The payment was declined or cancelled." : null;
@@ -114,8 +119,9 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
         requestId={id}
         quoteId={quoteId}
         insurer={insurerName}
-        premium={Number(quote.premium) + Number(quote.taxes ?? 0) + Number(quote.fees ?? 0)}
+        premium={Math.max(0, Number(quote.premium) - discount) + Number(quote.taxes ?? 0) + Number(quote.fees ?? 0)}
         feeBreakdown={await feeBreakdownForQuoteId(quote.id).catch(() => null)}
+        discounts={discountLines.length ? <DiscountLines lines={discountLines} premium={Number(quote.premium)} /> : null}
         benefits={benefits}
         termsVersion={termsVersion ?? "current"}
         declarations={declarationsFor(request.category?.slug, {

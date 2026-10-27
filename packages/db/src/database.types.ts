@@ -3190,6 +3190,68 @@ export type Database = {
           },
         ]
       }
+      loyalty_rule_sets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          insurer_org_id: string | null
+          max_combined_pct: number
+          note: string | null
+          published_at: string
+          rules: Json
+          stacking_order: string[]
+          status: string
+          superseded_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          insurer_org_id?: string | null
+          max_combined_pct?: number
+          note?: string | null
+          published_at?: string
+          rules?: Json
+          stacking_order?: string[]
+          status?: string
+          superseded_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          insurer_org_id?: string | null
+          max_combined_pct?: number
+          note?: string | null
+          published_at?: string
+          rules?: Json
+          stacking_order?: string[]
+          status?: string
+          superseded_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rule_sets_insurer_org_id_fkey"
+            columns: ["insurer_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           active: boolean
@@ -5276,6 +5338,108 @@ export type Database = {
           },
         ]
       }
+      quote_discounts: {
+        Row: {
+          amount: number
+          basis: string
+          broker_org_id: string | null
+          cap_note: string | null
+          capped: boolean
+          created_at: string
+          currency: string
+          evaluation: Json
+          explanation: string
+          id: string
+          insurer_org_id: string | null
+          label: string
+          pct: number | null
+          quote_id: string
+          request_id: string | null
+          rule_key: string
+          rule_set_id: string | null
+          rule_set_version: number | null
+          rule_type: string
+        }
+        Insert: {
+          amount: number
+          basis?: string
+          broker_org_id?: string | null
+          cap_note?: string | null
+          capped?: boolean
+          created_at?: string
+          currency?: string
+          evaluation?: Json
+          explanation: string
+          id?: string
+          insurer_org_id?: string | null
+          label: string
+          pct?: number | null
+          quote_id: string
+          request_id?: string | null
+          rule_key: string
+          rule_set_id?: string | null
+          rule_set_version?: number | null
+          rule_type: string
+        }
+        Update: {
+          amount?: number
+          basis?: string
+          broker_org_id?: string | null
+          cap_note?: string | null
+          capped?: boolean
+          created_at?: string
+          currency?: string
+          evaluation?: Json
+          explanation?: string
+          id?: string
+          insurer_org_id?: string | null
+          label?: string
+          pct?: number | null
+          quote_id?: string
+          request_id?: string | null
+          rule_key?: string
+          rule_set_id?: string | null
+          rule_set_version?: number | null
+          rule_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_discounts_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_discounts_insurer_org_id_fkey"
+            columns: ["insurer_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_discounts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_discounts_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_discounts_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_shares: {
         Row: {
           channel: string
@@ -7147,6 +7311,210 @@ export type Database = {
         }
         Relationships: []
       }
+      telematics_enrolments: {
+        Row: {
+          consent_id: string | null
+          consent_version: string
+          created_at: string
+          device_id: string | null
+          device_label: string | null
+          enrolled_at: string
+          id: string
+          last_trip_at: string | null
+          latest_score: number | null
+          months_of_data: number
+          policy_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          withdrawn_at: string | null
+          withdrawn_reason: string | null
+        }
+        Insert: {
+          consent_id?: string | null
+          consent_version?: string
+          created_at?: string
+          device_id?: string | null
+          device_label?: string | null
+          enrolled_at?: string
+          id?: string
+          last_trip_at?: string | null
+          latest_score?: number | null
+          months_of_data?: number
+          policy_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          withdrawn_at?: string | null
+          withdrawn_reason?: string | null
+        }
+        Update: {
+          consent_id?: string | null
+          consent_version?: string
+          created_at?: string
+          device_id?: string | null
+          device_label?: string | null
+          enrolled_at?: string
+          id?: string
+          last_trip_at?: string | null
+          latest_score?: number | null
+          months_of_data?: number
+          policy_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          withdrawn_at?: string | null
+          withdrawn_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telematics_enrolments_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: false
+            referencedRelation: "consents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telematics_enrolments_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telematics_scores: {
+        Row: {
+          computed_at: string
+          created_at: string
+          distance_km: number
+          enrolment_id: string
+          factors: Json
+          final: boolean
+          id: string
+          period: string
+          policy_id: string
+          score: number | null
+          scoring_version: number
+          trips: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          distance_km?: number
+          enrolment_id: string
+          factors?: Json
+          final?: boolean
+          id?: string
+          period: string
+          policy_id: string
+          score?: number | null
+          scoring_version?: number
+          trips?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          distance_km?: number
+          enrolment_id?: string
+          factors?: Json
+          final?: boolean
+          id?: string
+          period?: string
+          policy_id?: string
+          score?: number | null
+          scoring_version?: number
+          trips?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telematics_scores_enrolment_id_fkey"
+            columns: ["enrolment_id"]
+            isOneToOne: false
+            referencedRelation: "telematics_enrolments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telematics_scores_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telematics_trips: {
+        Row: {
+          created_at: string
+          distance_km: number
+          ended_at: string
+          enrolment_id: string
+          harsh_accel_count: number
+          harsh_brake_count: number
+          id: string
+          max_speed_band: string
+          night_share: number
+          phone_use: boolean
+          policy_id: string
+          started_at: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km: number
+          ended_at: string
+          enrolment_id: string
+          harsh_accel_count?: number
+          harsh_brake_count?: number
+          id?: string
+          max_speed_band: string
+          night_share?: number
+          phone_use?: boolean
+          policy_id: string
+          started_at: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number
+          ended_at?: string
+          enrolment_id?: string
+          harsh_accel_count?: number
+          harsh_brake_count?: number
+          id?: string
+          max_speed_band?: string
+          night_share?: number
+          phone_use?: boolean
+          policy_id?: string
+          started_at?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telematics_trips_enrolment_id_fkey"
+            columns: ["enrolment_id"]
+            isOneToOne: false
+            referencedRelation: "telematics_enrolments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "telematics_trips_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       translations: {
         Row: {
           approved_at: string | null
@@ -8607,6 +8975,32 @@ export type Database = {
           round: number
         }[]
       }
+      effective_loyalty_rule_set: {
+        Args: { p_insurer_org_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          insurer_org_id: string | null
+          max_combined_pct: number
+          note: string | null
+          published_at: string
+          rules: Json
+          stacking_order: string[]
+          status: string
+          superseded_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "loyalty_rule_sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       embed_partner: {
         Args: { p_code: string }
         Returns: {
@@ -8619,6 +9013,33 @@ export type Database = {
           segment: string
           widget_domains: string[]
         }[]
+      }
+      enrol_telematics: {
+        Args: { p_device_id: string; p_device_label?: string; p_policy_id: string }
+        Returns: {
+          consent_id: string | null
+          consent_version: string
+          created_at: string
+          device_id: string | null
+          device_label: string | null
+          enrolled_at: string
+          id: string
+          last_trip_at: string | null
+          latest_score: number | null
+          months_of_data: number
+          policy_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          withdrawn_at: string | null
+          withdrawn_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "telematics_enrolments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       ensure_my_referral_link: {
         Args: { p_code?: string }
@@ -8839,6 +9260,40 @@ export type Database = {
         }
         Returns: Json
       }
+      publish_loyalty_rule_set: {
+        Args: {
+          p_effective_from?: string
+          p_effective_to?: string
+          p_insurer_org_id?: string
+          p_max_combined_pct?: number
+          p_note?: string
+          p_rules: Json
+          p_stacking_order?: string[]
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          insurer_org_id: string | null
+          max_combined_pct: number
+          note: string | null
+          published_at: string
+          rules: Json
+          stacking_order: string[]
+          status: string
+          superseded_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "loyalty_rule_sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_privacy_export: {
         Args: {
           p_bytes: number
@@ -8945,6 +9400,33 @@ export type Database = {
         Returns: boolean
       }
       withdraw_privacy_request: { Args: { p_id: string }; Returns: undefined }
+      withdraw_telematics: {
+        Args: { p_enrolment_id: string; p_reason?: string }
+        Returns: {
+          consent_id: string | null
+          consent_version: string
+          created_at: string
+          device_id: string | null
+          device_label: string | null
+          enrolled_at: string
+          id: string
+          last_trip_at: string | null
+          latest_score: number | null
+          months_of_data: number
+          policy_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          withdrawn_at: string | null
+          withdrawn_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "telematics_enrolments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       account_type: "individual" | "business"
@@ -8982,6 +9464,7 @@ export type Database = {
         | "data_sharing_broker"
         | "data_sharing_insurer"
         | "ai_assistance"
+        | "telematics"
       document_kind:
         | "id_document"
         | "vehicle_registration"
@@ -9275,6 +9758,7 @@ export const Constants = {
         "data_sharing_broker",
         "data_sharing_insurer",
         "ai_assistance",
+        "telematics",
       ],
       document_kind: [
         "id_document",

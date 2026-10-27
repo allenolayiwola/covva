@@ -7,6 +7,8 @@ import { QUOTE_STATUS, formatDate, formatDateTime, formatGHS, humanize, type Ris
 import { can, requireKind, ROLES } from "../../../_lib/context";
 import { getCategoryMap, getCustomers, getOrgNames, requestKind, shortName } from "../../../_lib/data";
 import { ActionForm } from "@/components/partner/action-form";
+import { QuoteDiscountSummary } from "@/components/partner/quote-discounts";
+import { quoteDiscountLines } from "@/server/loyalty";
 import { QuoteForm, type VersionOption } from "@/components/partner/quote-form";
 import { riskDisplay } from "@/components/partner/risk-fields";
 import { DueCell, Empty, KV, PageSkeleton, Section, TitleSkeleton } from "@/components/partner/ui";
@@ -52,6 +54,8 @@ async function Submission({ params }: { params: Promise<{ id: string }> }) {
     .filter((p) => p.version)
     .map((p) => ({ id: p.version!.id, insurerId: ctx.orgId, label: `${p.name} · v${p.version!.version}${p.version!.status !== "approved" ? ` (${humanize(p.version!.status)})` : ""}`, rating: p.version!.rating, excesses: p.version!.excesses ?? {}, keyExclusion: p.version!.key_exclusion }));
   const open = (quotes ?? []).find((q) => ["estimate", "awaiting_underwriting", "ready_to_accept"].includes(q.status));
+  // Phase 4 loyalty: your own reward rules' discount lines on each quote (same lines the customer and broker see).
+  const discountLines = await quoteDiscountLines(sb, (quotes ?? []).map((q) => q.id));
   const closed = ["declined", "withdrawn", "error"].includes(sub.status);
   const canAct = can(ctx, ROLES.underwrite) && !closed;
 
@@ -90,7 +94,10 @@ async function Submission({ params }: { params: Promise<{ id: string }> }) {
                   {(quotes ?? []).map((q) => (
                     <tr key={q.id}>
                       <Td><StatusPill meta={QUOTE_STATUS[q.status]} /></Td>
-                      <Td className="tabular-nums">{formatGHS(Number(q.premium))}</Td>
+                      <Td className="tabular-nums">
+                        {formatGHS(Number(q.premium))}
+                        <QuoteDiscountSummary lines={discountLines.get(q.id) ?? []} premium={Number(q.premium)} />
+                      </Td>
                       <Td className="tabular-nums">{formatGHS(q.excess != null ? Number(q.excess) : null)}</Td>
                       <Td className="tabular-nums">{formatGHS(q.sum_insured != null ? Number(q.sum_insured) : null)}</Td>
                       <Td>{formatDate(q.valid_until)}</Td>
