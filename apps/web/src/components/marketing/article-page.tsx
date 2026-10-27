@@ -104,19 +104,6 @@ export function ArticleBody({ article: a, others, locale }: { article: ArticleVi
   );
 }
 
-export function ArticleSkeleton() {
-  return (
-    <div aria-busy="true" aria-live="polite" className="border-b border-line bg-gradient-to-b from-mist to-white">
-      <Container className="py-20">
-        <span className="sr-only">Loading article…</span>
-        <div className="h-4 w-40 animate-pulse rounded bg-line motion-reduce:animate-none" />
-        <div className="mt-6 h-12 w-2/3 max-w-xl animate-pulse rounded-lg bg-line motion-reduce:animate-none" />
-        <div className="mt-5 h-5 w-full max-w-2xl animate-pulse rounded bg-line/70 motion-reduce:animate-none" />
-      </Container>
-    </div>
-  );
-}
-
 /** "More guides": the editor's picks, else the three most recent other articles. */
 export function moreGuides(a: ArticleView, all: ArticleView[]): { slug: string; title: string }[] {
   if (a.relatedArticles.length > 0) return a.relatedArticles;
