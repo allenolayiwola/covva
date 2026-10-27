@@ -151,6 +151,8 @@ export const en = {
   "account.nav.business": "Business",
   "account.nav.groups": "Groups",
   "account.nav.referrals": "Refer a friend",
+  "account.nav.loyalty": "Rewards",
+  "account.nav.telematics": "Driving score",
   "account.nav.privacy": "Privacy & data",
   "account.nav.profile": "Profile",
   "account.nav.accountTab": "Account",

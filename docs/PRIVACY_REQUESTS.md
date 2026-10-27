@@ -55,7 +55,8 @@ customer-visible steps and internal staff notes (`visible_to_customer = false`).
   requests, consents, requests, quotes, applications, policies, payments (metadata only), claims and their customer-visible
   timeline, complaints, documents (file details), households, beneficiaries, sponsorships, request and claim messages,
   WhatsApp messages, AI chats, policy-explainer questions, notifications, identity checks (status only), saved cards
-  (brand / last 4), voice-note transcripts and needs-assessment answers.
+  (brand / last 4), voice-note transcripts, needs-assessment answers, discount lines applied to the customer's quotes,
+  driving-score enrolments and monthly scores, and driving trip summaries.
 * **Redaction rules** (`redactExportRow`): internal notes (`internal = true`) and staff-only timeline rows are dropped;
   secrets and internals are removed (payment provider tokens and raw events, idempotency keys, consent code hashes,
   share tokens, checksums, hash-chain fields, storage paths, fraud scores, AI extraction); staff / partner user ids are
@@ -98,6 +99,7 @@ dashboard.* If any of these steps fails, the console says so and an internal not
 | `quote_shares`, `referral_links` | Share links expired; referral links disabled. |
 | `beneficiaries`, `households` | Family members not on any policy, request or sponsorship deleted (their consents and household memberships cascade); household names cleared. |
 | `privacy_requests` | Earlier export files deleted. |
+| `telematics_trips`, `telematics_enrolments` | Driving trip summaries deleted; enrolments withdrawn with the device id and label removed (`withdrawn_reason = privacy_deletion`). Monthly scores stay with the policy they priced. (`private.anonymise_subject` wraps the original, renamed `anonymise_subject_base`, in `20261031100500_loyalty_telematics.sql`.) |
 
 **Retained (unchanged)**
 
@@ -149,6 +151,7 @@ days or longer than 10 years are ignored with a warning.
 | `ussd_sessions` — finished USSD sessions | 90 days | delete |
 | `stale_device_tokens` — push tokens of devices not seen | 400 days | delete |
 | `policy_explainer_logs` — policy explainer Q&A kept for quality review (the 180-day proposal from `20261031100200_policy_explainer.sql`) | 180 days | delete |
+| `telematics_trips` — consented driving trip summaries (no GPS), plus every trip of an enrolment withdrawn more than 30 days ago; monthly scores stay with the policy (`20261031100500_loyalty_telematics.sql`) | 395 days | delete |
 
 Override per class with `platform_settings.privacy_retention.periods`, e.g.
 `{"mode": "enforce", "periods": {"ai_chat_logs": 180}}`. Insurance records (policies, claims, payments, documents,

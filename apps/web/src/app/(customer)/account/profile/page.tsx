@@ -21,6 +21,8 @@ const CONSENT_LABEL: Record<Enum<"consent_type">, { title: string; body: string;
   data_sharing_insurer: { title: "Sharing with insurers you ask for quotes from", body: "Needed to quote, issue and handle claims.", optional: false },
   marketing: { title: "Tips and offers", body: "Occasional emails or texts. Unsubscribe any time.", optional: true },
   ai_assistance: { title: "AI-assisted help", body: "Lets the AI assistant explain your cover. It never decides suitability or claims.", optional: true },
+  // Given and withdrawn on /account/telematics (enrolment and withdrawal record the consent rows), so no toggle here.
+  telematics: { title: "Driving score (motor)", body: "Trip summaries from your phone — never a GPS route — so your insurer can reward safe driving at renewal. Start or stop it under Driving score.", optional: false },
 };
 
 export default function ProfilePage() {

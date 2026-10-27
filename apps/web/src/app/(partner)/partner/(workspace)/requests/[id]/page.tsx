@@ -24,6 +24,8 @@ import { can, getPartnerContext, ROLES } from "../../../_lib/context";
 import { APPLICATION_LABEL, getCategoryMap, getCustomers, getOrgNames, getTeam, fullName, requestKind, SOURCE_LABEL, teamsOf } from "../../../_lib/data";
 import { customerConsents } from "../../../_lib/privileged";
 import { ActionForm } from "@/components/partner/action-form";
+import { QuoteDiscountSummary } from "@/components/partner/quote-discounts";
+import { quoteDiscountLines } from "@/server/loyalty";
 import { DocumentUpload } from "@/components/partner/document-upload";
 import { FulfilmentCard } from "@/components/partner/queue-table";
 import { QuoteForm, type VersionOption } from "@/components/partner/quote-form";
@@ -104,6 +106,8 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
   const risk = (req.risk_data ?? {}) as Record<string, unknown>;
   const appointedIds = [...new Set((appointments.data ?? []).filter((a) => !a.category_id || a.category_id === req.category_id).map((a) => a.insurer_org_id))];
   const quoteRows = quotes.data ?? [];
+  // Phase 4 loyalty: the insurer's discount lines on each quote (RLS: the broker of the quote).
+  const discountLines = await quoteDiscountLines(sb, quoteRows.map((q) => q.id));
   const subRows = submissions.data ?? [];
   const orgNames = await getOrgNames(ctx, [...appointedIds, ...quoteRows.map((q) => q.insurer_org_id), ...subRows.map((s) => s.insurer_org_id)]);
 
@@ -338,7 +342,10 @@ async function Workspace({ params }: { params: Promise<{ id: string }> }) {
                         {q.key_exclusion && <p className="text-xs font-normal text-muted">Key exclusion: {q.key_exclusion}</p>}
                       </Td>
                       <Td><StatusPill meta={QUOTE_STATUS[q.status]} /></Td>
-                      <Td className="tabular-nums">{formatGHS(Number(q.premium))}</Td>
+                      <Td className="tabular-nums">
+                        {formatGHS(Number(q.premium))}
+                        <QuoteDiscountSummary lines={discountLines.get(q.id) ?? []} premium={Number(q.premium)} />
+                      </Td>
                       <Td className="tabular-nums">{formatGHS(q.excess != null ? Number(q.excess) : null)}</Td>
                       <Td>{formatDate(q.valid_until)}</Td>
                       <Td>

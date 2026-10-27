@@ -53,6 +53,7 @@ export function DeclarationsStep({
   insurer,
   termsVersion,
   feeBreakdown,
+  discounts,
 }: {
   requestId: string;
   quoteId: string;
@@ -62,6 +63,8 @@ export function DeclarationsStep({
   insurer: string;
   termsVersion: string;
   feeBreakdown?: FeeBreakdown | null;
+  /** Phase 4 loyalty: "What you saved and why" (server-rendered block). */
+  discounts?: React.ReactNode;
 }) {
   const [state, action] = useActionState(submitApplication, initialActionState);
   const [chosen, setChosen] = React.useState<string[]>([]);
@@ -131,6 +134,7 @@ export function DeclarationsStep({
         </div>
         <p className="mt-1 text-xs text-muted">The insurer confirms the final amount. Optional benefits may be confirmed by your broker.</p>
         <FeeBreakdownBlock breakdown={feeBreakdown} className="mt-3" />
+        {discounts && <div className="mt-3">{discounts}</div>}
       </div>
 
       <div>

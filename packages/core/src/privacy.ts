@@ -199,7 +199,8 @@ export type RetentionClass =
   | "anonymous_needs_assessments"
   | "ussd_sessions"
   | "stale_device_tokens"
-  | "policy_explainer_logs";
+  | "policy_explainer_logs"
+  | "telematics_trips";
 
 export interface RetentionRule {
   class: RetentionClass;
@@ -226,6 +227,7 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
   { class: "ussd_sessions", label: "USSD sessions", days: 90, action: "delete", tables: ["ussd_sessions"], description: "Phone number and menu state of finished USSD sessions." },
   { class: "policy_explainer_logs", label: "Policy explainer questions", days: 180, action: "delete", tables: ["policy_explainer_logs"], description: "Questions asked about a policy and the answers shown, kept for quality review only." },
   { class: "stale_device_tokens", label: "Unused push tokens", days: 400, action: "delete", tables: ["device_tokens"], description: "Push notification tokens of devices not seen for the period." },
+  { class: "telematics_trips", label: "Driving trip summaries", days: 395, action: "delete", tables: ["telematics_trips"], description: "Trip summaries (times, distance, speed band, harsh events, night share, phone use) from consented driving scoring older than the period, and all trips of enrolments withdrawn more than 30 days ago. Monthly scores stay with the policy." },
 ];
 
 /** Shortest period the database accepts (guards against a mistyped override). */
@@ -325,6 +327,7 @@ export const DELETION_SCRUBBED: readonly ScopeEntry[] = [
   { table: "quote_shares / referral_links", what: "Shared quote links expired; referral links disabled.", reason: "Links would otherwise keep working." },
   { table: "beneficiaries / households", what: "Family members not on any policy, request or sponsorship deleted; household names cleared.", reason: "Not needed for any retained record." },
   { table: "privacy_requests (exports)", what: "Earlier data-export files deleted.", reason: "Copies of personal data." },
+  { table: "telematics_trips / telematics_enrolments", what: "Driving trip summaries deleted; driving-score enrolments withdrawn and device details removed. Monthly scores stay with the policy they priced.", reason: "Trip data is only needed to calculate scores; consent ends with the account." },
 ];
 
 /** Records kept after a deletion, and why (see docs/PRIVACY_REQUESTS.md — durations to confirm with counsel). */
@@ -395,7 +398,10 @@ export type ExportSection =
   | "payment_methods"
   | "voice_notes"
   | "needs_assessments"
-  | "policy_explainer";
+  | "policy_explainer"
+  | "loyalty_discounts"
+  | "telematics"
+  | "telematics_trips";
 
 export const EXPORT_SECTIONS: readonly { key: ExportSection; label: string }[] = [
   { key: "profile", label: "Your profile" },
@@ -423,6 +429,9 @@ export const EXPORT_SECTIONS: readonly { key: ExportSection; label: string }[] =
   { key: "payment_methods", label: "Saved cards" },
   { key: "voice_notes", label: "Voice notes (transcripts)" },
   { key: "needs_assessments", label: "Cover questions you answered" },
+  { key: "loyalty_discounts", label: "Discounts applied to your quotes" },
+  { key: "telematics", label: "Driving score enrolments and monthly scores" },
+  { key: "telematics_trips", label: "Driving trip summaries" },
 ];
 
 /** Never exported: secrets, tokens, provider internals, hash chains, storage internals, staff identities. */
@@ -446,6 +455,8 @@ const EXPORT_ALLOW: Partial<Record<ExportSection, readonly string[]>> = {
   notifications: ["id", "kind", "title", "body", "link", "read_at", "created_at"],
   voice_notes: ["id", "purpose", "request_id", "claim_id", "duration_seconds", "transcript", "transcript_language", "created_at"],
   policy_explainer: ["id", "policy_id", "question", "classification", "outcome", "answer_text", "handed_off_at", "created_at"],
+  telematics: ["id", "kind", "policy_id", "enrolment_id", "status", "device_label", "consent_version", "enrolled_at", "withdrawn_at", "period", "score", "factors", "trips", "distance_km", "final", "computed_at", "created_at"],
+  telematics_trips: ["id", "trip_id", "policy_id", "started_at", "ended_at", "distance_km", "max_speed_band", "harsh_brake_count", "harsh_accel_count", "night_share", "phone_use", "created_at"],
 };
 
 export type ExportRow = Record<string, unknown>;

@@ -5,6 +5,7 @@ import { BrokerQuoteInput, REQUEST_STATUS, canTransitionRequest, riskFingerprint
 import type { Enum } from "@im/db";
 import { notify, notifyOrg } from "@/server/notify";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
+import { applyLoyaltyToQuote } from "@/server/loyalty";
 import { ROLES, actionContext, dbMessage, run, type ActionState, type PartnerContext } from "../../../_lib/context";
 
 const uuid = z.string().uuid();
@@ -280,7 +281,7 @@ export async function saveQuote(_prev: ActionState, formData: FormData): Promise
     const validUntil = q.validUntil ? new Date(`${q.validUntil}T23:59:00Z`).toISOString() : null;
     if (validUntil && Date.parse(validUntil) < Date.now()) return { ok: false, error: "Validity must be in the future." };
 
-    const { error } = await ctx.supabase.from("quotes").insert({
+    const { data: saved, error } = await ctx.supabase.from("quotes").insert({
       request_id: req.id,
       submission_id: sub?.[0]?.id ?? null,
       insurer_org_id: q.insurerOrgId,
@@ -307,8 +308,10 @@ export async function saveQuote(_prev: ActionState, formData: FormData): Promise
           }
         : {}),
       commission_disclosure: "The broker of record may receive commission from the insurer. Ask your broker for details.",
-    });
+    }).select("id").maybeSingle();
     if (error) return { ok: false, error: dbMessage(error, "We couldn't save the quote.") };
+    // Phase 4 loyalty: the insurer's reward rules add explicit discount lines to the new quote.
+    if (saved?.id) await applyLoyaltyToQuote(saved.id);
     refresh();
     return { ok: true, message: q.status === "ready_to_accept" ? "Binding quote saved. Validity defaults to 14 days." : "Quote saved." };
   });

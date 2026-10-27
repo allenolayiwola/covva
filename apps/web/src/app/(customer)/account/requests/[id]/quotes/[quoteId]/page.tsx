@@ -11,6 +11,8 @@ import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { BrokerCard, brokerContact } from "@/components/customer/broker-card";
 import { DetailTabs } from "@/components/customer/detail-tabs";
 import { PageSkeleton } from "@/components/customer/skeletons";
+import { DiscountLines } from "@/components/customer/discount-lines";
+import { quoteDiscountLines, toDiscountLine } from "@/server/loyalty";
 import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite } from "../../../../_lib/data";
 
 export const metadata: Metadata = { title: "Quote details" };
@@ -43,6 +45,8 @@ async function QuoteDetail({ params }: Pick<PageProps<"/account/requests/[id]/qu
   const { data } = await supabase.from("quotes").select(`*, insurer:organizations!quotes_insurer_org_id_fkey(${ORG_COLS})`).eq("id", quoteId).eq("request_id", id).maybeSingle();
   const quote = data as unknown as QuoteRow | null;
   if (!quote) notFound();
+  // Phase 4 loyalty: explicit discount lines recorded on this quote (RLS: the request's customer).
+  const discountLines = ((await quoteDiscountLines(supabase, [quote.id])).get(quote.id) ?? []).map(toDiscountLine);
 
   const insurerName = quote.insurer?.name ?? "Insurer";
   const insurerDemo = !!(quote.insurer?.settings as { demo?: boolean } | null)?.demo;
@@ -190,6 +194,7 @@ async function QuoteDetail({ params }: Pick<PageProps<"/account/requests/[id]/qu
             <span className="text-ink">{formatGHS(Number(quote.premium))}</span> <span className="text-base font-normal text-muted">/ {quote.billing_period === "month" ? "month" : "year"}</span>
           </p>
           {total !== Number(quote.premium) && <p className="mt-1 text-sm text-muted">{formatGHS(total)} including taxes and fees</p>}
+          <DiscountLines lines={discountLines} premium={Number(quote.premium)} className="mt-5" />
 
           <DetailTabs tabs={tabs} className="mt-8" />
 

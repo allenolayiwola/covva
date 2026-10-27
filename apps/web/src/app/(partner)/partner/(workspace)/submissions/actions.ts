@@ -3,6 +3,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { BrokerQuoteInput, QUOTE_STATUS } from "@im/core";
 import { notifyOrg } from "@/server/notify";
+import { applyLoyaltyToQuote } from "@/server/loyalty";
 import { ROLES, actionContext, dbMessage, run, type ActionState, type PartnerContext } from "../../_lib/context";
 
 const uuid = z.string().uuid();
@@ -126,18 +127,24 @@ export async function respondWithQuote(_prev: ActionState, formData: FormData): 
       .order("created_at", { ascending: false })
       .limit(1);
 
-    const { error } = existing?.length
-      ? await ctx.supabase.from("quotes").update({ ...fields, submission_id: sub.id }).eq("id", existing[0]!.id)
-      : await ctx.supabase.from("quotes").insert({
-          ...fields,
-          request_id: sub.request_id,
-          submission_id: sub.id,
-          insurer_org_id: ctx.orgId,
-          broker_org_id: sub.broker_org_id,
-          // Insurer-direct orders have no broker of record (Addendum 2 D): the disclosure says so.
-          commission_disclosure: sub.broker_org_id ? "The broker of record may receive commission from the insurer. Ask your broker for details." : "Issued directly by the insurer. There is no broker of record and no broker commission on this quote.",
-        });
+    const { data: saved, error } = existing?.length
+      ? await ctx.supabase.from("quotes").update({ ...fields, submission_id: sub.id }).eq("id", existing[0]!.id).select("id").maybeSingle()
+      : await ctx.supabase
+          .from("quotes")
+          .insert({
+            ...fields,
+            request_id: sub.request_id,
+            submission_id: sub.id,
+            insurer_org_id: ctx.orgId,
+            broker_org_id: sub.broker_org_id,
+            // Insurer-direct orders have no broker of record (Addendum 2 D): the disclosure says so.
+            commission_disclosure: sub.broker_org_id ? "The broker of record may receive commission from the insurer. Ask your broker for details." : "Issued directly by the insurer. There is no broker of record and no broker commission on this quote.",
+          })
+          .select("id")
+          .maybeSingle();
     if (error) return { ok: false, error: dbMessage(error, "We couldn't save the quote.") };
+    // Phase 4 loyalty: re-price the discount lines for the (new) premium — explicit lines, premium untouched.
+    if (saved?.id) await applyLoyaltyToQuote(saved.id);
 
     await ctx.supabase.from("insurer_submissions").update({ status: "quoted", responded_at: new Date().toISOString() }).eq("id", sub.id);
     if (sub.broker_org_id) await notifyOrg(sub.broker_org_id, {

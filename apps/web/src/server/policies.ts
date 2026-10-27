@@ -9,6 +9,7 @@ import { recordPolicyActive } from "@/server/usage";
 import { log } from "@/server/log";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 import { onPolicyActivated } from "@/server/referrals";
+import { redeemCreditsForPolicy } from "@/server/loyalty";
 
 /**
  * Policy issuance helpers. Only the insurer activates cover. `issuePolicyForInsurer`
@@ -89,6 +90,8 @@ export async function onPolicyIssued(policyId: string): Promise<void> {
   await emitEvent(policy.broker_org_id, "policy.issued", issued);
   await emitEvent(policy.insurer_org_id, "policy.issued", issued);
   await onPolicyActivated(policy.id).catch((err) => log.warn("policy.issued.referral_failed", { policyId: policy.id, err }));
+  // Phase 4 loyalty: a referral-credit discount on the quote is now redeemed in the reward ledger (idempotent).
+  await redeemCreditsForPolicy(svc, policy.id);
 }
 
 /**

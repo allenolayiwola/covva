@@ -22,6 +22,8 @@ import { getFlags } from "@/lib/catalog";
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { RealtimeRefresh } from "@/components/customer/realtime-refresh";
+import { DiscountLines } from "@/components/customer/discount-lines";
+import { quoteDiscountLines, toDiscountLine } from "@/server/loyalty";
 import { ORG_COLS, account, getRequestOr404, requestTime, type OrgLite } from "../../../_lib/data";
 import { NotifyButton } from "./notify-button";
 import { ShareQuotes } from "./share-quotes";
@@ -69,6 +71,8 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
   const rows = (quotesRes.data ?? []) as unknown as QuoteRow[];
   const application = appRes.data?.[0] ?? null;
   const now = requestTime();
+  // Phase 4 loyalty: explicit discount lines per quote ("Saves GHS X · you pay GHS Y"); the premium is unchanged.
+  const discounts = await quoteDiscountLines(supabase, rows.map((q) => q.id));
   const expired = (q: QuoteRow) => !!q.valid_until && new Date(q.valid_until).getTime() < now;
 
   const risk = (request.risk_data ?? {}) as Record<string, unknown>;
@@ -300,6 +304,7 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
                     <p className="mt-4 text-[32px] font-semibold leading-none tracking-tight text-ink">
                       {formatGHS(Number(q.premium))} <span className="text-sm font-normal text-muted">/ {q.billing_period === "month" ? "month" : "year"}</span>
                     </p>
+                    <DiscountLines compact lines={(discounts.get(q.id) ?? []).map(toDiscountLine)} premium={Number(q.premium)} className="mt-1.5" />
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <StatusPill meta={QUOTE_STATUS[q.status as QuoteStatus]} />
                       {s.labels.filter((l) => l !== "recommended").slice(0, 1).map((l) => (
