@@ -15,58 +15,59 @@ export const HERO_CATEGORIES = [
 export interface HeroExample { label: string; monthly: number }
 
 /**
- * Framed quote card in the hero: a 6-category picker, a "Get quotes" pill, two "Example · DEMO" prices and the
- * "A quote request is not cover" disclaimer. A plain GET form, so it works before hydration and without JS:
- * the chosen category lands on /quote?category=… where the one-question-per-screen flow starts.
+ * The hero's cover picker (redesign variation A): heading, six category tiles in one row on desktop (3×2 on
+ * phones), a "Get quotes" pill, the two "Example · DEMO" prices on one line each and the "A quote request is
+ * not cover" disclaimer. A plain GET form, so it works before hydration and without JS: the chosen category
+ * lands on /quote?category=… where the one-question-per-screen flow starts.
  */
-export function HeroQuoteCard({ examples, defaultLine = "motor", className, slot = "desktop" }: { examples: HeroExample[]; defaultLine?: string; className?: string; slot?: "desktop" | "mobile" }) {
-  const titleId = `hero-quote-title-${slot}`;
+export function HeroQuoteCard({ examples, defaultLine = "motor", className }: { examples: HeroExample[]; defaultLine?: string; className?: string }) {
+  const titleId = "hero-quote-title";
   return (
-    <form action="/quote" method="get" aria-labelledby={titleId} className={cn("rounded-hero border border-line bg-white p-5 shadow-float sm:p-6", className)}>
-      <div className="flex items-baseline justify-between gap-3">
+    <form action="/quote" method="get" aria-labelledby={titleId} className={cn("w-full text-center", className)}>
+      <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
         <h2 id={titleId} className="font-display text-[22px] leading-tight text-ink">What do you want to insure?</h2>
         <span className="whitespace-nowrap text-[13px] text-muted">Step 1 of 6</span>
       </div>
 
-      <fieldset className="mt-4">
+      <fieldset className="mt-5">
         <legend className="sr-only">Type of cover</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:gap-3">
           {HERO_CATEGORIES.map(({ line, label, Icon }) => (
             <label
               key={line}
               className={cn(
-                "group flex min-h-[72px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-card border border-line bg-white px-2 py-3 text-center text-[14px] font-medium text-ink-2 transition-colors",
+                "flex min-h-[72px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-card border border-line bg-white px-2 py-3 text-[14px] font-medium text-ink-2 shadow-card transition-colors lg:min-h-[96px] lg:text-[15px]",
                 "hover:border-brand/50 hover:bg-mist has-[:checked]:border-brand has-[:checked]:bg-mint/60 has-[:checked]:text-brand-deep has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2",
               )}
             >
               <input type="radio" name="category" value={line} defaultChecked={line === defaultLine} className="sr-only" />
-              <Icon aria-hidden className="size-5 text-brand" />
+              <Icon aria-hidden className="size-5 text-brand lg:size-6" />
               {label}
             </label>
           ))}
         </div>
       </fieldset>
 
-      <button type="submit" className={buttonClass("primary", "lg", "mt-4 w-full")}>
+      <button type="submit" className={buttonClass("primary", "lg", "mt-6 w-full sm:w-auto sm:min-w-[260px]")}>
         Get quotes <ArrowRight aria-hidden className="size-4" />
       </button>
 
-      <ul className="mt-4 grid gap-2 sm:grid-cols-2" aria-label="Example prices">
+      <ul className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-8" aria-label="Example prices">
         {examples.slice(0, 2).map((e) => (
-          <li key={e.label} className="rounded-field border border-line bg-mist px-3 py-2.5">
-            <p className="flex items-start justify-between gap-2 text-[13px] text-muted">
-              <span>{e.label}</span>
-              <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-bg px-2 py-0.5 font-medium text-amber">Example · DEMO</span>
-            </p>
-            <p className="mt-1 text-ink">
-              <span className="text-[17px] font-semibold tabular-nums text-brand-deep">from GH₵ {e.monthly}</span>
-              <span className="text-[13px] text-muted"> /month</span>
-            </p>
+          <li key={e.label} className="flex flex-col items-center gap-1 text-[14px] sm:flex-row sm:gap-2">
+            <span className="text-muted">{e.label}</span>
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              <span>
+                <span className="font-semibold tabular-nums text-brand-deep">from GH₵ {e.monthly}</span>
+                <span className="text-[13px] text-muted"> /month</span>
+              </span>
+              <span className="rounded-full bg-amber-bg px-2 py-0.5 text-[13px] font-medium text-amber">Example · DEMO</span>
+            </span>
           </li>
         ))}
       </ul>
 
-      <p className="mt-4 text-[13px] leading-relaxed text-muted">
+      <p className="mx-auto mt-4 max-w-[46rem] text-[13px] leading-relaxed text-muted">
         <strong className="font-semibold text-ink-2">A quote request is not cover.</strong> Quotes come from participating licensed insurers through the brokers you choose. Cover starts only when the insurer accepts and issues your policy.{" "}
         <Link href="/how-it-works" className="font-medium text-brand underline-offset-2 hover:underline">How it works</Link>
       </p>
