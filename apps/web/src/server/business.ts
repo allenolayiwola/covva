@@ -284,7 +284,7 @@ export interface SchemeDetail {
   insurer: { id: string; name: string } | null;
   policy: { id: string; internal_reference: string; policy_number: string | null; status: string; cover_start: string | null; cover_end: string | null; premium: number | null; billing_period: string } | null;
   request: { id: string; reference: string; status: string; next_step: string | null } | null;
-  documents: { id: string; file_name: string | null; kind: string; created_at: string }[];
+  documents: { id: string; file_name: string | null; kind: string; created_at: string; storage_path: string | null }[];
   census: CensusSummary;
   /** Null when the role can't see member PII (finance / viewer). */
   members: SchemeMemberRow[] | null;
@@ -304,7 +304,7 @@ export async function schemeDetail(ctx: BusinessCtx, schemeId: string): Promise<
   const [{ data: policy }, { data: request }, { data: documents }] = await Promise.all([
     scheme.policy_id ? (svc ?? ctx.supabase).from("policies").select("id, internal_reference, policy_number, status, cover_start, cover_end, premium, billing_period").eq("id", scheme.policy_id).maybeSingle() : Promise.resolve({ data: null }),
     scheme.request_id ? (svc ?? ctx.supabase).from("requests").select("id, reference, status, next_step").eq("id", scheme.request_id).maybeSingle() : Promise.resolve({ data: null }),
-    scheme.policy_id && svc ? svc.from("documents").select("id, file_name, kind, created_at").eq("policy_id", scheme.policy_id).order("created_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
+    scheme.policy_id && svc ? svc.from("documents").select("id, file_name, kind, created_at, storage_path").eq("policy_id", scheme.policy_id).order("created_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] }),
   ]);
   const broker = orgOf(scheme.broker_org_id);
   const insurer = orgOf(scheme.insurer_org_id);
@@ -754,7 +754,7 @@ export async function businessDashboard(ctx: BusinessCtx, orgId: string, now = n
   renewals.sort((a, b) => a.date.localeCompare(b.date));
   return {
     account,
-    schemes: (schemes ?? []).map((s) => ({ id: s.id, reference: s.reference, name: s.name, status: s.status, categoryName: cats.get(s.category_id)?.name ?? "Group cover", memberCount: s.member_count, renewalDate: s.renewal_date })),
+    schemes: (schemes ?? []).filter((s) => s.status !== "cancelled").map((s) => ({ id: s.id, reference: s.reference, name: s.name, status: s.status, categoryName: cats.get(s.category_id)?.name ?? "Group cover", memberCount: s.member_count, renewalDate: s.renewal_date })),
     members: { total: (schemes ?? []).filter((s) => s.status !== "cancelled").reduce((n, s) => n + s.member_count, 0), employees: businessCan(account.role, "members") ? employees : null },
     fleet: { active: (fleet ?? []).length, insured: (fleet ?? []).filter((v) => v.policy_id).length, totalValue: r2((fleet ?? []).reduce((s, v) => s + (Number(v.value) || 0), 0)) },
     assets: { active: (assets ?? []).length, totalValue: r2((assets ?? []).reduce((s, a) => s + (Number(a.value) || 0), 0)) },
@@ -1051,4 +1051,65 @@ export async function myWorkplaceCover(ctx: BusinessCtx): Promise<MyWorkplaceCov
 /** Tell a member their employer added them (best effort; used after a single add when the member has an account). */
 export async function notifyMemberAdded(userId: string, schemeName: string, businessName: string): Promise<void> {
   await notify({ userId, kind: "business.member.added", title: `${businessName} added you to ${schemeName}`, body: "Your workplace cover now shows in your Covva account.", link: "/account/business", channels: ["in_app", "push"] }).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Broker / insurer views (RLS decides what the partner sees; names via the service client for those rows only)
+// ---------------------------------------------------------------------------
+export interface PartnerScheme extends GroupSchemeRow {
+  categoryName: string;
+  census: CensusSummary;
+  members: SchemeMemberRow[];
+}
+export interface PartnerBusinessClient {
+  orgId: string;
+  name: string;
+  industry: string | null;
+  schemes: PartnerScheme[];
+  fleet: FleetVehicleRow[];
+  requests: { id: string; reference: string; title: string | null; status: string; created_at: string }[];
+}
+
+/** Businesses the broker (or insurer) services: their schemes with census + member list, fleets and requests. */
+export async function partnerBusinessClients(supabase: UserClient, partnerOrgId: string): Promise<PartnerBusinessClient[]> {
+  const sdb = db(supabase);
+  const [{ data: schemes }, { data: reqs }] = await Promise.all([
+    sdb.from("group_schemes").select("*").or(`broker_org_id.eq.${partnerOrgId},insurer_org_id.eq.${partnerOrgId}`).order("created_at", { ascending: false }).limit(500),
+    supabase.from("requests").select("id, reference, title, status, created_at, business_org_id").eq("broker_org_id", partnerOrgId).not("business_org_id", "is", null).order("created_at", { ascending: false }).limit(500),
+  ]);
+  const orgIds = [...new Set([...(schemes ?? []).map((s) => s.business_org_id), ...(reqs ?? []).map((r) => r.business_org_id!).filter(Boolean)])];
+  if (!orgIds.length) return [];
+  const schemeIds = (schemes ?? []).map((s) => s.id);
+  const [{ data: members }, { data: fleet }, cats] = await Promise.all([
+    schemeIds.length ? sdb.from("scheme_members").select("*").in("scheme_id", schemeIds).neq("status", "removed").order("full_name").limit(20000) : Promise.resolve({ data: [] as SchemeMemberRow[] }),
+    sdb.from("fleet_vehicles").select("*").in("business_org_id", orgIds).eq("status", "active").order("registration").limit(20000),
+    categoryMap(supabase),
+  ]);
+  const svc = svcOrNull();
+  const { data: orgs } = svc ? await db(svc).from("organizations").select("id, name, business_profile").in("id", orgIds).eq("type", "enterprise") : { data: [] as { id: string; name: string; business_profile: Json }[] };
+  return orgIds.map((orgId) => {
+    const o = (orgs ?? []).find((x) => x.id === orgId);
+    const profile = (o?.business_profile ?? {}) as BusinessProfile;
+    return {
+      orgId,
+      name: o?.name ?? "Business client",
+      industry: profile.industry ?? null,
+      schemes: (schemes ?? []).filter((s) => s.business_org_id === orgId).map((s) => {
+        const ms = (members ?? []).filter((m) => m.scheme_id === s.id);
+        return { ...s, categoryName: cats.get(s.category_id)?.name ?? "Group cover", census: censusSummary(ms), members: ms };
+      }),
+      fleet: (fleet ?? []).filter((v) => v.business_org_id === orgId),
+      requests: (reqs ?? []).filter((r) => r.business_org_id === orgId).map((r) => ({ id: r.id, reference: r.reference, title: r.title, status: r.status, created_at: r.created_at })),
+    };
+  });
+}
+
+/** Scheme + members behind a request (insurer issuance view). Null when the request is not a group scheme or RLS hides it. */
+export async function schemeForRequest(supabase: UserClient, requestId: string): Promise<{ scheme: GroupSchemeRow; census: CensusSummary; members: SchemeMemberRow[] } | null> {
+  if (!UUID.test(requestId)) return null;
+  const sdb = db(supabase);
+  const { data: scheme } = await sdb.from("group_schemes").select("*").eq("request_id", requestId).maybeSingle();
+  if (!scheme) return null;
+  const { data: members } = await sdb.from("scheme_members").select("*").eq("scheme_id", scheme.id).neq("status", "removed").order("relationship").order("full_name").limit(20000);
+  return { scheme, census: censusSummary(members ?? []), members: members ?? [] };
 }

@@ -148,6 +148,7 @@ export const en = {
   "account.nav.claims": "Claims",
   "account.nav.complaints": "Complaints",
   "account.nav.payments": "Payments",
+  "account.nav.business": "Business",
   "account.nav.referrals": "Refer a friend",
   "account.nav.profile": "Profile",
   "account.nav.accountTab": "Account",

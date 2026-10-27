@@ -37,7 +37,8 @@ export default async function BusinessPage() {
         lede="Business risks are rarely one-size-fits-all. Every business request is reviewed by a licensed business adviser before insurers are approached — so the quotes you compare fit what you actually do."
         actions={
           <>
-            <Link href="#enquire" className={buttonClass("primary", "lg")}>Talk to our team</Link>
+            <Link href="/account/business/new" className={buttonClass("primary", "lg")}>Create a business account</Link>
+            <Link href="#enquire" className={buttonClass("secondary", "lg")}>Talk to our team</Link>
             <Link href="#lines" className={buttonClass("secondary", "lg")}>What we cover</Link>
           </>
         }

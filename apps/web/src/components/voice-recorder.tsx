@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Loader2, Mic, Square, Trash2, Upload } from "lucide-react";
-import { VOICE_MAX_BYTES, VOICE_MAX_SECONDS, appendTranscript, normaliseAudioMime, type MessageKey, type VoiceNotePurpose } from "@im/core";
+import { VOICE_MAX_BYTES, VOICE_MAX_SECONDS, normaliseAudioMime, type MessageKey, type VoiceNotePurpose } from "@im/core";
 import { Button, Notice, Select, Textarea, cn } from "@im/ui";
 import { useT } from "@/lib/i18n/client";
 

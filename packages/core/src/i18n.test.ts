@@ -163,6 +163,8 @@ test("translator CSV import/export round-trips and rejects unknown keys", () => 
   assert.deepEqual(r.errors.map((e) => e.line), [4, 5]);
   const out = toTranslationCsv(r.rows);
   assert.deepEqual(parseTranslationCsv(out, known).rows, r.rows);
+  // Our export format (key,english,value,status) imports the value column.
+  assert.deepEqual(parseTranslationCsv('key,english,value,status\nnav.claims,Claims,"Kl, x",draft\nnav.learn,Learn,,missing\n', known).rows, [{ key: "nav.claims", value: "Kl, x" }]);
   // Headerless files work too.
   assert.equal(parseTranslationCsv("nav.claims,X", known).rows.length, 1);
 });

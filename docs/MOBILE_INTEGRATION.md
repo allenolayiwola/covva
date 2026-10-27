@@ -774,3 +774,88 @@ indicative display — always show the disclosure text the API returns and never
   (`requested` → `assigned` → `scheduled` → `completed` | `failed`), `scheduled_for`, `report`, `photos`.
   Notifications: `inspection.assigned`, `inspection.scheduled`, `inspection.completed`. Copy: "The insurer decides
   what the report means for your cover."
+
+## Referrals
+
+Customers get a personal referral link (8-character base32 code). Anyone opening `https://covva.com.gh/<path>?ref=CODE`
+gets a first-party `covva_ref` cookie for 30 days and the next request they create is attributed to the code. In the app,
+let users share the link and show their friends and credits:
+
+* `GET /api/v1/me/referrals` → `{ link: { code, url, landing_path } | null, friends: [{ attribution_id, joined_at, converted_at, rewarded }], credits: [{ kind, amount, expires_at, created_at }], balance, currency, programmeActive, note }`.
+  Friends are anonymous — never show names. `programmeActive = false` means rewards are not switched on yet (they need
+  NIC and insurer approval); say so honestly.
+* `POST /api/v1/me/referrals` → creates (or returns) the link; same response shape.
+* Share via WhatsApp (`https://wa.me/?text=…`), SMS (`sms:?&body=…`) or copy.
+* Credits are GHS credit units, **not cash**: they only come off Covva's platform fees, or a future premium where the
+  insurer funds the discount. Show `note` wherever credits appear. Referrals never change quotes or their order.
+* Attribution uses the web `covva_ref` cookie, so it applies to requests created on the website (including the web views
+  the app opens). Requests created natively in the app are not attributed yet. A customer cannot refer themselves.
+
+## Instalments and micro cover
+
+Phase 3. Every payment is a GHS premium payment to the **insurer** (Covva never holds the money). Mobile money payments
+send a prompt the payer approves with their PIN — show `displayText` and poll `GET /payments/{id}` (or wait for the
+`payment.succeeded` / `payment.failed` push) rather than assuming success.
+
+**Instalments**
+
+* `GET /policies/{id}/instalments` → `{ schedule | null }` with `summary` ("Instalments: 3 of 12 paid · next GH₵ 85.00 on
+  5 Dec 2026"), `state` (`current | due | grace | overdue | lapsed | completed | cancelled`, `arrears`, `next`,
+  `graceUntil`, `lapseAt`), `rules` (the insurer's grace / lapse / reinstatement rules in plain words — show them) and
+  `instalments[]`.
+* `POST /instalments/{id}/pay` `{ channel: "mobile_money" | "card" | "link", momo?: { phone, network: mtn|vod|atl }, paymentMethodId? }`
+  → `{ paymentId, status, authorizationUrl, displayText, amount }`. Earlier unpaid instalments are included. `link`
+  returns a hosted checkout to open in an in-app browser.
+* `POST /instalments/schedules/{id}/reinstate` (same body) on a lapsed schedule within the window →
+  `requiresReview: true` means the insurer reviews before cover resumes (tell the customer; a decline is refunded).
+* Choosing a plan at checkout is on the web checkout today (`instalment_plan` on the apply step); the app can open the
+  web checkout. Push kinds: `instalments.created`, `instalments.grace`, `instalment.due` (pay link), `policy.lapsed`,
+  `instalments.reinstatement_pending`, `instalments.reinstated`, `instalments.reinstatement_declined`,
+  `payment.succeeded`, `payment.failed`.
+
+**Micro cover**
+
+* `GET /micro/products?audience=okada|trotro|ride_hailing|trader|artisan|event` (no auth) → `items[]` with `byPeriod`
+  and `fromLabel` ("from GH₵ 2.50/day").
+* `POST /micro/buy` `{ productVersionId, period: day|week|month, channel: "app", payment: "mobile_money" | "card", momo?, autoRenew? }`
+  → `mode: "instant"` with `payment` (MoMo prompt or `authorizationUrl`) and `quoteText`, or `mode: "routed"` with the
+  `requestId` a broker / the insurer quotes (show "We'll confirm your quote").
+* `POST /micro/{policyId}/renew` `{ period?, channel, momo?, paymentMethodId? }` — one tap; the new window starts when the
+  current one ends (`startsAt`, `endsAt`).
+* `PATCH /micro/{policyId}` `{ autoRenew }`. Push kinds: `micro.renew_link`, `payment.succeeded`, `payment.failed`.
+* Cover is live only while the policy is `active`; a paid window on a `pending_issuance` policy is "Issuing".
+
+
+## Business accounts
+
+SME & group (Phase 3). A business account is an organisation of type `enterprise`; the user's role in it is
+`owner | admin | finance | viewer` (owners/admins manage everything, finance pays statements, viewers read the
+dashboard). Business memberships are **not** partner workspaces — they never appear in `GET /me` `workspaces` and the
+app stays in the customer workspace. All endpoints below use the customer's bearer token (`X-Covva-Client: mobile`).
+
+* `GET /business` → `{ accounts[], workplaceCover[] }`. `accounts[]` = `{ orgId, name, role, team, profile }`; show a
+  "Business" entry in the account tab when it is non-empty. `workplaceCover[]` is the user's own cover as a scheme member
+  (employer, scheme, insurer, renewal). Calling it also links census rows whose phone matches the user's **verified**
+  sign-in phone.
+* `POST /business` `{ name, industry, employees, billing_email, billing_contact, tin?, registration_number?, phone?, region?, address? }`
+  → `201 { orgId }`; the caller becomes owner (max 5 owned accounts → `422`).
+* `GET /business/{orgId}/dashboard` → schemes (status, member count, renewal), member / fleet / asset counts, renewals in
+  the next 60 days, statements due, open requests and **counts** of employee claims (never claim details).
+* `GET /business/{orgId}/members[?schemeId=]` → per scheme `{ scheme, categoryName, census, broker, insurer, members }`.
+  `members` is `null` for finance and viewer roles — render the census counts only.
+* `POST /business/{orgId}/members` `{ schemeId, full_name, relationship, principal_member_id?, date_of_birth?, phone?, … }`
+  (owner/admin). Only the last 4 Ghana Card digits are stored; dependants need `principal_member_id`.
+* `POST /business/{orgId}/members/import` `{ schemeId, csv, mode: "preview" | "import" }` → `{ valid, errors: [{ row, message }], preview[], inserted, skipped[] }`.
+  Always call `preview` first and show the row-numbered problems; `import` writes only the valid rows. Template columns:
+  `employee_ref, full_name, date_of_birth, gender, phone, email, ghana_card, relationship, principal_ref, cover_tier, salary_band`.
+* `GET /business/{orgId}/fleet`; `POST /business/{orgId}/fleet` with one vehicle `{ registration, make?, model?, year?, value?, use, driver_name? }`
+  (`201`) or `{ csv, mode }` for a bulk upload (same report shape as members). Registrations come back normalised (`GR 1234-23`).
+* `GET /business/{orgId}/invoices` → consolidated statements with `lines[]` (`description, amount, insurer_name, basis, payment_status`).
+* `POST /business/invoices/{id}/pay` `{ channel, momo?: { phone, provider }, insurerOrgId? }` → `results[]` — **one payment
+  per insurer line**. For each result open `authorizationUrl` (card / hosted MoMo) or tell the user to approve the MoMo
+  prompt; `not_collected` lines are premiums the insurer collects directly (show `message`). Copy: "Each insurer is paid
+  directly — Covva never holds your premiums."
+
+Group schemes, fleets, property and liability are always handled by a licensed broker: quote requests are created on the
+web (or by the broker) from the census summary — counts only, never member names or contact details. Push kinds:
+`business.invoice.issued`, `business.member.added`, plus the usual `request.*` / `quote.ready` for business requests.

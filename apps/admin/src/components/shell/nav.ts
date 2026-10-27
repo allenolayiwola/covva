@@ -1,7 +1,8 @@
 import {
+  Languages, Smartphone,
   Activity, BadgeCheck, Banknote, Bot, Building2, ChartNoAxesColumn, ClipboardList, FileCheck2, FileSignature, Flag, Gauge, Globe2, Handshake,
   HeartPulse, Inbox, Kanban, LayoutGrid, ListChecks, MessageCircle, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
-  Tags, Users, Wallet, Wrench, type LucideIcon,
+  Tags, Users, Wallet, Wrench, Gift, Store, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem { href: string; label: string; icon: LucideIcon; keywords?: string }
@@ -19,10 +20,13 @@ export const NAV: NavGroup[] = [
       { href: "/claims", label: "Claims", icon: HeartPulse, keywords: "insurer decisions" },
       { href: "/claims/fraud", label: "Claim fraud review", icon: ShieldCheck, keywords: "fraud flags duplicate identity late report review" },
       { href: "/service-partners", label: "Service partners", icon: Wrench, keywords: "garages towing hospitals clinics direct billing network" },
+      { href: "/service-partners/applications", label: "Partner applications", icon: FileSignature, keywords: "service partner self-onboarding garage towing hospital apply join network approve" },
+      { href: "/service-partners/reviews", label: "Partner reviews", icon: Wrench, keywords: "ratings stars moderation hide reviews service partners" },
       { href: "/complaints", label: "Complaints", icon: MessageSquareWarning, keywords: "nic escalation sla" },
       { href: "/kyc", label: "KYC review", icon: BadgeCheck, keywords: "ghana card verify identity" },
       { href: "/inspections", label: "Inspections", icon: Building2, keywords: "property cover diaspora site inspection partner assign home being built" },
       { href: "/diaspora", label: "Diaspora", icon: Globe2, keywords: "sponsors beneficiaries consent gifts family abroad" },
+      { href: "/business", label: "Business accounts", icon: Building2, keywords: "sme group scheme employer fleet census members statements consolidated billing enterprise" },
       { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, keywords: "support inbox conversations bot handoff templates contacts opt-out" },
     ],
   },
@@ -54,6 +58,7 @@ export const NAV: NavGroup[] = [
       { href: "/fx", label: "FX rates", icon: Globe2, keywords: "diaspora exchange rate gbp usd eur cad manual override margin display currency" },
       { href: "/invoices", label: "Invoices", icon: Receipt, keywords: "billing generate" },
       { href: "/commercial", label: "Commercial terms", icon: Scale, keywords: "revenue share commission ledger settlement statements splits" },
+      { href: "/accounting", label: "Accounting", icon: Receipt, keywords: "exports vat nhil getfund levy tax rules xero quickbooks sage platform revenue insurer statement commission report" },
       { href: "/usage", label: "Usage", icon: Activity, keywords: "metering events" },
       { href: "/leads", label: "Leads", icon: Banknote, keywords: "marketing inbox contact" },
     ],
@@ -67,12 +72,16 @@ export const NAV: NavGroup[] = [
       { href: "/partners/applications", label: "Applications", icon: FileSignature, keywords: "registration self-service insurer broker verify nic licence approve return reject agreement" },
       { href: "/partners/appointments", label: "Appointment requests", icon: Handshake, keywords: "appointment letter broker insurer not on covva admin review" },
       { href: "/partners/remittance", label: "Remittance partners", icon: Banknote, keywords: "diaspora bank remittance embedded partner api placeholder" },
+      { href: "/distribution", label: "Distribution partners", icon: Store, keywords: "embedded widget dealers banks landlords fleets travel agents revenue share api" },
+      { href: "/referrals", label: "Referrals & rewards", icon: Gift, keywords: "referral attribution credits reward ledger rules loyalty nic approval" },
     ],
   },
   {
     label: "Platform",
     items: [
       { href: "/ai", label: "AI", icon: Bot, keywords: "usage cost models insights" },
+      { href: "/translations", label: "Translations", icon: Languages, keywords: "i18n locale twi ga ewe translator review approve csv import coverage language" },
+      { href: "/ussd", label: "USSD", icon: Smartphone, keywords: "short code simulator feature phone sessions aggregator africastalking hubtel arkesel" },
       { href: "/flags", label: "Feature flags", icon: Flag, keywords: "toggles" },
       { href: "/settings", label: "Settings", icon: Settings, keywords: "platform configuration" },
       { href: "/audit", label: "Audit log", icon: ScrollText, keywords: "events chain verify" },

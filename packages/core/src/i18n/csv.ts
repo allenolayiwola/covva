@@ -10,14 +10,22 @@ export interface TranslationImportResult {
 }
 
 /**
- * Parse a translator's CSV: header `key,value` (case-insensitive, optional), one row per string.
+ * Parse a translator's CSV: header `key,value` (case-insensitive, optional) — or our export's
+ * `key,english,value,status` (the `value` column is used) — one row per string.
  * `isKnownKey` rejects keys that are not in the English catalogue. Empty values are skipped.
  */
 export function parseTranslationCsv(text: string, isKnownKey: (key: string) => boolean, maxRows = 5000): TranslationImportResult {
   const all = parseCsv(text);
   const out: TranslationImportResult = { rows: [], errors: [] };
   let start = 0;
-  if (all[0] && all[0][0]?.trim().toLowerCase() === "key") start = 1;
+  // A header row may name the columns (our export is key,english,value,status): use `value`.
+  let valueCol: number | null = null;
+  const header = all[0]?.map((h) => h.trim().toLowerCase());
+  if (header && header[0] === "key") {
+    start = 1;
+    const vi = header.indexOf("value");
+    if (vi > 0 && header.length > 2) valueCol = vi;
+  }
   const seen = new Set<string>();
   for (let i = start; i < all.length; i++) {
     const line = i + 1;
@@ -27,7 +35,7 @@ export function parseTranslationCsv(text: string, isKnownKey: (key: string) => b
     }
     const [rawKey, ...rest] = all[i] ?? [];
     const key = (rawKey ?? "").trim();
-    const value = rest.join(",").replace(/\r/g, "");
+    const value = (valueCol != null ? (all[i]?.[valueCol] ?? "") : rest.join(",")).replace(/\r/g, "");
     if (!key) {
       out.errors.push({ line, message: "Missing key." });
       continue;

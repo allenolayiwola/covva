@@ -262,7 +262,7 @@ async function loadInstalments(userId: string): Promise<InstalmentSnap[]> {
         due.push({ id: next.id, amount: Number(next.amount), label: s.policy?.policy_number ?? s.policy?.internal_reference ?? "policy", dueAt: next.due_at });
       }
     }
-    return due.sort((a, b) => a.dueAt.localeCompare(b.dueAt)).slice(0, USSD_MAX_LIST).map(({ dueAt: _d, ...rest }) => rest);
+    return due.sort((a, b) => a.dueAt.localeCompare(b.dueAt)).slice(0, USSD_MAX_LIST).map((d) => ({ id: d.id, label: d.label, amount: d.amount }));
   } catch (err) {
     log.warn("ussd.instalments_unavailable", { err });
     return [];

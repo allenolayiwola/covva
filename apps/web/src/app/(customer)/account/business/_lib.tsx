@@ -16,7 +16,7 @@ export async function businessContext(next: string, sp?: Record<string, string |
   const accounts = await myBusinessAccounts(ctx);
   const wanted = typeof sp?.org === "string" ? sp.org : undefined;
   const current = accounts.find((a) => a.orgId === wanted) ?? accounts[0] ?? null;
-  return { ctx, user, accounts, current };
+  return { ctx, user, supabase, accounts, current };
 }
 
 export const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);

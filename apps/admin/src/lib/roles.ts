@@ -50,6 +50,12 @@ export const PERMS = {
   whatsapp: ["platform_admin", "platform_ops", "support"],
   /** WhatsApp template registry (what we submit to Meta). */
   whatsappTemplates: ["platform_admin", "platform_ops"],
+  /** Translations: drafting and reviewing strings (support staff can act as translators). */
+  translations: ["platform_admin", "platform_ops", "compliance", "support"],
+  /** Translations: approving a string makes it live for every visitor. */
+  translationsApprove: ["platform_admin", "platform_ops", "compliance"],
+  /** USSD simulator (sends real SMS / creates leads in non-sandbox environments). */
+  ussd: ["platform_admin", "platform_ops", "support"],
   /** Embedded distribution partners (segment, categories, widget domains, status; revenue share). */
   distribution: ["platform_admin", "platform_ops"],
   /** Switching reward rules on/off (customer inducements need NIC + insurer approval). */
