@@ -26,6 +26,8 @@ import { UploadDropzone } from "@/components/customer/upload";
 import { formatBytes } from "@/components/customer/utils";
 import { VideoUpload } from "@/components/customer/video-upload";
 import { JobReviewPrompt } from "@/components/customer/job-review";
+import { BrokerRatingPrompt } from "@/components/customer/broker-rating";
+import { rateBrokerForClaim } from "./rating-actions";
 import { listClaimJobs, listClaimMessages, listServicePartners } from "@/server/claims";
 import { ORG_COLS, UUID_RE, account, signUrls, type OrgLite } from "../../_lib/data";
 import { PARTY_LABEL } from "../../_lib/labels";
@@ -295,6 +297,9 @@ async function ClaimDetail({ params, searchParams }: Pick<PageProps<"/account/cl
         </div>
 
         <aside className="space-y-5">
+          {isCustomer && claim.broker && ["paid", "closed"].includes(status) && (
+            <BrokerRatingPrompt supabase={supabase} subjectType="claim" subjectId={claim.id} brokerName={claim.broker.name} action={rateBrokerForClaim.bind(null, claim.id, claim.broker.id)} />
+          )}
           <Card className="p-5">
             <DefinitionList
               items={[

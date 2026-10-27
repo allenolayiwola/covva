@@ -14,7 +14,7 @@
  * for a limited time; on expiry the next N get the offer; after the last round the request
  * is held for platform operations. Pure functions only: no I/O, fully unit-testable.
  */
-import { routeRequest, type RoutingCandidate } from "./routing";
+import { routeRequest, type RoutingCandidate, type RoutingContext } from "./routing";
 
 export type RoutingMode = "insurer_direct" | "broker_pool" | "broker_fixed" | "ops_hold";
 export type RoutingRule = "customer_assignment" | "advice_or_complexity" | "insurer_direct" | "nominated_brokers" | "broker_pool" | "ops_hold";
@@ -74,6 +74,8 @@ export interface RoutingEngineInput {
   offerTimeoutMinutes?: number;
   offerBatchSize?: number;
   maxRounds?: number;
+  /** Scorecard factor (± points from the 90-day score); omitted or 0 = off. See RoutingContext. */
+  scorecardWeight?: number;
 }
 
 export interface ConsideredBroker {
@@ -158,7 +160,7 @@ export function complexityFlags(req: RoutingRequestInput, thresholds: Partial<Co
 // Decision
 // ---------------------------------------------------------------------------
 /** Ranks a pool of candidates with the existing scoring. Eligible brokers come first, best score first. */
-export function rankBrokers(candidates: EngineCandidate[], ctx: { region?: string; segment?: string }): ConsideredBroker[] {
+export function rankBrokers(candidates: EngineCandidate[], ctx: RoutingContext): ConsideredBroker[] {
   const decision = routeRequest(candidates, ctx);
   const names = new Map(candidates.map((c) => [c.brokerOrgId, c.brokerName]));
   const eligible = decision.considered
@@ -183,7 +185,7 @@ export function decideRouting(input: RoutingEngineInput): RoutingEngineDecision 
   const base = { offerTimeoutMinutes, offerBatchSize, maxRounds };
   const req = input.request;
   const flags = complexityFlags(req, input.thresholds);
-  const ctx = { region: req.region, segment: req.segment };
+  const ctx: RoutingContext = { region: req.region, segment: req.segment, scorecardWeight: input.scorecardWeight };
   const preferred = req.preferredInsurerOrgId ? input.integrations.find((i) => i.insurerOrgId === req.preferredInsurerOrgId && i.active) ?? null : null;
 
   // (a) Broker-sourced or chosen broker: the customer stays with that broker.
@@ -242,7 +244,7 @@ function positive(v: number | undefined, fallback: number): number {
 }
 
 /** Applies the appointment rule (insurer × line) before scoring. */
-function poolFor(brokers: EngineCandidate[], preferred: LineIntegration | null, ctx: { region?: string; segment?: string }): ConsideredBroker[] {
+function poolFor(brokers: EngineCandidate[], preferred: LineIntegration | null, ctx: RoutingContext): ConsideredBroker[] {
   const withAppointment = brokers.map((b) => {
     const appointed = preferred ? b.appointedInsurerOrgIds.includes(preferred.insurerOrgId) : b.appointedInsurerOrgIds.length > 0;
     // routeRequest treats insurerAccess === 0 as "No insurer appointments for this category".

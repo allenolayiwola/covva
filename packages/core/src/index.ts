@@ -44,4 +44,5 @@ export * from "./welfare";
 export * from "./property";
 export * from "./remittance";
 export * from "./policy-explainer";
+export * from "./scorecards";
 export * from "./privacy";

@@ -1,3 +1,5 @@
+import { scorecardRoutingAdjustment } from "./scorecards";
+
 /**
  * Broker routing (strategy doc §4): route by category, competence, insurer
  * access, location, capacity and service performance — never solely by the
@@ -15,6 +17,8 @@ export interface RoutingCandidate {
   insurerAccess: number;     // insurers appointed for this category
   licenceValid: boolean;     // NIC licence verified and unexpired
   slaBreachRate30d?: number; // 0–1
+  /** 90-day scorecard score 0–100; null/undefined = no history yet (neutral). */
+  scorecardScore?: number | null;
 }
 
 export interface RoutingDecision {
@@ -23,7 +27,18 @@ export interface RoutingDecision {
   considered: { brokerOrgId: string; eligible: boolean; why: string; score?: number }[];
 }
 
-export function routeRequest(candidates: RoutingCandidate[], ctx: { region?: string; segment?: string }): RoutingDecision {
+export interface RoutingContext {
+  region?: string;
+  segment?: string;
+  /**
+   * Scorecard factor (Phase 4): at most ± this many points from the broker's 90-day score
+   * (`platform_settings.routing.scorecard_weight`, default 10). Omitted or 0 = off. Brokers
+   * without a score are unaffected, so a new broker is never penalised.
+   */
+  scorecardWeight?: number;
+}
+
+export function routeRequest(candidates: RoutingCandidate[], ctx: RoutingContext): RoutingDecision {
   const considered: RoutingDecision["considered"] = [];
   const eligible: (RoutingCandidate & { score: number })[] = [];
 
@@ -40,7 +55,9 @@ export function routeRequest(candidates: RoutingCandidate[], ctx: { region?: str
       continue;
     }
     // Lower score is better: priority first, secondary brokers last, then service quality and load.
-    const score = c.priority + (c.isSecondary ? 1000 : 0) + Math.round((c.slaBreachRate30d ?? 0) * 50) + Math.min(c.openToday, 50) * 0.1 - Math.min(c.insurerAccess, 10);
+    // The scorecard factor is bounded (± weight) and explainable; it re-orders peers, never overrides priority.
+    const scorecard = scorecardRoutingAdjustment(c.scorecardScore, ctx.scorecardWeight ?? 0);
+    const score = c.priority + (c.isSecondary ? 1000 : 0) + Math.round((c.slaBreachRate30d ?? 0) * 50) + Math.min(c.openToday, 50) * 0.1 - Math.min(c.insurerAccess, 10) - scorecard;
     eligible.push({ ...c, score });
     considered.push({ brokerOrgId: c.brokerOrgId, eligible: true, why: c.isSecondary ? "Secondary broker" : "Primary broker", score });
   }

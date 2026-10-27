@@ -4,6 +4,7 @@ import { Check, MapPin } from "lucide-react";
 import { Pill, cn } from "@im/ui";
 import { OrgTile } from "../org-tile";
 import { displayOrgName } from "../org-name";
+import { ScoreSummary } from "@/components/score-summary";
 import { MAX_BROKERS, type FlowBroker } from "./model";
 
 /**
@@ -49,6 +50,7 @@ export function BrokerPicker({ brokers, selected, onToggle }: { brokers: FlowBro
                   </span>
                 </div>
                 <p id={`broker-${b.id}-desc`} className="text-[14px] leading-relaxed text-muted">{b.description ?? "Licensed insurance broker on Covva."}</p>
+                <ScoreSummary summary={b.score} compact />
                 <p className="mt-auto text-[13px] text-subtle">
                   NIC licence {licence}
                   {b.demo && <span className="ml-1 rounded-full bg-amber-bg px-1.5 py-0.5 font-medium text-amber">placeholder</span>}

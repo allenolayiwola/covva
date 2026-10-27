@@ -17,6 +17,8 @@ import { chargeDueSubscriptions } from "@/server/subscriptions";
 import { evaluateReferralRewards } from "@/server/referrals";
 import { collectDueInstalments } from "@/server/instalments";
 import { microRenewals } from "@/server/micro";
+import { refreshBrokerScorecards } from "@/server/scorecards";
+import { analyticsRollupJob } from "@/server/analytics";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -456,6 +458,10 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "business-invoices": async (svc) => (await import("@/server/business")).buildDueInvoices(svc),
   // Phase 3: monthly on the 2nd at 04:00 — last month's insurer statements, commission reports, platform revenue and tax report (CSV exports).
   "accounting-exports": async (svc) => (await import("@/server/accounting")).monthlyAccountingExports(svc),
+  // Phase 4: daily 01:40 — broker scorecards (30 / 90 day windows) from broker_scorecard_inputs → broker_scorecards (feeds routing + public summaries).
+  "scorecard-refresh": (svc) => refreshBrokerScorecards(svc),
+  // Phase 4: daily 01:50 — analytics.daily_facts for yesterday and today (idempotent per day; backfill from the admin analytics page).
+  "analytics-rollup": (svc) => analyticsRollupJob(svc),
   // Phase 4: daily 07:30 — welfare group contribution reminders (3 days before and 3 days after the due date) to members and their sponsors abroad.
   "welfare-reminders": async (svc) => (await import("@/server/welfare")).sendWelfareReminders(svc),
   // Act 843: daily 03:50 — expired data exports removed, then retention rules applied per data class (dry run until

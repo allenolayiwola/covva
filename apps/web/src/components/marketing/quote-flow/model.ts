@@ -22,6 +22,8 @@ export interface FlowBroker {
   logo_url: string | null;
   brand_color: string | null;
   demo: boolean;
+  /** Public scorecard summary (anonymised): average from 3+ approved reviews, review count, response band. */
+  score?: { ratingAvg: number | null; reviewCount: number; responseBand: "within_hour" | "same_day" | "next_day" | "slower" | null; scoreBand: "new" | "needs_attention" | "fair" | "good" | "excellent" } | null;
 }
 
 export type Value = string | string[];
