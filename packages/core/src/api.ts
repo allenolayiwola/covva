@@ -274,6 +274,21 @@ export const QuoteSummaryInput = z
   .refine((v) => !!v.quoteId !== !!v.productVersionId, { message: "Pass exactly one of quoteId or productVersionId" });
 export const BrokerCopilotInput = z.object({ requestId: uuid });
 
+/** POST /me/policies/{id}/explain — policy explainer (clause browser, cached summary, ask, broker hand-off). */
+const explainQuestion = z.string().trim().min(3, "Ask a question of at least a few words.").max(500, "Questions can be up to 500 characters.");
+export const PolicyExplainInput = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("clauses") }),
+  z.object({ action: z.literal("summary") }),
+  z.object({ action: z.literal("ask"), question: explainQuestion }),
+  z.object({
+    action: z.literal("handoff"),
+    question: explainQuestion,
+    clauseIds: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
+    logId: uuid.optional(),
+  }),
+]);
+export type PolicyExplainInput = z.infer<typeof PolicyExplainInput>;
+
 /** Partner API: insurer posts a claim status change. Only insurers decide claims. */
 export const PartnerClaimStatusInput = z.object({
   status: z.enum(["acknowledged", "under_assessment", "info_requested", "approved", "partially_approved", "rejected", "paid", "closed"]),

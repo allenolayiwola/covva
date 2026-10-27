@@ -174,7 +174,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [ ] Funeral cover and welfare groups: group admin, member enrolment, contribution collection, beneficiary records, claims support; linked to sponsors abroad.
 - [ ] Loyalty and rewards: no-claims rewards, bundle discounts, referral credits, renewal perks; per-insurer rules engine.
 - [ ] Motor telematics: consented phone-based driving score; safe-driver discounts at renewal where supported.
-- [ ] Policy explainer AI grounded in the customer's own wording and schedule, citing clauses, handing off advisory questions to the broker.
+- [x] Policy explainer AI grounded in the customer's own wording and schedule, citing clauses, handing off advisory questions to the broker. Grounding, clause ids, citation checks and advice heuristics are in `@im/core` `policy-explainer.ts`; the server is `server/ai/policy-explainer.ts`; the API is `POST /api/v1/me/policies/{id}/explain`; the UI is the "Explain my policy" panel on `/account/policies/[id]`. Cached summaries and the Q&A log are in migration `20261031100200_policy_explainer.sql` (not applied yet). It works without an AI key: clause browser, keyword matches and broker hand-off. Docs: `docs/POLICY_EXPLAINER.md`.
 - [ ] Insurer Level 3 adapters (one per insurer behind the common interface) as partners expose APIs.
 
 ### Marketing site (Addendum 5, brand correction applied) — runs alongside Phases 1–2
