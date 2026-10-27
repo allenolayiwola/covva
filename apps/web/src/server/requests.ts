@@ -253,6 +253,12 @@ export interface CreateRequestArgs {
    * PII) and is not validated against the category's personal-lines form.
    */
   business?: { orgId: string; title?: string; groupRisk?: boolean } | null;
+  /**
+   * Welfare groups (Phase 4, server/welfare.ts): the request is the group's cover request (`requests.welfare_group_id`;
+   * the DB guard requires the caller to be the group's admin). Always broker-routed; `risk` is the server-built
+   * group summary (counts and ages only, never member PII) and is not validated against the personal-lines form.
+   */
+  welfareGroup?: { id: string; title: string } | null;
 }
 
 export async function createRequest(
@@ -284,16 +290,16 @@ export async function createRequest(
     throw new BusinessRuleError(`${category.name} is not available yet. We only open a category when advice, underwriting and servicing can support it.`);
   }
 
-  const parsed = args.business?.groupRisk ? null : riskSchemaToZod(category.risk_schema as unknown as RiskField[]).safeParse(args.risk);
+  const parsed = args.business?.groupRisk || args.welfareGroup ? null : riskSchemaToZod(category.risk_schema as unknown as RiskField[]).safeParse(args.risk);
   if (parsed && !parsed.success) {
     throw new BusinessRuleError(parsed.error.issues.map((i) => i.message).join(" "), "invalid_input");
   }
   const risk = (parsed ? parsed.data : args.risk) as Record<string, unknown>;
-  const talkToExpert = (args.talkToExpert ?? false) || !!args.business;
+  const talkToExpert = (args.talkToExpert ?? false) || !!args.business || !!args.welfareGroup;
   const fingerprint = await riskFingerprint({ customerId: user.id, categorySlug: category.slug, risk });
 
   const submit = args.submit ?? true;
-  const needsReview = category.availability === "broker_assisted" || category.segment !== "personal" || !!args.business;
+  const needsReview = category.availability === "broker_assisted" || category.segment !== "personal" || !!args.business || !!args.welfareGroup;
 
   const { data: request, error } = await supabase
     .from("requests")
@@ -303,7 +309,7 @@ export async function createRequest(
       type: args.type ?? "new_cover",
       status: submit ? "submitted" : "draft",
       source: args.source ?? "web",
-      title: args.business?.title ?? riskTitle(category.slug, risk),
+      title: args.business?.title ?? args.welfareGroup?.title ?? riskTitle(category.slug, risk),
       risk_data: risk as Json,
       risk_fingerprint: fingerprint,
       related_policy_id: args.relatedPolicyId ?? null,
@@ -311,6 +317,7 @@ export async function createRequest(
       needs_adviser_review: needsReview,
       talk_to_expert: talkToExpert,
       business_org_id: args.business?.orgId ?? null,
+      welfare_group_id: args.welfareGroup?.id ?? null,
       beneficiary_id: args.beneficiaryId ?? null,
       sponsor_user_id: args.beneficiaryId ? user.id : null,
       next_step: submit ? "We are routing your request." : "Finish and submit your request when you're ready.",

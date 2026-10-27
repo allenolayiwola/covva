@@ -456,6 +456,8 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "business-invoices": async (svc) => (await import("@/server/business")).buildDueInvoices(svc),
   // Phase 3: monthly on the 2nd at 04:00 — last month's insurer statements, commission reports, platform revenue and tax report (CSV exports).
   "accounting-exports": async (svc) => (await import("@/server/accounting")).monthlyAccountingExports(svc),
+  // Phase 4: daily 07:30 — welfare group contribution reminders (3 days before and 3 days after the due date) to members and their sponsors abroad.
+  "welfare-reminders": async (svc) => (await import("@/server/welfare")).sendWelfareReminders(svc),
   // Act 843: daily 03:50 — expired data exports removed, then retention rules applied per data class (dry run until
   // platform_settings.privacy_retention.mode = "enforce"; ?dry_run=1 forces one). Logged in privacy_retention_runs.
   "privacy-retention": async (svc, opts) => (await import("@/server/privacy")).runPrivacyRetention(svc, { dryRun: opts?.dryRun }),

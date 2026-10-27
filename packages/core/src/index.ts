@@ -40,5 +40,8 @@ export * from "./sme";
 export * from "./endorsements";
 export * from "./accounting";
 export * from "./voice";
+export * from "./welfare";
+export * from "./property";
+export * from "./remittance";
 export * from "./policy-explainer";
 export * from "./privacy";

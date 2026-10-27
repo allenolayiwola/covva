@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Camera, FileText, Gift, HeartHandshake, LayoutGrid, LockKeyhole, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
+import { Building2, Camera, FileText, Gift, HeartHandshake, LayoutGrid, LockKeyhole, Megaphone, MessageSquare, ScrollText, Shield, User, Users, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@im/ui";
 import type { MessageKey } from "@im/core";
 import { useT } from "@/lib/i18n/client";
@@ -11,6 +11,7 @@ export const ACCOUNT_NAV: { href: string; label: string; k: MessageKey; icon: Lu
   { href: "/account", label: "Overview", k: "account.nav.overview", icon: LayoutGrid, mobile: "My cover", mobileKey: "account.nav.myCover" },
   { href: "/account/policies", label: "My policies", k: "account.nav.policies", icon: Shield },
   { href: "/account/family", label: "Family", k: "account.nav.family", icon: HeartHandshake },
+  { href: "/account/groups", label: "Groups", k: "account.nav.groups", icon: Users },
   { href: "/account/requests", label: "Requests", k: "account.nav.requests", icon: ScrollText, mobile: "Requests", mobileKey: "account.nav.requests" },
   { href: "/account/messages", label: "Messages", k: "account.nav.messages", icon: MessageSquare, mobile: "Messages", mobileKey: "account.nav.messages" },
   { href: "/account/documents", label: "Documents", k: "account.nav.documents", icon: FileText },

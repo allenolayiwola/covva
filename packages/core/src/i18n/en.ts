@@ -149,6 +149,7 @@ export const en = {
   "account.nav.complaints": "Complaints",
   "account.nav.payments": "Payments",
   "account.nav.business": "Business",
+  "account.nav.groups": "Groups",
   "account.nav.referrals": "Refer a friend",
   "account.nav.privacy": "Privacy & data",
   "account.nav.profile": "Profile",
