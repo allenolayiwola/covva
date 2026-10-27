@@ -11,9 +11,13 @@ import { getFlags, getSetting } from "@/lib/catalog";
 import { Breadcrumbs } from "@/components/customer/breadcrumbs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { ORG_COLS, UUID_RE, account, getRequestOr404, requestTime, type OrgLite } from "../../../../_lib/data";
-import { BankTransferPanel, DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting, type BankTransferDetail } from "./checkout-steps";
+import { BankTransferPanel, DeclarationsStep, DisclosureStep, PaymentStep, PaymentWaiting, type BankTransferDetail, type CheckoutCurrency } from "./checkout-steps";
 import { declarationsFor } from "./declarations";
 import { feeBreakdownForQuoteId } from "@/server/commercial";
+import { fxSettings, getRates } from "@/server/fx";
+import { applePayEnabled } from "@/server/env";
+import { SUPPORTED_DISPLAY_CURRENCIES, fxMargin, parseDisplayCurrency, parseInstalmentPlans } from "@im/core";
+import { T } from "@/lib/i18n/client";
 
 export const metadata: Metadata = { title: "Apply" };
 
@@ -32,7 +36,7 @@ function Stepper({ current }: { current: number }) {
     <ol className="mb-8 grid grid-cols-4 gap-2" aria-label="Checkout progress">
       {STEPS.map((s, i) => (
         <li key={s} aria-current={i === current ? "step" : undefined}>
-          <span className={cn("block h-1.5 rounded-full", i <= current ? "bg-brand" : "bg-line")} />
+          <span className={cn("block h-2 rounded-full", i <= current ? "bg-brand" : "bg-mint")} />
           <span className={cn("mt-2 flex items-center gap-1 text-xs font-medium sm:text-sm", i === current ? "text-ink" : i < current ? "text-brand" : "text-subtle")}>
             {i < current && <Check aria-hidden className="size-3.5" />}
             {s}
@@ -126,6 +130,17 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
   } else if (waitingPaymentId || (payment && ["pending", "processing"].includes(payment.status) && !payment.authorization_url)) {
     body = <PaymentWaiting paymentId={waitingPaymentId ?? payment!.id} requestId={id} retryHref={`/account/requests/${id}/apply/${quoteId}?retry=1`} />;
   } else {
+    // Diaspora: display currencies (indicative rates after the platform margin) and the sponsor option.
+    const [rates, fxConf] = await Promise.all([getRates(), fxSettings()]);
+    const currencies: CheckoutCurrency[] = SUPPORTED_DISPLAY_CURRENCIES.flatMap((code) => {
+      const r = rates[code];
+      return r ? [{ code, rate: code === "GHS" ? 1 : fxMargin(r.rate, fxConf.marginPct), source: r.source, quotedAt: r.fetchedAt, manual: r.manual }] : [];
+    });
+    const prof = (profile ?? {}) as { preferred_currency?: string | null; is_sponsor?: boolean | null };
+    const defaultCurrency = parseDisplayCurrency(prof.preferred_currency) ?? "GHS";
+    const insurerSettings = (quote.insurer?.settings ?? {}) as { instalments_allowed?: boolean };
+    // Phase 3: the insurer's instalment plans on this product version (not for monthly-priced or micro quotes).
+    const { data: versionPlans } = quote.product_version_id && quote.billing_period === "year" ? await supabase.from("product_versions").select("instalment_plans").eq("id", quote.product_version_id).maybeSingle() : { data: null };
     body = (
       <>
         {payment && ["pending", "processing"].includes(payment.status) && payment.authorization_url && !sp.retry && (
@@ -141,6 +156,12 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           insurer={insurerName}
           defaultPhone={profile?.phone ?? ""}
           failure={failure}
+          currencies={currencies}
+          defaultCurrency={defaultCurrency}
+          marginPct={fxConf.marginPct}
+          applePay={applePayEnabled()}
+          sponsor={{ offered: prof.is_sponsor !== false, billingPeriod: quote.billing_period, instalmentsAllowed: insurerSettings.instalments_allowed === true }}
+          instalmentPlans={parseInstalmentPlans(versionPlans?.instalment_plans)}
         />
       </>
     );
@@ -156,7 +177,8 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
           { label: "Apply" },
         ]}
       />
-      <h1 className="mb-6 text-[30px] font-bold leading-tight tracking-tight text-ink sm:text-[36px]">Apply for {insurerName}</h1>
+      <h1 className="mb-2 text-h3 text-ink"><T k="checkout.applyFor" vars={{ insurer: insurerName }} /></h1>
+      <p className="mb-6 text-sm text-muted">Step {step + 1} of {STEPS.length} · A quote request is not cover. Payment does not make cover active until the insurer accepts.</p>
       <Stepper current={step} />
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">{body}</div>
@@ -167,7 +189,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
               <StatusPill meta={QUOTE_STATUS[quote.status]} />
             </div>
             <p className="mt-1 text-sm text-muted">{request.category?.name} · {request.title}</p>
-            <p className="mt-3 text-[28px] font-bold leading-none text-ink">
+            <p className="mt-3 text-[28px] font-semibold leading-none text-ink">
               {formatGHS(Number(quote.premium))} <span className="text-sm font-normal text-muted">/ {quote.billing_period === "month" ? "month" : "year"}</span>
             </p>
             <DefinitionList

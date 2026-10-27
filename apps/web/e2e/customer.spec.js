@@ -4,6 +4,7 @@ import { ACCOUNTS, PASSWORD, STATE, TAG } from "./support/env.js";
 test.describe("customer sign-in", () => {
   test("wrong password shows a friendly error and keeps you on the sign-in page", async ({ page }) => {
     await page.goto("/sign-in", { waitUntil: "networkidle" }); // settle hydration before typing
+    await page.getByRole("button", { name: "Use a password instead" }).click();
     await page.getByLabel("Email address").fill(ACCOUNTS.customer);
     await page.getByLabel("Password").fill("definitely-not-the-password");
     await page.getByRole("button", { name: "Sign in" }).click();
@@ -14,11 +15,12 @@ test.describe("customer sign-in", () => {
   test("protected pages redirect anonymous visitors to sign-in with a next param", async ({ page }) => {
     await page.goto("/account/policies");
     await expect(page).toHaveURL(/\/sign-in\?next=%2Faccount%2Fpolicies/);
-    await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   });
 
   test("signing in with the password lands on the dashboard", async ({ page }) => {
     await page.goto("/sign-in", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Use a password instead" }).click();
     await page.getByLabel("Email address").fill(ACCOUNTS.customer);
     await page.getByLabel("Password").fill(PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
@@ -133,6 +135,14 @@ test.describe("customer account", () => {
     const empty = page.getByText("No claims");
     await expect(rows.first().or(empty)).toBeVisible();
     await expect(page.getByText(/insurer (assesses|decides)/i).first()).toBeVisible();
+    // Claim detail: the journey with expected times, the thread and the files list (Phase 2 claims completion).
+    if (await rows.first().isVisible().catch(() => false)) {
+      await rows.first().click();
+      await page.waitForURL(/\/account\/claims\/[0-9a-f-]{36}/);
+      await expect(page.getByRole("heading", { level: 2, name: "Timeline" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: "Messages" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 2, name: /Files you/ })).toBeVisible();
+    }
   });
 
   test("profile: change the preferred name and revert it", async ({ page }) => {
@@ -157,5 +167,17 @@ test.describe("customer account", () => {
     }
     await page.reload();
     await expect(page.getByLabel(/What should we call you/)).toHaveValue(original);
+  });
+});
+
+test.describe("customer referrals", () => {
+  test.use({ storageState: STATE.customer });
+
+  test("/account/referrals renders the link card, friends and honest credit copy", async ({ page }) => {
+    await page.goto("/account/referrals");
+    await expect(page.getByRole("heading", { level: 1, name: "Refer a friend" })).toBeVisible();
+    await expect(page.getByTestId("referrals-page")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Your link" })).toBeVisible();
+    await expect(page.getByText(/Credits are not cash/)).toBeVisible();
   });
 });

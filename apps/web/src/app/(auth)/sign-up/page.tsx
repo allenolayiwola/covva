@@ -5,7 +5,7 @@ import { Card } from "@im/ui";
 import { safeNext } from "@/components/customer/utils";
 import { SignUpForm } from "./sign-up-form";
 
-export const metadata: Metadata = { title: "Create an account", robots: { index: false } };
+export const metadata: Metadata = { title: "Create your account", robots: { index: false } };
 
 export default function SignUpPage({ searchParams }: PageProps<"/sign-up">) {
   return (

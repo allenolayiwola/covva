@@ -8,6 +8,8 @@ import type { Json } from "@im/db";
 import { getSetting } from "@/lib/catalog";
 import { notifyOrg } from "@/server/notify";
 import { initiatePayment } from "@/server/payments";
+import { createScheduleForApplication } from "@/server/instalments";
+import { BusinessRuleError } from "@/server/requests";
 import { emitEvent } from "@/server/webhooks";
 import { normaliseGhanaPhone, type ActionState } from "@/components/customer/utils";
 import { SIGNED_OUT, actionContext, dbError } from "../../../../_lib/action";
@@ -154,6 +156,12 @@ const PayInput = z
     applicationId: uuid,
     method: z.enum(["mtn", "vod", "atl", "card", "bank_transfer"], { error: "Choose how you'd like to pay" }),
     phone: z.string().optional(),
+    /** Diaspora: display currency (indicative; the insurer is paid in GHS) and the sponsor plan. */
+    currency: z.enum(["GHS", "GBP", "USD", "EUR", "CAD"]).optional(),
+    sponsor: z.enum(["", "monthly", "annual"]).optional(),
+    save_card: z.string().optional(),
+    /** Phase 3: pay in instalments under one of the insurer's plans (MoMo or card, GHS). */
+    instalment_plan: z.enum(["", "monthly", "quarterly"]).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.method !== "card" && v.method !== "bank_transfer" && !normaliseGhanaPhone(v.phone)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter the mobile money number to charge, e.g. 024 123 4567" });
@@ -187,15 +195,30 @@ export async function startPayment(_prev: ActionState, formData: FormData): Prom
 
   let result: Awaited<ReturnType<typeof initiatePayment>>;
   try {
-    result = await initiatePayment({
+    if (v.instalment_plan && v.method !== "bank_transfer" && !v.sponsor && (v.currency ?? "GHS") === "GHS") {
+      const r = await createScheduleForApplication({
+        applicationId: app.id,
+        planKey: v.instalment_plan,
+        channel: v.method === "card" ? "card" : "mobile_money",
+        momo: v.method === "card" ? undefined : { phone: normaliseGhanaPhone(v.phone)!, provider: v.method },
+        userId: user.id,
+        callbackUrl: `${await origin()}/account/requests/${v.requestId}/confirmation`,
+        saveMethod: true,
+      });
+      result = r.payment;
+    } else result = await initiatePayment({
       applicationId: app.id,
       channel: v.method === "card" ? "card" : v.method === "bank_transfer" ? "bank_transfer" : "mobile_money",
       momo: v.method === "card" || v.method === "bank_transfer" ? undefined : { phone: normaliseGhanaPhone(v.phone)!, provider: v.method },
       callbackUrl: `${await origin()}/account/requests/${v.requestId}/confirmation`,
+      displayCurrency: v.currency ?? "GHS",
+      saveMethod: v.save_card === "on",
+      sponsorSubscription: v.sponsor ? { cadence: v.sponsor } : null,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
     console.error("initiatePayment failed", err);
+    if (err instanceof BusinessRuleError) return { ok: false, error: err.message };
     if (/not implemented/i.test(msg)) {
       return {
         ok: false,

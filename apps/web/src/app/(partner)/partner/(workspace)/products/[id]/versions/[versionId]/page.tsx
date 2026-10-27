@@ -8,6 +8,7 @@ import { PageSkeleton, Section, TitleSkeleton } from "@/components/partner/ui";
 import { VersionHeader } from "@/components/partner/version-nav";
 import { loadVersionPage, requestTime } from "../../../_lib";
 import { schedulePriceChange, setIssuance, submitForCompliance } from "../../../catalogue-actions";
+import { VersionPlansForm } from "@/components/partner/version-plans-form";
 
 export const metadata: Metadata = { title: "Product version" };
 
@@ -73,6 +74,10 @@ async function Version({ params }: { params: Promise<{ id: string; versionId: st
           ) : (
             <p className="text-sm text-ink">{ISSUANCE_LABEL[version.issuance_type]}{version.sla_hours ? ` · ${version.sla_hours} hours` : ""}</p>
           )}
+        </Section>
+
+        <Section title="Periods, instalments and micro cover" description="Short policy periods, your instalment plans (grace, lapse and reinstatement rules) and who a micro product is for. NIC approval of short-period and instalment terms is your responsibility.">
+          <VersionPlansForm version={version} editable={editable} />
         </Section>
 
         <Section title="Compliance review" description="Draft → Submitted → Covva compliance review → Published. Covva can return a submission with comments.">

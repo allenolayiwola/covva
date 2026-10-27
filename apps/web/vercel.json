@@ -14,6 +14,13 @@
     { "path": "/api/cron/licence-status", "schedule": "30 2 * * *" },
     { "path": "/api/cron/onboarding-notifications", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/issuance-retry", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/crm-reminders", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/crm-reminders", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/fx-rates", "schedule": "20 * * * *" },
+    { "path": "/api/cron/sponsor-collections", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/referral-rewards", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/instalment-collections", "schedule": "30 6,18 * * *" },
+    { "path": "/api/cron/micro-renewals", "schedule": "40 * * * *" },
+    { "path": "/api/cron/business-invoices", "schedule": "0 5 1 * *" },
+    { "path": "/api/cron/accounting-exports", "schedule": "0 4 2 * *" }
   ]
 }

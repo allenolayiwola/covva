@@ -64,7 +64,7 @@ export default async function ClaimsPage() {
               <li className="flex gap-2"><span aria-hidden className="font-semibold text-brand">193</span> Ambulance</li>
             </ul>
             <p className="mt-4 text-[13px] leading-relaxed text-muted">Travelling abroad? Call the 24-hour assistance line printed on your travel certificate before you get treatment.</p>
-            <p className="mt-4 text-[13px] text-muted">Questions: <a href={`mailto:${brand.supportEmail}`} className="font-medium text-brand hover:underline">{brand.supportEmail}</a></p>
+            <p className="mt-4 text-[13px] text-muted">Questions: <a href={`mailto:${brand.supportEmail}`} className="-my-1 inline-block py-1 font-medium text-brand hover:underline">{brand.supportEmail}</a></p>
           </div>
         }
       />
@@ -112,7 +112,7 @@ export default async function ClaimsPage() {
           <FeatureCard icon={<Hospital />} title="Hospital networks">Health plans pay the hospital directly: show your digital membership card at a network hospital. The network list will be searchable in the app and on this page.</FeatureCard>
           <FeatureCard icon={<PhoneCall />} title="Roadside and assistance">Towing, roadside help and 24-hour travel assistance lines, where your policy includes them, one tap from your wallet.</FeatureCard>
         </div>
-        <p className="mt-6 text-[14px] text-muted">Network directories are published as each insurer confirms them. Until then, your broker tells you where to go when you report a claim.</p>
+        <p className="mt-6 text-[14px] text-muted">Network directories are published as each insurer confirms them — <Link href="/claims/network" className={textLinkClass}>browse the approved partner network by region</Link>. Until a partner is listed near you, your broker tells you where to go when you report a claim.</p>
       </Section>
 
       <Section tone="mist" labelledBy="app-claims-title">

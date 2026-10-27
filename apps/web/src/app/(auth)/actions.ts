@@ -2,8 +2,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { currencyForCountry, isSponsorCountry, timezoneForCountry } from "@im/core";
 import { createClient } from "@/lib/supabase/server";
 import { normaliseGhanaPhone, safeNext, type ActionState } from "@/components/customer/utils";
+import { siteUrl } from "@/lib/site-url";
 
 async function siteOrigin() {
   const h = await headers();
@@ -11,7 +13,7 @@ async function siteOrigin() {
   if (origin && /^https?:\/\//.test(origin)) return origin;
   const host = h.get("x-forwarded-host") ?? h.get("host");
   if (host) return `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return siteUrl();
 }
 
 function authMessage(err: { message?: string; code?: string; status?: number } | null, fallback: string) {
@@ -118,6 +120,8 @@ const SignUp = z
     password: z.string().min(8, "Use at least 8 characters").max(72),
     account_type: z.enum(["individual", "business"]),
     business_name: z.string().trim().max(160).optional(),
+    /** Diaspora: country of residence (ISO-2, default Ghana). Anything other than GH marks a sponsor. */
+    country_code: z.string().trim().regex(/^[A-Za-z]{2}$/).optional().transform((v) => (v ?? "GH").toUpperCase()),
     next: z.string().optional(),
   })
   .refine((v) => v.account_type === "individual" || (v.business_name?.length ?? 0) >= 2, {
@@ -148,6 +152,10 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
         phone,
         account_type: v.account_type,
         business_name: v.account_type === "business" ? v.business_name : null,
+        country_code: v.country_code,
+        preferred_currency: currencyForCountry(v.country_code),
+        timezone: timezoneForCountry(v.country_code),
+        is_sponsor: isSponsorCountry(v.country_code),
       },
     },
   });

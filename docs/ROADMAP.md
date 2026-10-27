@@ -140,30 +140,30 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 ### Phase 2 — Claims, diaspora core, WhatsApp
 **Claims**
 - [x] In-app claim with photos, location, police report; routed to broker/insurer; status timeline; insurer-only decisions.
-- [ ] Video upload; in-claim messaging thread; notifications at every stage (exists for status changes; add info requests and documents).
-- [ ] Fraud checks: duplicate-claim detection, identity mismatch flags.
-- [ ] Claims page on the marketing site (steps, timelines, partner network link).
+- [x] Video upload (≤ 90 s); in-claim messaging thread with internal partner notes; information requests the customer fulfils; notifications at every stage (report, messages, info requests, evidence, jobs); customer timeline with expected times.
+- [x] Fraud checks: duplicate claim, document reuse, identity mismatch, policy inactive at incident, late report, repeat claimant — `claim_fraud_flags` + `run_claim_fraud_checks`, insurer/staff review (web claims desk, admin `/claims/fraud`).
+- [x] Claims page on the marketing site (steps, timelines) plus a public partner network directory at `/claims/network` (approved garages, towing, hospitals; direct-billing insurers).
 
 **Diaspora core (priority)**
-- [ ] Sponsor accounts (country, currency); beneficiaries (parents, siblings, children) with consent captured by SMS/WhatsApp OTP from the beneficiary in Ghana; `sponsorships` linking payer ↔ policy ↔ beneficiary.
-- [ ] Multi-currency checkout (GBP, USD, EUR, CAD) with transparent FX to GHS; settlement still to broker/insurer in GHS.
-- [ ] Family dashboard (web + mobile): policies paid for, renewals, payment schedule, claims.
-- [ ] Dual notifications (sponsor + beneficiary) for reminders, documents, claims.
-- [ ] Recurring sponsor payments (monthly subscription covering premiums).
-- [ ] Gift a policy with a personal message; claims by proxy with beneficiary consent.
-- [ ] Diaspora page on the marketing site with currency switcher and stories.
+- [x] Sponsor accounts (country, currency, timezone at sign-up/profile); beneficiaries with consent captured by SMS/WhatsApp OTP or a signed `/consent/<token>` link (5-attempt lock); `sponsorships` linking payer ↔ policy ↔ beneficiary; auto-link when the beneficiary signs up with the same phone.
+- [x] Multi-currency checkout (GBP, USD, EUR, CAD) with transparent FX disclosure; the contract and settlement stay in GHS to the insurer. FX rates are manual until a provider key is set; the Stripe path is off pending legal review.
+- [x] Family dashboard (web `/account/family` + `/api/v1/family/*`): members and consent, policies paid for, renewals, payment schedule, claims.
+- [x] Dual notifications (sponsor + beneficiary) for issuance, renewal reminders and claims (`notifyPolicyParties`); unrevealed gifts stay silent.
+- [x] Recurring sponsor payments (monthly/quarterly/annual) on a saved card with retries, past-due handling and grace days (`sponsor-collections` cron).
+- [x] Gift a policy with a personal message and reveal page; claims by proxy with the beneficiary's `proxy_claims` consent.
+- [x] Diaspora page on the marketing site with currency switcher and stories; Parents' Care Pack bundle page; property cover with photo updates and partner inspections.
 
 **WhatsApp**
-- [ ] WhatsApp Business channel: notifications (renewals, documents, claims), quote links, payment links; one-tap broker accept; chat button on every page with AI FAQ handoff to a human/broker.
+- [x] WhatsApp Business channel: notifications (renewals, documents, claims), quote links, payment links; one-tap broker accept; chat button on every page with AI FAQ handoff to a human/broker (`wa_*` tables, `server/whatsapp/*`, admin `/whatsapp`, partner `/partner/whatsapp`, `/api/webhooks/whatsapp`, `/api/ai/faq`; Twi/Ga/Ewe replies still to come).
 
 ### Phase 3 — Instalments, USSD, embedded partners, SME
 - [ ] Instalment premiums (monthly/quarterly): schedules, automated MoMo collections, retries, grace periods, lapse/reinstatement per insurer rules; ledger entries.
-- [ ] USSD flow: basic quote, renew, pay (aggregator-dependent).
+- [x] USSD flow: basic quote, renew, pay (aggregator-dependent) — provider-agnostic engine (`server/ussd/*`, Africa's Talking / Hubtel / Arkesel adapters, `/api/ussd/{provider}`), quote / renew / pay instalment / check policy / claim callback / talk to us, ≤ 160-char screens; admin `/ussd` simulator + session log. Go-live needs an aggregator account and the NCA short code.
 - [ ] Embedded distribution: partner API + embeddable quote widget; partner portal with referral tracking and revenue share; customer referral programme and page.
 - [ ] SME & group: business accounts with multiple users, bulk member/vehicle upload, group health/life, fleet, property, liability; centralised billing; business admin dashboard.
 - [ ] Micro and on-demand insurance: daily/weekly/monthly periods, pay-as-you-go premiums (product model + rating + instalment engine).
-- [ ] Local language UI (English, Twi, Ga, Ewe) with a translation layer; language switcher on the site; voice-note capture with transcription for quote help and claims.
-- [ ] Post-claim partner network: garages, towing, clinics; direct billing where agreed; partner onboarding, ratings, job tracking.
+- [~] Local language UI (English, Twi, Ga, Ewe) with a translation layer; language switcher on the site; voice-note capture with transcription for quote help and claims — layer (`@im/core` i18n, `translations` table, admin `/translations`, `GET /api/v1/i18n/{locale}`), header switcher and voice notes done; Twi/Ga/Ewe strings still need human translators (nothing is machine-translated).
+- [~] Post-claim partner network: directory (`service_partners`, admin CRUD + approval, public `/claims/network`), direct billing per insurer, job tracking (`claim_jobs`) — done; partner self-onboarding and ratings pending.
 - [ ] Endorsement workflows (change vehicle, add driver) as structured flows.
 - [ ] Accounting exports: statements per insurer, commission reports, VAT/levy handling.
 
@@ -184,7 +184,9 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] Diaspora page; Business/SME page refresh; Claims page; Verify-a-policy page (+ public verify API); Embedded-partner page; Learn hub (English now, Twi/Ga/Ewe switcher shows "coming soon"); referral page; waitlist + "launch partner" forms; press kit.
 - [x] Renewal-reminder sign-up (pre-purchase lead capture); WhatsApp button (env-gated); language and currency switchers.
 - [ ] Headless CMS (pages, articles, FAQs, testimonials, partner logos) — proposal: Sanity or Payload; decision needed.
-- [~] Act 843 consent banner + consent-gated GA4 done; Meta/TikTok pixels, A/B testing hooks and a Lighthouse run still to do.
+- [x] Act 843 consent banner with separate analytics / marketing choices and "change your choices" on the cookie notice; consent-gated GA4 (Consent Mode v2), Meta and TikTok pixels (`NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_TIKTOK_PIXEL_ID`); conversion events (`quote_start`, `generate_lead`, `app_store_click`, `whatsapp_click`) through one `track()` helper. (`components/marketing/analytics.ts`, docs: `docs/MARKETING_SITE.md`.)
+- [x] A/B testing hooks: experiment registry, sticky `covva_exp` assignment, `NEXT_PUBLIC_EXPERIMENTS` switch, `?exp=` QA override, exposure events; first experiment `home_hero_headline` registered (off by default). (`components/marketing/experiments.ts`, `experiment.tsx`.)
+- [x] Lighthouse run on the production build (mobile): results and follow-ups in `docs/MARKETING_SITE.md`.
 - [ ] Imagery: real Ghanaian photography + custom "how it works" illustrations (assets needed from you).
 
 ### Cross-cutting (every phase)

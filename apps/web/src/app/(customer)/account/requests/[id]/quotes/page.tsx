@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Info } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import {
   LABELS,
   QUOTE_STATUS,
@@ -25,6 +25,7 @@ import { RealtimeRefresh } from "@/components/customer/realtime-refresh";
 import { ORG_COLS, account, getRequestOr404, requestTime, type OrgLite } from "../../../_lib/data";
 import { NotifyButton } from "./notify-button";
 import { ShareQuotes } from "./share-quotes";
+import { CompareDialog } from "./compare-dialog";
 
 export const metadata: Metadata = { title: "Compare quotes" };
 
@@ -218,7 +219,7 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
       />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-[30px] font-bold leading-tight tracking-tight text-ink sm:text-[44px]">Compare the cover, not just the price.</h1>
+          <h1 className="text-h2 text-ink">Compare the cover, not just the price.</h1>
           <p className="mt-2 text-[15px] text-muted">
             {[coverType ? `${coverType} ${request.category?.name.toLowerCase()}` : request.category?.name, "12 months", vehicle, `${rows.length} broker-prepared quote${rows.length === 1 ? "" : "s"}`]
               .filter(Boolean)
@@ -233,14 +234,14 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
         </div>
         {rows.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
-            <nav aria-label="Sort quotes" className="inline-flex rounded-xl bg-mist p-1">
+            <nav aria-label="Sort quotes" className="inline-flex rounded-full bg-mist p-1">
               {(["price", "cover", "excess"] as SortKey[]).map((k) => (
                 <Link
                   key={k}
                   href={sortHref(k)}
                   scroll={false}
                   aria-current={sort === k ? "true" : undefined}
-                  className={cn("rounded-lg px-3.5 py-1.5 text-sm font-medium", sort === k ? "bg-white text-brand-deep shadow-card" : "text-muted hover:text-ink")}
+                  className={cn("rounded-full px-3.5 py-1.5 text-sm font-medium", sort === k ? "bg-white text-brand-deep shadow-card" : "text-muted hover:text-ink")}
                 >
                   {humanize(k)}
                 </Link>
@@ -272,90 +273,106 @@ async function Compare({ params, searchParams }: Pick<PageProps<"/account/reques
             </Notice>
           )}
 
-          {/* Desktop: side-by-side table (web-compare.jpg) */}
-          <div className="mt-8 hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-[15px]">
-              <caption className="sr-only">Quotes compared side by side</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="w-48 align-bottom pb-4 pr-4 text-sm font-normal text-muted">
-                    Participating insurers
-                    <span className="block font-semibold text-ink">{respondedInsurers} responded</span>
-                  </th>
-                  {ordered.map((s) => {
-                    const q = byId.get(s.quote.id)!;
-                    const rec = s.labels.includes("recommended");
-                    return (
-                      <th key={q.id} scope="col" className={cn("px-5 pb-4 pt-5 align-top font-normal", rec && "rounded-t-card bg-mist")}>
-                        <InsurerHead q={q} s={s} demo={showDemo} />
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {tableRows.map((r) => (
-                  <tr key={r.key}>
-                    <th scope="row" className="border-t border-line py-3.5 pr-4 align-top text-sm font-normal text-muted">{r.label}</th>
-                    {ordered.map((s) => {
-                      const q = byId.get(s.quote.id)!;
-                      return (
-                        <td key={q.id} className={cn("border-t border-line px-5 py-3.5 align-top text-ink", s.labels.includes("recommended") && "bg-mist")}>
-                          {r.cell(q, s)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-                <tr>
-                  <td />
-                  {ordered.map((s) => (
-                    <td key={s.quote.id} className={cn("px-5 pb-5 pt-4", s.labels.includes("recommended") && "rounded-b-card bg-mist")}>
-                      {action(s)}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: stacked cards (mobile-compare-quotes.jpg) */}
-          <ul className="mt-6 space-y-4 lg:hidden">
+          {/* Results (mockup 05): quote cards — insurer, via broker, price, limit, excess, a key exclusion, Recommended */}
+          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Quotes">
             {ordered.map((s) => {
               const q = byId.get(s.quote.id)!;
+              const rec = s.labels.includes("recommended");
+              const demoOrg = !!(q.insurer?.settings as { demo?: boolean } | null)?.demo;
               return (
                 <li key={q.id}>
-                  <Card className={cn("p-5", s.labels.includes("recommended") && "border-brand")}>
-                    <InsurerHead q={q} s={s} demo={showDemo} compact />
-                    <dl className="mt-3 divide-y divide-line text-sm">
-                      {tableRows
-                        .filter((r) => ["limit", "excess", "exclusion", "waiting", "valid"].includes(r.key))
-                        .map((r) => (
-                          <div key={r.key} className="flex justify-between gap-4 py-2.5">
-                            <dt className="text-muted">{r.label}</dt>
-                            <dd className="text-right font-medium text-ink">{r.cell(q, s)}</dd>
-                          </div>
-                        ))}
+                  <Card className={cn("flex h-full flex-col p-5 sm:p-6", rec && "border-brand ring-1 ring-brand")}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span aria-hidden className="grid h-10 min-w-10 place-items-center rounded-xl px-2 text-sm font-bold text-white" style={{ background: q.insurer?.brand_color ?? "#486068" }}>
+                          {(q.insurer?.name ?? "?").replace(/\(.*\)/, "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}
+                        </span>
+                        <div>
+                          <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
+                            {q.insurer?.name ?? "Insurer"}
+                            {showDemo && demoOrg && <Pill tone="wait">DEMO</Pill>}
+                          </p>
+                          <p className="text-[13px] text-muted">via {request.broker?.name ?? "your broker"}</p>
+                        </div>
+                      </div>
+                      {rec && <Pill tone="ok" className="bg-brand text-white">Recommended</Pill>}
+                    </div>
+                    <p className="mt-4 text-[32px] font-semibold leading-none tracking-tight text-ink">
+                      {formatGHS(Number(q.premium))} <span className="text-sm font-normal text-muted">/ {q.billing_period === "month" ? "month" : "year"}</span>
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <StatusPill meta={QUOTE_STATUS[q.status as QuoteStatus]} />
+                      {s.labels.filter((l) => l !== "recommended").slice(0, 1).map((l) => (
+                        <Pill key={l} tone="ok">{LABELS[l]}</Pill>
+                      ))}
+                    </div>
+                    <dl className="mt-4 divide-y divide-line border-y border-line text-sm">
+                      <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">{isMotor ? "Vehicle cover limit" : "Cover limit"}</dt><dd className="text-right font-medium text-ink">{coverLimit(q)}</dd></div>
+                      <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">{isMotor ? "Own-damage excess" : "Main excess"}</dt><dd className="text-right font-medium text-ink">{q.excess != null ? formatGHS(Number(q.excess)) : "None"}</dd></div>
+                      <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">Key exclusion</dt><dd className="text-right font-medium text-ink">{q.key_exclusion ?? "—"}</dd></div>
                     </dl>
-                    <details className="mt-1 text-sm">
-                      <summary className="cursor-pointer py-2 font-medium text-brand">Full cover details</summary>
-                      <dl className="divide-y divide-line">
-                        {tableRows
-                          .filter((r) => !["limit", "excess", "exclusion", "waiting", "valid"].includes(r.key))
-                          .map((r) => (
-                            <div key={r.key} className="flex justify-between gap-4 py-2.5">
-                              <dt className="text-muted">{r.label}</dt>
-                              <dd className="text-right text-ink">{r.cell(q, s)}</dd>
-                            </div>
-                          ))}
-                      </dl>
-                    </details>
-                    <div className="mt-3">{action(s)}</div>
+                    <div className="mt-auto space-y-2 pt-5">
+                      {action(s)}
+                      <Link href={`/account/requests/${id}/quotes/${q.id}`} className={buttonClass("ghost", "md", "w-full")}>
+                        Cover, exclusions and conditions <ArrowRight aria-hidden className="size-4" />
+                      </Link>
+                    </div>
                   </Card>
                 </li>
               );
             })}
           </ul>
+
+          {rows.length > 1 && (
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <CompareDialog count={rows.length}>
+                <table className="w-full min-w-[640px] border-separate border-spacing-0 text-left text-[15px]">
+                  <caption className="sr-only">Quotes compared side by side</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="w-48 align-bottom pb-4 pr-4 text-sm font-normal text-muted">
+                        Participating insurers
+                        <span className="block font-semibold text-ink">{respondedInsurers} responded</span>
+                      </th>
+                      {ordered.map((s) => {
+                        const q = byId.get(s.quote.id)!;
+                        const rec = s.labels.includes("recommended");
+                        return (
+                          <th key={q.id} scope="col" className={cn("px-5 pb-4 pt-5 align-top font-normal", rec && "rounded-t-card bg-mist")}>
+                            <InsurerHead q={q} s={s} demo={showDemo} />
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((r) => (
+                      <tr key={r.key}>
+                        <th scope="row" className="border-t border-line py-3.5 pr-4 align-top text-sm font-normal text-muted">{r.label}</th>
+                        {ordered.map((s) => {
+                          const q = byId.get(s.quote.id)!;
+                          return (
+                            <td key={q.id} className={cn("border-t border-line px-5 py-3.5 align-top text-ink", s.labels.includes("recommended") && "bg-mist")}>
+                              {r.cell(q, s)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    <tr>
+                      <td />
+                      {ordered.map((s) => (
+                        <td key={s.quote.id} className={cn("px-5 pb-5 pt-4", s.labels.includes("recommended") && "rounded-b-card bg-mist")}>
+                          {action(s)}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </CompareDialog>
+              <p className="text-sm text-muted">A quote request is not cover. Payment does not make cover active until the insurer accepts.</p>
+            </div>
+          )}
 
           <p className="mt-4 text-sm text-muted">Fictional terms. Full policy wording applies. Your broker confirms eligibility and the final quote.</p>
 

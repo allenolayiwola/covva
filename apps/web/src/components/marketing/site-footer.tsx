@@ -7,50 +7,53 @@ import { REGULATION } from "./content";
 import { StoreBadges } from "./store-badges";
 import { PaymentBadges } from "./payment-badges";
 import { PRODUCT_LINES } from "./products-content";
+import type { MessageKey } from "@im/core";
+import { T } from "@/lib/i18n/client";
 
-const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
+/** Footer columns. `label` is the English text; `k` its catalogue key (translated client-side). */
+const COLUMNS: { title: string; titleKey: MessageKey; links: { href: string; label: string; k: MessageKey }[] }[] = [
   {
-    title: "Get started",
+    title: "Get started", titleKey: "footer.col.getStarted",
     links: [
-      { href: "/get-started", label: "Help me choose" },
-      { href: "/diaspora", label: "Diaspora" },
-      { href: "/business", label: "Business" },
-      { href: "/claims", label: "Claims" },
-      { href: "/verify", label: "Verify a policy" },
-      { href: "/learn", label: "Learn" },
-      { href: "/account", label: "My account" },
+      { href: "/get-started", label: "Help me choose", k: "nav.helpChoose" },
+      { href: "/diaspora", label: "Diaspora", k: "nav.diaspora" },
+      { href: "/business", label: "Business", k: "nav.business" },
+      { href: "/claims", label: "Claims", k: "nav.claims" },
+      { href: "/verify", label: "Verify a policy", k: "footer.verifyPolicy" },
+      { href: "/learn", label: "Learn", k: "nav.learn" },
+      { href: "/account", label: "My account", k: "header.myAccount" },
     ],
   },
   {
-    title: "Partners",
+    title: "Partners", titleKey: "footer.col.partners",
     links: [
-      { href: "/insurers", label: "For insurers" },
-      { href: "/brokers", label: "For brokers" },
-      { href: "/partners/embedded", label: "Embedded partners" },
-      { href: "/partners", label: "Partner directory" },
-      { href: "/waitlist", label: "Launch partners" },
+      { href: "/insurers", label: "For insurers", k: "nav.insurers.label" },
+      { href: "/brokers", label: "For brokers", k: "nav.brokers.label" },
+      { href: "/partners/embedded", label: "Embedded partners", k: "nav.embedded.label" },
+      { href: "/partners", label: "Partner directory", k: "nav.directory.label" },
+      { href: "/waitlist", label: "Launch partners", k: "footer.launchPartners" },
     ],
   },
   {
-    title: "Company",
+    title: "Company", titleKey: "footer.col.company",
     links: [
-      { href: "/about", label: "About us" },
-      { href: "/trust", label: "Regulation & protection" },
-      { href: "/how-it-works", label: "How it works" },
-      { href: "/referrals", label: "Refer a friend" },
-      { href: "/press", label: "Press & media kit" },
-      { href: "/support", label: "Help centre" },
-      { href: "/contact", label: "Contact" },
+      { href: "/about", label: "About us", k: "footer.aboutUs" },
+      { href: "/trust", label: "Regulation & protection", k: "nav.trust" },
+      { href: "/how-it-works", label: "How it works", k: "nav.howItWorks" },
+      { href: "/referrals", label: "Refer a friend", k: "nav.referrals" },
+      { href: "/press", label: "Press & media kit", k: "nav.press" },
+      { href: "/support", label: "Help centre", k: "nav.helpCentre" },
+      { href: "/contact", label: "Contact", k: "nav.contact" },
     ],
   },
   {
-    title: "Legal",
+    title: "Legal", titleKey: "footer.col.legal",
     links: [
-      { href: "/legal/terms", label: "Terms of use" },
-      { href: "/legal/privacy", label: "Privacy notice" },
-      { href: "/legal/complaints", label: "Complaints procedure" },
-      { href: "/legal/disclosures", label: "Disclosures" },
-      { href: "/legal/cookies", label: "Cookies" },
+      { href: "/legal/terms", label: "Terms of use", k: "footer.terms" },
+      { href: "/legal/privacy", label: "Privacy notice", k: "footer.privacy" },
+      { href: "/legal/complaints", label: "Complaints procedure", k: "footer.complaints" },
+      { href: "/legal/disclosures", label: "Disclosures", k: "footer.disclosures" },
+      { href: "/legal/cookies", label: "Cookies", k: "footer.cookies" },
     ],
   },
 ];
@@ -60,7 +63,7 @@ export async function SiteFooter() {
 
   return (
     <footer className="border-t border-line bg-mist" aria-labelledby="footer-heading">
-      <h2 id="footer-heading" className="sr-only">Footer</h2>
+      <h2 id="footer-heading" className="sr-only"><T k="footer.heading" /></h2>
       <Container className="py-14 sm:py-16">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
           <div className="max-w-sm">
@@ -81,7 +84,7 @@ export async function SiteFooter() {
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             <div>
-              <h3 className="text-sm font-semibold text-ink">Insurance</h3>
+              <h3 className="text-sm font-semibold text-ink"><T k="footer.col.insurance" /></h3>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {PRODUCT_LINES.map((p) => (
                   <li key={p.slug}>
@@ -89,17 +92,17 @@ export async function SiteFooter() {
                   </li>
                 ))}
                 <li>
-                  <Link href="/explore" className="rounded font-medium text-brand hover:underline">All cover</Link>
+                  <Link href="/explore" className="rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
                 </li>
               </ul>
             </div>
             {COLUMNS.map((col) => (
               <div key={col.title}>
-                <h3 className="text-sm font-semibold text-ink">{col.title}</h3>
+                <h3 className="text-sm font-semibold text-ink"><T k={col.titleKey} /></h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
                   {col.links.map((l) => (
                     <li key={l.href}>
-                      <Link href={l.href} className="rounded text-muted hover:text-brand">{l.label}</Link>
+                      <Link href={l.href} className="rounded text-muted hover:text-brand"><T k={l.k} /></Link>
                     </li>
                   ))}
                 </ul>
@@ -130,10 +133,10 @@ export async function SiteFooter() {
         <div className="mt-8 flex flex-col gap-4 border-t border-line pt-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {year} {brand.name}
-            {brand.workingName ? " (working name)" : ""}. Technology platform. Not an insurer or broker.
+            {brand.workingName ? <T k="footer.workingName" /> : ""}<T k="footer.platformLine" />
           </p>
           <p className="text-[13px]">
-            <Link href="/legal/cookies" className="rounded hover:text-brand">Cookies & consent</Link>
+            <Link href="/legal/cookies" className="rounded hover:text-brand"><T k="footer.cookiesConsent" /></Link>
           </p>
           {demo && <DemoBadge />}
         </div>

@@ -147,7 +147,8 @@ confirm, AI) must go through `/api/v1`.
 | Complaints | `GET/POST /complaints` |
 | Notifications | `GET /notifications`, `POST /notifications/read` |
 | Assistant | `POST /ai/assistant` (stream) |
-| Settings | `PATCH /me { notificationPrefs }`, `DELETE /devices/{token}` |
+| Settings | `PATCH /me { notificationPrefs, countryCode, preferredCurrency, timezone }`, `DELETE /devices/{token}` |
+| Family (diaspora) | `GET /family/dashboard`, `GET/POST /family/beneficiaries`, `GET/PATCH /family/beneficiaries/{id}`, `POST …/consent`, `POST …/consent/confirm`, `POST /family/sponsorships`, `POST /family/sponsorships/{id}/reveal`, `POST /family/claims` (§16) |
 
 The AI endpoints other than the assistant live at `/api/ai/*` (not `/api/v1`) and accept the same
 bearer token: `extract-document`, `claim-completeness`, `quote-summary`.
@@ -292,6 +293,15 @@ Scheme `covva://` plus universal/app links on the web host
 | `/partner/*` (other), anything else | `covva://notifications` (web-only) |
 
 Expo Router file names should mirror the right-hand column.
+
+**Links in WhatsApp messages.** Every link the WhatsApp channel sends (quote links, `/account/requests/{id}`,
+`/account/requests/{id}/apply` checkout, `/account/policies/{id}/renew`, `/account/claims/new?policy=…`,
+`/account/documents`, broker `/partner/offers/accept/{token}` and `/partner/whatsapp?c=…`) is the plain web
+URL on the site host, never a `covva://` URL (WhatsApp only previews https links). The app intercepts them
+through universal links / app links (`/.well-known/*` above) and maps them with `webPathToDeepLink()`;
+anything it cannot map opens in the in-app browser. Broker one-tap accept also works without the app: the
+Accept quick-reply button on the `broker_new_offer` template carries `accept:<token>` and is redeemed by
+the webhook (`accept_order_offer(p_token)`), so the app only needs to handle the follow-up notification.
 
 ## 10a. Broker offers (claim model, Addendum 2 D/E)
 
@@ -446,6 +456,55 @@ accounts should enable it on the web (Settings → Security), and the app can re
 `supabase.auth.mfa.getAuthenticatorAssuranceLevel()` to show a reminder. Customers use phone OTP
 and optional biometrics (device-local) — never TOTP.
 
+## 14a. Claims: messaging, info requests, video, partner network
+
+Everything a claim screen needs beyond `GET /claims/{id}` (Roadmap Phase 2). Reporting a claim is still not
+approval — only the insurer decides — and the screens must say so (`disclaimer`).
+
+**Report with location and a police report**
+
+```http
+POST /api/v1/claims
+{ "policyId": "…", "incidentType": "accident", "incidentAt": "2026-10-20T08:30:00Z",
+  "location": { "lat": 5.6037, "lng": -0.187, "accuracy": 12, "address": "Spintex Road, Accra" },
+  "description": "…", "amountClaimed": 1500, "policeReportDocumentId": "…" }
+```
+
+`location` may still be a plain string. Upload the police report first with `POST /documents` (kind `police_report`)
+and pass its id; photos go through `/documents` with `claimId`.
+
+**Timeline with expected times** — `GET /claims/{id}/timeline` returns `stages[]`
+(`reported → acknowledged → assessing → decision → payment`) with `state` done | current | upcoming, `at` when reached,
+or `expectedBy` / `expectedLabel` (acknowledged within 24 h, assessment about 5 working days, payment within 10 working
+days of approval) and `overdue`. Show `next.message` under the status; never an open-ended "processing".
+
+**Thread** — `GET /claims/{id}/messages` (oldest first; `canMessage` false once the claim is closed) and
+`POST /claims/{id}/messages { "body", "attachments": [{ "documentId", "name" }] }`. Customers never receive internal
+partner notes. Subscribe to `claim_messages` (`claim_id=eq.<id>`) over Realtime (§6) for live updates. Push kind `claim.message`.
+
+**Information requests** — `GET /claims/{id}/info-requests` lists what the insurer or broker asked for (`kind`
+document | information | inspection, `message`, `due_at`). Answer with
+`POST /claims/{id}/info-requests/{reqId}/fulfil { "documentId"?: "…", "response"?: "…" }` (upload the file with
+`/documents` first). Push/SMS kind `claim.info_requested` carries `info_request_id`; deep link to the claim screen and
+open the request.
+
+**Video** — `POST /claims/{id}/video` as `multipart/form-data` with a `file` part (`fileName`, `mimeType`,
+`durationSeconds`, `caption`) or JSON with base64 `content`. Limits: 90 seconds, 50 MB, MP4/WebM/QuickTime
+(`MAX_VIDEO_SECONDS`, `MAX_VIDEO_BYTES`, `validateClaimVideo` in `@im/core`). Read the duration from the picker and
+check it before uploading; the server rejects longer clips with `400 invalid_input`. The video appears in
+`GET /claims/{id}` documents as kind `claim_video` with `duration_seconds`.
+
+**Partner network** — `GET /service-partners?kind=garage&region=Greater%20Accra&insurerOrgId=<claim.insurer_org_id>`
+(public) lists approved garages, towing, hospitals, clinics, pharmacies and assessors; `directBilling: true` means the
+partner settles with that insurer and the customer pays nothing upfront — show "Direct billing — you don't pay upfront".
+Use `partnerKindsFor(categorySlug, incidentType)` from `@im/core` to choose the kinds for a claim.
+`GET /claims/{id}/jobs` shows the repair/towing/treatment jobs the broker or insurer arranged (`status`
+requested → accepted → in_progress → completed, partner contact details, `direct_billing`, `directBillingNote`).
+Push kind `claim.job`.
+
+Broker app: `POST /partner/claims/{id}/info-requests` and `POST|PATCH /partner/claims/{id}/jobs` (see §15.3).
+Fraud indicators exist for the insurer's claims team and platform staff only; the API never returns them to customers or brokers.
+
 ## 15. Broker workspace (mobile) — Addendum 4 §2
 
 Everything the broker workspace needs on the phone lives under `/api/v1/partner/*` and works with the
@@ -534,6 +593,11 @@ Allowed `status` values for brokers: `delivered_to_insurer` (from `reported`), t
 claim; afterwards the call returns `422 business_rule` and you should send a note only (`{ "note": "…" }`).
 Approve / reject / pay never come from the broker app. Response `201 { claim: { id, reference, status, statusLabel }, event }`.
 
+Information requests and partner jobs: `POST /partner/claims/{id}/info-requests { "kind": "document", "requestedParty": "customer", "message": "…", "dueAt"? }`
+notifies the customer (push, in-app, email, SMS). `POST /partner/claims/{id}/jobs { "servicePartnerId", "kind": "repair", "directBilling": true, "estimate"?, "scheduledFor"?, "notes"? }`
+assigns an approved partner from `GET /service-partners?insurerOrgId=` (direct billing only where the partner direct-bills the claim's insurer);
+`PATCH /partner/claims/{id}/jobs { "jobId", "status" }` tracks it. Both also work for insurer users on the web.
+
 ### 15.4 Documents from the camera
 
 ```http
@@ -573,3 +637,260 @@ Every push has `data = { url, path, kind, notificationId, webLink, …ids }` (§
 
 Mark the notification read with `POST /notifications/read { ids: [notificationId] }` after navigating.
 `BROKER_PUSH_KINDS` in `@im/core` lists the kinds above.
+
+
+## 16. Diaspora: family, beneficiaries, consent, gifts, proxy claims
+
+Sponsors abroad (UK, US, Canada, EU, Australia) buy and manage cover for family in Ghana. `GET /me` now
+returns `country` (ISO-2, `GH` = home), `currency`, `timezone`, `isSponsor` and `household`
+(`{ id, name, beneficiaries }` or `null`). Sign-up asks for the country; `PATCH /me { countryCode }`
+changes it (currency and time zone follow the country unless given).
+
+### 16.1 Beneficiaries and consent
+
+```http
+POST /api/v1/family/beneficiaries
+{ "fullName": "Akua Mensah", "relationship": "parent", "phone": "024 123 4567", "dateOfBirth": "1958-03-02" }
+→ 201 { "beneficiary": { "id": "…", "consent_status": "pending", "ghana_card_masked": null, "has_account": false, … },
+        "nextStep": "Send a consent code…" }
+```
+
+Consent is captured **from the beneficiary**, never typed in by the sponsor:
+
+```http
+POST /api/v1/family/beneficiaries/{id}/consent        { "kind": "data_sharing", "channel": "sms" }
+→ { "sentTo": "+2332***567", "expiresAt": "…", "channel": "sms", "delivered": true, "message": "We sent a code to …" }
+```
+
+The beneficiary's phone receives a 6-digit code **and** a signed link (`/consent/{token}`, valid 7 days, no
+login) showing who is asking and what is shared with Accept / Decline. Either the beneficiary reads the code
+to the sponsor, who confirms it:
+
+```http
+POST /api/v1/family/beneficiaries/{id}/consent/confirm  { "kind": "data_sharing", "code": "123456" }
+→ { "status": "granted", "grantedAt": "…", "beneficiary": { …, "consent_status": "granted" } }
+```
+
+or taps the link. A wrong code returns `400 invalid_input` ("That code is not right. 3 attempt(s) left."); the
+fifth wrong code locks it (`422 business_rule`, "Too many incorrect codes…") until a new one is sent. Codes
+expire after 15 minutes (`422`, "That code has expired").
+Kinds: `data_sharing` (needed before any quote for them), `proxy_claims` (claims on their behalf),
+`policy_purchase`. Show `consent_status` with the labels in `CONSENT_STATUS` (`@im/core`).
+
+If the beneficiary later signs up with the same phone number, their account is linked automatically
+(`linked_user_id`, `has_account: true`): they then see the policy in their own wallet with "Paid for by
+<sponsor first name>" and get in-app/push updates instead of SMS.
+
+### 16.2 Requesting cover for a family member
+
+`POST /requests` accepts `beneficiaryId`. The request carries `sponsor_user_id` (the caller) and
+`beneficiary_id`; create the sponsorship right after so gifts and dual notifications apply:
+
+```http
+POST /api/v1/family/sponsorships
+{ "beneficiaryId": "…", "requestId": "…", "gift": true, "giftMessage": "Happy birthday Mum ❤️", "notifyBeneficiary": true }
+→ 201 { "sponsorship": { "status": "draft", … } }
+```
+
+The sponsorship becomes `active` when the insurer issues the policy (`policy_id` set). Payment and currency
+choice are unchanged (§8); multi-currency checkout lives in the payments stream.
+
+### 16.3 Family dashboard
+
+`GET /family/dashboard` → `{ summary, beneficiaries[+consents], sponsorships, policies, claims, payments, subscriptions }`.
+`summary` = `{ activePolicies, pendingPolicies, nextRenewal: { policyId, coverEnd, days } | null,
+nextPaymentDue | null, openClaims, annualPremiumGHS, coverGaps: [{ beneficiaryId, name, reason }] }` —
+`reason` is `consent_pending`, `consent_declined` or `no_cover`; render each as a next-step card.
+Compute it offline with `familyDashboardSummary()` from `@im/core` if you cache rows.
+
+### 16.4 Gifts
+
+A gifted policy stays a surprise: the beneficiary is not told at issuance. The sponsor hands it over
+(web: "Hand over the gift now"; the beneficiary gets `gift.received` with `link = /account/gifts/{sponsorshipId}`).
+The beneficiary's app opens it with `POST /family/sponsorships/{id}/reveal` → `{ giftMessage, giftRevealedAt, policyId }`
+(the sponsor gets `422` here). Show `sponsorLine(firstName, gift)` ("A gift from Kofi" / "Paid for by Kofi")
+on the policy screen; the first name comes from the `policy_sponsor_name` RPC or `GET /policies/{id}`.
+
+### 16.5 Claims by proxy
+
+```http
+POST /api/v1/family/claims
+{ "policyId": "…", "incidentType": "hospital_admission", "incidentAt": "2026-10-20T09:00:00Z",
+  "description": "Mum was admitted to KATH with …", "evidence": [{ "path": "<sponsorId>/claims/…jpg", "name": "bill.jpg", "mime": "image/jpeg" }] }
+→ 201 { "claim": { "id", "reference", "status": "reported", … }, "beneficiary": { "id", "full_name" }, "reportedBy": "<sponsorId>",
+        "requiredEvidence": [...], "disclaimer": "…", "warnings": [] }
+```
+
+Requires an active sponsorship on that policy and the beneficiary's `proxy_claims` consent; otherwise
+`422 business_rule` with a message to show ("Ask your family member to consent…") or `403` when the caller does
+not pay for the policy. The claim belongs to the policyholder (`customer_id`) with `reported_by_user_id` = sponsor;
+both see it under `GET /claims/{id}` and both receive status updates.
+
+### 16.6 Dual notifications
+
+Every policy event (`policy.issued`, `renewal.reminder`, `claim.reported`, `claim.status`, `gift.received`,
+`consent.granted` / `consent.declined` for the sponsor) reaches the sponsor **and** the beneficiary. Rows carry
+`recipient_role` (`sponsor` | `beneficiary` | `customer`) and `data.recipient_role`; a beneficiary without an
+account gets SMS/WhatsApp instead. `FAMILY_PUSH_KINDS` in `@im/core` lists the kinds; route `consent.*` to the
+beneficiary's page (`data.beneficiary_id`) and `gift.received` to the gift screen (`data.policy_id` + link).
+
+## 16. Diaspora payments: currencies, subscriptions, bundles, property cover
+
+Rules first: the **GHS amount is the contract amount the insurer receives**. Anything in GBP/USD/EUR/CAD is an
+indicative display — always show the disclosure text the API returns and never a bare foreign figure.
+
+* **Currency selector.** `GET /fx?currency=GBP&amount=<GHS>` (no auth) → `rates` per currency (`rate` = GHS per
+  1 unit, `source`, `fetchedAt`, `manual` flag), `marginPct`, and `quote` (`displayAmount`, `disclosure`). Default the
+  selector to `profile.preferred_currency` when present, else GHS. Render the checkout line as
+  **"You pay ≈ £X (indicative) · Insurer receives GH₵ Y"** plus `quote.disclosure`. When `manual` is true add
+  "rate set by Covva operations — a guide only". `@im/core` has `convertFromGhs`, `fxQuote`, `fxDisclosure`,
+  `formatMoney` for offline formatting.
+* **Paying.** `POST /payments { applicationId, channel: "card", displayCurrency: "GBP", saveMethod?: true,
+  sponsorSubscription?: { cadence: "monthly" | "annual" } }`. Foreign currency and sponsor plans are **card only**
+  (`mobile_money` / `bank_transfer` → 400). The response adds `fx` (the quote stored on the payment), `psp`
+  (`paystack_intl` for foreign cards) and `sponsorSubscription` (`chargeAmount` = the first instalment, `quotedTotal`).
+  The hosted page is Paystack's: the card is charged the GHS amount and the issuer converts (Apple Pay / Google Pay
+  appear when the business has the channel enabled). `GET /payments/{id}` returns `display_currency`,
+  `display_amount`, `fx_rate`, `fx_source`, `psp` alongside the GHS `amount`.
+* **Sponsor subscriptions.** `GET /subscriptions` → `items[]` (with `summary.amountLabel`, `nextChargeLabel`,
+  `tone`) and `paymentMethods[]` (brand, last4, expiry — never a PAN). `POST /subscriptions { policyId, cadence,
+  displayCurrency, paymentMethodId? }` needs a saved method (pay once by card with `saveMethod: true`, or use
+  `sponsorSubscription` at checkout, which creates the subscription automatically after `charge.success`).
+  `POST /subscriptions/{id}/pause` and `/cancel { reason? }`. Statuses: `active`, `past_due` (collections failed after
+  1d/3d/7d retries — show "update your card"; the insurer keeps cover for its grace period and decides on lapses),
+  `paused`, `cancelled`. Notification kinds: `subscription.created`, `payment.succeeded` (each collection),
+  `payment.failed`, `subscription.past_due`, `subscription.paused`, `subscription.cancelled` → deep link
+  `/account/payments/subscriptions`. Copy to keep: "Pausing or cancelling does not cancel the policy — the insurer
+  decides on lapses."
+* **Bundles.** `GET /bundles` (no auth) → published packs with `items[]` (`category_slug`, `required`), `quote`
+  (indicative GHS `total`, `complete`, `missing[]`) and `getStartedUrl`. In the app, start a request for the first
+  item (`POST /requests`), then create the other items as requests when the customer is ready; the web flow does the
+  same with `?bundle=` (siblings saved as drafts). The discount is indicative until the insurer confirms it.
+* **Property cover (home being built).** For policies in a home/property category: upload a site photo with the
+  documents flow (`POST /documents/upload-url { scope: "policies", policyId }` → PUT), then
+  `POST /property/{policyId}/updates { storagePath, caption?, takenAt? }`; `GET …/updates` lists them (customer,
+  sponsor, broker and insurer can see them). `POST /property/{policyId}/inspections { address, gps?, notes? }` asks
+  for a partner site visit (one open inspection per policy → 409); `GET …/inspections` shows `status`
+  (`requested` → `assigned` → `scheduled` → `completed` | `failed`), `scheduled_for`, `report`, `photos`.
+  Notifications: `inspection.assigned`, `inspection.scheduled`, `inspection.completed`. Copy: "The insurer decides
+  what the report means for your cover."
+
+## Referrals
+
+Customers get a personal referral link (8-character base32 code). Anyone opening `https://covva.com.gh/<path>?ref=CODE`
+gets a first-party `covva_ref` cookie for 30 days and the next request they create is attributed to the code. In the app,
+let users share the link and show their friends and credits:
+
+* `GET /api/v1/me/referrals` → `{ link: { code, url, landing_path } | null, friends: [{ attribution_id, joined_at, converted_at, rewarded }], credits: [{ kind, amount, expires_at, created_at }], balance, currency, programmeActive, note }`.
+  Friends are anonymous — never show names. `programmeActive = false` means rewards are not switched on yet (they need
+  NIC and insurer approval); say so honestly.
+* `POST /api/v1/me/referrals` → creates (or returns) the link; same response shape.
+* Share via WhatsApp (`https://wa.me/?text=…`), SMS (`sms:?&body=…`) or copy.
+* Credits are GHS credit units, **not cash**: they only come off Covva's platform fees, or a future premium where the
+  insurer funds the discount. Show `note` wherever credits appear. Referrals never change quotes or their order.
+* Attribution uses the web `covva_ref` cookie, so it applies to requests created on the website (including the web views
+  the app opens). Requests created natively in the app are not attributed yet. A customer cannot refer themselves.
+
+## Instalments and micro cover
+
+Phase 3. Every payment is a GHS premium payment to the **insurer** (Covva never holds the money). Mobile money payments
+send a prompt the payer approves with their PIN — show `displayText` and poll `GET /payments/{id}` (or wait for the
+`payment.succeeded` / `payment.failed` push) rather than assuming success.
+
+**Instalments**
+
+* `GET /policies/{id}/instalments` → `{ schedule | null }` with `summary` ("Instalments: 3 of 12 paid · next GH₵ 85.00 on
+  5 Dec 2026"), `state` (`current | due | grace | overdue | lapsed | completed | cancelled`, `arrears`, `next`,
+  `graceUntil`, `lapseAt`), `rules` (the insurer's grace / lapse / reinstatement rules in plain words — show them) and
+  `instalments[]`.
+* `POST /instalments/{id}/pay` `{ channel: "mobile_money" | "card" | "link", momo?: { phone, network: mtn|vod|atl }, paymentMethodId? }`
+  → `{ paymentId, status, authorizationUrl, displayText, amount }`. Earlier unpaid instalments are included. `link`
+  returns a hosted checkout to open in an in-app browser.
+* `POST /instalments/schedules/{id}/reinstate` (same body) on a lapsed schedule within the window →
+  `requiresReview: true` means the insurer reviews before cover resumes (tell the customer; a decline is refunded).
+* Choosing a plan at checkout is on the web checkout today (`instalment_plan` on the apply step); the app can open the
+  web checkout. Push kinds: `instalments.created`, `instalments.grace`, `instalment.due` (pay link), `policy.lapsed`,
+  `instalments.reinstatement_pending`, `instalments.reinstated`, `instalments.reinstatement_declined`,
+  `payment.succeeded`, `payment.failed`.
+
+**Micro cover**
+
+* `GET /micro/products?audience=okada|trotro|ride_hailing|trader|artisan|event` (no auth) → `items[]` with `byPeriod`
+  and `fromLabel` ("from GH₵ 2.50/day").
+* `POST /micro/buy` `{ productVersionId, period: day|week|month, channel: "app", payment: "mobile_money" | "card", momo?, autoRenew? }`
+  → `mode: "instant"` with `payment` (MoMo prompt or `authorizationUrl`) and `quoteText`, or `mode: "routed"` with the
+  `requestId` a broker / the insurer quotes (show "We'll confirm your quote").
+* `POST /micro/{policyId}/renew` `{ period?, channel, momo?, paymentMethodId? }` — one tap; the new window starts when the
+  current one ends (`startsAt`, `endsAt`).
+* `PATCH /micro/{policyId}` `{ autoRenew }`. Push kinds: `micro.renew_link`, `payment.succeeded`, `payment.failed`.
+* Cover is live only while the policy is `active`; a paid window on a `pending_issuance` policy is "Issuing".
+
+
+## Business accounts
+
+SME & group (Phase 3). A business account is an organisation of type `enterprise`; the user's role in it is
+`owner | admin | finance | viewer` (owners/admins manage everything, finance pays statements, viewers read the
+dashboard). Business memberships are **not** partner workspaces — they never appear in `GET /me` `workspaces` and the
+app stays in the customer workspace. All endpoints below use the customer's bearer token (`X-Covva-Client: mobile`).
+
+* `GET /business` → `{ accounts[], workplaceCover[] }`. `accounts[]` = `{ orgId, name, role, team, profile }`; show a
+  "Business" entry in the account tab when it is non-empty. `workplaceCover[]` is the user's own cover as a scheme member
+  (employer, scheme, insurer, renewal). Calling it also links census rows whose phone matches the user's **verified**
+  sign-in phone.
+* `POST /business` `{ name, industry, employees, billing_email, billing_contact, tin?, registration_number?, phone?, region?, address? }`
+  → `201 { orgId }`; the caller becomes owner (max 5 owned accounts → `422`).
+* `GET /business/{orgId}/dashboard` → schemes (status, member count, renewal), member / fleet / asset counts, renewals in
+  the next 60 days, statements due, open requests and **counts** of employee claims (never claim details).
+* `GET /business/{orgId}/members[?schemeId=]` → per scheme `{ scheme, categoryName, census, broker, insurer, members }`.
+  `members` is `null` for finance and viewer roles — render the census counts only.
+* `POST /business/{orgId}/members` `{ schemeId, full_name, relationship, principal_member_id?, date_of_birth?, phone?, … }`
+  (owner/admin). Only the last 4 Ghana Card digits are stored; dependants need `principal_member_id`.
+* `POST /business/{orgId}/members/import` `{ schemeId, csv, mode: "preview" | "import" }` → `{ valid, errors: [{ row, message }], preview[], inserted, skipped[] }`.
+  Always call `preview` first and show the row-numbered problems; `import` writes only the valid rows. Template columns:
+  `employee_ref, full_name, date_of_birth, gender, phone, email, ghana_card, relationship, principal_ref, cover_tier, salary_band`.
+* `GET /business/{orgId}/fleet`; `POST /business/{orgId}/fleet` with one vehicle `{ registration, make?, model?, year?, value?, use, driver_name? }`
+  (`201`) or `{ csv, mode }` for a bulk upload (same report shape as members). Registrations come back normalised (`GR 1234-23`).
+* `GET /business/{orgId}/invoices` → consolidated statements with `lines[]` (`description, amount, insurer_name, basis, payment_status`).
+* `POST /business/invoices/{id}/pay` `{ channel, momo?: { phone, provider }, insurerOrgId? }` → `results[]` — **one payment
+  per insurer line**. For each result open `authorizationUrl` (card / hosted MoMo) or tell the user to approve the MoMo
+  prompt; `not_collected` lines are premiums the insurer collects directly (show `message`). Copy: "Each insurer is paid
+  directly — Covva never holds your premiums."
+
+Group schemes, fleets, property and liability are always handled by a licensed broker: quote requests are created on the
+web (or by the broker) from the census summary — counts only, never member names or contact details. Push kinds:
+`business.invoice.issued`, `business.member.added`, plus the usual `request.*` / `quote.ready` for business requests.
+
+## Locales, USSD fallback and voice notes
+
+**Language.** Send the user's choice on every request as `X-Covva-Locale: tw` (or rely on `Accept-Language`); the
+server resolves `X-Covva-Locale` → profile → `Accept-Language` → English. Supported codes: `en`, `tw` (Twi), `gaa` (Ga),
+`ee` (Ewe); `ga`, `twi`, `ak` and `en-GH` are accepted aliases.
+
+* Bundle the English catalogue (`packages/core/src/i18n/en.ts` — the source of truth, same keys as the web) and fetch
+  `GET /api/v1/i18n/{locale}` (public, cached ~1 h) on start-up and when the language changes. `messages` contains only
+  approved, human-translated keys: render `messages[key] ?? en[key]`, interpolating `{name}` / ICU-light
+  `{count, plural, one {…} other {…}}` (use `createTranslator` from `@im/core` if you share the package).
+* `status` is `planned` | `partial` | `complete`. For anything but `complete`, show
+  "<Language> translations are in progress — untranslated text is shown in English." Never machine-translate.
+* Save the choice for signed-in users with `PUT /api/v1/me/locale { locale }` (stored in `profiles.locale`, read back in
+  `GET /api/v1/me`).
+
+**USSD fallback.** For customers without data, the app can show "No data? Dial `*920*44#`" (`USSD_SERVICE_CODE`; the
+code is aggregator-dependent until the NCA short code is live). USSD covers quote (motor third-party, micro, funeral),
+renew, pay an instalment, check a policy, a claim callback and "talk to us"; it identifies the customer by the phone
+number on their profile, so ask users to keep it current.
+
+**Voice notes.** Offer "Describe what happened by voice" on the claim report and "Explain what you need" on a request:
+
+1. Record ≤ 120 s (AAC/M4A `audio/mp4` on iOS, `audio/webm`/`audio/ogg` or M4A on Android), ≤ 10 MB.
+2. `POST /api/v1/voice-notes` — multipart (`file`, `purpose` = `claim_description` | `quote_help` | `support`,
+   `durationSeconds`, `languageHint` = `en`|`tw`|`gaa`|`ee`, optional `requestId`/`claimId`) or JSON
+   `{ audioBase64, mimeType, purpose, … }`. Response 201 with `voiceNote.transcriptStatus = "pending"`.
+3. Poll `GET /api/v1/voice-notes/{id}` (every 2–3 s, give up after ~90 s) until `done` or `failed`.
+4. Show the transcript in an editable field labelled **"Automatic transcript — please check"** (add "less accurate
+   for Twi, Ga and Ewe" when `lowerAccuracy` is true). Save corrections with `PATCH /api/v1/voice-notes/{id}`.
+5. Only when the user taps "Add to my description", append the text to the claim description / request note. Never
+   submit automatically. `failed` with `failureReason = "transcription_disabled"` means the note is saved but there is
+   no transcript — the broker can still listen (`audioUrl`, a 10-minute signed link).
+6. Pass the note ids when creating the claim/request so they are linked (web forms send `voiceNoteId`; via the API,
+   create the note with `claimId`/`requestId` after the claim/request exists).

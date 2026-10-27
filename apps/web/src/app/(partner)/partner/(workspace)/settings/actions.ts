@@ -1,17 +1,17 @@
 "use server";
-import { createHash, randomBytes } from "node:crypto";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import type { Enum, Json } from "@im/db";
 import { sendInviteEmail } from "@/server/notify";
 import { emitEvent } from "@/server/webhooks";
 import { ROLES, actionContext, dbMessage, run, type ActionState } from "../../_lib/context";
-import { API_SCOPES, BROKER_ROLES, INSURER_ROLES, WEBHOOK_EVENTS } from "../../_lib/settings";
+import { API_SCOPES, BROKER_ROLES, DISTRIBUTOR_API_SCOPES, DISTRIBUTOR_ROLES, INSURER_ROLES, WEBHOOK_EVENTS } from "../../_lib/settings";
+import { generateApiKey } from "@/server/api-auth";
 
 const uuid = z.string().uuid();
 
-function allowedRoles(kind: "broker" | "insurer"): readonly string[] {
-  return kind === "broker" ? BROKER_ROLES : INSURER_ROLES;
+function allowedRoles(kind: "broker" | "insurer" | "distributor"): readonly string[] {
+  return kind === "broker" ? BROKER_ROLES : kind === "distributor" ? DISTRIBUTOR_ROLES : INSURER_ROLES;
 }
 
 // ---------------------------------------------------------------------------
@@ -146,12 +146,12 @@ export async function createApiKey(_prev: ActionState, formData: FormData): Prom
   return run(async () => {
     const ctx = await actionContext({ roles: ROLES.orgAdmin });
     const name = z.string().trim().min(2, "Name the key (e.g. “Core system”)").max(80).parse(formData.get("name"));
-    const scopes = formData.getAll("scopes").map(String).filter((s) => (API_SCOPES as readonly string[]).includes(s));
+    const offered: readonly string[] = ctx.kind === "distributor" ? DISTRIBUTOR_API_SCOPES : API_SCOPES;
+    const scopes = formData.getAll("scopes").map(String).filter((s) => offered.includes(s));
     if (!scopes.length) return { ok: false, error: "Choose at least one scope." };
     const expiresDays = Number(formData.get("expires") || 0);
-    const prefix = `im_${ctx.kind === "insurer" ? "ins" : "brk"}_${randomBytes(4).toString("hex")}`;
-    const secret = `${prefix}_${randomBytes(24).toString("base64url")}`;
-    const keyHash = createHash("sha256").update(secret).digest("hex");
+    // Same format withApi authenticates: imk_<prefix>_<secret>, stored as sha256(key) with the prefix for lookup.
+    const { key: secret, prefix, hash: keyHash } = generateApiKey();
     const { error } = await ctx.supabase.from("api_keys").insert({
       org_id: ctx.orgId,
       name,

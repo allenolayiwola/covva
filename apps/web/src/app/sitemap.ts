@@ -2,8 +2,7 @@ import type { MetadataRoute } from "next";
 import { getCategories } from "@/lib/catalog";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
 import { ARTICLES } from "@/components/marketing/articles";
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
+import { siteUrl } from "@/lib/site-url";
 
 const STATIC_ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
@@ -36,11 +35,11 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const categories = await getCategories();
   return [
-    ...STATIC_ROUTES.map((r) => ({ url: r.path === "/" ? siteUrl : `${siteUrl}${r.path}`, priority: r.priority, changeFrequency: r.changeFrequency })),
-    ...PRODUCT_LINES.map((p) => ({ url: `${siteUrl}/insurance/${p.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
-    ...ARTICLES.map((a) => ({ url: `${siteUrl}/learn/${a.slug}`, lastModified: a.updated ?? a.published, changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...STATIC_ROUTES.map((r) => ({ url: r.path === "/" ? siteUrl() : `${siteUrl()}${r.path}`, priority: r.priority, changeFrequency: r.changeFrequency })),
+    ...PRODUCT_LINES.map((p) => ({ url: `${siteUrl()}/insurance/${p.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
+    ...ARTICLES.map((a) => ({ url: `${siteUrl()}/learn/${a.slug}`, lastModified: a.updated ?? a.published, changeFrequency: "monthly" as const, priority: 0.6 })),
     ...categories.map((c) => ({
-      url: `${siteUrl}/explore/${c.slug}`,
+      url: `${siteUrl()}/explore/${c.slug}`,
       lastModified: c.updated_at,
       changeFrequency: "weekly" as const,
       priority: c.availability === "planned" ? 0.5 : 0.8,

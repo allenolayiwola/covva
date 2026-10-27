@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Mail, MessageCircle, Phone, UserRoundCheck } from "lucide-react";
-import { Container, Eyebrow, Pill } from "@im/ui";
+import { ArrowRight, Mail, Phone, UserRoundCheck } from "lucide-react";
+import { Container, Eyebrow } from "@im/ui";
 import { getBrand } from "@/components/marketing/brand";
 import { FAQ_GROUPS } from "@/components/marketing/content";
 import { FaqSearch } from "@/components/marketing/faq-search";
@@ -43,7 +43,7 @@ export default async function SupportPage() {
 
       <Section tone="mist" labelledBy="contact-options-title">
         <SectionHeading id="contact-options-title" eyebrow="Contact options" title="Still need help?" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link href="/account" className="group rounded-card border border-line bg-white p-6 transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             <IconTile><UserRoundCheck /></IconTile>
             <h3 className="mt-5 font-semibold text-ink">Message your broker</h3>
@@ -65,14 +65,6 @@ export default async function SupportPage() {
             ) : (
               <p className="mt-4 text-sm font-medium text-subtle">Phone line to be announced</p>
             )}
-          </div>
-          <div className="rounded-card border border-line bg-white p-6">
-            <div className="flex items-start justify-between">
-              <IconTile><MessageCircle /></IconTile>
-              <Pill>Coming soon</Pill>
-            </div>
-            <h3 className="mt-5 font-semibold text-ink">WhatsApp</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">WhatsApp-assisted service is planned once it is approved for safe use.</p>
           </div>
         </div>
       </Section>

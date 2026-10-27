@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500"], display: "swap", variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400"], display: "swap", variable: "--font-outfit" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-jakarta" });
+// Plus Jakarta Sans has no Ɛ ɛ Ɔ ɔ Ɖ ɖ (Twi, Ga, Ewe). Inter fills only those letters; it is not preloaded,
+// and the browser fetches its file only on a page that uses one of them.
+const inter = Inter({ subsets: ["latin-ext"], display: "swap", variable: "--font-inter", preload: false, adjustFontFallback: false });
 
 export const metadata: Metadata = {
   title: { default: "Admin · Covva", template: "%s · Admin · Covva" },
@@ -21,7 +23,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GB" className={`${inter.variable} ${outfit.variable}`}>
+    <html lang="en-GB" className={`${jakarta.variable} ${inter.variable}`}>
       <body className="min-h-dvh bg-[#F7FAF9]">
         <a
           href="#main"

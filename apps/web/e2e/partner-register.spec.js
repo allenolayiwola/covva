@@ -6,7 +6,7 @@ test.describe("partner registration (signed out)", () => {
   test("redirects to sign-in and keeps the destination", async ({ page }) => {
     await page.goto("/partner/register?type=broker");
     await expect(page).toHaveURL(/\/sign-in\?next=%2Fpartner%2Fregister%3Ftype%3Dbroker/);
-    await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   });
 
   test("the type chooser is also behind sign-in", async ({ page }) => {

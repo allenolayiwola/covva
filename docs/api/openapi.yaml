@@ -14,6 +14,8 @@ info:
     * **Partner integrations** — `x-api-key: imk_<prefix>_<secret>` (see `/partner/*`). Keys belong to a
       broker or insurer organisation and carry scopes: `requests:read`, `quotes:write`,
       `policies:issue`, `claims:write`, `policies:read`, `claims:read`, `finance:read` (or `*`).
+      **Distribution partners** (dealers, banks, landlords, fleets, travel agents…) hold keys with
+      `distribution:quote`, `distribution:lead`, `distribution:read` that reach `/distribution/*` only (see docs/EMBEDDING.md).
 
     ## Envelope
     Every JSON response (except the AI chat stream and redirects) is an `ApiResult`:
@@ -78,9 +80,41 @@ tags:
   - name: Complaints
   - name: Notifications & devices
   - name: AI
+  - name: Family (diaspora)
+    description: |
+      Sponsors abroad look after family in Ghana: add **beneficiaries**, capture their **consent** by SMS/WhatsApp
+      code or signed link (never from the sponsor), link the payer to a policy with a **sponsorship** (optionally a
+      **gift** with a message the beneficiary reveals), see the **family dashboard** and report **claims by proxy**
+      with the beneficiary's `proxy_claims` consent. Both parties get documents, reminders and claim updates
+      (`notifications.recipient_role`).
   - name: Partner API
+  - name: Distribution
+    description: |
+      Embedded distribution (Phase 3). Partners offer Covva quotes at their point of sale — with the embeddable
+      widget (`/embed/widget.js`) or these endpoints. Estimates are indicative, sorted by price only (paid
+      placements never change the order) and nothing is bound or paid through the partner: the customer continues
+      on Covva. Every surface shows "Technology provided by Covva. Insurance provided by licensed insurers and brokers."
+      Revenue share is a share of Covva's platform fee, never of the premium.
+  - name: Referrals
+  - name: Instalments & micro cover
+    description: |
+      Phase 3. Premiums paid in instalments under the insurer's plan (grace, lapse and reinstatement are the insurer's
+      rules) and micro cover by the day, week or month. Every payment is a GHS premium payment to the insurer;
+      Covva never holds client funds. Mobile money payments need the payer to approve the prompt on their phone.
+  - name: Business accounts
+    description: |
+      SME & group (Phase 3). A **business account** is an organisation the caller owns or belongs to (roles owner, admin,
+      finance, viewer). Owners/admins manage **group schemes** (health, life & funeral, personal accident), their
+      **members** (census; CSV bulk upload with row-numbered errors), the **fleet** and **assets**; finance pays
+      **consolidated statements**. Quote requests built from a census carry counts only (never member PII) and are always
+      handled by a licensed broker. Paying a statement starts **one payment per insurer line** — each settles to that
+      insurer; Covva never holds or pools premiums.
   - name: System
 
+  - name: Localisation
+    description: UI language (English complete; Twi, Ga and Ewe only as human translators supply them) — catalogue, preferred locale. Send `Accept-Language` or `X-Covva-Locale`.
+  - name: Voice notes
+    description: Voice recordings with automatic transcripts the user checks and edits before using.
 paths:
   /me:
     get:
@@ -570,6 +604,101 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Ok" }
 
+  /claims/{id}/timeline:
+    get:
+      tags: [Claims]
+      summary: Customer-facing journey with expected times
+      description: |
+        Stages `reported → acknowledged (within 24 h) → assessing (about 5 working days) → decision → payment (within
+        10 working days of approval)`, each with `at` (reached) or `expectedBy` / `expectedLabel`, plus `next` (what to expect,
+        `overdue`) and the raw events. Never implies approval.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /claims/{id}/messages:
+    get:
+      tags: [Claims]
+      summary: The claim thread (customer, broker, insurer)
+      description: Oldest first. Internal partner notes are never returned to customers. `canMessage` says whether the caller may post.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { in: query, name: limit, schema: { type: integer, default: 50, maximum: 100 } }
+        - { in: query, name: before, schema: { type: string, format: date-time } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Claims]
+      summary: Send a message in the claim thread
+      description: Attachments reference documents already uploaded with `POST /documents` (`claimId`). Notifies the other parties (push, in-app, email).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ClaimMessageInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /claims/{id}/info-requests:
+    get:
+      tags: [Claims]
+      summary: Information the insurer or broker has asked for
+      description: "`items[]` of `claim_info_requests` (open first): `kind` document | information | inspection, `message`, `due_at`, `fulfilled_at`, `document_id`, `response`."
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /claims/{id}/info-requests/{reqId}/fulfil:
+    post:
+      tags: [Claims]
+      summary: Answer an information request
+      description: Link a document uploaded with `POST /documents` (`claimId`) and/or reply in writing. The requester is notified.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+        - { in: path, name: reqId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/FulfilInfoRequestInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /claims/{id}/video:
+    post:
+      tags: [Claims]
+      summary: Upload a short video of the damage or scene
+      description: |
+        ≤ 90 seconds and ≤ 50 MB; MP4, WebM or QuickTime. JSON with base64 `content`, or `multipart/form-data` with a `file`
+        part and the same field names. Measure `durationSeconds` on the device (the server rejects longer clips).
+        Stored as a `claim_video` document under `documents/{customerId}/claims/{claimId}/video-….`
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: "#/components/schemas/ClaimVideoUploadInput" } }
+          multipart/form-data: { schema: { type: object, properties: { file: { type: string, format: binary }, durationSeconds: { type: integer }, caption: { type: string } } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+  /claims/{id}/jobs:
+    get:
+      tags: [Claims]
+      summary: Repairs, towing and treatment arranged on the claim
+      description: Each job carries the partner's name, address and phone, `status` (requested → accepted → in_progress → completed | cancelled) and `direct_billing` (the insurer settles with the partner; the customer pays nothing upfront).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /service-partners:
+    get:
+      tags: [Claims]
+      summary: Approved post-claim partner directory (public)
+      description: Garages, towing, hospitals, clinics, pharmacies and assessors by `kind` and `region`. Pass `insurerOrgId` to get `directBilling` per partner.
+      security: []
+      parameters:
+        - { in: query, name: kind, schema: { type: string, enum: [garage, towing, hospital, clinic, pharmacy, assessor] } }
+        - { in: query, name: region, schema: { type: string } }
+        - { in: query, name: insurerOrgId, schema: { type: string, format: uuid } }
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: limit, schema: { type: integer, default: 100, maximum: 200 } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
   /complaints:
     get:
       tags: [Complaints]
@@ -861,6 +990,61 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+  /partner/claims/{id}/info-requests:
+    get:
+      tags: [Partner API]
+      summary: Information requests on a claim the organisation services
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Partner API]
+      summary: Ask the customer (or the broker) for a document, information or an inspection slot
+      description: |
+        Brokers (owner/admin/supervisor/adviser) and insurer claims teams. The requested party is notified (customers by push,
+        in-app, email and SMS) and can answer from the claim page or `POST /claims/{id}/info-requests/{reqId}/fulfil`.
+        Insurers may set `setStatus: true` to move the claim to `info_requested` in the same call.
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ClaimInfoRequestInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /partner/claims/{id}/jobs:
+    get:
+      tags: [Partner API]
+      summary: Jobs arranged on a claim
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Partner API]
+      summary: Assign an approved service partner to the claim
+      description: "`directBilling: true` is only accepted when the partner direct-bills the claim's insurer (`GET /service-partners?insurerOrgId=`). The customer is notified with the partner's contact details."
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ClaimJobInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Partner API]
+      summary: Track a job (status, estimate, invoice, schedule)
+      security: [{ bearerAuth: [] }]
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/OrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateClaimJobInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+
   /partner/customers:
     get:
       tags: [Partner API]
@@ -989,6 +1173,120 @@ paths:
         "200": { $ref: "#/components/responses/Ok" }
         "403": { $ref: "#/components/responses/Error" }
 
+  /fx:
+    get:
+      tags: [Diaspora payments]
+      security: []
+      summary: Indicative FX display rates (GHS per 1 unit) and the disclosure text
+      description: |
+        Diaspora payers see the GHS premium in GBP, USD, EUR or CAD. Rates are indicative (source and time
+        are returned; `manual` rates are flagged); the insurer always receives the GHS contract amount and the
+        card issuer / PSP applies the final rate. `amount` (GHS) returns a full `quote` with the disclosure.
+      parameters:
+        - { name: currency, in: query, schema: { type: string, enum: [GHS, GBP, USD, EUR, CAD], default: GHS } }
+        - { name: amount, in: query, description: GHS amount to convert (indicative), schema: { type: number } }
+      responses:
+        "200":
+          description: Rates
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/FxRates" } }
+  /subscriptions:
+    get:
+      tags: [Diaspora payments]
+      summary: The caller's sponsor subscriptions and saved payment methods (no card numbers)
+      responses:
+        "200":
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          items: { type: array, items: { $ref: "#/components/schemas/SponsorSubscription" } }
+                          paymentMethods: { type: array, items: { $ref: "#/components/schemas/PaymentMethod" } }
+    post:
+      tags: [Diaspora payments]
+      summary: Start recurring premium collections for a policy the caller pays for
+      description: |
+        Every collection is a GHS premium payment to the insurer (same split/ledger as a checkout), charged to the
+        sponsor's saved card on the cadence; the foreign amount is indicative. Needs a saved method — pay once by
+        card with `saveMethod: true` (or `sponsorSubscription` on `POST /payments`, which creates the subscription
+        automatically after the first payment). Monthly collections on a yearly quote need the insurer to allow instalments.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateSubscriptionInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /subscriptions/{id}/pause:
+    post:
+      tags: [Diaspora payments]
+      summary: Pause collections (cover may lapse when a premium falls due)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+  /subscriptions/{id}/cancel:
+    post:
+      tags: [Diaspora payments]
+      summary: Cancel collections; existing cover runs to its end date
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { reason: { type: string, maxLength: 500 } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /bundles:
+    get:
+      tags: [Diaspora payments]
+      security: []
+      summary: Published product bundles (e.g. the Parents' Care Pack) with an indicative GHS estimate
+      description: Each item becomes its own request/quote/policy; the discount is confirmed by the insurer on the binding quotes. `getStartedUrl` opens the web flow with `?bundle=`.
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /property/{policyId}/updates:
+    get:
+      tags: [Diaspora payments]
+      summary: Construction / site photo updates on a property policy
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Diaspora payments]
+      summary: Record a site photo already uploaded with POST /documents/upload-url (scope policies)
+      description: Customer or sponsor of the policy only (RLS). The photo is visible to the broker and insurer.
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PropertyUpdateInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+  /property/{policyId}/inspections:
+    get:
+      tags: [Diaspora payments]
+      summary: Partner site inspections on a property policy (status, visit date, report)
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Diaspora payments]
+      summary: Ask for a partner site inspection (customer or sponsor)
+      description: Covva assigns an inspection partner; the partner schedules and files the report; the INSURER decides what it means for cover. One open inspection per policy.
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestInspectionInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+
   /verify:
     get:
       tags: [Verification]
@@ -1027,6 +1325,284 @@ paths:
                           message: { type: string }
         "400": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /family/beneficiaries:
+    get:
+      tags: [Family (diaspora)]
+      summary: Family members the caller looks after
+      description: Ghana Card numbers are masked (`ghana_card_masked`); `has_account` tells whether the beneficiary signed up with that phone.
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Family (diaspora)]
+      summary: Add a family member in Ghana
+      description: Phone must be a Ghana number (normalised to +233…). Consent starts `pending`; send a code next.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateBeneficiaryInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/beneficiaries/{id}:
+    get:
+      tags: [Family (diaspora)]
+      summary: One family member with their consent records
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    patch:
+      tags: [Family (diaspora)]
+      summary: Edit a family member (changing the phone resets consent)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateBeneficiaryInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /family/beneficiaries/{id}/consent:
+    post:
+      tags: [Family (diaspora)]
+      summary: Send a consent code (and signed link) to the beneficiary's phone
+      description: |
+        The 6-digit code goes to the **beneficiary** by SMS or WhatsApp together with a signed `/consent/{token}` link;
+        it is never returned to the sponsor. Codes last 15 minutes, links 7 days. Rate limited.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/RequestConsentInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "429": { $ref: "#/components/responses/Error" }
+  /family/beneficiaries/{id}/consent/confirm:
+    post:
+      tags: [Family (diaspora)]
+      summary: Confirm with the code the beneficiary read out
+      description: 5 attempts, then the code is locked until a new one is sent (`422 business_rule`).
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ConfirmConsentInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/dashboard:
+    get:
+      tags: [Family (diaspora)]
+      summary: Family dashboard
+      description: Beneficiaries (+ consents), sponsorships, policies paid for, next renewal, payment schedule (one-off payments and recurring sponsor subscriptions), claims and `summary`.
+      responses:
+        "200": { description: Dashboard, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/FamilyDashboard" } } }] } } } }
+  /family/sponsorships:
+    get:
+      tags: [Family (diaspora)]
+      summary: The caller's sponsorships
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Family (diaspora)]
+      summary: Link the payer to a beneficiary and a request or policy (optionally as a gift)
+      description: Needs the beneficiary's `data_sharing` consent. Becomes `active` once the policy exists. One sponsorship per policy.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateSponsorshipInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/sponsorships/{id}/reveal:
+    post:
+      tags: [Family (diaspora)]
+      summary: Open a gift (beneficiary's linked account)
+      description: Records `gift_revealed_at` and returns `gift_message`. The sponsor cannot call this.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /family/claims:
+    post:
+      tags: [Family (diaspora)]
+      summary: Report a claim on behalf of a beneficiary (claims by proxy)
+      description: Needs an active sponsorship and the beneficiary's `proxy_claims` consent; `422` otherwise. The claim stays the policyholder's (`reported_by_user_id` = sponsor). Reporting is not approval.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ProxyClaimInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /distribution/quotes:
+    post:
+      tags: [Distribution]
+      summary: Indicative estimates for a risk payload
+      description: "Scope `distribution:quote`. Prices the partial risk with every approved product in the category (insurer-approved rating rules). Nothing is stored or bound. `fields` lists the 3–5 inputs the widget asks for; `continueUrl` opens Covva with your referral code."
+      security: [{ apiKey: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DistributionQuoteInput" } } }
+      responses:
+        "200":
+          description: Estimates
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/DistributionQuoteResult" } } }] } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /distribution/leads:
+    post:
+      tags: [Distribution]
+      summary: Hand a consenting customer over to Covva
+      description: "Scope `distribution:lead`. Stores the lead with your consent record, opens an attribution (`source: api`) and sends the customer a link to continue on Covva by SMS and/or email. The customer signs up on Covva; you never collect payment."
+      security: [{ apiKey: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DistributionLeadInput" } } }
+      responses:
+        "201":
+          description: Lead created
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/DistributionLeadResult" } } }] } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /distribution/referrals:
+    get:
+      tags: [Distribution]
+      summary: Your referrals, conversions and revenue share
+      description: "Scope `distribution:read`. Customer details are limited to a first name and a masked phone."
+      security: [{ apiKey: [] }]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: Report
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/DistributionReferralReport" } } }] } } }
+        "403": { $ref: "#/components/responses/Error" }
+  /me/referrals:
+    get:
+      tags: [Referrals]
+      summary: My referral link, friends who joined (anonymous) and credits
+      description: "Credits are GHS credit units, not cash — redeemable only against Covva platform fees or an insurer-funded premium discount. `programmeActive` is false until the reward rule is approved and switched on."
+      responses:
+        "200":
+          description: Summary
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/MyReferrals" } } }] } } }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Referrals]
+      summary: Create (or return) my personal referral link
+      responses:
+        "200":
+          description: Summary (with the link)
+          content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/MyReferrals" } } }] } } }
+        "401": { $ref: "#/components/responses/Error" }
+
+  /business:
+    get:
+      tags: [Business accounts]
+      summary: My business accounts and my own workplace cover
+      description: "`accounts[]` (orgId, name, role, profile) plus `workplaceCover[]` — schemes the caller is a member of (linked automatically when they sign in with the census phone number)."
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Business accounts]
+      summary: Create a business account (the caller becomes its owner)
+      description: Up to 5 owned business accounts per user (`422` beyond).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/CreateBusinessInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "422": { $ref: "#/components/responses/Error" }
+  /business/{orgId}/dashboard:
+    get:
+      tags: [Business accounts]
+      summary: Business dashboard
+      description: Schemes, member / fleet / asset counts, renewals in the next 60 days, statements due, open requests and employee claim counts (counts only).
+      parameters: [{ $ref: "#/components/parameters/BusinessOrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /business/{orgId}/members:
+    get:
+      tags: [Business accounts]
+      summary: Schemes with census summaries (and members for owners/admins)
+      description: "`members` is `null` for finance and viewer roles — they see counts only."
+      parameters:
+        - { $ref: "#/components/parameters/BusinessOrgId" }
+        - { name: schemeId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Business accounts]
+      summary: Add a member to a scheme (owner/admin)
+      description: Phone is normalised to +233…; only the last 4 Ghana Card digits are stored. Dependants need `principal_member_id`.
+      parameters: [{ $ref: "#/components/parameters/BusinessOrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AddSchemeMemberInput" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /business/{orgId}/members/import:
+    post:
+      tags: [Business accounts]
+      summary: Upload a census CSV (preview or import)
+      description: |
+        `mode=preview` validates only and returns `{ valid, errors: [{ row, message }], preview[] }`; `mode=import` inserts the
+        valid rows (employees first, then dependants by `principal_ref`). Invalid rows are never partially imported. Columns:
+        employee_ref, full_name, date_of_birth, gender, phone, email, ghana_card, relationship, principal_ref, cover_tier, salary_band.
+      parameters: [{ $ref: "#/components/parameters/BusinessOrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ImportSchemeMembersInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+  /business/{orgId}/fleet:
+    get:
+      tags: [Business accounts]
+      summary: Active fleet vehicles
+      parameters: [{ $ref: "#/components/parameters/BusinessOrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+    post:
+      tags: [Business accounts]
+      summary: Add a vehicle, or upload a fleet CSV (`{ csv, mode }`)
+      description: Registrations are normalised (GR123423 → "GR 1234-23"); duplicates are row errors.
+      parameters: [{ $ref: "#/components/parameters/BusinessOrgId" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AddFleetInput" } } }
+      responses:
+        "200": { description: CSV preview / import report, content: { application/json: { schema: { $ref: "#/components/schemas/OkEnvelope" } } } }
+        "201": { $ref: "#/components/responses/Ok" }
+        "409": { $ref: "#/components/responses/Error" }
+  /business/{orgId}/invoices:
+    get:
+      tags: [Business accounts]
+      summary: Consolidated statements
+      description: "Each statement has `lines[]` ({ description, amount, insurer_org_id, insurer_name, basis, payment_id, payment_status }). Built on the 1st of each month for the previous month."
+      parameters: [{ $ref: "#/components/parameters/BusinessOrgId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+  /business/invoices/{id}/pay:
+    post:
+      tags: [Business accounts]
+      summary: Pay a statement — one payment per insurer line (owner/admin/finance)
+      description: |
+        Returns `results[]` per line: `status`, `paymentId`, `reference`, `authorizationUrl` (open it for card / hosted MoMo),
+        `message`. New cover goes through checkout; instalments through the insurer's schedule; premiums the insurer collects
+        directly come back as `not_collected`. Every payment settles to that insurer.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PayBusinessInvoiceInput" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
   /openapi:
     get:
       tags: [System]
@@ -1034,6 +1610,181 @@ paths:
       security: []
       responses:
         "200": { description: OpenAPI document, content: { application/yaml: { schema: { type: string } } } }
+
+  /policies/{id}/instalments:
+    get:
+      tags: [Instalments & micro cover]
+      summary: The policy's instalment schedule (null when paid in full)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: Schedule
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { type: object, properties: { schedule: { oneOf: [{ $ref: "#/components/schemas/InstalmentSchedule" }, { type: "null" }] } } } }
+        "404": { $ref: "#/components/responses/Error" }
+  /instalments/{id}/pay:
+    post:
+      tags: [Instalments & micro cover]
+      summary: Pay an instalment now (earlier unpaid instalments are included)
+      description: "`mobile_money` pushes a prompt the payer approves; `card` charges the saved card; `link` returns a hosted checkout URL. Lapsed schedules use the reinstate endpoint."
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PayInstalmentInput" } } } }
+      responses:
+        "200": { description: Collection started, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { $ref: "#/components/schemas/CollectResult" } } }] } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /instalments/schedules/{id}/reinstate:
+    post:
+      tags: [Instalments & micro cover]
+      summary: Reinstate a lapsed schedule by paying the arrears (within the insurer's window)
+      description: When the plan requires it, the insurer reviews the reinstatement after the arrears are paid (`requiresReview`); a declined reinstatement is refunded.
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PayInstalmentInput" } } } }
+      responses:
+        "200": { description: Collection started, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { allOf: [{ $ref: "#/components/schemas/CollectResult" }, { properties: { requiresReview: { type: boolean } } }] } } }] } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /micro/products:
+    get:
+      tags: [Instalments & micro cover]
+      summary: Published micro products with "from GH₵ X/day" prices (no auth)
+      security: []
+      parameters:
+        - { name: audience, in: query, required: false, schema: { type: string, enum: [okada, trotro, ride_hailing, trader, artisan, event] } }
+      responses:
+        "200": { description: Products, content: { application/json: { schema: { allOf: [{ $ref: "#/components/schemas/OkEnvelope" }, { properties: { data: { type: object, properties: { items: { type: array, items: { $ref: "#/components/schemas/MicroProduct" } } } } } }] } } } }
+  /micro/buy:
+    post:
+      tags: [Instalments & micro cover]
+      summary: One-step micro purchase (request + quote + application + payment)
+      description: |
+        Instant (delegated L2) products are sold insurer-direct: the response has `mode: instant` and the payment
+        (MoMo prompt to approve, or `authorizationUrl` for card). Other products return `mode: routed` with the
+        request a broker / the insurer quotes.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/MicroBuyInput" } } } }
+      responses:
+        "201": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /micro/{policyId}/renew:
+    post:
+      tags: [Instalments & micro cover]
+      summary: One-tap renewal; the next window starts when the current one ends
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/MicroRenewInput" } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /micro/{policyId}:
+    patch:
+      tags: [Instalments & micro cover]
+      summary: Turn auto-renew on or off
+      parameters: [{ name: policyId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [autoRenew], properties: { autoRenew: { type: boolean } } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /i18n/{locale}:
+    get:
+      tags: [Localisation]
+      summary: Approved UI translations for a locale (public, cached)
+      description: |
+        The merged, human-approved catalogue for `en`, `tw` (Twi), `gaa` (Ga) or `ee` (Ewe); aliases such as `ga`, `twi`
+        and `en-GH` are accepted. `messages` holds only the translated keys — clients bundle the English source
+        catalogue and fall back to it for every missing key (`fallback: "en"`). `status` is measured from what is
+        approved: `planned` (nothing yet), `partial`, `complete`. Nothing is machine-translated. Cached for up to an hour;
+        re-fetch on app start or when the user changes language.
+      security: []
+      parameters: [{ name: locale, in: path, required: true, schema: { type: string, examples: [tw, gaa, ee, en] } }]
+      responses:
+        "200":
+          description: Catalogue
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { $ref: "#/components/schemas/LocaleCatalogue" } }
+        "404": { $ref: "#/components/responses/Error" }
+  /me/locale:
+    put:
+      tags: [Localisation]
+      summary: Save the signed-in user's preferred language (profiles.locale)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [locale], properties: { locale: { type: string, examples: [tw] } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+  /voice-notes:
+    post:
+      tags: [Voice notes]
+      summary: Upload a voice note (≤ 120 s, ≤ 10 MB) for quote help, a claim description or support
+      description: |
+        `multipart/form-data` with a `file` field, or JSON with `audioBase64` + `mimeType` (mobile). Accepted audio:
+        webm, ogg, mpeg (mp3), mp4/m4a, aac, wav. The transcript is produced asynchronously — poll
+        `GET /voice-notes/{id}` until `transcriptStatus` is `done` or `failed`. Show it to the user labelled
+        "Automatic transcript — please check", let them edit it, and only then copy it into the claim/request text.
+        Never submit a transcript automatically. Twi, Ga and Ewe accuracy is limited.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, purpose]
+              properties:
+                file: { type: string, format: binary }
+                purpose: { type: string, enum: [quote_help, claim_description, support] }
+                durationSeconds: { type: number, maximum: 130 }
+                languageHint: { type: string, enum: [en, tw, gaa, ee] }
+                requestId: { type: string, format: uuid }
+                claimId: { type: string, format: uuid }
+          application/json: { schema: { $ref: "#/components/schemas/VoiceNoteUploadJson" } }
+      responses:
+        "201":
+          description: Saved; transcript pending
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { type: object, properties: { voiceNote: { $ref: "#/components/schemas/VoiceNote" } } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+  /voice-notes/{id}:
+    get:
+      tags: [Voice notes]
+      summary: A voice note's status, transcript and a 10-minute audio link (owner, linked parties, staff)
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200":
+          description: Voice note
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/OkEnvelope"
+                  - properties: { data: { type: object, properties: { voiceNote: { $ref: "#/components/schemas/VoiceNote" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Voice notes]
+      summary: The owner corrects the transcript
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [transcript], properties: { transcript: { type: string, maxLength: 10000 } } } } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "404": { $ref: "#/components/responses/Error" }
 
 webhooks:
   request.created:
@@ -1090,6 +1841,18 @@ webhooks:
       summary: A complaint owned by your organisation was filed
       requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
       responses: { "2xx": { description: Acknowledged } }
+  referral.converted:
+    post:
+      tags: [Webhooks]
+      summary: A customer you referred now has an active policy (distribution partners)
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
+  referral.rewarded:
+    post:
+      tags: [Webhooks]
+      summary: Revenue share (from Covva's platform fee) accrued for a converted referral
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/WebhookEnvelope" } } } }
+      responses: { "2xx": { description: Acknowledged } }
   test.ping:
     post:
       tags: [Webhooks]
@@ -1117,6 +1880,7 @@ components:
       description: Which client is calling. Missing = `web`. Insurer and staff accounts are refused on `mobile`.
       schema: { type: string, enum: [mobile, web, partner-web], default: web }
     Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    BusinessOrgId: { name: orgId, in: path, required: true, description: Business account (enterprise organisation) id, schema: { type: string, format: uuid } }
     Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
     Before: { name: before, in: query, description: Cursor (ISO timestamp from `nextCursor`), schema: { type: string, format: date-time } }
     OrgId: { name: orgId, in: query, required: false, description: "Organisation to act for when the user belongs to several (also accepted as the `X-Covva-Org` header). Defaults to the stored active workspace or the only partner membership.", schema: { type: string, format: uuid } }
@@ -1566,9 +2330,14 @@ components:
         policyId: { type: string, format: uuid }
         incidentType: { type: string, example: Accident }
         incidentAt: { type: string, format: date-time }
-        location: { type: string, maxLength: 300 }
+        location:
+          description: Free text, or the phone's location
+          oneOf:
+            - { type: string, maxLength: 300 }
+            - { type: object, properties: { lat: { type: number }, lng: { type: number }, accuracy: { type: number }, address: { type: string, maxLength: 300 } } }
         description: { type: string, minLength: 10, maxLength: 5000 }
         amountClaimed: { type: number }
+        policeReportDocumentId: { type: string, format: uuid, description: A police report already uploaded with POST /documents }
     FileComplaintInput:
       type: object
       required: [subject, description, category]
@@ -1837,3 +2606,530 @@ components:
         address: { type: [string, "null"], maxLength: 400 }
         region: { type: [string, "null"], maxLength: 100 }
         description: { type: [string, "null"], maxLength: 2000 }
+    ClaimMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 4000 }
+        attachments: { type: array, maxItems: 10, items: { type: object, required: [name], properties: { documentId: { type: string, format: uuid }, storagePath: { type: string }, name: { type: string, maxLength: 200 } } } }
+        internal: { type: boolean, default: false, description: Partner/staff-only note; rejected for customers }
+    ClaimInfoRequestInput:
+      type: object
+      required: [message]
+      properties:
+        kind: { type: string, enum: [document, information, inspection], default: document }
+        requestedParty: { type: string, enum: [customer, broker], default: customer }
+        message: { type: string, minLength: 3, maxLength: 2000 }
+        dueAt: { type: string, format: date-time }
+        setStatus: { type: boolean, default: false, description: Insurers only — also move the claim to info_requested }
+    FulfilInfoRequestInput:
+      type: object
+      description: Give a documentId, a response, or both.
+      properties:
+        documentId: { type: string, format: uuid }
+        response: { type: string, maxLength: 2000 }
+    ClaimVideoUploadInput:
+      type: object
+      required: [fileName, mimeType, content]
+      properties:
+        fileName: { type: string, maxLength: 200 }
+        mimeType: { type: string, enum: [video/mp4, video/webm, video/quicktime] }
+        durationSeconds: { type: integer, minimum: 0, description: Measured on the device; max 90 }
+        content: { type: string, description: Base64 (plain or data URL); max 50 MB decoded }
+        caption: { type: string, maxLength: 300 }
+    ClaimJobInput:
+      type: object
+      required: [servicePartnerId]
+      properties:
+        servicePartnerId: { type: string, format: uuid }
+        kind: { type: string, enum: [repair, towing, treatment, assessment, replacement, other], default: repair }
+        directBilling: { type: boolean, default: false }
+        estimate: { type: number, minimum: 0 }
+        scheduledFor: { type: string, format: date-time }
+        notes: { type: string, maxLength: 2000 }
+    UpdateClaimJobInput:
+      type: object
+      required: [jobId]
+      properties:
+        jobId: { type: string, format: uuid }
+        status: { type: string, enum: [requested, accepted, in_progress, completed, cancelled] }
+        estimate: { type: number, minimum: 0 }
+        invoiceDocumentId: { type: string, format: uuid }
+        scheduledFor: { type: [string, "null"], format: date-time }
+        directBilling: { type: boolean }
+        notes: { type: string, maxLength: 2000 }
+    CreateBeneficiaryInput:
+      type: object
+      required: [fullName, relationship, phone]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120 }
+        relationship: { type: string, enum: [parent, spouse, child, sibling, other] }
+        phone: { type: string, description: "Ghana mobile number (024 123 4567 / +233…); stored as +233XXXXXXXXX" }
+        email: { type: string, format: email }
+        dateOfBirth: { type: string, format: date }
+        ghanaCardNumber: { type: string, description: "GHA-123456789-0; masked in every response" }
+        address: { type: string, maxLength: 300 }
+        region: { type: string, maxLength: 60 }
+        notes: { type: string, maxLength: 1000 }
+    UpdateBeneficiaryInput:
+      allOf: [{ $ref: "#/components/schemas/CreateBeneficiaryInput" }]
+      required: []
+      minProperties: 1
+    Beneficiary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        relationship: { type: string, enum: [parent, spouse, child, sibling, other] }
+        phone: { type: string }
+        email: { type: [string, "null"] }
+        date_of_birth: { type: [string, "null"], format: date }
+        ghana_card_masked: { type: [string, "null"], example: "GHA-•••••6789-0" }
+        region: { type: [string, "null"] }
+        linked_user_id: { type: [string, "null"], format: uuid }
+        has_account: { type: boolean }
+        consent_status: { type: string, enum: [pending, granted, declined, expired] }
+        consent_channel: { type: [string, "null"], enum: [sms, whatsapp, null] }
+        consent_sent_at: { type: [string, "null"], format: date-time }
+        consent_granted_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    RequestConsentInput:
+      type: object
+      properties:
+        kind: { type: string, enum: [data_sharing, proxy_claims, policy_purchase], default: data_sharing }
+        channel: { type: string, enum: [sms, whatsapp], default: sms }
+    ConfirmConsentInput:
+      type: object
+      required: [code]
+      properties:
+        kind: { type: string, enum: [data_sharing, proxy_claims, policy_purchase], default: data_sharing }
+        code: { type: string, pattern: "^\\d{6}$" }
+    CreateSponsorshipInput:
+      type: object
+      required: [beneficiaryId]
+      properties:
+        beneficiaryId: { type: string, format: uuid }
+        requestId: { type: string, format: uuid, description: One of requestId / policyId is required }
+        policyId: { type: string, format: uuid }
+        gift: { type: boolean, default: false }
+        giftMessage: { type: string, maxLength: 500 }
+        notifyBeneficiary: { type: boolean, default: true, description: Send the beneficiary documents, reminders and claim updates too }
+    Sponsorship:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        sponsor_user_id: { type: string, format: uuid }
+        beneficiary_id: { type: string, format: uuid }
+        request_id: { type: [string, "null"], format: uuid }
+        policy_id: { type: [string, "null"], format: uuid }
+        status: { type: string, enum: [draft, active, ended] }
+        gift: { type: boolean }
+        gift_message: { type: [string, "null"] }
+        gift_revealed_at: { type: [string, "null"], format: date-time }
+        notify_beneficiary: { type: boolean }
+        started_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    ProxyClaimInput:
+      allOf: [{ $ref: "#/components/schemas/ReportClaimInput" }]
+      properties:
+        evidence:
+          type: array
+          maxItems: 20
+          description: Files already uploaded under the sponsor's folder (§7 upload flow)
+          items: { type: object, required: [path, name], properties: { path: { type: string }, name: { type: string }, mime: { type: string }, size: { type: integer } } }
+    FamilyDashboard:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            activePolicies: { type: integer }
+            pendingPolicies: { type: integer }
+            nextRenewal: { type: [object, "null"], properties: { policyId: { type: string, format: uuid }, coverEnd: { type: string, format: date }, days: { type: integer } } }
+            nextPaymentDue: { type: [object, "null"], properties: { paymentId: { type: string }, dueAt: { type: string }, amount: { type: [number, "null"] }, currency: { type: [string, "null"] } } }
+            openClaims: { type: integer }
+            annualPremiumGHS: { type: number }
+            coverGaps: { type: array, items: { type: object, properties: { beneficiaryId: { type: string, format: uuid }, name: { type: string }, reason: { type: string, enum: [no_cover, consent_pending, consent_declined] } } } }
+        beneficiaries: { type: array, items: { allOf: [{ $ref: "#/components/schemas/Beneficiary" }, { properties: { consents: { type: array, items: { type: object, properties: { kind: { type: string }, granted: { type: boolean }, granted_at: { type: [string, "null"] }, declined_at: { type: [string, "null"] }, expires_at: { type: [string, "null"] }, requested_at: { type: [string, "null"] }, locked_at: { type: [string, "null"] } } } } } }] } }
+        sponsorships: { type: array, items: { $ref: "#/components/schemas/Sponsorship" } }
+        policies: { type: array, items: { type: object, description: "policies row (lite) + category + insurer, with sponsor_user_id / beneficiary_id" } }
+        claims: { type: array, items: { type: object, description: "claims row (lite) with reported_by_user_id" } }
+        payments: { type: array, items: { type: object, description: "payments row (lite)" } }
+        subscriptions: { type: array, items: { type: object, description: "sponsor_subscriptions row (lite): status, cadence, display_amount, display_currency, ghs_amount, next_charge_at" } }
+    # --- Diaspora payments ---------------------------------------------------------
+    FxRates:
+      type: object
+      properties:
+        base: { type: string, enum: [GHS] }
+        currencies: { type: array, items: { type: string } }
+        marginPct: { type: number, description: "Platform display buffer (% of the rate) added to the indicative foreign amount; shown to the payer, never collected by Covva" }
+        rates:
+          type: object
+          additionalProperties:
+            type: [object, "null"]
+            properties:
+              rate: { type: number, description: GHS per 1 unit }
+              source: { type: string, enum: [manual, openexchangerates, bog, provider] }
+              fetchedAt: { type: string, format: date-time }
+              validUntil: { type: [string, "null"], format: date-time }
+              manual: { type: boolean, description: Flag the rate as a manual/indicative override in the UI }
+        selected: { type: [object, "null"], properties: { currency: { type: string }, rate: { type: number }, source: { type: string }, fetchedAt: { type: string }, disclosure: { type: string } } }
+        quote: { type: [object, "null"], $ref: "#/components/schemas/FxQuote" }
+        indicative: { type: boolean }
+        note: { type: string }
+    FxQuote:
+      type: object
+      description: Indicative display of a GHS amount. `ghsAmount` is the contract amount the insurer receives.
+      properties:
+        displayCurrency: { type: string, enum: [GHS, GBP, USD, EUR, CAD] }
+        ghsAmount: { type: number }
+        displayAmount: { type: number }
+        rate: { type: number, description: GHS per 1 unit after the margin }
+        baseRate: { type: number }
+        marginPct: { type: number }
+        source: { type: string }
+        quotedAt: { type: string, format: date-time }
+        indicative: { type: boolean }
+        disclosure: { type: string, description: "Plain-language FX disclosure to show next to the price" }
+    PaymentMethod:
+      type: object
+      description: Saved card by PSP token (never a PAN).
+      properties:
+        id: { type: string, format: uuid }
+        psp: { type: string, enum: [paystack_intl, stripe, paystack, simulator] }
+        brand: { type: [string, "null"] }
+        last4: { type: [string, "null"] }
+        exp_month: { type: [integer, "null"] }
+        exp_year: { type: [integer, "null"] }
+        billing_country: { type: [string, "null"] }
+        currency: { type: [string, "null"] }
+        is_default: { type: boolean }
+        status: { type: string, enum: [active, expired, revoked] }
+        created_at: { type: string, format: date-time }
+    SponsorSubscription:
+      type: object
+      description: "sponsor_subscriptions row (public columns) plus `summary` from @im/core subscriptionSummary()."
+      properties:
+        id: { type: string, format: uuid }
+        policy_id: { type: [string, "null"], format: uuid }
+        beneficiary_id: { type: [string, "null"], format: uuid }
+        cadence: { type: string, enum: [monthly, quarterly, annual] }
+        display_currency: { type: string }
+        display_amount: { type: number, description: Indicative amount in display_currency }
+        ghs_amount: { type: number, description: Contract amount collected for the insurer per charge }
+        fx_rate: { type: [number, "null"] }
+        fx_source: { type: [string, "null"] }
+        payment_method_id: { type: [string, "null"], format: uuid }
+        psp: { type: string }
+        status: { type: string, enum: [active, past_due, paused, cancelled] }
+        next_charge_at: { type: string, format: date-time }
+        last_charged_at: { type: [string, "null"], format: date-time }
+        past_due_since: { type: [string, "null"], format: date-time }
+        failures: { type: integer, description: "Consecutive failed collections (retries 1d, 3d, 7d, then past_due)" }
+        summary:
+          type: object
+          properties:
+            cadenceLabel: { type: string }
+            statusLabel: { type: string }
+            tone: { type: string, enum: [ok, danger, wait, neutral] }
+            hint: { type: string }
+            amountLabel: { type: string }
+            nextChargeLabel: { type: string }
+            failures: { type: integer }
+            daysToNext: { type: [integer, "null"] }
+    CreateSubscriptionInput:
+      type: object
+      properties:
+        policyId: { type: string, format: uuid }
+        applicationId: { type: string, format: uuid, description: "Alternative to policyId: the paid application whose policy the subscription continues" }
+        cadence: { type: string, enum: [monthly, quarterly, annual], default: monthly }
+        displayCurrency: { type: string, enum: [GHS, GBP, USD, EUR, CAD], default: GHS }
+        paymentMethodId: { type: string, format: uuid, description: Defaults to the sponsor's default saved method }
+        beneficiaryId: { type: string, format: uuid }
+    PropertyUpdateInput:
+      type: object
+      required: [storagePath]
+      properties:
+        storagePath: { type: string, description: "Path returned by POST /documents/upload-url (must be in the caller's own folder)" }
+        caption: { type: string, maxLength: 500 }
+        takenAt: { type: string, format: date-time }
+    RequestInspectionInput:
+      type: object
+      required: [address]
+      properties:
+        address: { type: string, minLength: 5, maxLength: 500 }
+        gps: { type: object, properties: { lat: { type: number }, lng: { type: number } } }
+        notes: { type: string, maxLength: 2000 }
+
+    DistributionQuoteInput:
+      type: object
+      required: [categorySlug]
+      properties:
+        categorySlug: { type: string, example: motor }
+        risk: { type: object, additionalProperties: true, example: { cover_type: comprehensive, vehicle_value: 120000, use: private, vehicle_year: 2019, driver_age: 35 } }
+    DistributionQuoteResult:
+      type: object
+      properties:
+        category: { type: object, properties: { slug: { type: string }, name: { type: string } } }
+        estimates: { type: array, items: { type: object, properties: { insurerName: { type: string }, productName: { type: string }, premium: { type: number, description: Indicative annual premium (GHS) } } } }
+        range: { type: [object, "null"], properties: { min: { type: number }, max: { type: number } } }
+        insurersCompared: { type: integer }
+        fields: { type: array, items: { type: object }, description: "The 3–5 rating inputs to ask for (risk_schema subset)" }
+        continueUrl: { type: [string, "null"], format: uri }
+        disclosure: { type: string }
+        note: { type: string }
+    DistributionLeadInput:
+      type: object
+      required: [categorySlug, customer, consent]
+      properties:
+        categorySlug: { type: string }
+        customer:
+          type: object
+          required: [name]
+          description: Phone or email is required.
+          properties:
+            name: { type: string }
+            phone: { type: string, example: "+233241234567" }
+            email: { type: string, format: email }
+        risk: { type: object, additionalProperties: true }
+        consent:
+          type: object
+          required: [contact, capturedAt]
+          properties:
+            contact: { type: boolean, const: true, description: The customer agreed to be contacted by Covva about this cover }
+            capturedAt: { type: string, format: date-time }
+            method: { type: string, enum: [web_form, in_person, phone, app], default: web_form }
+        code: { type: string, description: "One of your campaign codes (defaults to your widget code)" }
+        externalRef: { type: string, maxLength: 100 }
+        sendLink: { type: string, enum: [sms, email, both, none], default: sms }
+    DistributionLeadResult:
+      type: object
+      properties:
+        leadId: { type: string, format: uuid }
+        attributionId: { type: string, format: uuid }
+        code: { type: string }
+        continueUrl: { type: string, format: uri }
+        sent: { type: array, items: { type: string, enum: [sms, email] } }
+        disclosure: { type: string }
+    DistributionReferralReport:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              attribution_id: { type: string, format: uuid }
+              code: { type: string }
+              campaign: { type: [string, "null"] }
+              source: { type: string, enum: [link, widget, api] }
+              created_at: { type: string, format: date-time }
+              converted_at: { type: [string, "null"], format: date-time }
+              request_reference: { type: [string, "null"] }
+              category_slug: { type: [string, "null"] }
+              request_status: { type: [string, "null"] }
+              policy_status: { type: [string, "null"] }
+              customer_first_name: { type: [string, "null"] }
+              customer_phone_masked: { type: [string, "null"], example: "+233*******67" }
+              revenue_share: { type: number }
+        totals: { type: object, properties: { referrals: { type: integer }, conversions: { type: integer }, revenueShare: { type: number }, currency: { type: string } } }
+        note: { type: string }
+    MyReferrals:
+      type: object
+      properties:
+        link: { type: [object, "null"], properties: { code: { type: string }, url: { type: string, format: uri }, landing_path: { type: string } } }
+        friends: { type: array, items: { type: object, properties: { attribution_id: { type: string }, joined_at: { type: string, format: date-time }, converted_at: { type: [string, "null"] }, rewarded: { type: boolean } } } }
+        credits: { type: array, items: { type: object, properties: { kind: { type: string }, amount: { type: number }, expires_at: { type: [string, "null"] }, created_at: { type: string } } } }
+        balance: { type: number }
+        currency: { type: string }
+        programmeActive: { type: boolean }
+        note: { type: string }
+    Momo:
+      type: object
+      required: [phone, network]
+      properties:
+        phone: { type: string, example: "0241234567" }
+        network: { type: string, enum: [mtn, vod, atl], description: "mtn = MTN MoMo, vod = Telecel Cash, atl = AirtelTigo Money" }
+    PayInstalmentInput:
+      type: object
+      properties:
+        channel: { type: string, enum: [mobile_money, card, link], default: mobile_money }
+        momo: { $ref: "#/components/schemas/Momo" }
+        paymentMethodId: { type: string, format: uuid }
+    CollectResult:
+      type: object
+      properties:
+        paymentId: { type: [string, "null"] }
+        reference: { type: [string, "null"] }
+        status: { type: string, enum: [pending, processing, succeeded, failed, abandoned, link_sent] }
+        authorizationUrl: { type: [string, "null"], format: uri }
+        displayText: { type: [string, "null"] }
+        amount: { type: number, description: GHS paid to the insurer }
+    InstalmentSchedule:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        policyId: { type: string, format: uuid }
+        planKey: { type: string, enum: [monthly, quarterly] }
+        status: { type: string, enum: [active, grace, lapsed, completed, cancelled, reinstated] }
+        currency: { type: string, enum: [GHS] }
+        totalAmount: { type: number }
+        instalmentCount: { type: integer }
+        channel: { type: string, enum: [mobile_money, card] }
+        momoNetwork: { type: [string, "null"] }
+        momoPhone: { type: [string, "null"], description: Masked, e.g. 024•••4567 }
+        reinstatementReview: { type: [string, "null"], enum: [pending, approved, declined, null] }
+        summary: { type: string, example: "Instalments: 3 of 12 paid · next GH₵ 85.00 on 5 Dec 2026" }
+        rules: { type: array, items: { type: string }, description: "The insurer's grace / lapse / reinstatement rules in plain words" }
+        state:
+          type: object
+          properties:
+            state: { type: string, enum: [current, due, grace, overdue, lapsed, completed, cancelled] }
+            paidCount: { type: integer }
+            count: { type: integer }
+            arrears: { type: number }
+            outstanding: { type: number }
+            next: { type: [object, "null"], properties: { seq: { type: integer }, dueAt: { type: string, format: date-time }, amount: { type: number } } }
+            graceUntil: { type: [string, "null"], format: date-time }
+            lapseAt: { type: [string, "null"], format: date-time }
+        reinstatement: { type: object, properties: { allowed: { type: boolean }, requiresReview: { type: boolean }, deadline: { type: [string, "null"] }, reason: { type: string } } }
+        instalments:
+          type: array
+          items: { type: object, properties: { id: { type: string }, seq: { type: integer }, dueAt: { type: string, format: date-time }, amount: { type: number }, status: { type: string, enum: [due, paid, failed, waived, cancelled] }, attempts: { type: integer }, paidAt: { type: [string, "null"] } } }
+    MicroProduct:
+      type: object
+      properties:
+        versionId: { type: string, format: uuid }
+        productName: { type: string }
+        insurerName: { type: string }
+        periods: { type: array, items: { type: string, enum: [day, week, month, quarter, year] } }
+        byPeriod: { type: object, additionalProperties: { type: number }, description: GHS per period }
+        from: { type: object, properties: { period: { type: string }, amount: { type: number } } }
+        fromLabel: { type: string, example: "from GH₵ 2.50/day" }
+        audienceTags: { type: array, items: { type: string, enum: [okada, trotro, ride_hailing, trader, artisan, event] } }
+    MicroBuyInput:
+      type: object
+      required: [productVersionId, period]
+      properties:
+        productVersionId: { type: string, format: uuid }
+        period: { type: string, enum: [day, week, month] }
+        channel: { type: string, enum: [app, whatsapp, ussd, web], default: app }
+        payment: { type: string, enum: [mobile_money, card], default: mobile_money }
+        momo: { $ref: "#/components/schemas/Momo" }
+        autoRenew: { type: boolean, default: false }
+        risk: { type: object, additionalProperties: true }
+    MicroRenewInput:
+      type: object
+      properties:
+        period: { type: string, enum: [day, week, month] }
+        channel: { type: string, enum: [mobile_money, card, link], default: mobile_money }
+        momo: { $ref: "#/components/schemas/Momo" }
+        paymentMethodId: { type: string, format: uuid }
+    CreateBusinessInput:
+      type: object
+      required: [name, industry, employees, billing_email, billing_contact]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        legal_name: { type: string, maxLength: 160 }
+        industry: { type: string, minLength: 2, maxLength: 120 }
+        employees: { type: integer, minimum: 0 }
+        tin: { type: string, maxLength: 40, description: Ghana Revenue Authority TIN }
+        registration_number: { type: string, maxLength: 60 }
+        billing_email: { type: string, format: email }
+        billing_contact: { type: string, maxLength: 120 }
+        phone: { type: string, maxLength: 20 }
+        region: { type: string, maxLength: 60 }
+        address: { type: string, maxLength: 300 }
+    AddSchemeMemberInput:
+      type: object
+      required: [schemeId, full_name]
+      properties:
+        schemeId: { type: string, format: uuid }
+        full_name: { type: string, minLength: 2, maxLength: 160 }
+        employee_ref: { type: string, maxLength: 60 }
+        date_of_birth: { type: string, format: date }
+        gender: { type: string, enum: [female, male, other] }
+        phone: { type: string, description: Ghana mobile; the member links their own account by signing in with it }
+        email: { type: string, format: email }
+        ghana_card: { type: string, description: Only the last 4 digits are stored }
+        relationship: { type: string, enum: [employee, spouse, child, parent], default: employee }
+        principal_member_id: { type: string, format: uuid, description: Required for dependants }
+        cover_tier: { type: string, maxLength: 60 }
+        salary_band: { type: string, maxLength: 60, description: Drives group life cover multiples }
+    ImportSchemeMembersInput:
+      type: object
+      required: [schemeId, csv]
+      properties:
+        schemeId: { type: string, format: uuid }
+        csv: { type: string, maxLength: 921600, description: CSV text (header row + rows) }
+        mode: { type: string, enum: [preview, import], default: preview }
+    AddFleetInput:
+      oneOf:
+        - type: object
+          required: [registration]
+          properties:
+            registration: { type: string, maxLength: 20 }
+            make: { type: string }
+            model: { type: string }
+            year: { type: integer, minimum: 1950 }
+            value: { type: number, minimum: 0, description: GH₵ }
+            use: { type: string, enum: [private, commercial, hire], default: private }
+            driver_name: { type: string }
+        - type: object
+          required: [csv]
+          properties:
+            csv: { type: string, maxLength: 921600, description: "Columns: registration, make, model, year, value, use, driver_name" }
+            mode: { type: string, enum: [preview, import], default: preview }
+    PayBusinessInvoiceInput:
+      type: object
+      required: [channel]
+      properties:
+        channel: { type: string, enum: [mobile_money, card, bank_transfer] }
+        momo:
+          type: object
+          required: [phone, provider]
+          properties:
+            phone: { type: string }
+            provider: { type: string, enum: [mtn, vod, atl] }
+        insurerOrgId: { type: string, format: uuid, description: Pay only this insurer's lines }
+        callbackUrl: { type: string, format: uri }
+    LocaleCatalogue:
+      type: object
+      properties:
+        locale: { type: string, enum: [en, tw, gaa, ee] }
+        status: { type: string, enum: [planned, partial, complete] }
+        coverage: { type: object, properties: { total: { type: integer }, translated: { type: integer }, pct: { type: number } } }
+        messages: { type: object, additionalProperties: { type: string }, description: Approved strings by key (English keys absent = use English) }
+        label: { type: string, examples: [Twi] }
+        native: { type: string, examples: [Twi] }
+        htmlLang: { type: string, examples: [tw] }
+        fallback: { type: string, const: en }
+    VoiceNoteUploadJson:
+      type: object
+      required: [audioBase64, mimeType, purpose]
+      properties:
+        audioBase64: { type: string, description: Base64 audio (a data URL prefix is accepted) }
+        mimeType: { type: string, examples: [audio/mp4, audio/webm] }
+        purpose: { type: string, enum: [quote_help, claim_description, support] }
+        durationSeconds: { type: number, maximum: 130 }
+        languageHint: { type: string, enum: [en, tw, gaa, ee] }
+        requestId: { type: string, format: uuid }
+        claimId: { type: string, format: uuid }
+    VoiceNote:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        purpose: { type: string, enum: [quote_help, claim_description, support] }
+        requestId: { type: [string, "null"], format: uuid }
+        claimId: { type: [string, "null"], format: uuid }
+        durationSeconds: { type: [integer, "null"] }
+        languageHint: { type: [string, "null"] }
+        transcriptStatus: { type: string, enum: [pending, done, failed] }
+        transcript: { type: [string, "null"] }
+        transcriptLanguage: { type: [string, "null"] }
+        transcriptLabel: { type: string, const: "Automatic transcript — please check" }
+        lowerAccuracy: { type: boolean, description: True for Twi/Ga/Ewe — show "please check carefully" }
+        failureReason: { type: [string, "null"], examples: [transcription_disabled, provider_error] }
+        editedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        audioUrl: { type: [string, "null"], format: uri, description: Signed link (10 minutes); GET only }

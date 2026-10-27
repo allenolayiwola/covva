@@ -78,6 +78,7 @@ async function Service() {
                     </summary>
                     <div className="space-y-3 border-t border-line px-4 py-3 text-sm">
                       {c.decision_note && <p className="text-ink-2"><span className="font-medium">Insurer decision:</span> {c.decision_note}{c.decision_amount ? ` (${formatGHS(Number(c.decision_amount))})` : ""}</p>}
+                      <p><Link href={`/partner/claims/${c.id}`} className="font-medium text-brand hover:underline">Open claim workspace</Link> <span className="text-xs text-muted">· thread, information requests, repairs and services</span></p>
                       {closed ? <p className="text-muted">This claim is {CLAIM_STATUS[c.status].label.toLowerCase()}.</p> : !canWork ? null : (
                         <div className="flex flex-wrap items-start gap-3">
                           {c.status === "reported" && (

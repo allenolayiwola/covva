@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
+import { siteUrl } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -13,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/account", "/partner$", "/partner/", "/api/", "/sign-in", "/sign-up"],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
-    host: siteUrl,
+    sitemap: `${siteUrl()}/sitemap.xml`,
+    host: siteUrl(),
   };
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Server-side environment helpers. Read at call time (not module load) so runtime env is used. */
-export const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+export { siteUrl } from "@/lib/site-url";
 
 /** Sandbox payment simulator: never in production unless explicitly enabled for a staging deploy. */
 export const simulatorEnabled = () =>
@@ -33,3 +33,9 @@ export function secretMatches(provided: string | null | undefined, expected: str
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/** Diaspora card PSP: Paystack international cards settle GHS to the insurer (default); Stripe is OFF pending a legal view. */
+export const diasporaPsp = (): "paystack_intl" | "stripe" => (process.env.DIASPORA_PSP?.toLowerCase() === "stripe" ? "stripe" : "paystack_intl");
+
+/** Apple Pay / Google Pay through Paystack's hosted checkout channels (enable on the Paystack business first). */
+export const applePayEnabled = () => process.env.PAYSTACK_APPLE_PAY === "true";

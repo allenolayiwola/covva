@@ -18,14 +18,17 @@
   :focus-visible {
     outline-color: var(--color-brand);
   }
-  /* Brand guide: display & headings in Outfit (300–400); body in Inter (300–500). */
+  /* Type: Plus Jakarta Sans throughout; headings SemiBold (600), body Regular (400). */
   h1, h2 {
     font-family: var(--font-display);
-    font-weight: 400 !important;
+    font-weight: 600 !important;
     letter-spacing: -0.015em;
   }
   h3, h4 {
     letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
   }
   /* Icons: 1.75px rounded strokes on a 24 grid (lucide). */
   svg.lucide {
@@ -41,4 +44,64 @@
 
 @utility text-balance {
   text-wrap: balance;
+}
+
+/* Type scale (desktop / phone): h1 64/40, h2 48/32, h3 36/26, h4 28/22; body 18/16/14. */
+@utility text-h1 {
+  font-size: 40px;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  @media (width >= 64rem) { font-size: 64px; line-height: 1.02; letter-spacing: -0.035em; }
+}
+@utility text-h2 {
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  @media (width >= 64rem) { font-size: 48px; line-height: 1.06; }
+}
+@utility text-h3 {
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 36px; line-height: 1.12; }
+}
+@utility text-h4 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  @media (width >= 64rem) { font-size: 28px; }
+}
+@utility text-lead {
+  font-size: 16px;
+  line-height: 1.6;
+  @media (width >= 64rem) { font-size: 18px; }
+}
+
+/*
+ * Floating launchers (WhatsApp bottom-right, chat bottom-left) stay clear of the cookie bar (a bottom-left pill on
+ * desktop, a full-width bar on phones) and of the sticky Back/Continue bar on flow pages. Order matters: later
+ * rules override earlier ones for the same element.
+ */
+body:has([data-consent-banner]) [data-chat-launcher] {
+  bottom: 5.5rem;
+}
+@media (width < 40rem) {
+  body:has([data-consent-banner]) [data-whatsapp],
+  body:has([data-consent-banner]) [data-chat-launcher] {
+    bottom: 7.5rem;
+  }
+}
+body:has([data-sticky-bar]) [data-consent-banner],
+body:has([data-sticky-bar]) [data-whatsapp],
+body:has([data-sticky-bar]) [data-chat-launcher] {
+  bottom: 5.25rem;
+}
+body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
+  bottom: 9.75rem;
+}
+@media (width < 40rem) {
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp],
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
+    bottom: 12.5rem;
+  }
 }

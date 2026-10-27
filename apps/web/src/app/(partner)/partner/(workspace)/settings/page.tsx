@@ -4,7 +4,7 @@ import { Checkbox, DemoBadge, Field, Input, Notice, PageHeader, Pill, Select, Ta
 import { GHANA_REGIONS, formatDate, formatDateTime, formatGHS, humanize, roleLabel as partnerRoleLabel, rolesFor, type MemberRole, type PartnerKind } from "@im/core";
 import { can, getPartnerContext, ROLES, type PartnerContext } from "../../_lib/context";
 import { nowMs, getTeam, teamsOf } from "../../_lib/data";
-import { API_SCOPES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
+import { API_SCOPES, DISTRIBUTOR_API_SCOPES, WEBHOOK_EVENTS, WEBHOOK_EVENT_DESCRIPTIONS } from "../../_lib/settings";
 import { ActionForm } from "@/components/partner/action-form";
 import { ApiKeyForm, InviteForm, LogoUpload } from "@/components/partner/settings-forms";
 import { Bars, Empty, KV, PageSkeleton, Section } from "@/components/partner/ui";
@@ -42,7 +42,7 @@ async function Settings({ searchParams }: { searchParams: Promise<Record<string,
   const tabs = [
     { key: "team", label: "Team" },
     { key: "organisation", label: "Organisation" },
-    { key: "licence", label: "NIC licence" },
+    ...(ctx.kind !== "distributor" ? [{ key: "licence", label: "NIC licence" }] : []),
     { key: "billing", label: "Billing" },
     { key: "terms", label: "Commercial terms" },
     { key: "developer", label: "Developer" },
@@ -314,8 +314,8 @@ async function TermsTab({ ctx }: { ctx: PartnerContext }) {
       <Section title="How settlement works" tone="mist">
         <p className="text-sm text-ink-2">
           {broker
-            ? "Customers pay the insurer directly. Your commission is paid by the insurer out of the premium. On Covva-sourced business under revenue share, Covva's share is deducted; on your own clients you keep the full commission."
-            : "Premiums settle to your account through the payment provider. Broker commission and Covva's platform fee on Covva-sourced business are paid out of the premium, either at checkout (split group) or by monthly statement."}
+            ? "Customers pay the insurer directly. Your commission is paid by the insurer out of the premium. On Covva-sourced business under revenue share, Covva’s share is deducted; on your own clients you keep the full commission."
+            : "Premiums settle to your account through the payment provider. Broker commission and Covva’s platform fee on Covva-sourced business are paid out of the premium, either at checkout (split group) or by monthly statement."}
         </p>
         <p className="mt-2 text-sm text-ink-2">Statements are under <strong>Settlements</strong>.</p>
       </Section>
@@ -362,7 +362,7 @@ async function DeveloperTab({ ctx }: { ctx: PartnerContext }) {
             </tbody>
           </Table>
         )}
-        <ApiKeyForm action={createApiKey} scopes={API_SCOPES} />
+        <ApiKeyForm action={createApiKey} scopes={ctx.kind === "distributor" ? DISTRIBUTOR_API_SCOPES : API_SCOPES} />
       </Section>
 
       <Section title="Webhooks" description="We POST signed JSON events to your HTTPS endpoint. Verify the signature with the endpoint's signing secret.">

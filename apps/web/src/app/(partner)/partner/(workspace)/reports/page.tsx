@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Card, DemoBadge, PageHeader, Tabs, buttonClass, cn } from "@im/ui";
@@ -24,6 +25,7 @@ export default function ReportsPage({ searchParams }: PageProps<"/partner/report
 
 async function Reports({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await getPartnerContext();
+  if (ctx.kind === "distributor") redirect("/partner"); // distributors: referral reporting is on the dashboard
   const sp = await searchParams;
   const days = PERIODS.includes(Number(sp.days)) ? Number(sp.days) : 90;
   const analyticsDays = parseRange(sp.range, 30);

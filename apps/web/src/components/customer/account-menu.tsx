@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, LogOut, User } from "lucide-react";
 import { buttonClass } from "@im/ui";
 import { signOut } from "@/app/(auth)/actions";
+import { useT } from "@/lib/i18n/client";
 import { ACCOUNT_NAV } from "./account-nav";
 
 /** "My account" button + menu in the site header. */
@@ -12,6 +13,7 @@ export function AccountMenu() {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
   const ref = React.useRef<HTMLDivElement>(null);
+  const t = useT();
 
   // Close on navigation (adjust state during render rather than in an effect).
   const [lastPath, setLastPath] = React.useState(pathname);
@@ -35,7 +37,7 @@ export function AccountMenu() {
     <div ref={ref} className="relative">
       <button type="button" className={buttonClass("secondary", "sm")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <User aria-hidden className="size-4" />
-        <span className="hidden sm:inline">My account</span>
+        <span className="hidden sm:inline">{t("account.menu.myAccount")}</span>
         <ChevronDown aria-hidden className="size-3.5" />
       </button>
       {open && (
@@ -43,14 +45,14 @@ export function AccountMenu() {
           {ACCOUNT_NAV.map((item) => (
             <Link key={item.href} role="menuitem" href={item.href} className="flex items-center gap-2.5 px-4 py-2 text-sm text-ink-2 hover:bg-mist">
               <item.icon aria-hidden className="size-4 text-muted" />
-              {item.label}
+              {t(item.k)}
             </Link>
           ))}
           <div className="my-1.5 border-t border-line" />
           <form action={signOut}>
             <button role="menuitem" type="submit" className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink-2 hover:bg-mist">
               <LogOut aria-hidden className="size-4 text-muted" />
-              Sign out
+              {t("account.menu.signOut")}
             </button>
           </form>
         </div>

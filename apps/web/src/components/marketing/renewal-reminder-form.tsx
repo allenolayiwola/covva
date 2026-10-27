@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BellRing, CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, cn } from "@im/ui";
 import { submitLead, type LeadState } from "@/app/(marketing)/actions";
+import { track } from "./analytics";
 
 export interface ReminderCategory { slug: string; name: string }
 const INITIAL: LeadState = { status: "idle" };
@@ -36,6 +37,7 @@ function Instance({ categories, defaultCategory, className, onReset }: { categor
   }, []);
   React.useEffect(() => {
     if (state.status !== "idle") statusRef.current?.focus();
+    if (state.status === "success") track("generate_lead", { kind: "customer", tag: "renewal_reminder", page: window.location.pathname });
   }, [state]);
 
   if (state.status === "success") {

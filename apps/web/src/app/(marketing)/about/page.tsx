@@ -83,7 +83,7 @@ export default async function AboutPage() {
         </p>
       </Section>
 
-      <Section labelledBy="status-title">
+      <Section labelledBy="status-title" className="overflow-x-clip">
         <SectionHeading id="status-title" eyebrow="Regulatory status, data and complaints" title="Where we stand" />
         <div className="grid gap-4 md:grid-cols-3">
           <FeatureCard icon={<ShieldCheck />} title="Regulatory status">
@@ -100,7 +100,7 @@ export default async function AboutPage() {
           </FeatureCard>
         </div>
         <Notice tone="info" className="mt-6">
-          <span className="inline-flex items-center gap-2"><Mail aria-hidden className="size-4" /> Contact: <a href={`mailto:${brand.supportEmail}`} className="font-medium underline underline-offset-2">{brand.supportEmail}</a> · <Link href="/contact" className="font-medium underline underline-offset-2">Contact form</Link> · <Link href="/press" className="font-medium underline underline-offset-2">Press & media kit</Link></span>
+          <span className="inline-flex flex-wrap items-center gap-2"><Mail aria-hidden className="size-4" /> Contact: <a href={`mailto:${brand.supportEmail}`} className="font-medium underline underline-offset-2">{brand.supportEmail}</a> · <Link href="/contact" className="font-medium underline underline-offset-2">Contact form</Link> · <Link href="/press" className="font-medium underline underline-offset-2">Press & media kit</Link></span>
         </Notice>
       </Section>
 

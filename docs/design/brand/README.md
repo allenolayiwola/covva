@@ -25,8 +25,8 @@ Covva Teal `#00796E` (primary, buttons, links) · Deep Ink `#15343E` (headings, 
 (tints) · Mist `#F1F7F3` (page backgrounds) · Cream `#FFF0D6` (notices, placeholders).
 
 ## Type
-Display & headings: **Outfit** 300–400 (`--font-display`, applied to `h1`/`h2` and `.font-display`).
-Body, UI & numbers: **Inter** 300–500 (`--font-sans`). Tailwind `font-semibold`/`font-bold` map to 500 per the guide.
+Display & headings: **Plus Jakarta Sans** SemiBold 600 (`--font-display`, applied to `h1`/`h2` and `.font-display`). Changed from Outfit in October 2026; the PDF guide still shows Outfit and Inter.
+Body, UI & numbers: **Plus Jakarta Sans** 400–500 (`--font-sans`). Tailwind `font-semibold`/`font-bold` map to 500 per the guide.
 
 ## Icons & imagery
 Lucide icons at 1.75px rounded strokes (global CSS), teal with a single gold accent. Imagery: bright natural daylight

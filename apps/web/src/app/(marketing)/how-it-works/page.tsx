@@ -106,7 +106,7 @@ export default function HowItWorksPage() {
         <nav aria-label="Journeys" className="mt-10 flex flex-wrap gap-2">
           {JOURNEYS.map((j) => (
             <a key={j.id} href={`#${j.id}`} className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink-2 hover:border-brand hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-              <span className="grid size-5 place-items-center rounded-full bg-mint text-[11px] font-bold text-brand-deep">{j.letter}</span>
+              <span className="grid size-5 place-items-center rounded-full bg-mint text-[13px] font-bold text-brand-deep">{j.letter}</span>
               {j.title}
             </a>
           ))}
@@ -162,14 +162,14 @@ export default function HowItWorksPage() {
         />
         <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
           {SEQUENCE.map((s, i) => (
-            <li key={s} className="relative rounded-2xl bg-white/[0.07] p-4 ring-1 ring-inset ring-white/15">
-              <span className="text-xs font-semibold tabular-nums text-mint">Step {i + 1}</span>
-              <p className="mt-1.5 text-[15px] font-semibold leading-snug">{s}</p>
+            <li key={s} className="relative rounded-card border border-line bg-white p-4">
+              <span className="text-xs font-semibold tabular-nums text-brand">Step {i + 1}</span>
+              <p className="mt-1.5 text-[15px] font-semibold leading-snug text-ink">{s}</p>
             </li>
           ))}
         </ol>
         <div className="mt-10 grid gap-4 lg:grid-cols-2">
-          <div className="flex gap-4 rounded-2xl bg-white p-6 text-ink">
+          <div className="flex gap-4 rounded-card border border-line bg-white p-6 text-ink">
             <IconTile tone="amber"><ShieldAlert /></IconTile>
             <div>
               <p className="text-lg font-semibold tracking-tight">Payment confirmation alone never marks a policy active.</p>

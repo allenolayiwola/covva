@@ -47,6 +47,8 @@ export function watchConsole(page) {
     if (msg.type() !== "error") return;
     const text = msg.text();
     if (IGNORED_CONSOLE.some((re) => re.test(text))) return;
+    // A not-found page legitimately answers 404 for the document itself; only missing sub-resources are errors.
+    if (/Failed to load resource.*404/.test(text) && (msg.location()?.url ?? "") === page.url()) return;
     errors.push(`${msg.location()?.url ?? page.url()}: ${text.slice(0, 300)}`);
   });
   page.on("pageerror", (err) => errors.push(`pageerror: ${err.message.slice(0, 300)}`));
@@ -76,7 +78,8 @@ export async function structuralChecks(page) {
 /**
  * Known, product-owned axe findings (see docs/TESTING.md → Known limitations). They are still attached to
  * every test as `axe-violations.json`, but do not fail the run until the design tokens / components are fixed:
- *  - color-contrast: `--color-subtle` (#6F858C) on white is ~4.1:1, below the 4.5:1 AA threshold for small text.
+ *  - color-contrast: `--color-subtle` and `--color-amber` now pass AA (5.0:1 / 5.1:1); the remaining findings are
+ *    tiny labels inside the illustrative phone/queue mock-ups and the app's own dense tables, still to be reviewed.
  *  - scrollable-region-focusable: the sample `<pre>` block on /insurers scrolls but is not keyboard focusable.
  *  - link-in-text-block: admin overview has an inline link distinguished from its paragraph by colour only.
  *  - aria-meter-name: the admin `<Meter>` (launch-gate progress on /categories) has no accessible name.

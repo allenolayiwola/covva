@@ -15,10 +15,13 @@ export function brokerNav(): NavItem[] {
     { href: "/partner/quotes", label: "Quotes" },
     { href: "/partner/customers", label: "Customers" },
     { href: "/partner/policies", label: "Policies" },
+    { href: "/partner/endorsements", label: "Policy changes" },
     { href: "/partner/appointments", label: "Appointments" },
     { href: "/partner/service", label: "Service & claims" },
+    { href: "/partner/whatsapp", label: "WhatsApp" },
     { href: "/partner/products/propose", label: "Rate proposals" },
     { href: "/partner/reports", label: "Reports" },
+    { href: "/partner/reports/accounting", label: "Accounting exports" },
     { href: "/partner/settlements", label: "Settlements" },
     { href: "/partner/settings", label: "Team settings" },
   ];
@@ -29,12 +32,27 @@ export function insurerNav(): NavItem[] {
     { href: "/partner", label: "Overview" },
     { href: "/partner/submissions", label: "Submissions" },
     { href: "/partner/issuance", label: "Issuance" },
+    { href: "/partner/endorsements", label: "Policy changes" },
+    { href: "/partner/instalments", label: "Instalments" },
     { href: "/partner/claims", label: "Claims" },
     { href: "/partner/products", label: "Products" },
     { href: "/partner/appointments", label: "Appointments" },
     { href: "/partner/integrations", label: "Integrations" },
     { href: "/partner/reports", label: "Reports" },
+    { href: "/partner/reports/accounting", label: "Accounting exports" },
     { href: "/partner/settlements", label: "Settlements" },
+    { href: "/partner/settings", label: "Team settings" },
+  ];
+}
+
+/** Embedded distribution partners (dealers, banks, landlords…): referrals only — no requests, quotes or claims. */
+export function distributorNav(): NavItem[] {
+  return [
+    { href: "/partner", label: "Dashboard" },
+    { href: "/partner/widget", label: "Widget" },
+    { href: "/partner/links", label: "Links" },
+    { href: "/partner/settings?tab=developer", label: "API keys" },
+    { href: "/partner/revenue-share", label: "Statements" },
     { href: "/partner/settings", label: "Team settings" },
   ];
 }
@@ -42,7 +60,11 @@ export function insurerNav(): NavItem[] {
 /** Left nav (needs the org type, so it streams). */
 export async function SideNav() {
   const ctx = await getPartnerContext();
-  return <NavLinks items={ctx.kind === "insurer" ? insurerNav() : brokerNav()} />;
+  if (ctx.kind === "distributor") return <NavLinks items={distributorNav()} />;
+  const items = ctx.kind === "insurer" ? insurerNav() : brokerNav();
+  // Inspection partners (organizations.settings.inspection_partner = true) also see property inspections.
+  if ((ctx.membership.org.settings as { inspection_partner?: boolean } | null)?.inspection_partner === true) items.splice(items.length - 1, 0, { href: "/partner/inspections", label: "Inspections" });
+  return <NavLinks items={items} />;
 }
 
 export function SideNavSkeleton() {

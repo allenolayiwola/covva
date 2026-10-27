@@ -2,7 +2,8 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { Building2, User } from "lucide-react";
-import { Field, Input, cn } from "@im/ui";
+import { COUNTRY_OPTIONS } from "@im/core";
+import { Field, Input, Select, cn } from "@im/ui";
 import { FormMessage, SubmitButton } from "@/components/customer/form-bits";
 import { initialActionState } from "@/components/customer/utils";
 import { signUp } from "../actions";
@@ -49,6 +50,13 @@ export function SignUpForm({ next, defaultEmail }: { next: string; defaultEmail?
       )}
       <Field label="Full name" htmlFor="full_name" error={fe.full_name} hint="As it appears on your Ghana Card">
         <Input id="full_name" name="full_name" autoComplete="name" required aria-invalid={!!fe.full_name} />
+      </Field>
+      <Field label="Where do you live?" htmlFor="country_code" error={fe.country_code} hint="Living abroad? You can arrange and pay for cover for family in Ghana in your own currency.">
+        <Select id="country_code" name="country_code" defaultValue="GH" aria-invalid={!!fe.country_code}>
+          {COUNTRY_OPTIONS.map((c) => (
+            <option key={c.code} value={c.code}>{c.name}</option>
+          ))}
+        </Select>
       </Field>
       <Field label="Mobile number" htmlFor="phone" error={fe.phone} hint="Your broker may call or text you about your requests.">
         <Input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="024 123 4567" required aria-invalid={!!fe.phone} />

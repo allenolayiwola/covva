@@ -25,5 +25,5 @@ export async function acceptInvitation(_prev: ActionState, formData: FormData): 
   if (error) return { ok: false, error: ruleMessage(error, "We couldn't accept this invitation. Please try again.") };
   const row = data?.[0];
   if (!row) return { ok: false, error: "We couldn't accept this invitation. Please try again." };
-  redirect(row.org_type === "broker" || row.org_type === "insurer" ? "/partner?joined=1" : "/");
+  redirect(row.org_type === "broker" || row.org_type === "insurer" ? "/partner?joined=1" : row.org_type === "enterprise" ? `/account/business?org=${row.org_id}` : "/");
 }

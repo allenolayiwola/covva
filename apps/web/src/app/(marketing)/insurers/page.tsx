@@ -174,11 +174,11 @@ export default async function InsurersPage() {
               ]}
             />
           </div>
-          <div className="self-center overflow-hidden rounded-[20px] border border-line bg-ink p-6 font-mono text-[13px] leading-relaxed text-mint shadow-float" aria-label="Example of a normalised motor risk record">
-            <div className="mb-4 flex items-center gap-2 font-sans text-xs text-white/60">
+          <div className="self-center overflow-hidden rounded-card border border-line bg-mist p-6 font-mono text-[13px] leading-relaxed text-brand-deep" aria-label="Example of a normalised motor risk record">
+            <div className="mb-4 flex items-center gap-2 font-sans text-xs text-muted">
               <Braces aria-hidden className="size-4" /> submission.risk — motor (illustrative)
             </div>
-            <pre className="overflow-x-auto whitespace-pre text-white/90">{`{
+            <pre className="overflow-x-auto whitespace-pre text-ink-2">{`{
   "category": "motor",
   "cover_type": "comprehensive",
   "vehicle": { "make": "Toyota", "model": "Corolla", "year": 2019 },

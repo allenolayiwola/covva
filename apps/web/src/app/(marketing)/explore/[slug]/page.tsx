@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/explore/[slug]">)
   const { slug } = await params;
   const category = await getCategory(slug);
   if (!category) return { title: "Cover not found", robots: { index: false } };
-  const title = `${category.name} insurance in Ghana`;
+  const title = `Compare ${category.name} cover`;
   const description =
     category.short_description ??
     `Compare ${category.name.toLowerCase()} cover from participating licensed insurers in Ghana, with a named broker by your side.`;
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps<"/explore/[slug]">)
     title,
     description,
     alternates: { canonical: `/explore/${category.slug}` },
-    openGraph: { title, description, url: `/explore/${category.slug}` },
+    openGraph: { title, description, url: `/explore/${category.slug}`, images: ["/opengraph-image"] },
   };
 }
 
@@ -205,7 +205,7 @@ async function CategoryContent({ params }: Pick<PageProps<"/explore/[slug]">, "p
               <Clock aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
               Broker response target: within {category.default_sla_hours} working hours of a complete request. Insurer timing varies.
             </p>
-            <p className="mt-2 text-[12px] text-subtle">Participating insurers only — not the whole market.</p>
+            <p className="mt-2 text-[13px] text-subtle">Participating insurers only — not the whole market.</p>
           </div>
         }
       />

@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Sign in", robots: { index: false } }
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
     <Card className="p-6 shadow-float sm:p-8">
-      <h1 className="text-[28px] font-bold tracking-tight text-ink">Welcome back</h1>
-      <p className="mt-1 text-[15px] text-muted">Sign in to see your cover, requests and messages from your broker.</p>
+      <h1 className="text-h4 text-ink">Sign in</h1>
+      <p className="mt-2 text-[15px] leading-relaxed text-muted">A code to your phone or a link to your email. Your quotes, policies and broker messages are waiting.</p>
       <div className="mt-6">
         <Suspense fallback={<SignInForm next="/account" />}>
           <SignInBody searchParams={searchParams} />
@@ -37,7 +37,7 @@ async function SignInBody({ searchParams }: Pick<PageProps<"/sign-in">, "searchP
           {error === "link" ? "That sign-in link is invalid or has expired. Request a new one." : "We couldn't sign you in. Please try again."}
         </Notice>
       )}
-      <SignInForm next={next} defaultMode={sp.method === "phone" ? "phone" : sp.method === "link" ? "link" : "password"} />
+      <SignInForm next={next} defaultMode={sp.method === "link" ? "link" : sp.method === "password" ? "password" : "phone"} />
     </>
   );
 }

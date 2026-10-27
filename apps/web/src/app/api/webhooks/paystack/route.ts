@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { applyPaymentResult, applyRefundFailed, verifyPaystackSignature } from "@/server/payments";
+import { handlePaystackSubscriptionEvent } from "@/server/subscriptions";
 import { log } from "@/server/log";
 
 interface PaystackEvent {
@@ -14,6 +15,12 @@ interface PaystackEvent {
     gateway_response?: string;
     subaccount?: { subaccount_code?: string } | null;
     transaction_reference?: string;
+    /** Sponsor subscriptions managed by Paystack (plan / subscription events). */
+    subscription_code?: string;
+    plan?: { plan_code?: string } | string | null;
+    subscription?: { subscription_code?: string } | null;
+    metadata?: { subscription_id?: string } | null;
+    description?: string;
   };
 }
 
@@ -38,10 +45,14 @@ export async function POST(req: Request) {
   const ref = evt.data?.reference ?? evt.data?.transaction_reference;
   log.info("paystack.webhook", { requestId, event: evt.event, reference: ref });
   try {
+    // Sponsor subscription lifecycle events carry no transaction reference.
+    if (evt.event === "subscription.create" || evt.event === "subscription.disable" || evt.event === "subscription.not_renew" || evt.event === "invoice.payment_failed") {
+      await handlePaystackSubscriptionEvent(evt);
+    }
     if (ref) {
       switch (evt.event) {
-        case "charge.success":
-          await applyPaymentResult(ref, {
+        case "charge.success": {
+          const r = await applyPaymentResult(ref, {
             status: "succeeded",
             amountMinor: evt.data.amount,
             currency: evt.data.currency,
@@ -51,7 +62,10 @@ export async function POST(req: Request) {
             event: evt as unknown,
             source: "webhook",
           });
+          // Unknown reference: a Paystack-managed sponsor subscription charge we did not initiate.
+          if (r.status === null) await handlePaystackSubscriptionEvent(evt);
           break;
+        }
         case "charge.failed":
           await applyPaymentResult(ref, { status: "failed", failureReason: evt.data.gateway_response ?? "Declined", event: evt as unknown, source: "webhook" });
           break;

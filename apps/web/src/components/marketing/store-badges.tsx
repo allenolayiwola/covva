@@ -22,7 +22,7 @@ export function StoreBadge({ store, href, className, size = "md" }: { store: "ap
     <>
       <Smartphone aria-hidden className={cn(size === "md" ? "size-6" : "size-5", href ? "text-white" : "text-brand")} />
       <span className="leading-tight">
-        <span className={cn("block", size === "md" ? "text-[10px]" : "text-[9px]", href ? "text-white/80" : "text-muted")}>{href ? lead : "Coming at launch"}</span>
+        <span className={cn("block", size === "md" ? "text-[13px]" : "text-[13px]", href ? "text-white/80" : "text-muted")}>{href ? lead : "Coming at launch"}</span>
         <span className={cn("block font-semibold", size === "md" ? "text-[16px]" : "text-[14px]", href ? "text-white" : "text-ink-2")}>{name}</span>
       </span>
     </>

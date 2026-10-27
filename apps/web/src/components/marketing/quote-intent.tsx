@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Zap } from "lucide-react";
 import { buttonClass } from "@im/ui";
 import { getCategory } from "@/lib/catalog";
+import { getPublishedBundle } from "@/server/bundles";
 import { CategoryIcon } from "./category-icon";
 import { productLineForCategory } from "./products-content";
 
@@ -16,7 +17,10 @@ export async function QuoteIntent({ searchParams }: { searchParams: Promise<Reco
     const v = sp[k];
     return (Array.isArray(v) ? v[0] : v)?.toString().trim().slice(0, 60) ?? "";
   };
-  const slug = first("category");
+  // Diaspora bundles: /get-started?bundle=parents-care-pack starts with the pack's first item.
+  const bundleSlug = /^[a-z0-9-]{3,80}$/.test(first("bundle")) ? first("bundle") : "";
+  const bundle = bundleSlug ? await getPublishedBundle(bundleSlug) : null;
+  const slug = first("category") || bundle?.parsedItems[0]?.category_slug || "";
   if (!slug) return null;
   const category = await getCategory(slug);
   if (!category) return null;
@@ -32,6 +36,7 @@ export async function QuoteIntent({ searchParams }: { searchParams: Promise<Reco
 
   const params = new URLSearchParams({ category: category.slug });
   for (const k of ["reg", "value", "people", "days"]) if (first(k)) params.set(k, first(k));
+  if (bundle) params.set("bundle", bundle.slug);
   const planned = category.availability === "planned";
   const href = planned ? `/contact?topic=${category.slug}` : `/account/requests/new?${params.toString()}`;
 
@@ -42,7 +47,7 @@ export async function QuoteIntent({ searchParams }: { searchParams: Promise<Reco
           <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-xl bg-mint text-brand-deep"><CategoryIcon icon={category.icon} className="size-6" /></span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand">Your quote</p>
-            <h2 id="quote-intent-title" className="mt-1 text-[22px] font-semibold tracking-tight text-ink">{category.name} quotes</h2>
+            <h2 id="quote-intent-title" className="mt-1 text-[22px] font-semibold tracking-tight text-ink">{bundle ? `${bundle.name}: start with ${category.name.toLowerCase()}` : `${category.name} quotes`}</h2>
             <p className="mt-1 text-[14.5px] text-muted">
               {details.length ? details.join(" · ") + ". " : ""}
               {planned ? "This category is not sold online yet — register your interest and we will tell you when it is." : "Sign in or create an account to get quotes from participating insurers; your details carry over."}

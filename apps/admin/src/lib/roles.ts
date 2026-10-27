@@ -43,6 +43,23 @@ export const PERMS = {
   audit: ["platform_admin", "compliance"],
   /** AI insights generation (costs money). */
   insights: ["platform_admin", "platform_ops", "compliance"],
+  /**
+   * WhatsApp support console: take over conversations, reply, hand off, opt contacts out.
+   * The one place `support` writes — they are the support agents.
+   */
+  whatsapp: ["platform_admin", "platform_ops", "support"],
+  /** WhatsApp template registry (what we submit to Meta). */
+  whatsappTemplates: ["platform_admin", "platform_ops"],
+  /** Translations: drafting and reviewing strings (support staff can act as translators). */
+  translations: ["platform_admin", "platform_ops", "compliance", "support"],
+  /** Translations: approving a string makes it live for every visitor. */
+  translationsApprove: ["platform_admin", "platform_ops", "compliance"],
+  /** USSD simulator (sends real SMS / creates leads in non-sandbox environments). */
+  ussd: ["platform_admin", "platform_ops", "support"],
+  /** Embedded distribution partners (segment, categories, widget domains, status; revenue share). */
+  distribution: ["platform_admin", "platform_ops"],
+  /** Switching reward rules on/off (customer inducements need NIC + insurer approval). */
+  rewardRules: ["platform_admin", "compliance"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 export type PermKey = keyof typeof PERMS;

@@ -7,6 +7,7 @@ import { CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea, cn } from "@im/ui";
 import { submitLead, type LeadState } from "@/app/(marketing)/actions";
 import type { LeadTag } from "./lead-tags";
+import { track } from "./analytics";
 
 type Kind = "customer" | "broker" | "insurer" | "enterprise" | "press" | "other";
 
@@ -96,9 +97,12 @@ function LeadFormInstance({
   }, [topics]);
 
   React.useEffect(() => {
-    if (state.status === "success") successRef.current?.focus();
+    if (state.status === "success") {
+      successRef.current?.focus();
+      track("generate_lead", { kind: effectiveKind, tag, page: window.location.pathname });
+    }
     if (state.status === "error") statusRef.current?.focus();
-  }, [state]);
+  }, [state, effectiveKind, tag]);
 
   if (state.status === "success") {
     return (

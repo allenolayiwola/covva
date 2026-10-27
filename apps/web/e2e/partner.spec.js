@@ -144,6 +144,15 @@ test.describe("insurer portal", () => {
     await tabs.getByRole("link", { name: /^In assessment/ }).click();
     await expect(page).toHaveURL(/view=/);
     await expect(page.locator("table").or(page.getByText("No claims here"))).toBeVisible();
+    // Claim workspace: thread with internal notes, information requests, repairs and services, fraud indicators (insurer only).
+    const first = page.locator("table tbody tr a[href^='/partner/claims/']").first();
+    if (await first.isVisible().catch(() => false)) {
+      await first.click();
+      await page.waitForURL(/\/partner\/claims\/[0-9a-f-]{36}/);
+      for (const title of ["Messages", "Information requests", "Repairs and services", "Fraud indicators"]) {
+        await expect(page.getByRole("heading", { name: title }).first()).toBeVisible();
+      }
+    }
   });
 
   test("product data lists versioned products", async ({ page }) => {

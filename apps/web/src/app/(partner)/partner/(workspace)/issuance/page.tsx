@@ -11,6 +11,7 @@ import { RealtimeRefresh } from "@/components/partner/realtime-refresh";
 import { Empty, KV, PageSkeleton, Section } from "@/components/partner/ui";
 import { declineIssuance, issuePolicy, recordPolicyDocuments } from "./actions";
 import { DelegatedIssuance, JobStatusPill } from "./delegated";
+import { SchemeMembersSection } from "@/components/partner/scheme-members-section";
 
 export const metadata: Metadata = { title: "Issuance" };
 
@@ -157,6 +158,7 @@ async function Issuance({ searchParams }: { searchParams: Promise<Record<string,
                     )}
                   </div>
                 </div>
+                {p.request_id && <Suspense fallback={null}><SchemeMembersSection requestId={p.request_id} /></Suspense>}
               </Section>
             );
           })}

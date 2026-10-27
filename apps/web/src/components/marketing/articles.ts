@@ -75,7 +75,7 @@ export const ARTICLES: Article[] = [
       { type: "h2", text: "Typical timelines" },
       { type: "ul", items: ["Acknowledgement: within one working day", "Funeral benefits: 48–72 hours after a complete claim", "Motor own-damage: 5–10 working days after assessment", "Health reimbursements: 10–14 working days", "Larger property or business claims: depends on the loss adjuster"] },
       { type: "h2", text: "If the claim is declined" },
-      { type: "p", text: "Ask for the reasons and the policy clause they rely on — your broker will explain it. If you still disagree, use the insurer's complaints process, then Covva's, and finally the National Insurance Commission's Complaints Bureau." },
+      { type: "p", text: "Ask for the reasons and the policy clause they rely on — your broker will explain it. If you still disagree, use the insurer's complaints process, then Covva’s, and finally the National Insurance Commission's Complaints Bureau." },
     ],
   },
   {
@@ -159,7 +159,7 @@ export function findArticle(slug: string): Article | undefined {
 export const ARTICLE_LANGUAGES = [
   { code: "en", label: "English", native: "English", available: true },
   { code: "tw", label: "Twi", native: "Twi", available: false },
-  { code: "ga", label: "Ga", native: "Gã", available: false },
+  { code: "gaa", label: "Ga", native: "Gã", available: false },
   { code: "ee", label: "Ewe", native: "Eʋegbe", available: false },
 ] as const;
 export type ArticleLanguage = (typeof ARTICLE_LANGUAGES)[number]["code"];

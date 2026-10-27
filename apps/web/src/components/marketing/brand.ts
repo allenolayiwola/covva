@@ -29,8 +29,10 @@ export async function getBrand(): Promise<Brand> {
   const s = await getSetting<BrandSetting>("brand").catch(() => null);
   if (!s) return DEFAULT_BRAND;
   const phone = s.support_phone && !s.support_phone.startsWith("[") ? s.support_phone : null;
+  const name = s.name || DEFAULT_BRAND.name;
   return {
-    name: s.name || DEFAULT_BRAND.name,
+    // The brand is always written "Covva" (item 11): normalise an all-caps or lower-case setting.
+    name: /^covva$/i.test(name.trim()) ? "Covva" : name,
     tagline: s.tagline || DEFAULT_BRAND.tagline,
     supportEmail: s.support_email || DEFAULT_BRAND.supportEmail,
     supportPhone: phone,
@@ -51,10 +53,7 @@ export async function getCurrentYear(): Promise<number> {
   return new Date().getFullYear();
 }
 
-/** Demo partner names carry a "(Demo)" suffix in the DB; we show a DemoBadge instead. */
-export function displayOrgName(name: string): string {
-  return name.replace(/\s*\(demo\)\s*$/i, "").trim();
-}
+export { displayOrgName } from "./org-name";
 
 export function isDemoOrg(settings: unknown): boolean {
   return !!settings && typeof settings === "object" && (settings as { demo?: unknown }).demo === true;

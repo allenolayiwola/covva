@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description:
     "Look after your family in Ghana from anywhere. Pay in GBP, USD, EUR or CAD for parents’ health and funeral cover, the family car or the home you are building. Family dashboard, dual notifications, gift a policy, group plans for churches and associations.",
   alternates: { canonical: "/diaspora" },
-  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora" },
+  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora", images: ["/opengraph-image"] },
 };
 
 const FEATURES = [
@@ -212,7 +212,7 @@ export default async function DiasporaPage() {
         title="Look after your family in Ghana from anywhere."
         body="Get a quote for a parent, the family car or the house you are building. Pay in your currency; they get the policy in theirs."
         primary={{ label: "Get a quote", href: "/get-started?category=life-funeral" }}
-        secondary={{ label: "Learn more", href: "/learn/insurance-for-diaspora-families" }}
+        secondary={{ label: "Read the diaspora guide", href: "/learn/insurance-for-diaspora-families" }}
       />
     </>
   );

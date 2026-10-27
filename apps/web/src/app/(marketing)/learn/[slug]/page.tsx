@@ -9,8 +9,7 @@ import { LanguageSwitcher } from "@/components/marketing/language-switcher";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { textLinkClass } from "@/components/marketing/ui-classes";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://covva.com.gh";
+import { siteUrl } from "@/lib/site-url";
 
 export function generateStaticParams() {
   return ARTICLES.map((a) => ({ slug: a.slug }));
@@ -24,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/learn/[slug]">): 
     title: a.title,
     description: a.summary,
     alternates: { canonical: `/learn/${a.slug}` },
-    openGraph: { type: "article", title: a.title, description: a.summary, url: `/learn/${a.slug}`, publishedTime: a.published, modifiedTime: a.updated ?? a.published },
+    openGraph: { type: "article", title: a.title, description: a.summary, url: `/learn/${a.slug}`, publishedTime: a.published, modifiedTime: a.updated ?? a.published, images: ["/opengraph-image"] },
   };
 }
 
@@ -80,10 +79,10 @@ async function ArticleContent({ params }: Pick<PageProps<"/learn/[slug]">, "para
           datePublished: a.published,
           dateModified: a.updated ?? a.published,
           inLanguage: "en-GH",
-          url: `${siteUrl}/learn/${a.slug}`,
-          mainEntityOfPage: `${siteUrl}/learn/${a.slug}`,
+          url: `${siteUrl()}/learn/${a.slug}`,
+          mainEntityOfPage: `${siteUrl()}/learn/${a.slug}`,
           author: { "@type": "Organization", name: "Covva" },
-          publisher: { "@type": "Organization", name: "Covva", logo: { "@type": "ImageObject", url: `${siteUrl}/icon-512.png` } },
+          publisher: { "@type": "Organization", name: "Covva", logo: { "@type": "ImageObject", url: `${siteUrl()}/icon-512.png` } },
           articleSection: a.topic,
         }}
       />

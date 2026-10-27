@@ -3,6 +3,7 @@ import { compareQuotes, declaredValue, underinsuranceCheck } from "@im/core";
 import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { deliverPending, notify, notifyOrg } from "@/server/notify";
+import { notifyPolicyParties } from "@/server/diaspora-notify";
 import { recordPolicyActive, period } from "@/server/usage";
 import { toComparable, type QuoteWithParties } from "@/server/quotes";
 import { log } from "@/server/log";
@@ -11,6 +12,11 @@ import { expireAndRerouteOffers } from "@/server/routing";
 import { buildStatementsForPeriod, previousMonth } from "@/server/ledger";
 import { expireReviewWindows, retryIssuanceJobs } from "@/server/issuance";
 import { escalateTimers } from "@/server/sla";
+import { refreshRates } from "@/server/fx";
+import { chargeDueSubscriptions } from "@/server/subscriptions";
+import { evaluateReferralRewards } from "@/server/referrals";
+import { collectDueInstalments } from "@/server/instalments";
+import { microRenewals } from "@/server/micro";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -72,6 +78,16 @@ const renewalReminders: CronJob = async (svc) => {
       // WhatsApp first (opt-in + phone), SMS only when WhatsApp did not reach the phone (see notify()).
       channels: ["in_app", "push", "email", "whatsapp", "sms"],
     });
+    // Diaspora: the sponsor abroad and the beneficiary in Ghana both get the reminder (no-op otherwise).
+    await notifyPolicyParties(p.id, "renewal.reminder", {
+      title: `${name} cover ends ${when}`,
+      body: `Policy ${p.policy_number ?? p.internal_reference} ends on ${p.cover_end}. Renew in one tap with refreshed quotes; any renewal price is an estimate until the insurer confirms it.`,
+      link: `/account/policies/${p.id}/renew`,
+      beneficiaryLink: `/account/policies/${p.id}`,
+      data: { policy_id: p.id, days },
+      channels: ["in_app", "push", "email", "whatsapp", "sms"],
+      skipUserIds: [p.customer_id],
+    }).catch((err) => log.warn("cron.renewal_parties_failed", { policyId: p.id, err }));
     if (p.broker_org_id) {
       await notifyOrg(p.broker_org_id, {
         kind: "renewal.due",
@@ -420,6 +436,21 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "onboarding-notifications": onboardingNotifications,
   // Delegated / API issuance jobs left queued or failed (adapter outage, missing number block) are re-run.
   "issuance-retry": (svc) => retryIssuanceJobs(svc),
+  // Diaspora: hourly indicative FX refresh (provider from platform_settings.fx / FX_PROVIDER; manual = no-op).
+  "fx-rates": (svc) => refreshRates(svc),
+  // Diaspora: daily 03:00 sponsor subscription collections (stored card → GHS to the insurer; retries 1d/3d/7d).
+  "sponsor-collections": (svc) => chargeDueSubscriptions(svc),
+  // Referrals: daily 04:00 — credits / partner revenue share after the holding period (append-only reward_ledger).
+  "referral-rewards": (svc) => evaluateReferralRewards(svc),
+  // Phase 3: instalment collections 06:30 and 18:30 (MoMo prompt / saved card / pay link; retries day 0, +2, +5; grace → lapse per plan).
+  "instalment-collections": (svc) => collectDueInstalments(svc),
+  // Phase 3: hourly at :40 — micro cover auto-renewals before the window ends; ended windows marked expired.
+  "micro-renewals": (svc) => microRenewals(svc),
+  // Phase 3 SME: 1st of the month 05:00 — consolidated business statements for last month (one payment per insurer line) + overdue marking.
+  // Lazy import: business.ts imports requests/payments, which import back into cron-adjacent modules.
+  "business-invoices": async (svc) => (await import("@/server/business")).buildDueInvoices(svc),
+  // Phase 3: monthly on the 2nd at 04:00 — last month's insurer statements, commission reports, platform revenue and tax report (CSV exports).
+  "accounting-exports": async (svc) => (await import("@/server/accounting")).monthlyAccountingExports(svc),
 };
 
 export async function runCron(job: string) {

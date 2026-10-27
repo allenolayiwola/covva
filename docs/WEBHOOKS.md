@@ -79,6 +79,8 @@ Subscribe per endpoint to any of these (or `*` via the database for everything).
 | `claim.reported` | Broker + insurer | `claim_id, reference, policy_id, status, incident_type` |
 | `claim.status_changed` | Broker + insurer | `claim_id, reference, from_status, status` |
 | `complaint.filed` | Owning organisation | `complaint_id, reference, status, category, against_party, request_id, policy_id, claim_id` |
+| `referral.converted` | Distribution partner (or broker) that owns the referral code | `attribution_id, code, source, request_id, reference, policy_id, category, converted_at` — the referred customer's policy is now active |
+| `referral.rewarded` | Distribution partner | `attribution_id, code, policy_id, kind, amount, currency` — revenue share accrued from **Covva's platform fee** (never the premium) after the 14-day holding period; paid by statement |
 | `test.ping` | The endpoint you test from settings | `message, org_id, sent_at` |
 
 The canonical list lives in `apps/web/src/server/webhook-events.ts`; the dispatcher is
@@ -93,3 +95,25 @@ The canonical list lives in `apps/web/src/server/webhook-events.ts`; the dispatc
 * Rotate a secret by deleting and re-creating the endpoint (a new secret is generated per endpoint).
 * Logs: `webhooks.delivered`, `webhooks.delivery_failed`, `webhooks.queue_failed`, `webhooks.unconfigured`
   (service key missing — nothing is queued).
+
+## Inbound webhooks (providers → Covva)
+
+Besides the partner webhooks above, the web app receives provider callbacks. All are idempotent and
+verify the caller before touching data:
+
+| Route | Provider | Verification | Idempotency |
+|---|---|---|---|
+| `POST /api/webhooks/paystack` | Paystack | `x-paystack-signature` (HMAC-SHA512 of the raw body with the secret key) | payment reference; a success is never applied twice |
+| `POST /api/webhooks/hubtel` | Hubtel | unsigned → `?secret=HUBTEL_WEBHOOK_SECRET` / `x-hubtel-secret`, then re-verified with the status API | payment reference |
+| `GET /api/webhooks/whatsapp` | Meta (WhatsApp Cloud API) | `hub.verify_token` must equal `WHATSAPP_VERIFY_TOKEN`; echoes `hub.challenge` | — |
+| `POST /api/webhooks/whatsapp` | Meta (WhatsApp Cloud API) | `X-Hub-Signature-256: sha256=<HMAC-SHA256 of the raw body with WHATSAPP_APP_SECRET>` (constant-time compare); per-IP rate limit | `wa_messages.wa_message_id` is unique: a replayed message is a no-op; delivery statuses only move forward |
+
+**WhatsApp payload.** Meta posts `{ object: "whatsapp_business_account", entry: [{ changes: [{ field: "messages",
+value: { metadata, contacts, messages?, statuses? } }] }] }`. `parseWebhookPayload()` (`@im/core`) turns it into
+`WaInboundMessage[]` (text, template quick-reply `button`, `interactive` button/list replies, image/document/
+audio by media id, location; stickers/video are `unsupported`) and `WaStatusUpdate[]` (`sent`, `delivered`,
+`read`, `failed` + error code). The route answers `200 { ok: true, data: { received, messages, statuses,
+duplicates, actions } }` once the signature is valid; a processing error on one message is logged
+(`whatsapp.route_failed`) and does not make Meta retry the whole batch. Events for a different
+`phone_number_id` than `WHATSAPP_PHONE_NUMBER_ID` are ignored. See `docs/OPERATIONS.md` → "WhatsApp Business".
+

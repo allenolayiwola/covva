@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 /** Cookie remembering which partner organisation is active when a user has several. */
 export const ORG_COOKIE = "im_partner_org";
 
-export type PartnerKind = "broker" | "insurer";
+export type PartnerKind = "broker" | "insurer" | "distributor";
 export type MemberRole = Enum<"member_role">;
 
 export const ROLES = {

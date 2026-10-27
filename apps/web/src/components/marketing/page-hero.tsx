@@ -24,7 +24,7 @@ export function PageHero({
   children?: React.ReactNode;
 }) {
   return (
-    <section className={cn("relative overflow-hidden border-b border-line bg-gradient-to-b from-mist to-white", className)}>
+    <section className={cn("relative overflow-x-clip overflow-y-hidden border-b border-line bg-gradient-to-b from-mist to-white", className)}>
       <div aria-hidden className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-mint-2 opacity-70 blur-3xl" />
       <Container className="relative py-14 sm:py-20">
         {breadcrumb && breadcrumb.length > 0 && (
@@ -49,8 +49,8 @@ export function PageHero({
         <div className={cn("grid gap-10", aside && "lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:items-center lg:gap-16")}>
           <div className="motion-safe:animate-fade-up">
             {eyebrow && <Eyebrow className="mb-4">{eyebrow}</Eyebrow>}
-            <h1 className="text-balance text-[36px] font-bold leading-[1.05] tracking-[-0.035em] text-ink sm:text-[52px]">{title}</h1>
-            {lede && <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">{lede}</p>}
+            <h1 className="text-balance text-h2 text-ink">{title}</h1>
+            {lede && <p className="mt-5 max-w-2xl text-lead text-muted">{lede}</p>}
             {actions && <div className="mt-8 flex flex-wrap gap-3">{actions}</div>}
             {children}
           </div>

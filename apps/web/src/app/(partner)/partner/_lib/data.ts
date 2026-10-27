@@ -106,6 +106,7 @@ export const SOURCE_LABEL: Record<Row<"requests">["source"], string> = {
   mobile: "Mobile",
   whatsapp: "WhatsApp",
   call_centre: "Assisted",
+  ussd: "USSD",
   admin: "Platform",
   api: "API",
 };

@@ -1,5 +1,5 @@
 import { test, expect } from "playwright/test";
-import { TAG } from "./support/env.js";
+import { STATE, TAG } from "./support/env.js";
 import { a11ySmoke } from "./support/a11y.js";
 
 /** Addendum 5 routes: each must respond 200, render exactly one h1 and pass the shared axe smoke. */
@@ -20,15 +20,21 @@ const NEW_ROUTES = [
   { path: "/referrals", h1: /worth/i },
   { path: "/waitlist", h1: /Be first/i },
   { path: "/press", h1: /Media kit/i },
+  // Diaspora bundle page (product_bundles seed: Parents' Care Pack)
+  { path: "/bundles/parents-care-pack", h1: /Parents. Care Pack/i },
 ];
 
 test.describe("marketing site", () => {
-  test("home renders the hero, quote widget and product tiles", async ({ page }) => {
+  test("home renders the hero, quote card and product tiles", async ({ page }) => {
     await page.goto("/");
     const h1 = page.getByRole("heading", { level: 1 });
-    await expect(h1).toContainText("Compare, buy and manage insurance");
-    await expect(h1).toContainText("in minutes");
-    await expect(page.getByRole("form", { name: "Get an instant quote" })).toBeVisible();
+    await expect(h1).toContainText("Real quotes. Your broker.");
+    await expect(h1).toContainText("Pay by MoMo");
+    const card = page.getByRole("form", { name: "What do you want to insure?" }).locator("visible=true").first();
+    await expect(card).toBeVisible();
+    await expect(card.getByRole("button", { name: /Get quotes/ })).toBeVisible();
+    await expect(card.getByText("Example · DEMO").first()).toBeVisible();
+    await expect(card.getByText("A quote request is not cover.")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Cover for what matters to you" })).toBeVisible();
     const tiles = page.locator("a[href^='/insurance/']");
     expect(await tiles.count()).toBeGreaterThanOrEqual(7);
@@ -42,16 +48,69 @@ test.describe("marketing site", () => {
     await expect(page.getByText(/not an insurer or broker/i).first()).toBeVisible();
   });
 
-  test("hero quote widget hands over to /get-started with the category and registration", async ({ page }) => {
+  test("hero quote card hands over to /quote and the flow asks one question per screen", async ({ page }) => {
     await page.goto("/");
-    const form = page.getByRole("form", { name: "Get an instant quote" });
-    await form.getByLabel("What do you want to insure?").selectOption("motor");
-    await form.getByLabel(/Vehicle registration/).fill("GX 1234-24");
-    await form.getByRole("button", { name: "Get quotes" }).click();
-    await page.waitForURL(/\/get-started\?category=motor/);
-    expect(page.url()).toContain("reg=GX");
-    await expect(page.getByRole("heading", { level: 2, name: /Motor quotes/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Get quotes/ }).first()).toHaveAttribute("href", /\/account\/requests\/new\?category=motor/);
+    const card = page.getByRole("form", { name: "What do you want to insure?" }).locator("visible=true").first();
+    await card.getByRole("radio", { name: "Health" }).check({ force: true });
+    await card.getByRole("button", { name: /Get quotes/ }).click();
+    await page.waitForURL(/\/quote\?category=health/);
+    // Step 2 of 6: the first question for health cover, with a progress bar and the sticky bar.
+    await expect(page.getByText(/Step 2 of 6/)).toBeVisible();
+    await expect(page.getByRole("progressbar", { name: "Quote progress" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Continue/ })).toBeVisible();
+    // Required answers are enforced before moving on.
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await expect(page.getByRole("alert").first()).toBeVisible();
+    // Fill the health questions: members + age, plan level (cards), pre-existing (yes/no), region.
+    await page.getByLabel("People to cover").fill("3");
+    await page.getByLabel("Age of oldest member").fill("45");
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await page.getByRole("radio").first().check({ force: true });
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await page.getByRole("radio", { name: "No" }).check({ force: true });
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await page.getByLabel(/region/i).selectOption("Greater Accra");
+    await page.getByRole("button", { name: /Continue/ }).click();
+    // Review, then the sign-in gate (anonymous): brokers are chosen only after sign-in.
+    await expect(page.getByRole("heading", { level: 1, name: "Check your answers" })).toBeVisible();
+    await expect(page.getByText("A quote request is not cover.").first()).toBeVisible();
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Sign in to choose your brokers" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Continue with phone/ })).toHaveAttribute("href", /\/sign-in\?method=phone&next=%2Fquote%3Fresume%3D1/);
+  });
+
+  test("quote flow Back works on a deep link with no earlier step history", async ({ page }) => {
+    await page.goto("/quote?category=motor");
+    await expect(page.getByText(/Step 2 of 6/)).toBeVisible();
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(page).toHaveURL(/\/quote/);
+    await expect(page.getByRole("heading", { level: 1, name: "What do you want to insure?" })).toBeVisible();
+  });
+
+  test("signed-in customer reaches the broker picker and the button counts brokers", async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: STATE.customer, viewport: { width: 1280, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto("/quote?category=travel");
+    for (let i = 0; i < 8 && !(await page.getByRole("heading", { level: 1, name: "Check your answers" }).isVisible()); i++) {
+      const radios = page.getByRole("radio");
+      if ((await radios.count()) > 0) await radios.first().check({ force: true });
+      for (const input of await page.locator("input[type='number']:visible").all()) await input.fill("2");
+      for (const input of await page.locator("input[type='date']:visible").all()) await input.fill("2027-03-01");
+      await page.getByRole("button", { name: /Continue/ }).click();
+    }
+    await page.getByRole("button", { name: /Continue/ }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Choose up to three brokers" })).toBeVisible();
+    const send = page.getByRole("button", { name: /Send to/ });
+    await expect(send).toBeDisabled();
+    const brokers = page.getByRole("checkbox", { name: /./ });
+    await brokers.nth(0).check({ force: true });
+    await expect(send).toHaveText(/Send to 1 broker\b/);
+    if ((await brokers.count()) > 1) {
+      await brokers.nth(1).check({ force: true });
+      await expect(send).toHaveText(/Send to 2 brokers/);
+    }
+    await ctx.close();
   });
 
   for (const r of NEW_ROUTES) {
@@ -103,15 +162,13 @@ test.describe("marketing site", () => {
     for (const k of Object.keys(body)) expect(["valid", "status", "insurerName", "coverStart", "coverEnd", "categoryName", "message"]).toContain(k);
   });
 
-  test("learn hub language switcher is honest about translations", async ({ page }) => {
+  test("learn hub shows no 'coming soon' language promises while only English exists", async ({ page }) => {
     await page.goto("/learn/third-party-vs-comprehensive");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const ld = await page.locator("script[type='application/ld+json']").allTextContents();
     expect(ld.some((t) => t.includes('"Article"'))).toBe(true);
-    await page.getByLabel("Language").selectOption("tw");
-    await expect(page.getByRole("status")).toContainText(/Twi translations are coming soon/);
-    const cookies = await page.context().cookies();
-    expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
+    await expect(page.getByLabel("Language")).toHaveCount(0);
+    await expect(page.getByText(/coming soon/i)).toHaveCount(0);
   });
 
   test("consent banner stores the choice in a cookie and goes away", async ({ page }) => {
@@ -124,6 +181,50 @@ test.describe("marketing site", () => {
     expect(cookies.find((c) => c.name === "covva_consent")?.value).toBe("essential");
     await page.reload();
     await expect(page.getByRole("region", { name: "Cookie consent" })).toHaveCount(0);
+  });
+
+  test("consent banner: 'Choose for me' saves analytics-only and the cookie notice can reset it", async ({ page }) => {
+    await page.goto("/about");
+    const region = page.getByRole("region", { name: "Cookie consent" });
+    await region.getByRole("button", { name: "Choose for me" }).click();
+    // Strictly necessary is always on and cannot be unticked.
+    await expect(region.getByRole("checkbox", { name: /Strictly necessary/ })).toBeDisabled();
+    await expect(region.getByRole("checkbox", { name: /Analytics/ })).toBeChecked();
+    await region.getByRole("button", { name: "Save choices" }).click();
+    await expect(region).toBeHidden();
+    let cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "covva_consent")?.value).toBe("analytics");
+    // Without a GA4 id configured, nothing is injected even after consent.
+    await expect(page.locator("script#ga4-src")).toHaveCount(0);
+    await expect(page.locator("script#meta-pixel-src")).toHaveCount(0);
+    // The cookie notice lets the visitor change their mind: the banner comes back.
+    await page.goto("/legal/cookies");
+    await expect(page.getByRole("status")).toContainText("analytics only");
+    await page.getByRole("button", { name: "Change your cookie choices" }).click();
+    await expect(page.getByRole("region", { name: "Cookie consent" })).toBeVisible();
+    cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === "covva_consent")).toBeUndefined();
+  });
+
+  test("A/B hooks: control by default, ?exp= override is sticky and limited to known variants", async ({ page }) => {
+    await page.goto("/");
+    const h1 = page.getByRole("heading", { level: 1 });
+    await expect(h1).toContainText("Real quotes. Your broker.");
+    const exp = page.locator("[data-experiment='home_hero_headline']");
+    await expect(exp).toHaveAttribute("data-variant", "control");
+    expect((await page.context().cookies()).find((c) => c.name === "covva_exp")).toBeUndefined();
+    // QA override forces a variant and persists it for the browser.
+    await page.goto("/?exp=home_hero_headline:instant");
+    await expect(exp).toHaveAttribute("data-variant", "instant");
+    await expect(exp).toContainText("Compare, buy and manage insurance");
+    expect(decodeURIComponent((await page.context().cookies()).find((c) => c.name === "covva_exp")?.value ?? "")).toBe("home_hero_headline:instant");
+    await page.goto("/");
+    await expect(exp).toHaveAttribute("data-variant", "instant");
+    // Unknown variants are ignored and the stored assignment is kept.
+    await page.goto("/?exp=home_hero_headline:nope");
+    await expect(exp).toHaveAttribute("data-variant", "instant");
+    await page.goto("/?exp=home_hero_headline:control");
+    await expect(exp).toContainText("Tell us what you want to insure");
   });
 
   test("header navigation exposes the Insurance and Partners menus to the keyboard", async ({ page }) => {
@@ -157,7 +258,7 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Motor");
     await expect(page.getByRole("heading", { level: 2, name: "Participating insurers" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "What you will need" })).toBeVisible();
-    await expect(page).toHaveTitle(/Motor insurance in Ghana/);
+    await expect(page).toHaveTitle(/Compare Motor cover/);
   });
 
   test("unknown category renders the not-found page (noindex)", async ({ page }) => {
@@ -269,5 +370,94 @@ test.describe("marketing site", () => {
     const status = page.getByRole("status");
     await expect(status).toContainText("Thank you — we’ve got your message.");
     await expect(status.getByRole("button", { name: "Send another message" })).toBeVisible();
+  });
+
+  test("chat drawer opens with the disclaimer and a way to reach a person", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Chat with us" }).click();
+    const drawer = page.getByRole("dialog", { name: "Chat with us" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByTestId("chat-disclaimer")).toContainText("not an insurer or broker");
+    await expect(drawer.getByText(/can.t recommend a product or quote a price/)).toBeVisible();
+    await expect(drawer.getByRole("link", { name: /Talk to a human \/ my broker/ })).toBeVisible();
+    await expect(drawer.getByLabel("Your question")).toBeVisible();
+    await drawer.getByRole("button", { name: "Close chat" }).click();
+    await expect(drawer).toBeHidden();
+  });
+});
+
+test.describe("embedded quote widget", () => {
+  test("an unknown partner code renders a friendly not-available state (and is never framable by others)", async ({ page }) => {
+    const res = await page.goto("/embed/quote?partner=bad");
+    expect(res?.status()).toBe(200);
+    expect(res?.headers()["x-frame-options"]).toBeUndefined();
+    expect(res?.headers()["content-security-policy"] ?? "").toContain("frame-ancestors 'self'");
+    await expect(page.getByTestId("embed-unavailable")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /aren.t available here right now/ })).toBeVisible();
+    await expect(page.getByText("Technology provided by Covva. Insurance provided by licensed insurers and brokers.")).toBeVisible();
+  });
+});
+
+test.describe("site-wide language switcher (Phase 3 i18n)", () => {
+  test("English pages are unchanged by the translation layer", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+    await expect(page.getByRole("heading", { level: 2, name: "What do you want to insure?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Get quotes" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "For partners" })).toBeVisible();
+    await expect(page.getByRole("contentinfo")).toContainText("Technology platform. Not an insurer or broker.");
+    await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Diaspora" })).toBeVisible();
+    await expect(page.getByTestId("locale-notice")).toHaveCount(0);
+  });
+
+  test("choosing Twi in the header is honest: English text with an in-progress notice", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto("/");
+    const header = page.getByRole("banner");
+    await header.getByRole("button", { name: "Language: English" }).click();
+    await header.getByRole("button", { name: /^Twi/ }).click();
+    await expect(page.getByTestId("locale-notice")).toContainText("Twi translations are in progress — untranslated text is shown in English.");
+    await expect(page.locator("html")).toHaveAttribute("lang", "tw");
+    const cookies = await context.cookies();
+    expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
+    // Nothing is machine-translated: the page stays in English.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+
+    // The choice survives a reload (cookie → <html lang> script, notice after hydration).
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("lang", "tw");
+    await expect(page.getByTestId("locale-notice")).toBeVisible();
+    await expect(header.getByRole("button", { name: "Language: Twi" })).toBeVisible();
+
+    // The catalogue API reports the honest status.
+    const res = await page.request.get("/api/v1/i18n/tw");
+    expect(res.ok()).toBe(true);
+    const body = await res.json();
+    expect(["planned", "partial", "complete"]).toContain(body.data.status);
+    expect(body.data.fallback).toBe("en");
+
+    // Back to English: notice gone.
+    await header.getByRole("button", { name: "Language: Twi" }).click();
+    await header.getByRole("button", { name: /^English/ }).click();
+    await expect(page.getByTestId("locale-notice")).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
+  });
+});
+
+test.describe("micro cover page (Phase 3)", () => {
+  test("/micro renders one h1, the audiences and a product grid or the coming-soon note", async ({ page }) => {
+    const res = await page.goto("/micro");
+    expect(res?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Cover by the day/i);
+    await expect(page.getByRole("list", { name: "Who it is for" })).toContainText("Okada riders");
+    const buy = page.getByRole("link", { name: "Buy cover" });
+    if ((await buy.count()) > 0) await expect(buy.first()).toHaveAttribute("href", /\/account\/micro\/buy\?version=/);
+    else await expect(page.getByText(/Micro cover is coming soon/)).toBeVisible();
+    const api = await page.request.get("/api/v1/micro/products?audience=okada");
+    expect(api.ok()).toBe(true);
+    expect(Array.isArray((await api.json()).data.items)).toBe(true);
   });
 });

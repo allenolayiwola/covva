@@ -154,4 +154,23 @@ test.describe("admin portal", () => {
     await expect(note).toContainText("Audit chain intact", { timeout: 60_000 });
     await expect(note).toContainText(/events verified in \d+ ms/);
   });
+
+  test("WhatsApp support inbox, templates and contacts render", async ({ page }) => {
+    await page.goto("/whatsapp");
+    await expect(page.getByRole("heading", { level: 1, name: "WhatsApp" })).toBeVisible();
+    const tabs = page.getByRole("navigation", { name: "Tabs" }).first();
+    for (const label of ["Inbox", "Templates", "Contacts"]) await expect(tabs.getByRole("link", { name: label, exact: true })).toBeVisible();
+    await expect(page.getByTestId("wa-inbox")).toBeVisible();
+    await expect(page.getByText("Recent opt-outs")).toBeVisible();
+    await expect(page.getByText(/Select a conversation|Conversation not found/)).toBeVisible();
+
+    await page.goto("/whatsapp/templates");
+    await expect(page.getByRole("heading", { level: 1, name: "WhatsApp templates" })).toBeVisible();
+    await expect(page.getByTestId("wa-templates").getByText("broker_new_offer")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy for Meta submission" }).first()).toBeVisible();
+
+    await page.goto("/whatsapp/contacts");
+    await expect(page.getByRole("heading", { level: 1, name: "WhatsApp contacts" })).toBeVisible();
+    await expect(page.locator("main table").getByRole("columnheader", { name: "Consent" })).toBeVisible();
+  });
 });

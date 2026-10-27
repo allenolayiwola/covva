@@ -10,7 +10,7 @@ import { createPublicClient } from "@/lib/supabase/server";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { AcceptForm } from "./accept-form";
 
-export const metadata: Metadata = { title: "Team invitation", robots: { index: false } };
+export const metadata: Metadata = { title: "Accept your invitation", robots: { index: false } };
 
 export default function InvitePage({ params }: PageProps<"/invite/[token]">) {
   return (

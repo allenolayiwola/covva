@@ -9,6 +9,7 @@ import type { Database, Enum } from "@im/db";
 import { createClient as createCookieClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError } from "@/server/requests";
 import { log } from "@/server/log";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * API v1 plumbing: authentication (Supabase bearer token, cookie session or
@@ -197,9 +198,7 @@ export function clientKind(req: Request): ClientKind {
   return parseClientKind(req.headers.get(CLIENT_HEADER));
 }
 
-export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://covva.com.gh").replace(/\/$/, "");
-}
+export { siteUrl };
 
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
@@ -225,7 +224,7 @@ export interface ApiKeyAuth {
   kind: "apiKey";
   keyId: string;
   orgId: string;
-  orgType: Extract<Enum<"org_type">, "broker" | "insurer">;
+  orgType: Extract<Enum<"org_type">, "broker" | "insurer" | "distributor">;
   orgName: string;
   scopes: string[];
   /**
@@ -322,7 +321,9 @@ async function resolveApiKey(req: Request): Promise<ApiKeyAuth> {
   if (key.revoked_at) throw unauthorised("This API key has been revoked.");
   if (key.expires_at && new Date(key.expires_at) < new Date()) throw unauthorised("This API key has expired.");
   const org = key.org as unknown as { id: string; type: Enum<"org_type">; status: Enum<"org_status">; name: string } | null;
-  if (!org || org.status !== "active" || (org.type !== "broker" && org.type !== "insurer")) {
+  // Distributors (embedded partners) may only call /distribution/* — those routes require distribution:* scopes,
+  // and partner routes check orgType, so a distributor key cannot reach broker/insurer data.
+  if (!org || org.status !== "active" || (org.type !== "broker" && org.type !== "insurer" && org.type !== "distributor")) {
     throw forbidden("This organisation is not active on the platform.");
   }
   // Throttled last_used_at update (api_keys is audited, so avoid a write per call).
@@ -425,6 +426,10 @@ export function withApi<M extends AuthMode, P = unknown>(
       }
       if (auth?.kind === "apiKey" && opts.scopes?.length && !hasScopes(auth, opts.scopes)) {
         throw forbidden(`This API key is missing the required scope: ${opts.scopes.join(", ")}.`);
+      }
+      // Distributor keys reach only the /distribution/* endpoints (every scope required there is distribution:*).
+      if (auth?.kind === "apiKey" && auth.orgType === "distributor" && !(opts.scopes?.length && opts.scopes.every((sc) => sc.startsWith("distribution:")))) {
+        throw forbidden("Distribution partner keys can only call the /distribution endpoints.");
       }
       principal = auth ? (auth.kind === "user" ? `u:${auth.userId}` : `k:${auth.keyId}`) : "anon";
       if (auth?.kind === "user" && opts.clientGate !== false) await assertClientAllowed(auth, client);

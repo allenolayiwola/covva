@@ -3,10 +3,12 @@ import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError } from "@/server/requests";
 import { notify, notifyOrg } from "@/server/notify";
+import { notifyPolicyParties } from "@/server/diaspora-notify";
 import { refundPayment } from "@/server/payments";
 import { recordPolicyActive } from "@/server/usage";
 import { log } from "@/server/log";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
+import { onPolicyActivated } from "@/server/referrals";
 
 /**
  * Policy issuance helpers. Only the insurer activates cover. `issuePolicyForInsurer`
@@ -66,6 +68,14 @@ export async function onPolicyIssued(policyId: string): Promise<void> {
     link: `/account/policies/${policy.id}`,
     data: { policy_id: policy.id },
   });
+  // Diaspora dual notification: the sponsor who pays and the beneficiary covered (no-op without them).
+  await notifyPolicyParties(policy.id, "policy.issued", {
+    title: `Policy ${policy.policy_number} is active`,
+    body: `The insurer has issued the policy${policy.cover_start ? ` with cover from ${policy.cover_start}` : ""}. Documents are in the policy wallet.`,
+    link: `/account/policies/${policy.id}`,
+    data: { policy_id: policy.id },
+    skipUserIds: [policy.customer_id],
+  }).catch((err) => log.warn("policy.issued.parties_notify_failed", { policyId: policy.id, err }));
   if (policy.broker_org_id) {
     await notifyOrg(policy.broker_org_id, {
       kind: "policy.issued",
@@ -78,6 +88,7 @@ export async function onPolicyIssued(policyId: string): Promise<void> {
   const issued = { policy_id: policy.id, internal_reference: policy.internal_reference, policy_number: policy.policy_number, request_id: policy.request_id, status: "active", cover_start: policy.cover_start, cover_end: policy.cover_end };
   await emitEvent(policy.broker_org_id, "policy.issued", issued);
   await emitEvent(policy.insurer_org_id, "policy.issued", issued);
+  await onPolicyActivated(policy.id).catch((err) => log.warn("policy.issued.referral_failed", { policyId: policy.id, err }));
 }
 
 /**

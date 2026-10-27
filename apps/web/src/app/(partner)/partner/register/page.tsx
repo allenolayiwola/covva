@@ -303,7 +303,7 @@ async function StepBody({ type, step, application, completeness }: { type: Partn
       ];
       return (
         <>
-          {heading("Documents", "Upload the NIC licence and the certificate of incorporation. Files are private and only visible to you and Covva's verification team.")}
+          {heading("Documents", "Upload the NIC licence and the certificate of incorporation. Files are private and only visible to you and Covva’s verification team.")}
           <ApplicationDocumentsUpload applicationId={app!.id} type={type} kinds={kinds} action={recordDocuments} />
           {docs.length > 0 && (
             <ul className="mt-4 divide-y divide-line rounded-xl border border-line">
