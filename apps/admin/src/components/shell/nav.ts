@@ -1,7 +1,7 @@
 import {
   Languages, Smartphone,
   Activity, BadgeCheck, Banknote, Bot, Building2, ChartNoAxesColumn, ClipboardList, FileCheck2, FileSignature, Flag, Gauge, Globe2, Handshake,
-  HeartPulse, Inbox, Kanban, LayoutGrid, ListChecks, MessageCircle, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
+  HeartPulse, Inbox, Kanban, LayoutGrid, ListChecks, LockKeyhole, MessageCircle, MessageSquareWarning, Network, Package, Receipt, Scale, ScrollText, Settings, ShieldCheck,
   Tags, Users, Wallet, Wrench, Gift, Star, Store, type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +25,7 @@ export const NAV: NavGroup[] = [
       { href: "/scorecards/reviews", label: "Broker reviews", icon: Star, keywords: "broker ratings stars moderation approve hide reviews customers scorecard" },
       { href: "/complaints", label: "Complaints", icon: MessageSquareWarning, keywords: "nic escalation sla" },
       { href: "/kyc", label: "KYC review", icon: BadgeCheck, keywords: "ghana card verify identity" },
+      { href: "/privacy-requests", label: "Privacy requests", icon: LockKeyhole, keywords: "act 843 data protection subject access export correction deletion erasure anonymise objection marketing opt-out retention" },
       { href: "/inspections", label: "Inspections", icon: Building2, keywords: "property cover diaspora site inspection partner assign home being built" },
       { href: "/diaspora", label: "Diaspora", icon: Globe2, keywords: "sponsors beneficiaries consent gifts family abroad" },
       { href: "/business", label: "Business accounts", icon: Building2, keywords: "sme group scheme employer fleet census members statements consolidated billing enterprise" },

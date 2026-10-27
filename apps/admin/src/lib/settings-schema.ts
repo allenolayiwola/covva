@@ -41,6 +41,26 @@ export const KNOWN_SETTINGS: Record<string, { schema: z.ZodType; hint: string; e
   },
   terms_version: { schema: z.string().min(1).max(40), hint: "Current customer terms version. Changing it asks customers to accept again.", example: "2026-10-v1" },
   privacy_version: { schema: z.string().min(1).max(40), hint: "Current privacy notice version.", example: "2026-10-v1" },
+  privacy_request_due_days: {
+    schema: z.number().int().min(1).max(90),
+    hint: "Days Covva gives itself to answer an Act 843 privacy request (default 30). The statutory deadline is to be confirmed with counsel.",
+    example: 30,
+  },
+  privacy_export_ttl_days: {
+    schema: z.number().int().min(1).max(30),
+    hint: "Days a generated personal-data export stays downloadable before the retention job deletes it.",
+    example: 7,
+  },
+  privacy_retention: {
+    schema: z
+      .object({
+        mode: z.enum(["dry_run", "enforce"]),
+        periods: z.record(z.string(), z.number().int().min(30).max(3650)).optional(),
+      })
+      .passthrough(),
+    hint: "Retention job (docs/PRIVACY_REQUESTS.md). mode dry_run only reports; enforce erases. periods override the default days per data class (min 30). Switch to enforce once the periods are confirmed with counsel.",
+    example: { mode: "dry_run", periods: { ai_chat_logs: 365, unconverted_leads: 730 } },
+  },
   complaint_sla_days: { schema: z.number().int().min(1).max(90), hint: "Days to resolve a complaint before escalation.", example: 14 },
   renewal_reminder_days: {
     schema: z

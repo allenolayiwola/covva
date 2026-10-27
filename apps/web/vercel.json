@@ -23,6 +23,8 @@
     { "path": "/api/cron/business-invoices", "schedule": "0 5 1 * *" },
     { "path": "/api/cron/accounting-exports", "schedule": "0 4 2 * *" },
     { "path": "/api/cron/scorecard-refresh", "schedule": "40 1 * * *" },
-    { "path": "/api/cron/analytics-rollup", "schedule": "50 1 * * *" }
+    { "path": "/api/cron/analytics-rollup", "schedule": "50 1 * * *" },
+    { "path": "/api/cron/welfare-reminders", "schedule": "30 7 * * *" },
+    { "path": "/api/cron/privacy-retention", "schedule": "50 3 * * *" }
   ]
 }

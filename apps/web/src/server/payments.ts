@@ -459,11 +459,14 @@ function isSubscriptionCharge(p: Pick<PaymentRow, "application_id" | "raw_event"
   return p.application_id === null && typeof asObject(p.raw_event).subscription_id === "string";
 }
 
-/** Phase 3 collections without an application: an instalment (`raw_event.instalment_id`) or a micro renewal (`raw_event.micro_session_id`). */
-function planCollectionKind(p: Pick<PaymentRow, "application_id" | "raw_event">): "instalment" | "micro" | null {
+/**
+ * Collections without an application: an instalment (`raw_event.instalment_id`), a micro renewal
+ * (`raw_event.micro_session_id`) or a welfare group contribution (`raw_event.welfare_contribution_ids`).
+ */
+function planCollectionKind(p: Pick<PaymentRow, "application_id" | "raw_event">): "instalment" | "micro" | "welfare" | null {
   if (p.application_id !== null) return null;
   const raw = asObject(p.raw_event);
-  return typeof raw.instalment_id === "string" ? "instalment" : typeof raw.micro_session_id === "string" ? "micro" : null;
+  return typeof raw.instalment_id === "string" ? "instalment" : typeof raw.micro_session_id === "string" ? "micro" : Array.isArray(raw.welfare_contribution_ids) ? "welfare" : null;
 }
 
 /** Checkout of a plan (first instalment / micro cover): link it to the new policy before issuance. Never blocks the flow. */
@@ -637,9 +640,13 @@ export async function initiatePolicyCollection(args: {
   momo?: { phone: string; provider: "mtn" | "vod" | "atl" } | null;
   callbackUrl?: string;
   description: string;
+  /** Sponsor abroad: currency to DISPLAY the amount in (GBP, USD, EUR, CAD). The charge and the settlement stay the GHS amount. */
+  displayCurrency?: string | null;
 }): Promise<{ paymentId: string; reference: string; status: Enum<"payment_status">; authorizationUrl: string | null; displayText: string | null; provider: PaymentProvider }> {
   const svc = createServiceClient();
   const amount = roundHalfUp(args.amount);
+  const displayCurrency = parseDisplayCurrency(args.displayCurrency) ?? "GHS";
+  const fx = displayCurrency === "GHS" ? null : await quoteFx(amount, displayCurrency);
   if (!(amount > 0)) throw new BusinessRuleError("Nothing to collect.");
   const { data: policy } = await svc.from("policies").select("id, request_id, quote_id, customer_id, insurer_org_id, broker_org_id").eq("id", args.policyId).maybeSingle();
   if (!policy?.request_id || !policy.insurer_org_id) throw new BusinessRuleError("This policy can't be paid through Covva.", "not_found");
@@ -687,15 +694,18 @@ export async function initiatePolicyCollection(args: {
     currency: "GHS",
     provider,
     psp: provider as Psp,
-    display_currency: "GHS",
-    display_amount: amount,
+    display_currency: displayCurrency,
+    display_amount: fx ? fx.displayAmount : amount,
+    fx_rate: fx ? fx.rate : null,
+    fx_source: fx ? fx.source : null,
+    fx_quoted_at: fx ? fx.quotedAt : null,
     provider_reference: reference,
     channel,
     status: "pending" as const,
     settlement_subaccount: settlement,
     authorization_url: null,
     failure_reason: null,
-    raw_event: { ...args.tags, initialize: { channel: args.channel, momo_provider: args.momo?.provider ?? null, started_at: new Date().toISOString(), callback_url: callbackUrl }, split: commercial.summary } as unknown as Json,
+    raw_event: { ...args.tags, initialize: { channel: args.channel, momo_provider: args.momo?.provider ?? null, started_at: new Date().toISOString(), callback_url: callbackUrl, display_currency: displayCurrency, display_amount: fx ? fx.displayAmount : amount, fx_disclosure: fx ? fx.disclosure : null }, split: commercial.summary } as unknown as Json,
   };
   let paymentId: string;
   if (existing) {
@@ -713,7 +723,7 @@ export async function initiatePolicyCollection(args: {
   let authorizationUrl: string | null = null;
   let displayText: string | null = null;
   let status: Enum<"payment_status"> = "pending";
-  const metadata = { payment_id: paymentId, policy_id: policy.id, request_reference: request.reference, ...args.tags };
+  const metadata = { payment_id: paymentId, policy_id: policy.id, request_reference: request.reference, display_currency: displayCurrency, display_amount: fx ? fx.displayAmount : amount, ...args.tags };
   if (provider === "simulator") {
     authorizationUrl = `${siteUrl()}/api/payments/simulate?reference=${encodeURIComponent(reference)}&sig=${simulatorSignature(reference)}`;
     displayText = args.channel === "mobile_money" ? "Sandbox: open the link to approve the mobile money payment." : null;
@@ -947,6 +957,11 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
   if (planKind === "micro") {
     const { applyMicroRenewalOutcome } = await import("@/server/micro");
     return applyMicroRenewalOutcome(svc, payment, outcome);
+  }
+  // Phase 4: welfare group contributions keep the group's master policy funded (who paid for whom is recorded).
+  if (planKind === "welfare") {
+    const { applyWelfareContributionOutcome } = await import("@/server/welfare");
+    return applyWelfareContributionOutcome(svc, payment, outcome);
   }
 
   if (outcome.status !== "succeeded") {

@@ -26,7 +26,12 @@ import { analyticsRollupJob } from "@/server/analytics";
  * Each job is idempotent so a retried or overlapping run is harmless.
  */
 type Svc = ReturnType<typeof createServiceClient>;
-export type CronJob = (svc: Svc) => Promise<Record<string, unknown>>;
+/** Per-run options from the cron URL (only jobs that support them read them). */
+export interface CronOptions {
+  /** `?dry_run=1`: report what would change without changing anything (privacy-retention). */
+  dryRun?: string | null;
+}
+export type CronJob = (svc: Svc, opts?: CronOptions) => Promise<Record<string, unknown>>;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -457,9 +462,14 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "scorecard-refresh": (svc) => refreshBrokerScorecards(svc),
   // Phase 4: daily 01:50 — analytics.daily_facts for yesterday and today (idempotent per day; backfill from the admin analytics page).
   "analytics-rollup": (svc) => analyticsRollupJob(svc),
+  // Phase 4: daily 07:30 — welfare group contribution reminders (3 days before and 3 days after the due date) to members and their sponsors abroad.
+  "welfare-reminders": async (svc) => (await import("@/server/welfare")).sendWelfareReminders(svc),
+  // Act 843: daily 03:50 — expired data exports removed, then retention rules applied per data class (dry run until
+  // platform_settings.privacy_retention.mode = "enforce"; ?dry_run=1 forces one). Logged in privacy_retention_runs.
+  "privacy-retention": async (svc, opts) => (await import("@/server/privacy")).runPrivacyRetention(svc, { dryRun: opts?.dryRun }),
 };
 
-export async function runCron(job: string) {
+export async function runCron(job: string, opts: CronOptions = {}) {
   const fn = CRON_JOBS[job];
   if (!fn) return null;
   const svc = createServiceClient();
@@ -467,7 +477,7 @@ export async function runCron(job: string) {
   let result: Record<string, unknown> = {};
   let ok = true;
   try {
-    result = await fn(svc);
+    result = await fn(svc, opts);
   } catch (err) {
     ok = false;
     log.error("cron.failed", { job, err });

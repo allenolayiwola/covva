@@ -6,6 +6,7 @@ export const maxDuration = 300;
 /**
  * GET /api/cron/{job} — Vercel Cron (see apps/web/vercel.json). Requires
  * `Authorization: Bearer ${CRON_SECRET}`. Reading the header also keeps this GET dynamic.
+ * `?dry_run=1` asks jobs that support it (privacy-retention) to report without changing anything.
  */
 export async function GET(req: Request, ctx: RouteContext<"/api/cron/[job]">) {
   const auth = req.headers.get("authorization");
@@ -14,6 +15,6 @@ export async function GET(req: Request, ctx: RouteContext<"/api/cron/[job]">) {
     return Response.json({ ok: false, error: { code: "unauthorised", message: "Invalid cron secret" } }, { status: 401 });
   }
   if (!(job in CRON_JOBS)) return Response.json({ ok: false, error: { code: "not_found", message: `Unknown job ${job}` } }, { status: 404 });
-  const result = await runCron(job);
+  const result = await runCron(job, { dryRun: new URL(req.url).searchParams.get("dry_run") });
   return Response.json({ ok: !!result?.ok, data: result }, { status: result?.ok ? 200 : 500 });
 }

@@ -1237,6 +1237,8 @@ export type Database = {
           status: Database["public"]["Enums"]["claim_status"]
           third_parties: Json
           updated_at: string
+          welfare_group_id: string | null
+          welfare_member_id: string | null
         }
         Insert: {
           acknowledged_at?: string | null
@@ -1270,6 +1272,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["claim_status"]
           third_parties?: Json
           updated_at?: string
+          welfare_group_id?: string | null
+          welfare_member_id?: string | null
         }
         Update: {
           acknowledged_at?: string | null
@@ -1303,6 +1307,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["claim_status"]
           third_parties?: Json
           updated_at?: string
+          welfare_group_id?: string | null
+          welfare_member_id?: string | null
         }
         Relationships: [
           {
@@ -1338,6 +1344,20 @@ export type Database = {
             columns: ["proxy_consent_id"]
             isOneToOne: false
             referencedRelation: "beneficiary_consents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_welfare_group_id_fkey"
+            columns: ["welfare_group_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_welfare_member_id_fkey"
+            columns: ["welfare_member_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_members"
             referencedColumns: ["id"]
           },
         ]
@@ -4694,6 +4714,209 @@ export type Database = {
           },
         ]
       }
+      privacy_request_events: {
+        Row: {
+          actor_id: string | null
+          actor_party: Database["public"]["Enums"]["party"]
+          created_at: string
+          event: string
+          from_status:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          id: number
+          note: string | null
+          request_id: string
+          to_status:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          visible_to_customer: boolean
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_party?: Database["public"]["Enums"]["party"]
+          created_at?: string
+          event: string
+          from_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          id?: never
+          note?: string | null
+          request_id: string
+          to_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          visible_to_customer?: boolean
+        }
+        Update: {
+          actor_id?: string | null
+          actor_party?: Database["public"]["Enums"]["party"]
+          created_at?: string
+          event?: string
+          from_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          id?: never
+          note?: string | null
+          request_id?: string
+          to_status?:
+            | Database["public"]["Enums"]["privacy_request_status"]
+            | null
+          visible_to_customer?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "privacy_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_requests: {
+        Row: {
+          anonymisation_summary: Json | null
+          anonymised_at: string | null
+          channel: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_reason: string | null
+          due_at: string
+          export_bytes: number | null
+          export_download_count: number
+          export_downloaded_at: string | null
+          export_expires_at: string | null
+          export_generated_at: string | null
+          export_path: string | null
+          export_sha256: string | null
+          fulfilled_at: string | null
+          fulfilment_note: string | null
+          id: string
+          identity_method: string | null
+          identity_verified_at: string | null
+          identity_verified_by: string | null
+          note: string | null
+          reference: string
+          retention_note: string | null
+          status: Database["public"]["Enums"]["privacy_request_status"]
+          type: Database["public"]["Enums"]["privacy_request_type"]
+          updated_at: string
+          user_id: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          anonymisation_summary?: Json | null
+          anonymised_at?: string | null
+          channel?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          due_at?: string
+          export_bytes?: number | null
+          export_download_count?: number
+          export_downloaded_at?: string | null
+          export_expires_at?: string | null
+          export_generated_at?: string | null
+          export_path?: string | null
+          export_sha256?: string | null
+          fulfilled_at?: string | null
+          fulfilment_note?: string | null
+          id?: string
+          identity_method?: string | null
+          identity_verified_at?: string | null
+          identity_verified_by?: string | null
+          note?: string | null
+          reference?: string
+          retention_note?: string | null
+          status?: Database["public"]["Enums"]["privacy_request_status"]
+          type: Database["public"]["Enums"]["privacy_request_type"]
+          updated_at?: string
+          user_id: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          anonymisation_summary?: Json | null
+          anonymised_at?: string | null
+          channel?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          due_at?: string
+          export_bytes?: number | null
+          export_download_count?: number
+          export_downloaded_at?: string | null
+          export_expires_at?: string | null
+          export_generated_at?: string | null
+          export_path?: string | null
+          export_sha256?: string | null
+          fulfilled_at?: string | null
+          fulfilment_note?: string | null
+          id?: string
+          identity_method?: string | null
+          identity_verified_at?: string | null
+          identity_verified_by?: string | null
+          note?: string | null
+          reference?: string
+          retention_note?: string | null
+          status?: Database["public"]["Enums"]["privacy_request_status"]
+          type?: Database["public"]["Enums"]["privacy_request_type"]
+          updated_at?: string
+          user_id?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      privacy_retention_runs: {
+        Row: {
+          actor_id: string | null
+          dry_run: boolean
+          error: string | null
+          finished_at: string | null
+          id: string
+          ok: boolean
+          plan: Json
+          results: Json
+          started_at: string
+          triggered_by: string
+        }
+        Insert: {
+          actor_id?: string | null
+          dry_run: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          ok?: boolean
+          plan?: Json
+          results?: Json
+          started_at?: string
+          triggered_by?: string
+        }
+        Update: {
+          actor_id?: string | null
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          ok?: boolean
+          plan?: Json
+          results?: Json
+          started_at?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       product_bundles: {
         Row: {
           audience: string
@@ -4703,6 +4926,7 @@ export type Database = {
           id: string
           items: Json
           name: string
+          settings: Json
           slug: string
           status: string
           updated_at: string
@@ -4715,6 +4939,7 @@ export type Database = {
           id?: string
           items?: Json
           name: string
+          settings?: Json
           slug: string
           status?: string
           updated_at?: string
@@ -4727,6 +4952,7 @@ export type Database = {
           id?: string
           items?: Json
           name?: string
+          settings?: Json
           slug?: string
           status?: string
           updated_at?: string
@@ -4993,6 +5219,7 @@ export type Database = {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
           active_workspace: Json | null
+          anonymised_at: string | null
           assisted_service: boolean
           avatar_url: string | null
           business_name: string | null
@@ -5022,6 +5249,7 @@ export type Database = {
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"]
           active_workspace?: Json | null
+          anonymised_at?: string | null
           assisted_service?: boolean
           avatar_url?: string | null
           business_name?: string | null
@@ -5051,6 +5279,7 @@ export type Database = {
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
           active_workspace?: Json | null
+          anonymised_at?: string | null
           assisted_service?: boolean
           avatar_url?: string | null
           business_name?: string | null
@@ -5961,6 +6190,7 @@ export type Database = {
           title: string | null
           type: Database["public"]["Enums"]["request_type"]
           updated_at: string
+          welfare_group_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -5998,6 +6228,7 @@ export type Database = {
           title?: string | null
           type?: Database["public"]["Enums"]["request_type"]
           updated_at?: string
+          welfare_group_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -6035,6 +6266,7 @@ export type Database = {
           title?: string | null
           type?: Database["public"]["Enums"]["request_type"]
           updated_at?: string
+          welfare_group_id?: string | null
         }
         Relationships: [
           {
@@ -6098,6 +6330,13 @@ export type Database = {
             columns: ["source_broker_org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_welfare_group_id_fkey"
+            columns: ["welfare_group_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -7788,6 +8027,455 @@ export type Database = {
           },
         ]
       }
+      welfare_beneficiaries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          full_name: string
+          group_id: string
+          id: string
+          member_id: string
+          phone: string | null
+          relationship: string
+          share_pct: number
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          full_name: string
+          group_id: string
+          id?: string
+          member_id: string
+          phone?: string | null
+          relationship?: string
+          share_pct?: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          full_name?: string
+          group_id?: string
+          id?: string
+          member_id?: string
+          phone?: string | null
+          relationship?: string
+          share_pct?: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_beneficiaries_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_beneficiaries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      welfare_contributions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          display_amount: number | null
+          display_currency: string | null
+          due_at: string
+          fx_rate: number | null
+          group_id: string
+          id: string
+          member_id: string
+          note: string | null
+          paid_at: string | null
+          paid_by_user_id: string | null
+          paid_via: string | null
+          payment_id: string | null
+          period_start: string
+          reminded_after_at: string | null
+          reminded_before_at: string | null
+          sponsor_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          display_amount?: number | null
+          display_currency?: string | null
+          due_at: string
+          fx_rate?: number | null
+          group_id: string
+          id?: string
+          member_id: string
+          note?: string | null
+          paid_at?: string | null
+          paid_by_user_id?: string | null
+          paid_via?: string | null
+          payment_id?: string | null
+          period_start: string
+          reminded_after_at?: string | null
+          reminded_before_at?: string | null
+          sponsor_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          display_amount?: number | null
+          display_currency?: string | null
+          due_at?: string
+          fx_rate?: number | null
+          group_id?: string
+          id?: string
+          member_id?: string
+          note?: string | null
+          paid_at?: string | null
+          paid_by_user_id?: string | null
+          paid_via?: string | null
+          payment_id?: string | null
+          period_start?: string
+          reminded_after_at?: string | null
+          reminded_before_at?: string | null
+          sponsor_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_contributions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_contributions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_contributions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_contributions_sponsor_id_fkey"
+            columns: ["sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      welfare_groups: {
+        Row: {
+          admin_user_id: string
+          broker_org_id: string | null
+          category_id: string | null
+          consent_version: string
+          contribution_amount: number
+          contribution_cadence: string
+          contribution_day: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          id: string
+          insurer_org_id: string | null
+          invite_enabled: boolean
+          invite_token: string
+          kind: string
+          member_count: number
+          name: string
+          plan_starts_on: string
+          policy_id: string | null
+          reference: string
+          region: string | null
+          renewal_date: string | null
+          request_id: string | null
+          rules: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          broker_org_id?: string | null
+          category_id?: string | null
+          consent_version?: string
+          contribution_amount?: number
+          contribution_cadence?: string
+          contribution_day?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          insurer_org_id?: string | null
+          invite_enabled?: boolean
+          invite_token?: string
+          kind?: string
+          member_count?: number
+          name: string
+          plan_starts_on?: string
+          policy_id?: string | null
+          reference?: string
+          region?: string | null
+          renewal_date?: string | null
+          request_id?: string | null
+          rules?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          broker_org_id?: string | null
+          category_id?: string | null
+          consent_version?: string
+          contribution_amount?: number
+          contribution_cadence?: string
+          contribution_day?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          insurer_org_id?: string | null
+          invite_enabled?: boolean
+          invite_token?: string
+          kind?: string
+          member_count?: number
+          name?: string
+          plan_starts_on?: string
+          policy_id?: string | null
+          reference?: string
+          region?: string | null
+          renewal_date?: string | null
+          request_id?: string | null
+          rules?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_groups_broker_org_id_fkey"
+            columns: ["broker_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_groups_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_groups_insurer_org_id_fkey"
+            columns: ["insurer_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_groups_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "partner_renewal_pipeline"
+            referencedColumns: ["policy_id"]
+          },
+          {
+            foreignKeyName: "welfare_groups_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_groups_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      welfare_members: {
+        Row: {
+          consent_at: string | null
+          consent_attested_by: string | null
+          consent_channel: string | null
+          consent_version: string | null
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          gender: string | null
+          ghana_card_last4: string | null
+          group_id: string
+          id: string
+          joined_at: string
+          joined_via: string
+          left_at: string | null
+          notes: string | null
+          phone: string | null
+          role: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          consent_at?: string | null
+          consent_attested_by?: string | null
+          consent_channel?: string | null
+          consent_version?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          gender?: string | null
+          ghana_card_last4?: string | null
+          group_id: string
+          id?: string
+          joined_at?: string
+          joined_via?: string
+          left_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          consent_at?: string | null
+          consent_attested_by?: string | null
+          consent_channel?: string | null
+          consent_version?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          gender?: string | null
+          ghana_card_last4?: string | null
+          group_id?: string
+          id?: string
+          joined_at?: string
+          joined_via?: string
+          left_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      welfare_sponsors: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          display_currency: string
+          ended_at: string | null
+          group_id: string
+          id: string
+          invite_token: string
+          invited_by: string | null
+          member_id: string
+          sponsor_email: string | null
+          sponsor_name: string | null
+          sponsor_phone: string | null
+          sponsor_user_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          display_currency?: string
+          ended_at?: string | null
+          group_id: string
+          id?: string
+          invite_token?: string
+          invited_by?: string | null
+          member_id: string
+          sponsor_email?: string | null
+          sponsor_name?: string | null
+          sponsor_phone?: string | null
+          sponsor_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          display_currency?: string
+          ended_at?: string | null
+          group_id?: string
+          id?: string
+          invite_token?: string
+          invited_by?: string | null
+          member_id?: string
+          sponsor_email?: string | null
+          sponsor_name?: string | null
+          sponsor_phone?: string | null
+          sponsor_user_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "welfare_sponsors_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "welfare_sponsors_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "welfare_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       crm_pipeline_summary: {
@@ -7929,6 +8617,10 @@ export type Database = {
           round: number
         }[]
       }
+      accept_welfare_sponsorship: {
+        Args: { p_display_currency?: string; p_token: string }
+        Returns: string
+      }
       activate_scheduled_versions: { Args: never; Returns: number }
       allocate_policy_number: {
         Args: { p_category?: string; p_insurer: string }
@@ -8027,6 +8719,10 @@ export type Database = {
         Args: { p_code: string; p_phone: string }
         Returns: Json
       }
+      consent_welfare_membership: {
+        Args: { p_consent?: boolean; p_member_id: string }
+        Returns: boolean
+      }
       create_business_account: {
         Args: { p_name: string; p_profile?: Json }
         Returns: string
@@ -8056,6 +8752,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_welfare_group: {
+        Args: {
+          p_cadence?: string
+          p_category_slug?: string
+          p_contribution_amount?: number
+          p_contribution_day?: number
+          p_description?: string
+          p_kind?: string
+          p_member_phone?: string
+          p_name: string
+          p_region?: string
+        }
+        Returns: string
       }
       crm_lead_to_account: { Args: { p_lead_id: string }; Returns: string }
       crm_move_stage: {
@@ -8162,6 +8872,14 @@ export type Database = {
           phone: string
         }[]
       }
+      fulfil_privacy_deletion: {
+        Args: { p_dry_run?: boolean; p_id: string; p_note?: string }
+        Returns: Json
+      }
+      generate_welfare_contributions: {
+        Args: { p_group_id: string; p_through?: string }
+        Returns: number
+      }
       insurer_insight_report: {
         Args: { p_insurer_org_id: string; p_month?: string }
         Returns: Json
@@ -8180,6 +8898,15 @@ export type Database = {
           role: Database["public"]["Enums"]["member_role"]
           team: string
         }[]
+      }
+      join_welfare_group: {
+        Args: {
+          p_consent?: boolean
+          p_full_name: string
+          p_phone?: string
+          p_token: string
+        }
+        Returns: string
       }
       latest_fx_rate: {
         Args: { p_quote: string }
@@ -8203,6 +8930,7 @@ export type Database = {
         }
       }
       link_my_scheme_memberships: { Args: never; Returns: number }
+      link_my_welfare_memberships: { Args: never; Returns: number }
       list_my_sessions: {
         Args: never
         Returns: {
@@ -8328,6 +9056,25 @@ export type Database = {
         }[]
       }
       policy_sponsor_name: { Args: { p_policy_id: string }; Returns: string }
+      privacy_request_action: {
+        Args: {
+          p_action: string
+          p_id: string
+          p_method?: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      record_privacy_export: {
+        Args: {
+          p_bytes: number
+          p_id: string
+          p_path: string
+          p_sha256: string
+        }
+        Returns: Json
+      }
+      record_privacy_export_download: { Args: { p_id: string }; Returns: Json }
       refresh_licence_status: { Args: never; Returns: Json }
       reject_partner_application: {
         Args: { p_id: string; p_note: string }
@@ -8345,6 +9092,10 @@ export type Database = {
       reveal_gift: { Args: { p_sponsorship_id: string }; Returns: Json }
       revoke_my_session: { Args: { p_session_id: string }; Returns: boolean }
       run_claim_fraud_checks: { Args: { p_claim_id: string }; Returns: Json }
+      run_privacy_retention: {
+        Args: { p_dry_run?: boolean; p_plan: Json; p_triggered_by?: string }
+        Returns: Json
+      }
       set_commercial_terms: {
         Args: {
           p_broker_commission_pct?: number
@@ -8361,6 +9112,14 @@ export type Database = {
       set_referral_link_disabled: {
         Args: { p_disabled: boolean; p_link_id: string }
         Returns: undefined
+      }
+      submit_privacy_request: {
+        Args: {
+          p_channel?: string
+          p_note?: string
+          p_type: Database["public"]["Enums"]["privacy_request_type"]
+        }
+        Returns: Json
       }
       transition_settlement_statement: {
         Args: { p_id: string; p_status: string }
@@ -8407,6 +9166,11 @@ export type Database = {
         Args: { p_code?: string; p_insurer?: string; p_policy_number?: string }
         Returns: Json
       }
+      waive_welfare_contribution: {
+        Args: { p_contribution_id: string; p_note?: string }
+        Returns: boolean
+      }
+      withdraw_privacy_request: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
       account_type: "individual" | "business"
@@ -8506,6 +9270,21 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "renewed"
+      privacy_request_status:
+        | "submitted"
+        | "identity_verified"
+        | "approved"
+        | "export_ready"
+        | "fulfilled"
+        | "refused"
+        | "closed"
+        | "withdrawn"
+      privacy_request_type:
+        | "access"
+        | "correction"
+        | "deletion"
+        | "objection"
+        | "marketing_opt_out"
       product_status:
         | "draft"
         | "pending_approval"
@@ -8789,6 +9568,23 @@ export const Constants = {
         "cancelled",
         "expired",
         "renewed",
+      ],
+      privacy_request_status: [
+        "submitted",
+        "identity_verified",
+        "approved",
+        "export_ready",
+        "fulfilled",
+        "refused",
+        "closed",
+        "withdrawn",
+      ],
+      privacy_request_type: [
+        "access",
+        "correction",
+        "deletion",
+        "objection",
+        "marketing_opt_out",
       ],
       product_status: [
         "draft",
