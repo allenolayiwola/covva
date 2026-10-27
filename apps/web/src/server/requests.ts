@@ -17,6 +17,7 @@ import { evaluateUnderwriting, issuanceSummary, quoteVersion } from "@/server/ca
 import { notify, notifyOrg } from "@/server/notify";
 import { emitEvent } from "@/server/webhooks";
 import { routeNewRequest, type RoutingResult } from "@/server/routing";
+import { recordAttribution } from "@/server/referrals";
 
 export class BusinessRuleError extends Error {
   constructor(message: string, public code = "business_rule") {
@@ -308,6 +309,8 @@ export async function createRequest(
     .select("*")
     .single();
   if (error) throw new BusinessRuleError(ruleMessage(error, "We couldn't save your request."));
+  // Referral / embedded-partner attribution from the covva_ref cookie (no-op without one; never throws).
+  await recordAttribution(request.id, user.id);
 
   // Drafts are routed when they are submitted; nothing is offered to brokers yet.
   if (!submit) {

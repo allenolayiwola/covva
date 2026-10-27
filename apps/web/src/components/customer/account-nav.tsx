@@ -3,18 +3,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Camera, FileText, HeartHandshake, LayoutGrid, Megaphone, MessageSquare, ScrollText, Shield, User, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@im/ui";
+import type { MessageKey } from "@im/core";
+import { useT } from "@/lib/i18n/client";
 
-export const ACCOUNT_NAV: { href: string; label: string; icon: LucideIcon; mobile?: string }[] = [
-  { href: "/account", label: "Overview", icon: LayoutGrid, mobile: "My cover" },
-  { href: "/account/policies", label: "My policies", icon: Shield },
-  { href: "/account/family", label: "Family", icon: HeartHandshake },
-  { href: "/account/requests", label: "Requests", icon: ScrollText, mobile: "Requests" },
-  { href: "/account/messages", label: "Messages", icon: MessageSquare, mobile: "Messages" },
-  { href: "/account/documents", label: "Documents", icon: FileText },
-  { href: "/account/claims", label: "Claims", icon: Camera, mobile: "Claims" },
-  { href: "/account/complaints", label: "Complaints", icon: Megaphone },
-  { href: "/account/payments", label: "Payments", icon: Wallet },
-  { href: "/account/profile", label: "Profile", icon: User, mobile: "Account" },
+/** `label`/`mobile` are the English text; `k`/`mobileKey` their catalogue keys. */
+export const ACCOUNT_NAV: { href: string; label: string; k: MessageKey; icon: LucideIcon; mobile?: string; mobileKey?: MessageKey }[] = [
+  { href: "/account", label: "Overview", k: "account.nav.overview", icon: LayoutGrid, mobile: "My cover", mobileKey: "account.nav.myCover" },
+  { href: "/account/policies", label: "My policies", k: "account.nav.policies", icon: Shield },
+  { href: "/account/family", label: "Family", k: "account.nav.family", icon: HeartHandshake },
+  { href: "/account/requests", label: "Requests", k: "account.nav.requests", icon: ScrollText, mobile: "Requests", mobileKey: "account.nav.requests" },
+  { href: "/account/messages", label: "Messages", k: "account.nav.messages", icon: MessageSquare, mobile: "Messages", mobileKey: "account.nav.messages" },
+  { href: "/account/documents", label: "Documents", k: "account.nav.documents", icon: FileText },
+  { href: "/account/claims", label: "Claims", k: "account.nav.claims", icon: Camera, mobile: "Claims", mobileKey: "account.nav.claims" },
+  { href: "/account/complaints", label: "Complaints", k: "account.nav.complaints", icon: Megaphone },
+  { href: "/account/payments", label: "Payments", k: "account.nav.payments", icon: Wallet },
+  { href: "/account/profile", label: "Profile", k: "account.nav.profile", icon: User, mobile: "Account", mobileKey: "account.nav.accountTab" },
 ];
 
 function isActive(pathname: string | null, href: string) {
@@ -30,8 +33,9 @@ export function AccountSidebar() {
 
 /** Static variant used as the Suspense fallback (usePathname needs a boundary with dynamic params). */
 export function SidebarList({ pathname }: { pathname: string | null }) {
+  const t = useT();
   return (
-    <nav aria-label="Account" className="sticky top-20 space-y-1 py-6 pr-4">
+    <nav aria-label={t("account.nav.label")} className="sticky top-20 space-y-1 py-6 pr-4">
       {ACCOUNT_NAV.map((item) => {
         const active = isActive(pathname, item.href);
         return (
@@ -45,7 +49,7 @@ export function SidebarList({ pathname }: { pathname: string | null }) {
             )}
           >
             <item.icon aria-hidden className={cn("size-[18px]", active ? "text-brand" : "text-muted")} />
-            {item.label}
+            {t(item.k)}
           </Link>
         );
       })}
@@ -60,9 +64,10 @@ export function AccountTabBar() {
 
 export function TabBarList({ pathname }: { pathname: string | null }) {
   const items = ACCOUNT_NAV.filter((i) => i.mobile);
+  const t = useT();
   return (
     <nav
-      aria-label="Account sections"
+      aria-label={t("account.nav.sections")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5">
@@ -79,7 +84,7 @@ export function TabBarList({ pathname }: { pathname: string | null }) {
                 className={cn("flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium", active ? "text-brand" : "text-muted")}
               >
                 <item.icon aria-hidden className="size-5" />
-                {item.mobile}
+                {item.mobileKey ? t(item.mobileKey) : item.mobile}
               </Link>
             </li>
           );

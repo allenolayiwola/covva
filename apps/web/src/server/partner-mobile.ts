@@ -52,6 +52,7 @@ export async function resolvePartnerOrg(
   opts: { kinds?: PartnerKind[]; roles?: MemberRole[]; orgId?: string } = {},
 ): Promise<PartnerPrincipal> {
   if (auth.kind === "apiKey") {
+    if (auth.orgType === "distributor") throw forbidden("Distribution partner keys can only call the /distribution endpoints.");
     if (opts.kinds && !opts.kinds.includes(auth.orgType)) throw forbidden(`This endpoint is for ${opts.kinds.join(" or ")} organisations.`);
     return { db: auth.svc, orgId: auth.orgId, orgType: auth.orgType, orgName: auth.orgName, userId: null, role: null, isSupervisor: false, viaApiKey: true, workspaces: [] };
   }

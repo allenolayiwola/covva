@@ -36,3 +36,4 @@ export * from "./ussd";
 export * from "./referrals";
 export * from "./instalments";
 export * from "./micro";
+export * from "./sme";

@@ -16,6 +16,7 @@
     { "path": "/api/cron/issuance-retry", "schedule": "*/30 * * * *" },
     { "path": "/api/cron/crm-reminders", "schedule": "0 6 * * *" },
     { "path": "/api/cron/fx-rates", "schedule": "20 * * * *" },
-    { "path": "/api/cron/sponsor-collections", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/sponsor-collections", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/referral-rewards", "schedule": "0 4 * * *" }
   ]
 }

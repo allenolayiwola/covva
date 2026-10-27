@@ -40,6 +40,7 @@ import { HOME_FAQ_IDS, KEY_BENEFITS, STATS, TESTIMONIALS, findFaq } from "@/comp
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
 import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
+import { T } from "@/lib/i18n/client";
 
 export const metadata: Metadata = {
   title: { absolute: "Covva — Compare, buy and manage insurance in minutes" },
@@ -81,21 +82,21 @@ export default async function HomePage() {
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[620px] bg-gradient-to-b from-mist/80 to-white" />
         <div className="relative mx-auto grid w-full max-w-[1200px] gap-10 px-4 pb-14 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-center lg:gap-12 lg:px-8 lg:pb-20 lg:pt-16">
           <div className="motion-safe:animate-fade-up">
-            <Eyebrow>Insurance for Ghana and the diaspora</Eyebrow>
+            <Eyebrow><T k="home.hero.eyebrow" /></Eyebrow>
             <h1 id="hero-title" className="mt-5 text-balance text-[42px] leading-[1.02] tracking-[-0.04em] text-ink sm:text-[58px] lg:text-[64px]">
-              Compare, buy and manage insurance <span className="text-brand">in minutes.</span>
+              <T k="home.hero.titleLead" /><span className="text-brand"><T k="home.hero.titleEmphasis" /></span>
             </h1>
             <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-muted sm:text-xl">
-              Motor, home, health, travel, life and business cover from licensed insurers. Pay with MoMo or card, get your policy instantly, and keep it in a wallet that works offline.
+              <T k="home.hero.body" />
             </p>
             <div className="mt-8 flex flex-wrap gap-3 lg:hidden">
-              <a href="#quote" className={buttonClass("primary", "lg")}>Get quotes</a>
-              <Link href="/get-started" className={buttonClass("secondary", "lg")}>Help me choose</Link>
+              <a href="#quote" className={buttonClass("primary", "lg")}><T k="home.hero.getQuotes" /></a>
+              <Link href="/get-started" className={buttonClass("secondary", "lg")}><T k="home.hero.helpChoose" /></Link>
             </div>
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted">
-              <li className="flex items-center gap-2"><ShieldCheck aria-hidden className="size-4 text-brand" />Licensed insurers & brokers only</li>
-              <li className="flex items-center gap-2"><Banknote aria-hidden className="size-4 text-brand" />Premiums paid to the insurer</li>
-              <li className="flex items-center gap-2"><Search aria-hidden className="size-4 text-brand" />No obligation to buy</li>
+              <li className="flex items-center gap-2"><ShieldCheck aria-hidden className="size-4 text-brand" /><T k="home.hero.licensed" /></li>
+              <li className="flex items-center gap-2"><Banknote aria-hidden className="size-4 text-brand" /><T k="home.hero.premiums" /></li>
+              <li className="flex items-center gap-2"><Search aria-hidden className="size-4 text-brand" /><T k="home.hero.noObligation" /></li>
             </ul>
           </div>
           <div id="quote" className="scroll-mt-24 motion-safe:animate-fade-up [animation-delay:120ms]">

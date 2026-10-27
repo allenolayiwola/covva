@@ -14,6 +14,7 @@ import { expireReviewWindows, retryIssuanceJobs } from "@/server/issuance";
 import { escalateTimers } from "@/server/sla";
 import { refreshRates } from "@/server/fx";
 import { chargeDueSubscriptions } from "@/server/subscriptions";
+import { evaluateReferralRewards } from "@/server/referrals";
 
 /**
  * Scheduled jobs (Vercel Cron → /api/cron/<job>). All use the service client: they are
@@ -437,6 +438,8 @@ export const CRON_JOBS: Record<string, CronJob> = {
   "fx-rates": (svc) => refreshRates(svc),
   // Diaspora: daily 03:00 sponsor subscription collections (stored card → GHS to the insurer; retries 1d/3d/7d).
   "sponsor-collections": (svc) => chargeDueSubscriptions(svc),
+  // Referrals: daily 04:00 — credits / partner revenue share after the holding period (append-only reward_ledger).
+  "referral-rewards": (svc) => evaluateReferralRewards(svc),
 };
 
 export async function runCron(job: string) {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import { HTML_LANG_SCRIPT } from "@/lib/i18n/html-lang";
 
 const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500"], display: "swap", variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400"], display: "swap", variable: "--font-outfit" });
@@ -37,7 +38,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GH" className={`${inter.variable} ${outfit.variable}`}>
+    // `lang` is set from the covva_lang cookie by the inline script (the layout stays static;
+    // English visitors keep en-GH). suppressHydrationWarning covers that one attribute.
+    <html lang="en-GH" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: HTML_LANG_SCRIPT }} />
+      </head>
       <body className="min-h-dvh">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-float">
           Skip to content

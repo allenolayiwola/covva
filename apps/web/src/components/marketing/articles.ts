@@ -159,7 +159,7 @@ export function findArticle(slug: string): Article | undefined {
 export const ARTICLE_LANGUAGES = [
   { code: "en", label: "English", native: "English", available: true },
   { code: "tw", label: "Twi", native: "Twi", available: false },
-  { code: "ga", label: "Ga", native: "Gã", available: false },
+  { code: "gaa", label: "Ga", native: "Gã", available: false },
   { code: "ee", label: "Ewe", native: "Eʋegbe", available: false },
 ] as const;
 export type ArticleLanguage = (typeof ARTICLE_LANGUAGES)[number]["code"];
