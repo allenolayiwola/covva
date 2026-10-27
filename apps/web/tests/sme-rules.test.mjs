@@ -87,6 +87,9 @@ describe("business owner", () => {
     const o = await db.get(`organizations?select=type,business_profile&id=eq.${ids.org}`);
     assert.equal(o.body[0]?.type, "enterprise");
     assert.equal(o.body[0]?.business_profile?.industry, "Testing");
+    // Owning a business account leaves the person's own profile alone (no business_name leak into personal cover).
+    const p = await db.get(`profiles?select=account_type,business_name&id=eq.${sessions.owner.userId}`);
+    assert.notEqual(p.body[0]?.business_name, BUSINESS_NAME);
   });
 
   test("creates a draft scheme (placement fields are the platform's) and reads its own members", async () => {

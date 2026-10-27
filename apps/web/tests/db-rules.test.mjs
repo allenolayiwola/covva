@@ -134,12 +134,17 @@ describe("customer", () => {
   });
 
   test("sees only their own data: no audit log, no memberships, no other profiles", async () => {
-    const audit = await db.get("audit_events?select=id&limit=5");
+    // The demo customer may own business accounts (SME suites / e2e, never deleted): those are the only
+    // organisations whose audit trail and memberships they may see.
+    const business = await db.get("organizations?select=id&type=eq.enterprise");
+    expectOk(business);
+    const own = new Set(business.body.map((o) => o.id));
+    const audit = await db.get("audit_events?select=id,org_id&limit=50");
     expectOk(audit);
-    assert.deepEqual(audit.body, []);
-    const memberships = await db.get("memberships?select=id,org_id&limit=5");
+    assert.ok(audit.body.every((a) => a.org_id && own.has(a.org_id)), `audit rows outside the customer's own business accounts: ${JSON.stringify(audit.body.slice(0, 3))}`);
+    const memberships = await db.get("memberships?select=id,org_id&limit=50");
     expectOk(memberships);
-    assert.deepEqual(memberships.body, [], "a customer with no org membership sees no memberships at all");
+    assert.ok(memberships.body.every((m) => own.has(m.org_id)), "a customer sees memberships of their own business accounts only");
     const profiles = await db.get("profiles?select=id");
     expectOk(profiles);
     assert.deepEqual(profiles.body.map((p) => p.id), [me]);

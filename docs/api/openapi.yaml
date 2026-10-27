@@ -2124,7 +2124,7 @@ components:
       enum: [integrated, broker_assisted, planned]
     DocumentKind:
       type: string
-      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other]
+      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other, sticker, claim_video, medical_report, repair_estimate]
     ConsentType:
       type: string
       enum: [terms, privacy, marketing, data_sharing_broker, data_sharing_insurer, ai_assistance]
@@ -2547,9 +2547,6 @@ components:
         request: { type: object, description: "id, reference, title, type, status, risk_data, talk_to_expert, complexity_flags, category" }
 
     # --- Broker workspace on mobile (Addendum 4 §2) ---
-    DocumentKind:
-      type: string
-      enum: [id_document, vehicle_registration, drivers_licence, photo, proof_of_address, medical, policy_schedule, certificate, policy_wording, receipt, endorsement, claim_evidence, police_report, invoice, other]
     SalesDay:
       type: object
       description: One day of the sales funnel (from `partner_sales_summary`).
