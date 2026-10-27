@@ -46,6 +46,7 @@ export function ChatWidget({ whatsappNumber }: { whatsappNumber?: string | null 
         <button
           type="button"
           onClick={() => setOpen(true)}
+          data-chat-launcher
           className="fixed bottom-5 left-4 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-brand pl-3 pr-4 text-sm font-semibold text-white shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 motion-reduce:transition-none sm:bottom-6 sm:left-6 print:hidden"
           aria-label="Chat with us"
         >

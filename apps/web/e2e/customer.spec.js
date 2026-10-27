@@ -4,6 +4,7 @@ import { ACCOUNTS, PASSWORD, STATE, TAG } from "./support/env.js";
 test.describe("customer sign-in", () => {
   test("wrong password shows a friendly error and keeps you on the sign-in page", async ({ page }) => {
     await page.goto("/sign-in", { waitUntil: "networkidle" }); // settle hydration before typing
+    await page.getByRole("button", { name: "Use a password instead" }).click();
     await page.getByLabel("Email address").fill(ACCOUNTS.customer);
     await page.getByLabel("Password").fill("definitely-not-the-password");
     await page.getByRole("button", { name: "Sign in" }).click();
@@ -14,11 +15,12 @@ test.describe("customer sign-in", () => {
   test("protected pages redirect anonymous visitors to sign-in with a next param", async ({ page }) => {
     await page.goto("/account/policies");
     await expect(page).toHaveURL(/\/sign-in\?next=%2Faccount%2Fpolicies/);
-    await expect(page.getByRole("heading", { level: 1, name: "Welcome back" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   });
 
   test("signing in with the password lands on the dashboard", async ({ page }) => {
     await page.goto("/sign-in", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Use a password instead" }).click();
     await page.getByLabel("Email address").fill(ACCOUNTS.customer);
     await page.getByLabel("Password").fill(PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();

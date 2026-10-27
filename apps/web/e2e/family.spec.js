@@ -20,31 +20,37 @@ test.describe("family (diaspora)", () => {
     await page.getByLabel(/Their mobile number/).fill("+44 7700 900123");
     await page.getByRole("button", { name: "Add and send consent code" }).click();
     // Server-side zod (beneficiarySchema) maps issues back to the fields; nothing is created.
-    await expect(page.getByText("Choose how they are related to you")).toBeVisible();
-    await expect(page.getByText("Enter a Ghana mobile number, e.g. 024 123 4567")).toBeVisible();
+    // Each error shows in the form summary and under its field.
+    await expect(page.getByText("Choose how they are related to you").first()).toBeVisible();
+    await expect(page.getByText("Enter a Ghana mobile number, e.g. 024 123 4567").first()).toBeVisible();
     await expect(page).toHaveURL(/\/account\/family\/beneficiaries\/new$/);
   });
 
   test("the consent UI appears on a beneficiary page after adding a member", async ({ page }) => {
     const phone = `055${String(Date.now()).slice(-7)}`;
+    // Unique per run: the shared demo database keeps members from earlier runs when the purge has no service key.
+    const name = `${TAG} Kofi Mensah ${phone.slice(-4)}`;
     await page.goto("/account/family/beneficiaries/new");
-    await page.getByLabel("Full name").fill(`${TAG} Kofi Mensah`);
+    await page.getByLabel("Full name").fill(name);
     await page.getByLabel("Relationship to you").selectOption("sibling");
     await page.getByLabel(/Their mobile number/).fill(phone);
     await page.getByLabel(/Notes for your broker/).fill(TAG);
     await page.getByRole("button", { name: "Add and send consent code" }).click();
     await page.waitForURL(/\/account\/family\/beneficiaries\/[0-9a-f-]{36}\?added=1$/);
-    await expect(page.getByRole("heading", { level: 1, name: `${TAG} Kofi Mensah` })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
     await expect(page.getByText("Awaiting consent").first()).toBeVisible();
     // Consent panel: channel choice + send button for data sharing; proxy claims waits for data consent.
     const panel = page.getByLabel("Share my details so cover can be arranged for me");
-    await expect(panel.getByRole("button", { name: /Send consent code to Kofi/ })).toBeVisible();
+    // The button greets the member by first name; the test name starts with the E2E tag.
+    await expect(panel.getByRole("button", { name: `Send consent code to ${TAG}` })).toBeVisible();
     await expect(panel.getByRole("radio", { name: "SMS" })).toBeChecked();
     await expect(page.getByLabel("Let my sponsor start and follow claims for me").getByText(/Available once/)).toBeVisible();
     // The request form offers this member under "Who is this cover for?" (disabled until consent).
     await page.goto("/account/requests/new?category=motor");
-    await page.getByRole("radio", { name: "A family member in Ghana" }).check();
-    const option = page.getByLabel("Family member").locator("option", { hasText: `${TAG} Kofi Mensah` });
+    // The radio is visually hidden inside its label (a card-style choice): click the label, as a person does.
+    await page.locator("label", { has: page.getByRole("radio", { name: "A family member in Ghana" }) }).click();
+    await expect(page.getByRole("radio", { name: "A family member in Ghana" })).toBeChecked();
+    const option = page.getByLabel("Family member").locator("option", { hasText: name });
     await expect(option).toHaveAttribute("disabled", "");
   });
 });

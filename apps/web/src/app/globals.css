@@ -77,19 +77,31 @@
   @media (width >= 64rem) { font-size: 18px; }
 }
 
-/* The floating WhatsApp pill moves above the full-width cookie bar on phones. */
+/*
+ * Floating launchers (WhatsApp bottom-right, chat bottom-left) stay clear of the cookie bar (a bottom-left pill on
+ * desktop, a full-width bar on phones) and of the sticky Back/Continue bar on flow pages. Order matters: later
+ * rules override earlier ones for the same element.
+ */
+body:has([data-consent-banner]) [data-chat-launcher] {
+  bottom: 5.5rem;
+}
 @media (width < 40rem) {
-  body:has([data-consent-banner]) [data-whatsapp] {
-    bottom: 5.5rem;
+  body:has([data-consent-banner]) [data-whatsapp],
+  body:has([data-consent-banner]) [data-chat-launcher] {
+    bottom: 7.5rem;
   }
 }
-/* On flow pages with a sticky Back/Continue bar, the cookie bar and the WhatsApp pill sit above that bar. */
 body:has([data-sticky-bar]) [data-consent-banner],
-body:has([data-sticky-bar]) [data-whatsapp] {
+body:has([data-sticky-bar]) [data-whatsapp],
+body:has([data-sticky-bar]) [data-chat-launcher] {
   bottom: 5.25rem;
 }
+body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
+  bottom: 9.75rem;
+}
 @media (width < 40rem) {
-  body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp] {
-    bottom: 11rem;
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp],
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
+    bottom: 12.5rem;
   }
 }
