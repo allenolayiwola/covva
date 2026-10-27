@@ -1,9 +1,13 @@
 name: CI
 
+# One run per change: pull requests run on `pull_request`; direct pushes run only on the default and main
+# branches. (Pushing to a PR branch used to start a `push` and a `pull_request` run at once, which doubled
+# the demo-account sign-ins and tripped the Supabase Auth rate limit.)
 on:
   push:
-    branches: ["**"]
+    branches: ["claude/intelligent-lamport-hso7xg", "main"]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}

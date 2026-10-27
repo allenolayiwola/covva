@@ -50,7 +50,7 @@ export function HomeHero({ examples }: { examples: HeroExample[] }) {
           ))}
         </ul>
 
-        {/* Photo band (desktop). The source file has a dark strip along its bottom edge; this crop keeps it out. */}
+        {/* Photo band (desktop). */}
         <div className="relative order-5 mt-12 hidden h-[400px] w-full overflow-hidden rounded-hero bg-mint lg:block">
           <Image
             src={heroPhoto}
