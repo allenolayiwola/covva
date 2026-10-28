@@ -31,27 +31,41 @@
 create or replace function private.write_audit() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_row jsonb; v_old jsonb; v_changes jsonb := '{}'::jsonb; k text;
+  v_row jsonb; v_old jsonb; v_changes jsonb := '{}'::jsonb; k text; v_data jsonb;
+  -- Keeps the Act 843 scrub behaviour from 20261031100100; additionally never records invitation tokens.
+  -- Set (transaction-local) by private.anonymise_subject / private.apply_retention: record which columns changed but
+  -- never the erased values, so the append-only audit log does not keep a copy of what was just deleted.
+  v_scrub boolean := coalesce(current_setting('app.privacy_scrub', true), '') = '1';
 begin
   if tg_op = 'DELETE' then v_row := to_jsonb(old); else v_row := to_jsonb(new); end if;
   if tg_op = 'UPDATE' then
     v_old := to_jsonb(old);
     for k in select jsonb_object_keys(v_row) loop
       if k not in ('updated_at') and (v_row -> k) is distinct from (v_old -> k) then
-        v_changes := v_changes || jsonb_build_object(k, case when k = 'token' then jsonb_build_object('changed', true) else jsonb_build_object('from', v_old -> k, 'to', v_row -> k) end);
+        v_changes := v_changes || jsonb_build_object(k,
+          case when v_scrub then jsonb_build_object('redacted', true)
+               when k = 'token' then jsonb_build_object('changed', true)
+               else jsonb_build_object('from', v_old -> k, 'to', v_row -> k) end);
       end if;
     end loop;
     if v_changes = '{}'::jsonb then return new; end if;
   end if;
+  v_data := case
+    when tg_op = 'UPDATE' then jsonb_build_object('changes', v_changes)
+    when v_scrub and tg_op = 'DELETE' then jsonb_build_object('row', jsonb_build_object('id', v_row -> 'id', 'redacted', true))
+    else jsonb_build_object('row', v_row - 'risk_data' - 'declarations' - 'token')
+  end;
+  if v_scrub then v_data := v_data || jsonb_build_object('privacy_scrub', true); end if;
   insert into public.audit_events (actor_id, actor_role, action, entity_type, entity_id, org_id, data)
   values (
     (select auth.uid()),
-    coalesce(current_setting('request.jwt.claims', true)::jsonb ->> 'role', current_user),
+    -- nullif: an empty claims setting (direct SQL session after a request-scoped one) must not break auditing.
+    coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', current_user),
     lower(tg_op),
     tg_table_name,
     coalesce(v_row ->> 'id', v_row ->> 'key'),
     coalesce(nullif(v_row ->> 'broker_org_id', '')::uuid, nullif(v_row ->> 'insurer_org_id', '')::uuid, nullif(v_row ->> 'org_id', '')::uuid),
-    case when tg_op = 'UPDATE' then jsonb_build_object('changes', v_changes) else jsonb_build_object('row', v_row - 'risk_data' - 'declarations' - 'token') end
+    v_data
   );
   if tg_op = 'DELETE' then return old; end if;
   return new;
