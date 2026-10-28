@@ -45,7 +45,7 @@ export function CsvImportForm({
   const valid = Number(state.data?.valid ?? 0);
   const canImport = state.ok && mode === "preview" && valid > 0;
   return (
-    <form action={formAction} className="space-y-4" aria-label={label}>
+    <form action={formAction} className="space-y-4" aria-label={`Upload ${noun}s from CSV`}>
       {Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       <Field label={label} htmlFor={`csv-${noun}`} hint={hint}>
         <input ref={fileRef} id={`csv-${noun}`} name="file" type="file" accept=".csv,text/csv" required className="block w-full text-sm text-ink-2 file:mr-3 file:rounded-[10px] file:border-0 file:bg-mint file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-deep" />
