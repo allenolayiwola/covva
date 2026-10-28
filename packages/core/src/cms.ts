@@ -104,6 +104,32 @@ export function testimonialPublishable(t: { illustrative?: boolean | null; conse
   return "Tick “Consent on file” (the customer agreed in writing to be quoted) or mark the testimonial as illustrative.";
 }
 
+export interface TestimonialFlags {
+  illustrative?: boolean | null;
+  consentOnFile?: boolean | null;
+}
+
+/** Collection defaults for the two flags (a new testimonial is illustrative until an editor says otherwise). */
+export const TESTIMONIAL_FLAG_DEFAULTS: Readonly<Required<{ [K in keyof TestimonialFlags]: boolean }>> = Object.freeze({ illustrative: true, consentOnFile: false });
+
+/**
+ * The flags a testimonial will have after a write: the incoming `data` (a full document on create,
+ * possibly a partial one on update) merged over the stored `originalDoc`. A flag the request does
+ * not mention (`undefined` or `null`) keeps its stored value, so a PATCH that only edits the quote
+ * is judged on the real document; an explicit `false` is kept as `false`. With neither source the
+ * collection defaults apply.
+ */
+export function mergeTestimonialFlags(data?: TestimonialFlags | null, originalDoc?: TestimonialFlags | null): { illustrative: boolean; consentOnFile: boolean } {
+  const pick = (key: keyof TestimonialFlags): boolean => {
+    const incoming = data?.[key];
+    if (incoming !== undefined && incoming !== null) return Boolean(incoming);
+    const stored = originalDoc?.[key];
+    if (stored !== undefined && stored !== null) return Boolean(stored);
+    return TESTIMONIAL_FLAG_DEFAULTS[key];
+  };
+  return { illustrative: pick("illustrative"), consentOnFile: pick("consentOnFile") };
+}
+
 /* ----------------------------------------------------------------------------
  * Rich text: Lexical JSON → a small safe node tree
  * ------------------------------------------------------------------------- */

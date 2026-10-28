@@ -8,6 +8,7 @@ import {
   isCmsLocale,
   isValidSlug,
   lexicalToRichNodes,
+  mergeTestimonialFlags,
   preferCms,
   richNodesToPlainText,
   richTextToPlainText,
@@ -75,6 +76,31 @@ test("testimonials: genuine quotes need consent on file; illustrative ones do no
   assert.equal(testimonialPublishable({ illustrative: false, consentOnFile: true }), true);
   assert.match(String(testimonialPublishable({ illustrative: false, consentOnFile: false })), /Consent on file/);
   assert.match(String(testimonialPublishable({})), /illustrative/);
+});
+
+test("mergeTestimonialFlags: partial updates are judged on the merged document", () => {
+  const stored = { illustrative: false, consentOnFile: true };
+  // A PATCH that only edits the quote keeps both stored flags.
+  assert.deepEqual(mergeTestimonialFlags({}, stored), { illustrative: false, consentOnFile: true });
+  assert.deepEqual(mergeTestimonialFlags(undefined, stored), { illustrative: false, consentOnFile: true });
+  assert.deepEqual(mergeTestimonialFlags(null, stored), { illustrative: false, consentOnFile: true });
+  assert.deepEqual(mergeTestimonialFlags({ illustrative: undefined, consentOnFile: null }, stored), { illustrative: false, consentOnFile: true });
+  // Switching illustrative off with consent already on file is allowed.
+  assert.equal(testimonialPublishable(mergeTestimonialFlags({ illustrative: false }, { illustrative: true, consentOnFile: true })), true);
+  // An explicit false wins over the stored value (and is then rejected without consent).
+  assert.deepEqual(mergeTestimonialFlags({ illustrative: false }, { illustrative: true, consentOnFile: false }), { illustrative: false, consentOnFile: false });
+  assert.match(String(testimonialPublishable(mergeTestimonialFlags({ illustrative: false }, { illustrative: true, consentOnFile: false }))), /Consent on file/);
+  assert.deepEqual(mergeTestimonialFlags({ consentOnFile: false }, stored), { illustrative: false, consentOnFile: false });
+  // Create without the flags: the collection defaults (illustrative, no consent).
+  assert.deepEqual(mergeTestimonialFlags({ quote: "x" } as never, undefined), { illustrative: true, consentOnFile: false });
+  assert.deepEqual(mergeTestimonialFlags(undefined, null), { illustrative: true, consentOnFile: false });
+  // Create with explicit values.
+  assert.deepEqual(mergeTestimonialFlags({ illustrative: false, consentOnFile: true }), { illustrative: false, consentOnFile: true });
+  // The inputs are not mutated.
+  const data = { illustrative: false };
+  mergeTestimonialFlags(data, stored);
+  assert.deepEqual(data, { illustrative: false });
+  assert.deepEqual(stored, { illustrative: false, consentOnFile: true });
 });
 
 test("safeHref: only http(s), mailto, tel, relative and fragment links survive", () => {

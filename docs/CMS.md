@@ -39,6 +39,7 @@ copy validation (see "Compliance" below).
 apps/web/src/cms/
   payload.config.ts      buildConfig: routes /cms + /cms-api, localization, db (schema "cms"), S3 media, no GraphQL
   env.ts                 cmsEnv() / cmsConfigured(): unset DATABASE_URI or PAYLOAD_SECRET = CMS disabled
+  bootstrap.ts           cmsBootstrapState(): /cms and /cms-api stay closed until a CMS user exists (memoised)
   client.ts              getPayloadClient() — Local API, server-only, imported lazily
   access.ts              staff / admin access rules
   editor.ts              the Lexical editor (paragraphs, h2–h3, bold, italic, links, lists, quote, rule, Tip block)
@@ -49,15 +50,16 @@ apps/web/src/cms/
   seed.ts                first admin + import of today's typed content (idempotent)
   payload-types.ts       generated (pnpm --filter @im/web cms:generate)
 apps/web/src/app/(payload)/
-  layout.tsx             Payload root layout, or a "CMS is not configured" document
+  layout.tsx             Payload root layout, or a "not configured" / "not initialised" document
   cms/[[...segments]]/   admin UI;  cms/importMap.js is generated
-  cms-api/[...slug]/     REST handlers (503 when the CMS is off)
+  cms-api/[...slug]/     REST handlers (503 when the CMS is off or has no user yet)
 apps/web/src/server/cms.ts         site readers ('use cache' + tags, draft mode aware, typed fallbacks)
 apps/web/src/components/marketing/
   rich-text.tsx          safe renderer for the RichNode tree (no HTML injection)
   cms-page.tsx           block renderer for CMS pages (hero, text, FAQ list, CTA band, partner strip, testimonials)
   partner-logos.tsx      CMS partner logos (next/image, name as text fallback)
   article-page.tsx       Learn article view shared by /learn/[slug] and /learn/[slug]/[lang]
+  learn-article-link.tsx hub card link that follows the chosen language (client, cookie-driven)
   preview-banner.tsx     "Preview — exit" bar (client, cookie-driven)
 apps/web/src/app/api/preview/      draft-mode on (CMS login required) and /exit
 packages/core/src/cms.ts           pure rules: slug validation + reserved routes, compliance copy check,
@@ -110,7 +112,10 @@ FAQs, testimonials and partners have drafts, autosave, version history (20–25 
 `validateCompliantCopy` from `@im/core`: text that describes Covva (or "we") as an insurer, broker or underwriter,
 or as holding premiums / client money, is rejected on save with a message; negated statements ("Covva is not an
 insurer or a broker") pass. The editorial note is shown in every collection description. Testimonials: a quote may
-only drop the "Illustrative" label when `consentOnFile` is ticked; the site labels everything else. The partner strip
+only drop the "Illustrative" label when `consentOnFile` is ticked; the site labels everything else. The check runs
+on the document as it will be stored (`mergeTestimonialFlags` in `@im/core`: a partial update such as the admin's
+autosave or a PATCH that only edits the quote is merged over the stored flags), so editing a genuine quote with
+consent on file, or unticking "Illustrative" once consent is recorded, is accepted. The partner strip
 is always headed "Licensed partners only", whatever heading an editor types.
 
 ## 4. Environment variables
@@ -125,6 +130,8 @@ is always headed "Licensed partners only", whatever heading an editor types.
 | `CMS_S3_ACCESS_KEY_ID`, `CMS_S3_SECRET_ACCESS_KEY` | **yes** | for uploads | Supabase Storage → S3 access keys. |
 | `CMS_MEDIA_PUBLIC_URL` | no | for uploads | Public base of the bucket: `https://<ref>.supabase.co/storage/v1/object/public/cms-media`. |
 | `CMS_ADMIN_EMAIL`, `CMS_ADMIN_PASSWORD` (12+ chars), `CMS_ADMIN_NAME` | **yes** | seed only | First admin, created by `cms:seed` when no user exists. Not needed at runtime. |
+| `CMS_BOOTSTRAP_ALLOW_FIRST_USER` | no | no | One-time switch. `1` serves Payload's own create-first-user screen while the users table is empty (see "Bootstrap" in §5). Unset it as soon as the account exists. |
+| `CMS_SEED_FORCE` | no | no | One-time switch. `1` lets `cms:seed` (re)import the typed content although a CMS user already exists; without it the seed refuses to run once any user is present. |
 | `CRON_SECRET` | **yes** | existing | The `cms-jobs` cron (`/api/cron/cms-jobs`, every 15 min) runs scheduled publishes. |
 
 Without the four `CMS_S3_*` values and `CMS_MEDIA_PUBLIC_URL`, uploads are written to `apps/web/.cms-media`
@@ -143,14 +150,25 @@ Supabase public storage host. The build never needs any of these: CI (`ci.yml`) 
    generated file, commit it with `pnpm --filter @im/web cms:generate` (types + import map).
 3. **Seed.** `CMS_ADMIN_EMAIL=… CMS_ADMIN_PASSWORD=… pnpm --filter @im/web cms:seed` creates the first admin and
    imports today's articles, FAQs, testimonials and the payment-method partners as published documents. It is
-   idempotent (matched by slug / key, never overwritten). Do this **before** `/cms` is reachable: Payload shows a
-   "create first user" screen while the users table is empty.
+   idempotent (matched by slug / key, never overwritten). **This is the supported way to create the first admin.**
+   Once any CMS user exists the seed refuses to run (exit 3, naming the accounts it found), so an account nobody
+   expected is noticed rather than silently kept; to (re)import the typed content after that, run it with
+   `CMS_SEED_FORCE=1`.
+
+   **Bootstrap (fail closed).** Payload would show a public "create first user" screen while the users table is
+   empty. The app never serves it: with the CMS configured but no user, `/cms` renders a "CMS is not initialised"
+   notice and `/cms-api/*` answers 503 (`apps/web/src/cms/bootstrap.ts`); the same happens when the database cannot
+   be reached ("unavailable"). The check is memoised per server instance (a positive answer for 5 minutes, an empty
+   table for 15 seconds, a failure for 5 seconds), so admin requests do not each query the database and the seed
+   takes effect within seconds without a redeploy. If Payload's own screen is really wanted, set
+   `CMS_BOOTSTRAP_ALLOW_FIRST_USER=1` for a single deployment and unset it as soon as the account exists.
 4. **Edge protection.** The admin is for Covva staff only and uses Payload's own accounts. Until SSO with the
    staff directory is wired, additionally protect `/cms` and `/cms-api` at the edge: Vercel → Project → Settings →
    Deployment Protection (password or Vercel Authentication) scoped to those paths, or a Vercel Firewall rule
    allowing only the office / VPN IP range. Keep the login lockout (5 attempts, 10 minutes) and 8-hour sessions.
-5. **Verify.** `/cms` shows the login; `/cms-api/users/me` answers 401 anonymously; the home page still renders
-   with the directory logos until partners get logos.
+5. **Verify.** Before the seed, `/cms` shows "CMS is not initialised" and `/cms-api/users/me` answers 503; after
+   it, `/cms` shows the login and `/cms-api/users/me` answers `{"user":null}` anonymously; the home page still
+   renders with the directory logos until partners get logos.
 
 Rollback: unset `DATABASE_URI` on the project and redeploy — the admin shows "not configured" and the site renders
 its typed content. Content stays in the `cms` schema.
@@ -165,9 +183,11 @@ its typed content. Content stays in the `cms` schema.
   latest draft. A yellow bar ("Preview: you are seeing unpublished CMS changes — Exit preview") stays until
   `/api/preview/exit`. Draft mode reads bypass the cache, so previews are always fresh.
 - **Translations.** Switch the locale in the admin (top right) and fill the Twi / Ga / Ewe fields by hand. The Learn
-  hub language switcher appears only when at least one article has a translation; a reader who chooses a language
-  for an untranslated article sees the English text with a "translation in progress" notice, and that URL is not
-  indexed as a translation (canonical stays the English page).
+  hub language switcher appears only when at least one article has a translation. Choosing a language stores it in
+  the `covva_lang` cookie and the hub's article cards follow it at once: English keeps `/learn/<slug>`, any other
+  choice links to `/learn/<slug>/<lang>`. A reader who opens an untranslated article that way sees the English text
+  with a "translation in progress" notice (the card says so too), and that URL is not indexed as a translation
+  (canonical stays the English page).
 - **Images.** Upload to Media with alt text; partner logos should be SVG/PNG with a transparent background, at
   least 160 px wide. The site shows a logo at 32 px high and keeps the name available to screen readers.
 - **Accounts.** Admins create accounts in CMS users and can set a new password there (there is no email adapter, so
@@ -181,7 +201,7 @@ DATABASE_URI=postgresql://postgres@localhost:54329/cms_dev   # any Postgres 16; 
 PAYLOAD_SECRET=dev-secret-at-least-32-characters-long
 pnpm --filter @im/web cms:migrate
 CMS_ADMIN_EMAIL=you@covva.com.gh CMS_ADMIN_PASSWORD=choose-a-long-one pnpm --filter @im/web cms:seed
-pnpm --filter @im/web dev   # /cms
+pnpm --filter @im/web dev   # /cms (shows "not initialised" until the seed has created the admin)
 ```
 
 Verified on 28 Oct 2026 against a throwaway local Postgres 16: `cms:migrate` created 66 tables in schema `cms`
