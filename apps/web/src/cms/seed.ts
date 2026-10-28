@@ -1,13 +1,18 @@
 /**
  * CMS seed — `pnpm --filter @im/web cms:seed` (runs through `payload run`, so `.env` is loaded).
  *
- * 1. Creates the first admin from CMS_ADMIN_EMAIL / CMS_ADMIN_PASSWORD when no user exists yet.
+ * 1. Creates the first admin from CMS_ADMIN_EMAIL / CMS_ADMIN_PASSWORD. This is the supported way
+ *    to create the first CMS account: /cms and /cms-api stay closed while the users table is
+ *    empty (cms/bootstrap.ts), so nobody can register through Payload's public first-user screen.
+ *    When a user already exists the seed refuses to run (exit 3) unless CMS_SEED_FORCE=1 is set,
+ *    so an unexpected account is noticed rather than silently kept.
  * 2. Imports today's typed marketing content (Learn articles, help-centre FAQs, illustrative
  *    testimonials, payment-method partners) as *published* documents, so the site renders exactly
  *    as before the switch-over.
  *
  * Idempotent: documents are matched by slug / key and never overwritten, so editors' changes
- * survive a re-run. Nothing here talks to the application schema (`public`).
+ * survive a re-run (with CMS_SEED_FORCE=1 once the admin exists). Nothing here talks to the
+ * application schema (`public`).
  */
 import { getPayload } from "payload";
 import { simpleBlocksToLexical } from "@im/core";
@@ -32,6 +37,16 @@ async function main() {
 
   // 1. First admin -------------------------------------------------------------------------------
   const { totalDocs: userCount } = await payload.count({ collection: "users" });
+  if (userCount > 0 && process.env.CMS_SEED_FORCE?.trim() !== "1") {
+    const { docs } = await payload.find({ collection: "users", limit: 5, sort: "createdAt", depth: 0 });
+    const who = docs.map((u) => `${u.email} (${u.role})`).join(", ") + (userCount > docs.length ? ", …" : "");
+    console.error(
+      `CMS seed refused: ${userCount} CMS user${userCount === 1 ? " already exists" : "s already exist"} (${who}). ` +
+        "The first admin is only created on an empty users table. If that account is expected and you want to (re)import the typed content, run again with CMS_SEED_FORCE=1; " +
+        "if it is not, remove it before seeding (docs/CMS.md §5).",
+    );
+    process.exit(3);
+  }
   if (userCount === 0) {
     const email = process.env.CMS_ADMIN_EMAIL?.trim();
     const password = process.env.CMS_ADMIN_PASSWORD;

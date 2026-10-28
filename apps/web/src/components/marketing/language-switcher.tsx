@@ -21,15 +21,26 @@ function subscribe(cb: () => void) {
 }
 
 /**
+ * The reader's chosen Learn language: the `covva_lang` cookie when it names a CMS locale, else
+ * English. "en" during SSR and hydration, so prerendered pages render English byte-for-byte and
+ * switch after hydration (and whenever the cookie changes).
+ */
+export function useLearnLang(): CmsLocale {
+  return React.useSyncExternalStore(subscribe, readLang, () => "en" as CmsLocale);
+}
+
+/**
  * Language switcher for the Learn hub. It lists only languages that have published content in the
  * CMS (`available`, computed on the server) and renders nothing while English is the only one — no
  * "coming soon" promises. The choice is kept in the `covva_lang` cookie, shared with the site-wide
- * header switcher. On an article page it also navigates: English at /learn/<slug>, a translation
- * at /learn/<slug>/<lang>; an article without that translation shows English with a notice.
+ * header switcher. On the hub the article cards (`LearnArticleLink`) follow the cookie, so choosing
+ * a language makes every card open the translation route. On an article page it also navigates:
+ * English at /learn/<slug>, a translation at /learn/<slug>/<lang>; an article without that
+ * translation shows English with a notice.
  */
 export function LanguageSwitcher({ available, slug, current, className }: { available: readonly CmsLocale[]; slug?: string; current?: CmsLocale; className?: string }) {
   const router = useRouter();
-  const cookieLang = React.useSyncExternalStore(subscribe, readLang, () => "en" as CmsLocale);
+  const cookieLang = useLearnLang();
   const uid = React.useId();
   const options = ARTICLE_LANGUAGES.filter((l) => available.includes(l.code));
   if (options.length < 2) return null;

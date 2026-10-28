@@ -1,5 +1,5 @@
-import type { CollectionConfig } from "payload";
-import { isValidSlug, testimonialPublishable, validateCompliantCopy } from "@im/core";
+import { ValidationError, type CollectionConfig } from "payload";
+import { isValidSlug, mergeTestimonialFlags, testimonialPublishable, validateCompliantCopy } from "@im/core";
 import { publishedOrStaff, staff } from "../access";
 import { EDITORIAL_NOTE } from "../editor";
 import { revalidateCollection } from "../hooks/revalidate";
@@ -17,9 +17,14 @@ export const Testimonials: CollectionConfig = {
   hooks: {
     ...revalidateCollection("testimonials"),
     beforeValidate: [
-      ({ data }) => {
-        const verdict = testimonialPublishable({ illustrative: data?.illustrative, consentOnFile: data?.consentOnFile });
-        if (verdict !== true) throw new Error(verdict);
+      // Judge the document as it will be stored: a partial update (the admin's autosave, a PATCH
+      // that only edits the quote) merges over `originalDoc`, so flags the request omits keep
+      // their stored value while an explicit `false` is kept as `false`.
+      ({ data, originalDoc, req }) => {
+        const verdict = testimonialPublishable(mergeTestimonialFlags(data, originalDoc));
+        // A ValidationError answers 400 with the message on the field; a plain Error would surface
+        // as a generic "Something went wrong" in the admin.
+        if (verdict !== true) throw new ValidationError({ collection: "testimonials", errors: [{ path: "consentOnFile", label: "Consent on file", message: verdict }], req });
         return data;
       },
     ],

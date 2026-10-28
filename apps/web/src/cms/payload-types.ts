@@ -146,7 +146,7 @@ export interface Page {
   id: number;
   title: string;
   /**
-   * The address: covva.com.gh/<slug>. Routes the site already serves (learn, support, …) are refused.
+   * The address: covva.com.gh/pages/<slug>. Names of routes the site already serves (learn, support, …) are refused so a vanity redirect can be added later.
    */
   slug: string;
   layout: (
