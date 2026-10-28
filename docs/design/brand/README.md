@@ -26,6 +26,8 @@ Covva Teal `#00796E` (primary, buttons, links) · Deep Ink `#15343E` (headings, 
 
 ## Type
 Display & headings: **Plus Jakarta Sans** SemiBold 600 (`--font-display`, applied to `h1`/`h2` and `.font-display`). Changed from Outfit in October 2026; the PDF guide still shows Outfit and Inter.
+Accent: **Instrument Serif Italic** 400 (`--font-accent`, `font-accent`) for one short line at most, e.g. the home hero's
+"Wherever you are."; loaded only by the components that use it (added October 2026, not in the PDF guide).
 Body, UI & numbers: **Plus Jakarta Sans** 400–500 (`--font-sans`). Tailwind `font-semibold`/`font-bold` map to 500 per the guide.
 
 ## Icons & imagery

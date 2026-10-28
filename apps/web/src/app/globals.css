@@ -140,3 +140,121 @@ body:has([data-sticky-bar]) [data-assistant-panel] {
     display: none;
   }
 }
+
+/*
+ * Home hero (components/marketing/home-hero*.tsx). Phones: slide controls under the header, copy at the bottom of
+ * the first screen (clear of the floating WhatsApp/chat launchers), the picker below. Desktop: copy, controls
+ * and picker in the left column over the dark gradient, caption bottom-right beside the picker; the bottom
+ * 6rem stays empty so the fixed launchers in both bottom corners never cover hero content.
+ */
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "controls" "copy" "card";
+}
+@media (width >= 64rem) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 640px) minmax(0, 1fr);
+    grid-template-areas: "copy ." "controls ." "card caption";
+    align-content: center;
+    column-gap: 3rem;
+    padding-bottom: 6rem;
+  }
+}
+
+/* Each photo: the portrait crop on portrait screens (same media query as the <source>), focus from hero-slides.ts. */
+.hero-photo img {
+  object-position: var(--hero-focus-wide, 50% 50%);
+}
+.hero-photo {
+  transform-origin: var(--hero-focus-wide, 50% 50%);
+}
+@media (max-aspect-ratio: 2/3) {
+  .hero-photo img {
+    object-position: var(--hero-focus-tall, 50% 50%);
+  }
+  .hero-photo {
+    transform-origin: var(--hero-focus-tall, 50% 50%);
+  }
+}
+
+/* Ken Burns: a slow zoom on the image in view, capped at 1.05 so the photo never softens. */
+@keyframes hero-kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+.hero-kenburns {
+  animation: hero-kenburns 9.4s ease-out both;
+  will-change: transform;
+}
+@keyframes hero-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.hero-progress {
+  animation-name: hero-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-kenburns {
+    animation: none;
+  }
+}
+
+/*
+ * Legibility scrims (brand Forest #0F514D). White text needs the photo under it at ≥ 0.8 cover: on phones the
+ * copy sits in the bottom half, on desktop in the left column, whose right edge is max(720px, 50%)
+ * (640px column + container padding, centred above 1440px). Top band: header links and logo.
+ */
+.hero-scrim {
+  background:
+    linear-gradient(180deg, rgb(6 32 30 / 0.72) 0, rgb(6 32 30 / 0.45) 7rem, rgb(6 32 30 / 0) 14rem),
+    linear-gradient(180deg, rgb(15 81 77 / 0) 32%, rgb(15 81 77 / 0.82) 52%, rgb(15 81 77 / 0.92) 68%, rgb(15 81 77) 100%);
+}
+@media (width >= 64rem) {
+  .hero-scrim {
+    --hero-text-edge: max(720px, 50%);
+    background:
+      linear-gradient(180deg, rgb(6 32 30 / 0.78) 0, rgb(6 32 30 / 0.5) 72px, rgb(6 32 30 / 0) 200px),
+      linear-gradient(0deg, rgb(6 32 30 / 0.65) 0, rgb(6 32 30 / 0) 200px),
+      linear-gradient(
+        90deg,
+        rgb(15 81 77 / 0.9) 0,
+        rgb(15 81 77 / 0.85) calc(var(--hero-text-edge) + 24px),
+        rgb(15 81 77 / 0.45) calc(var(--hero-text-edge) + 170px),
+        rgb(15 81 77 / 0.12) calc(var(--hero-text-edge) + 330px),
+        rgb(15 81 77 / 0) calc(var(--hero-text-edge) + 470px)
+      );
+  }
+}
+
+/*
+ * Transparent header over the hero photo while the page is at the top. Before hydration the hero's presence
+ * decides (`:has`); after, the hero sets data-hero-active on <html> while mounted (Cache Components keeps hidden
+ * routes mounted, so `:has` alone would leak onto other pages) and data-hero-scrolled past 80px. Opening a header
+ * menu (any top-level [data-header-fg] trigger) brings the solid header back.
+ */
+:is(html:not([data-hero-seen]):has([data-hero-overlay]), html[data-hero-active]):not([data-hero-scrolled]) [data-site-header]:not(:has([data-header-fg][aria-expanded="true"])) {
+  background-color: transparent;
+  border-color: transparent;
+  backdrop-filter: none;
+
+  & [data-header-fg] {
+    color: #fff;
+  }
+  & [data-header-fg]:hover {
+    color: var(--color-mint);
+    background-color: rgb(255 255 255 / 0.1);
+  }
+  & :focus-visible {
+    --tw-ring-color: #fff;
+    --tw-ring-offset-color: transparent;
+  }
+  & [data-logo="default"] {
+    display: none;
+  }
+  & [data-logo="reverse"] {
+    display: inline-flex;
+  }
+}
