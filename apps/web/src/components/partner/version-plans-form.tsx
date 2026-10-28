@@ -2,7 +2,7 @@ import { AUDIENCE_LABEL, AUDIENCE_TAGS, INSTALMENT_PLAN_KEYS, INSTALMENT_PLAN_LA
 import type { Json } from "@im/db";
 import { Checkbox, Field, Input } from "@im/ui";
 import { ActionForm } from "@/components/partner/action-form";
-import { setVersionPlans } from "@/app/(partner)/partner/(workspace)/products/plan-actions";
+import { setVersionPlans } from "@/app/(site)/(partner)/partner/(workspace)/products/plan-actions";
 
 /** Insurer version editor: periods, instalment plans, micro flag and audience tags (Phase 3). */
 export function VersionPlansForm({ version, editable }: { version: { id: string; status: string; periods: string[]; instalment_plans: Json; micro: boolean; audience_tags: string[] }; editable: boolean }) {

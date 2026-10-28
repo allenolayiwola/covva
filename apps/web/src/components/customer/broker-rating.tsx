@@ -1,5 +1,5 @@
 import { Card } from "@im/ui";
-import type { Supabase } from "@/app/(customer)/account/_lib/data";
+import type { Supabase } from "@/app/(site)/(customer)/account/_lib/data";
 import type { ActionState } from "@/components/customer/utils";
 import { myBrokerReview, type ReviewSubjectType } from "@/server/scorecards";
 import { Stars } from "@/components/score-summary";

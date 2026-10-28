@@ -26,6 +26,7 @@
     { "path": "/api/cron/analytics-rollup", "schedule": "50 1 * * *" },
     { "path": "/api/cron/welfare-reminders", "schedule": "30 7 * * *" },
     { "path": "/api/cron/privacy-retention", "schedule": "50 3 * * *" },
-    { "path": "/api/cron/telematics-scoring", "schedule": "20 2 1 * *" }
+    { "path": "/api/cron/telematics-scoring", "schedule": "20 2 1 * *" },
+    { "path": "/api/cron/cms-jobs", "schedule": "*/15 * * * *" }
   ]
 }

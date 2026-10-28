@@ -1,4 +1,5 @@
 import "server-only";
+import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
 import { Card, DemoBadge } from "@im/ui";
 import { ROLE_STATEMENTS, issuanceLabel } from "@im/core";
@@ -160,7 +161,7 @@ export async function TransactionParties(props: TransactionPartiesProps) {
             .
           </dd>
           <dd className="text-xs text-muted">
-            <a href="/legal/complaints" className="hover:underline">Our complaints procedure</a> · {ROLE_STATEMENTS.platform}
+            <Link href="/legal/complaints" className="hover:underline">Our complaints procedure</Link> · {ROLE_STATEMENTS.platform}
           </dd>
         </div>
       </dl>

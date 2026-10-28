@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Notice, PageHeader, Pill, StatCard, Table, Td, Th, THead, buttonClass } from "@im/ui";
 import { EMBED_DISCLOSURE, formatDate, formatGHS, humanize } from "@im/core";
-import { can, ROLES, type PartnerContext } from "@/app/(partner)/partner/_lib/context";
-import { nowMs } from "@/app/(partner)/partner/_lib/data";
+import { can, ROLES, type PartnerContext } from "@/app/(site)/(partner)/partner/_lib/context";
+import { nowMs } from "@/app/(site)/(partner)/partner/_lib/data";
 import { Empty, Section } from "./ui";
 
 /** Distributor dashboard: referrals, conversions and revenue share earned (masked customer details). */

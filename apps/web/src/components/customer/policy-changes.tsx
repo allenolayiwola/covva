@@ -2,8 +2,8 @@ import Link from "next/link";
 import { PenLine } from "lucide-react";
 import { ENDORSEMENT_STATUS, adjustmentLabel, endorsementKindsFor, formatDate, type EndorsementKind, type EndorsementStatus } from "@im/core";
 import { Card, Pill } from "@im/ui";
-import type { Supabase } from "@/app/(customer)/account/_lib/data";
-import { requestPolicyChange } from "@/app/(customer)/account/policies/[id]/change-actions";
+import type { Supabase } from "@/app/(site)/(customer)/account/_lib/data";
+import { requestPolicyChange } from "@/app/(site)/(customer)/account/policies/[id]/change-actions";
 import { PolicyChangeForm } from "./policy-change-form";
 
 /**

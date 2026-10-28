@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
+import { withPayload } from "@payloadcms/next/withPayload";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  poweredByHeader: false,
   partialPrefetching: true,
   typedRoutes: false,
   transpilePackages: ["@im/core", "@im/db", "@im/tokens", "@im/ui"],
@@ -44,4 +46,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Payload CMS (docs/CMS.md): admin at /cms, REST at /cms-api; marks server-only packages external.
+export default withPayload(nextConfig, { devBundleServerPackages: false });

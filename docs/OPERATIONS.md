@@ -42,6 +42,10 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | **yes** | no | Inbound webhook `/api/webhooks/whatsapp`: signature check and Meta's subscription verification |
 | `LOG_LEVEL` | no | no | `debug` for verbose logs |
 | `NIC_MOTOR_DB_MODE` | no | no | How delegated motor policies reach the NIC motor insurance database: `manual` (default — an insurer task "Register policy … on the NIC motor database" is created and the insurer records the reference in Issuance → Delegated issuance) or `api` (through the insurer's connector adapter; only the `simulator` adapter exists, selected by `organizations.settings.connector = "simulator"`; falls back to the manual hand-off when the insurer has none). Status is tracked in `issuance_jobs.nic_registration`. |
+| `DATABASE_URI` | **yes** | CMS | Pooled Supabase Postgres connection string for the marketing CMS (Payload, schema `cms`). Unset = CMS disabled; the site renders its typed content. See `docs/CMS.md` |
+| `PAYLOAD_SECRET` | **yes** | CMS | 32+ random characters; signs CMS admin sessions |
+| `CMS_S3_ENDPOINT`, `CMS_S3_REGION`, `CMS_S3_BUCKET`, `CMS_S3_ACCESS_KEY_ID`, `CMS_S3_SECRET_ACCESS_KEY`, `CMS_MEDIA_PUBLIC_URL` | **yes** (keys) | CMS uploads | Supabase Storage through its S3 endpoint (bucket `cms-media`, public read) and the public URL base of that bucket |
+| `CMS_ADMIN_EMAIL`, `CMS_ADMIN_PASSWORD`, `CMS_ADMIN_NAME` | **yes** | seed only | First CMS admin, created once by `pnpm --filter @im/web cms:seed`; not read at runtime |
 | `PARTNER_MFA_REQUIRED` | no | no | TOTP two-step verification for broker/insurer users in `/partner`. Defaults to `true` in production builds and `false` elsewhere. Set `false` only for local demos and e2e (`apps/web/playwright.config.js` does). Customers are never gated. |
 
 The `.well-known` files are static at build — **redeploy after changing their env vars**.
@@ -61,7 +65,8 @@ x-revalidate-secret: $REVALIDATE_SECRET
 ### Secrets checklist (Vercel → Project → Settings → Environment Variables, Production + Preview)
 
 `SUPABASE_SECRET_KEY`, `PAYSTACK_SECRET_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, `REVALIDATE_SECRET`,
-`AI_GATEWAY_API_KEY` (or rely on Vercel OIDC), `SMS_API_KEY` / `HUBTEL_CLIENT_*`, `EXPO_ACCESS_TOKEN`.
+`AI_GATEWAY_API_KEY` (or rely on Vercel OIDC), `SMS_API_KEY` / `HUBTEL_CLIENT_*`, `EXPO_ACCESS_TOKEN`,
+`DATABASE_URI`, `PAYLOAD_SECRET`, `CMS_S3_ACCESS_KEY_ID` / `CMS_S3_SECRET_ACCESS_KEY` (marketing CMS).
 Use different Paystack keys (test vs live) for Preview and Production. Rotate any secret that has
 been pasted into chat, logs or tickets.
 
@@ -365,6 +370,11 @@ system health). Sub-daily schedules need a Vercel Pro plan. Manual run:
 
 Migrations live in `supabase/migrations/` and are applied with the Supabase MCP / CLI
 (`supabase db push`). After applying, regenerate types into `packages/db/src/database.types.ts`.
+
+The marketing CMS (Payload) keeps its own tables in schema `cms` and its own migrations in
+`apps/web/src/cms/migrations/`, applied with `pnpm --filter @im/web cms:migrate` (needs `DATABASE_URI`); they are
+never added to `supabase/migrations`. Deploy order for a release that adds a CMS migration: deploy, then run
+`cms:migrate`. See `docs/CMS.md` §5.
 `20261026130000_backend_support.sql` adds `usage_events.details`, a one-policy-per-quote index,
 supporting indexes, KYC/request/claim column guards and the `ai_models` setting.
 `20261026140000_flows.sql` adds the invitation RPCs (`invitation_preview`, `accept_invitation`), the

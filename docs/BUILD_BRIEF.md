@@ -55,10 +55,10 @@ supabase/migrations  SQL (applied to project krmnyqaweawkpygjmdry)
 
 | Path | Owner | Notes |
 |---|---|---|
-| `src/app/(marketing)/**`, `src/components/marketing/**` | Marketing | public, mostly static/cached |
-| `src/app/(auth)/**` | Customer | sign-in/up, OTP, callback, onboarding & consent |
-| `src/app/(customer)/account/**`, `src/components/customer/**` | Customer | signed-in customer app |
-| `src/app/(partner)/partner/**`, `src/components/partner/**` | Partner | broker + insurer workspace |
+| `src/app/(site)/(marketing)/**`, `src/components/marketing/**` | Marketing | public, mostly static/cached |
+| `src/app/(site)/(auth)/**` | Customer | sign-in/up, OTP, callback, onboarding & consent |
+| `src/app/(site)/(customer)/account/**`, `src/components/customer/**` | Customer | signed-in customer app |
+| `src/app/(site)/(partner)/partner/**`, `src/components/partner/**` | Partner | broker + insurer workspace |
 | `src/app/api/**`, `src/server/**`, `packages/ai/**` | Backend | API v1, services, webhooks, cron, AI |
 | `src/app/layout.tsx`, `src/app/globals.css`, `src/proxy.ts`, `src/lib/**` | Foundation (lead) | ask before changing; additive helpers OK |
 
