@@ -46,7 +46,7 @@ export default function ChatPanel({ open, onClose, whatsappNumber }: { open: boo
           role="dialog"
           aria-label="Chat with us"
           data-testid="chat-widget"
-          className="fixed inset-x-2 bottom-20 z-50 flex max-h-[75dvh] flex-col overflow-hidden rounded-card border border-line bg-white shadow-float sm:inset-x-auto sm:left-6 sm:w-[400px] sm:bottom-6"
+          className="fixed inset-x-2 bottom-20 z-50 flex max-h-[75dvh] flex-col overflow-hidden rounded-card border border-line bg-white shadow-float sm:inset-x-auto sm:right-6 sm:w-[400px] sm:bottom-6"
         >
           <header className="flex items-start gap-3 border-b border-line px-4 py-3">
             <span className="mt-0.5 grid size-8 place-items-center rounded-full bg-mint text-brand">

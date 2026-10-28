@@ -40,7 +40,7 @@ function NavItems({ pathname }: { pathname: string }) {
           </li>
         ) : (
           <li key={entry.href} className={entry.from && fromClass[entry.from]}>
-            <Link href={entry.href} aria-current={isActive(pathname, entry.href) ? "page" : undefined} className={cn(linkClass, isActive(pathname, entry.href) ? "text-brand" : "text-ink-2")}>
+            <Link href={entry.href} data-header-fg aria-current={isActive(pathname, entry.href) ? "page" : undefined} className={cn(linkClass, isActive(pathname, entry.href) ? "text-brand" : "text-ink-2")}>
               {navText(t, entry).label}
             </Link>
           </li>
@@ -147,6 +147,7 @@ function Dropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
       <button
         ref={buttonRef}
         type="button"
+        data-header-fg
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}

@@ -19,7 +19,7 @@ import { ROLE_STATEMENTS } from "@im/core";
 import { getCategories, getPartnerDirectory } from "@/lib/catalog";
 import { displayOrgName, getBrand, isDemoMode, isDemoOrg } from "@/components/marketing/brand";
 import { HeroVisual } from "@/components/marketing/hero-visual";
-import { HomeHero } from "@/components/marketing/home-hero";
+import { HeroTrustStrip, HomeHero } from "@/components/marketing/home-hero";
 import { TrustBar } from "@/components/marketing/trust-bar";
 import { CompareIllustration, PayIllustration, PolicyIllustration } from "@/components/marketing/how-it-works-illustrations";
 import { CategoryIcon } from "@/components/marketing/category-icon";
@@ -40,12 +40,12 @@ import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
 export const metadata: Metadata = {
-  title: { absolute: "Covva — Real quotes. Your broker. Pay by MoMo." },
+  title: { absolute: "Covva — Protect what matters. Wherever you are." },
   description:
-    "Get real quotes for motor, home, health, travel, life and business insurance from licensed insurers in Ghana through brokers you choose. Pay by MoMo or card; the insurer issues your policy to a digital wallet with QR verification.",
+    "Compare insurance quotes from licensed brokers in Ghana, at home or from abroad. Get real quotes for motor, home, health, travel, life and business insurance from licensed insurers in Ghana through brokers you choose. Pay by MoMo or card; the insurer issues your policy to a digital wallet with QR verification.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Covva — Real quotes. Your broker. Pay by MoMo.",
+    title: "Covva — Protect what matters. Wherever you are.",
     description: "Insurance for Ghana and the diaspora: compare quotes from licensed insurers through your broker, pay by MoMo or card, get your policy in your wallet.",
     url: "/",
     images: ["/opengraph-image"],
@@ -88,12 +88,8 @@ export default async function HomePage() {
     <>
       <JsonLd data={faqJsonLd(faqs)} />
 
-      <HomeHero
-        examples={[
-          { label: "Motor · third party, private car", monthly: monthlyFrom(prices, ["motor"], 45).monthly },
-          { label: "Health · family outpatient plan", monthly: monthlyFrom(prices, ["health"], 180).monthly },
-        ]}
-      />
+      <HomeHero />
+      <HeroTrustStrip />
 
       <TrustBar insurers={directory.insurers} demo={demo} partners={partners} />
 

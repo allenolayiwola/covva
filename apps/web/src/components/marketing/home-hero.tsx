@@ -1,74 +1,106 @@
-import Image from "next/image";
-import { Banknote, ShieldCheck, UserRoundCheck } from "lucide-react";
-import { Container, Eyebrow } from "@im/ui";
-import heroPhoto from "@/assets/hero-accra.jpg";
-import { HERO_PHOTO } from "./hero-photo";
-import { HeroQuoteCard, type HeroExample } from "./hero-quote-card";
+import { getImageProps } from "next/image";
+import { preload } from "react-dom";
+import { Instrument_Serif } from "next/font/google";
+import { Banknote, ShieldCheck, Smartphone } from "lucide-react";
+import { Container } from "@im/ui";
 import { Experiment } from "./experiment";
+import { HERO_SLIDES, type HeroSlide } from "./hero-slides";
+import { HomeHeroCarousel, type HeroCarouselSlide } from "./home-hero-carousel";
 
-const TICKS = [
-  { Icon: ShieldCheck, text: "Licensed insurers and brokers only" },
-  { Icon: Banknote, text: "Premiums go to the insurer, never to us" },
-  { Icon: UserRoundCheck, text: "Cover starts only when the insurer accepts" },
-];
+// The italic serif accent (`--font-accent` in @im/tokens). Loaded by the home hero only, so other routes do not
+// fetch it; one weight, italic, Latin.
+const accentFace = Instrument_Serif({ subsets: ["latin"], weight: "400", style: "italic", display: "swap", variable: "--font-instrument-serif" });
+
+/** Phones (tall portrait screens) get the portrait crop; tablets and up the 3840px landscape image. Keep in sync with globals.css. */
+const PORTRAIT_MEDIA = "(max-aspect-ratio: 2/3)";
+const QUALITY = 85;
+
+/*
+ * `sizes` is the width the photo is actually drawn at with object-fit: cover. The landscape file (~16:9) is
+ * full-width on wide screens but overflows the sides on squarer ones (laptops at 16:10, tablets), where its
+ * drawn width is 177vh; the portrait crop (0.6) is drawn 60vh wide on phones taller than 5:3. Plain "100vw" would
+ * pick a file up to 2× too small there and the photo would look soft.
+ */
+const SIZES_WIDE = "(max-aspect-ratio: 16/9) 177vh, 100vw";
+const SIZES_TALL = "(max-aspect-ratio: 3/5) 60vh, 100vw";
+
+function HeroPicture({ slide, first }: { slide: HeroSlide; first: boolean }) {
+  // Slide 1 is the LCP image: eager + high priority, plus a media-scoped <link rel="preload"> per art-directed file
+  // (next/image's `preload` prop would fetch both), so its request starts from <head> alongside CSS and fonts.
+  // No blur placeholder: the section's neutral dark background shows until the photo arrives.
+  const loading = first ? ({ loading: "eager", fetchPriority: "high" } as const) : ({ loading: "lazy", fetchPriority: "low" } as const);
+  const common = { alt: slide.image.alt, fill: true, quality: QUALITY, ...loading };
+  const {
+    props: { srcSet: tallSrcSet, src: tallSrc },
+  } = getImageProps({ ...common, sizes: SIZES_TALL, src: slide.image.tall });
+  const { props: wide } = getImageProps({ ...common, sizes: SIZES_WIDE, src: slide.image.wide });
+  if (first) {
+    preload(tallSrc, { as: "image", imageSrcSet: tallSrcSet, imageSizes: SIZES_TALL, fetchPriority: "high", media: PORTRAIT_MEDIA });
+    preload(wide.src, { as: "image", imageSrcSet: wide.srcSet, imageSizes: SIZES_WIDE, fetchPriority: "high", media: `not all and ${PORTRAIT_MEDIA}` });
+  }
+  return (
+    <picture>
+      <source media={PORTRAIT_MEDIA} srcSet={tallSrcSet} sizes={SIZES_TALL} />
+      {/* Art-directed <picture> built with getImageProps, as in the next/image docs. */}
+      <img {...wide} alt={slide.image.alt} className="object-cover" />
+    </picture>
+  );
+}
 
 /**
- * Home hero (redesign variation A, after monday.com and VEED on Mobbin): overline, headline and paragraph
- * centred, the six-category picker in one row with Get quotes under it, the trust ticks in a row, then the
- * Accra photo as a wide band (credited). On phones the picker sits directly under the headline, above the
- * paragraph (order utilities), and the photo is not loaded.
+ * Home hero (owner brief, October 2026): a full-viewport photographic hero that rotates between four slides —
+ * family, motor claims, home and "on your phone" — each with its own copy and suggested cover, behind a
+ * transparent header. The <h1> (slide 1) and slide 1's image are server-rendered; the carousel behaviour is in
+ * home-hero-carousel.tsx and the slide data in hero-slides.ts.
  */
-export function HomeHero({ examples }: { examples: HeroExample[] }) {
+export function HomeHero() {
+  const slides: HeroCarouselSlide[] = HERO_SLIDES.map((s, i) => ({
+    id: s.id,
+    topic: s.topic,
+    eyebrow: s.eyebrow,
+    headline: s.headline,
+    accent: s.accent,
+    subline:
+      i === 0 ? (
+        <Experiment
+          name="home_hero_headline"
+          variants={{
+            control: <>{s.subline}</>,
+            instant: <>Compare quotes from licensed brokers in minutes. Choose your cover and pay with MoMo or card.</>,
+          }}
+        />
+      ) : (
+        s.subline
+      ),
+    caption: s.caption,
+    category: s.category,
+    focus: s.image.focus,
+    media: <HeroPicture slide={s} first={i === 0} />,
+  }));
+  return <HomeHeroCarousel slides={slides} className={accentFace.variable} />;
+}
+
+const TRUST_ITEMS = [
+  { Icon: ShieldCheck, text: "Licensed insurers & brokers" },
+  { Icon: Smartphone, text: "Pay with MoMo or card" },
+  { Icon: Banknote, text: "Premiums paid to the insurer" },
+];
+
+/** The light strip directly under the hero: three promises with icons, separated by thin rules. */
+export function HeroTrustStrip() {
   return (
-    <section aria-labelledby="hero-title" className="relative overflow-x-clip bg-gradient-to-b from-mist to-white">
-      <Container className="flex flex-col items-center pb-16 pt-10 text-center lg:pb-20 lg:pt-16">
-        <div className="order-1">
-          <Eyebrow>Insurance for Ghana and the diaspora</Eyebrow>
-          <h1 id="hero-title" className="mx-auto mt-5 max-w-[16ch] text-h1 text-ink">
-            Real quotes. Your broker. <span className="text-brand">Pay by MoMo.</span>
-          </h1>
-        </div>
-
-        <p className="order-3 mx-auto mt-6 max-w-[42rem] text-lead text-muted lg:order-2">
-          <Experiment
-            name="home_hero_headline"
-            variants={{
-              control: <>Tell us what you want to insure, choose up to three licensed brokers and compare their quotes side by side. Pay with MTN MoMo, Telecel Cash, AirtelTigo Money or card, and the insurer issues your policy to your wallet.</>,
-              instant: <>Compare, buy and manage insurance in minutes: real quotes from licensed insurers through brokers you choose, paid by MoMo or card, with your policy issued by the insurer straight to your wallet.</>,
-            }}
-          />
-        </p>
-
-        <HeroQuoteCard examples={examples} className="order-2 mt-8 max-w-[1000px] lg:order-3 lg:mt-10" />
-
-        <ul className="order-4 mt-8 grid gap-3 text-left text-[15px] text-ink-2 sm:grid-cols-3 sm:gap-8 lg:mt-10">
-          {TICKS.map(({ Icon, text }) => (
-            <li key={text} className="flex items-start gap-2.5">
-              <span aria-hidden className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-mint text-brand-deep"><Icon className="size-3.5" /></span>
-              {text}
+    <section aria-label="Why you can trust Covva" className="border-b border-line bg-mist">
+      <Container>
+        <ul className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {TRUST_ITEMS.map(({ Icon, text }) => (
+            <li key={text} className="flex items-center gap-3 py-4 sm:justify-center sm:px-4 sm:py-6">
+              <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-mint text-brand-deep">
+                <Icon className="size-5" />
+              </span>
+              <span className="text-[15px] font-medium text-ink">{text}</span>
             </li>
           ))}
         </ul>
-
-        {/* Photo band (desktop). */}
-        <div className="relative order-5 mt-12 hidden h-[400px] w-full overflow-hidden rounded-hero bg-mint lg:block">
-          <Image
-            src={heroPhoto}
-            alt={HERO_PHOTO.alt}
-            fill
-            sizes="(min-width: 1024px) 1280px, 0px"
-            placeholder="blur"
-            className="object-cover object-[50%_14%]"
-          />
-          <a
-            href={HERO_PHOTO.creditHref}
-            target="_blank"
-            rel="noreferrer"
-            className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-[13px] font-medium text-ink-2 shadow-card backdrop-blur hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            {HERO_PHOTO.credit}<span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        </div>
       </Container>
     </section>
   );

@@ -52,3 +52,4 @@ export * from "./household";
 export * from "./activity";
 export * from "./product-management";
 export * from "./cms";
+export * from "./hero-carousel";

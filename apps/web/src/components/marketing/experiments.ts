@@ -26,7 +26,7 @@ export interface ExperimentDef<V extends string = string> {
 
 export const EXPERIMENTS = {
   home_hero_headline: {
-    description: "Home hero lede: product-led control vs the 'in minutes' outcome framing (the h1 stays static for LCP).",
+    description: "Home hero lede (slide 1 subline): product-led control vs the 'in minutes' outcome framing (the h1 stays static for LCP).",
     variants: ["control", "instant"],
   },
 } as const satisfies Record<string, ExperimentDef>;

@@ -72,14 +72,32 @@ Rules of the road:
   the swap does not shift layout. `TypeScript` requires every variant to have a branch.
 - Exposure is reported once per page view per experiment via `experiment_exposure`; analyse by that event's `variant` param
   in GA4 (Explore → funnel from `experiment_exposure` to `quote_start` / `generate_lead`).
-- Registered today: `home_hero_headline` (off): it switches the hero lede, not the `<h1>`, so the LCP element stays static
-  server HTML. Switch it on by setting `NEXT_PUBLIC_EXPERIMENTS=home_hero_headline` on the web project in Vercel and redeploying.
+- Registered today: `home_hero_headline` (off): it switches the hero lede (slide 1's subline), not the `<h1>`, so the LCP
+  element stays static server HTML. Switch it on by setting `NEXT_PUBLIC_EXPERIMENTS=home_hero_headline` on the web project in Vercel and redeploying.
 
 ## 4. Lighthouse (production build, mobile emulation)
 
 <!-- LIGHTHOUSE -->
 
-## 5. Headless CMS — Payload (built)
+## 5. Home hero carousel
+
+`home-hero.tsx` (server: slide 1's `<h1>`, the art-directed `<picture>`s, the accent font) + `home-hero-carousel.tsx`
+(client: rotation, controls, cover picker) + `hero-slides.ts` (copy, suggested cover, images, focus points, provenance).
+Timing and the picker's preselection rules are pure functions in `packages/core/src/hero-carousel.ts`.
+
+- Four slides (family, motor claims, home, on your phone) cross-fade every 7 s with a Ken Burns zoom capped at 1.05.
+  Rotation pauses on hover, on keyboard focus inside the hero and in hidden tabs; the Pause/Play button covers WCAG 2.2.2.
+  `prefers-reduced-motion: reduce` = no autoplay, no zoom, instant swaps (Play opts back in to rotation only).
+- One `<h1>` (slide 1) stays in the accessibility tree; later slides swap the visible copy without a live region.
+- The picker follows the slide's suggested cover until the visitor picks one; it is a plain GET form to `/quote?category=`.
+- The header is transparent with the reverse logo while the home page is at the top (`data-hero-*` rules in `globals.css`).
+- Images: 3840px landscape JPEGs plus portrait crops for phones in `src/assets/hero/`, served by `next/image` at quality 85
+  (`images.qualities` allows 75 and 85; `deviceSizes` adds 2560). Today they are AI-generated illustrations owned by Covva,
+  with no visible credit; replace each with commissioned photography by swapping its two imports in `hero-slides.ts`.
+- Contrast: the neutral black scrims keep every hero text run at ≥ 4.5:1 against the brightest pixel under it on all four slides
+  (checked from 360px to 2560px wide); recheck when a photo changes.
+
+## 6. Headless CMS — Payload (built)
 
 Payload 3 runs inside the web app: admin at `/cms`, content in the Supabase Postgres schema `cms`, read through the
 Local API by `apps/web/src/server/cms.ts` with `'use cache'` + tags and on-publish `revalidateTag`. Pages, Learn
@@ -87,8 +105,9 @@ articles, FAQs, testimonials and partner logos are editable; the typed files (`c
 fallback and the seed, so a deployment without the CMS env renders exactly as before. Everything about it — the
 version decision, env vars, `cms:migrate` / `cms:seed`, edge protection, preview, translations — is in `docs/CMS.md`.
 
-## 6. Still waiting on assets
+## 7. Still waiting on assets
 
-- Real Ghanaian photography and the custom "how it works" illustrations (the current ones are inline SVG placeholders).
+- Commissioned photography of real Ghanaian customers for the home hero (today: AI-generated illustrations) and the custom
+  "how it works" illustrations (the current ones are inline SVG placeholders).
 - Store listing ids (`NEXT_PUBLIC_IOS_APP_ID`, `NEXT_PUBLIC_ANDROID_PACKAGE`, store URLs) and the WhatsApp business number.
 - GA4 property and, if paid social is planned, the Meta and TikTok pixel ids.

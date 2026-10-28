@@ -16,14 +16,20 @@ import { T } from "@/lib/i18n/client";
 export async function SiteHeader({ right }: { right?: React.ReactNode }) {
   const brand = await getBrand();
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <header data-site-header className="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur transition-[background-color,border-color] duration-300 supports-[backdrop-filter]:bg-white/80 motion-reduce:transition-none">
       <div className={`${containerClass} flex h-16 items-center justify-between gap-4 lg:h-[72px]`}>
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           aria-label={`${brand.name} home`}
         >
-          <Logo height={40} label={brand.name} className="[&_img]:h-8 [&_img]:w-auto sm:[&_img]:h-10" />
+          {/* Over the home hero photo the reverse lockup shows instead (globals.css, data-hero-*). */}
+          <span data-logo="default" className="inline-flex">
+            <Logo height={40} label={brand.name} className="[&_img]:h-8 [&_img]:w-auto sm:[&_img]:h-10" />
+          </span>
+          <span data-logo="reverse" className="hidden">
+            <Logo reverse height={40} label={brand.name} className="[&_img]:h-8 [&_img]:w-auto sm:[&_img]:h-10" />
+          </span>
         </Link>
 
         <nav aria-label="Primary" className="hidden md:block">
@@ -36,7 +42,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           <LocaleSwitcher />
           {right ?? (
             <>
-              <Link href="/brokers" className="hidden rounded-full px-3 py-2 text-[15px] font-medium text-muted hover:text-brand lg:inline-block">
+              <Link href="/brokers" data-header-fg className="hidden rounded-full px-3 py-2 text-[15px] font-medium text-muted hover:text-brand lg:inline-block">
                 <T k="header.forPartners" />
               </Link>
               <span className="hidden sm:block">

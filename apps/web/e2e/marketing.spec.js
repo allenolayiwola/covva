@@ -27,14 +27,29 @@ const NEW_ROUTES = [
 test.describe("marketing site", () => {
   test("home renders the hero, quote card and product tiles", async ({ page }) => {
     await page.goto("/");
-    const h1 = page.getByRole("heading", { level: 1 });
-    await expect(h1).toContainText("Real quotes. Your broker.");
-    await expect(h1).toContainText("Pay by MoMo");
-    const card = page.getByRole("form", { name: "What do you want to insure?" }).locator("visible=true").first();
+    // One h1: slide 1's headline, server-rendered.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Protect what matters. Wherever you are.");
+    const card = page.getByRole("form", { name: "What would you like to insure?" });
     await expect(card).toBeVisible();
-    await expect(card.getByRole("button", { name: /Get quotes/ })).toBeVisible();
-    await expect(card.getByText("Example · DEMO").first()).toBeVisible();
-    await expect(card.getByText("A quote request is not cover.")).toBeVisible();
+    // Six categories; the family slide preselects Health.
+    await expect(card.getByRole("radio")).toHaveCount(6);
+    await expect(card.getByRole("radio", { name: "Health" })).toBeChecked();
+    await expect(card.getByRole("button", { name: /Compare quotes/ })).toBeVisible();
+    await expect(card.getByText("Cover begins only after insurer acceptance and policy issuance.")).toBeVisible();
+    // Slide controls and the Pause control (WCAG 2.2.2); the trust strip under the hero.
+    const slides = page.getByRole("list", { name: "Choose a slide" });
+    await expect(slides.getByRole("button")).toHaveCount(4);
+    await expect(slides.getByRole("button", { name: /^Family, slide 1 of 4/ })).toHaveAttribute("aria-current", "true");
+    await expect(page.getByRole("button", { name: "Pause slideshow" })).toBeVisible();
+    for (const t of ["Licensed insurers & brokers", "Pay with MoMo or card", "Premiums paid to the insurer"]) {
+      await expect(page.getByRole("region", { name: "Why you can trust Covva" }).getByText(t)).toBeVisible();
+    }
+    // The hero photo is real content with alt text; the header sits transparent over it at the top.
+    await expect(page.locator("[data-hero-media='family'] img")).toHaveAttribute("alt", /mother/);
+    await expect(page.locator("[data-site-header]")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await page.mouse.wheel(0, 600);
+    await expect(page.locator("[data-site-header]")).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(page.getByRole("heading", { level: 2, name: "Cover for what matters to you" })).toBeVisible();
     const tiles = page.locator("a[href^='/insurance/']");
     expect(await tiles.count()).toBeGreaterThanOrEqual(7);
@@ -48,11 +63,52 @@ test.describe("marketing site", () => {
     await expect(page.getByText(/not an insurer or broker/i).first()).toBeVisible();
   });
 
+  test("home hero carousel: autoplay, slide controls, picker preselection and Pause", async ({ page }) => {
+    await page.goto("/");
+    const slides = page.getByRole("list", { name: "Choose a slide" });
+    const card = page.getByRole("form", { name: "What would you like to insure?" });
+    // Autoplay moves on after ~7 s (the pointer never enters the hero) and the picker follows the slide.
+    await expect(slides.getByRole("button", { name: /^Motor, slide 2 of 4/ })).toHaveAttribute("aria-current", "true", { timeout: 12_000 });
+    await expect(card.getByRole("radio", { name: "Motor" })).toBeChecked();
+    // The visible copy follows the slide; the single h1 stays slide 1's and inactive slides are hidden from AT.
+    await expect(page.locator("[data-hero-copy='motor']")).toContainText("A bad day on the road.");
+    await expect(page.locator("[data-hero-copy='motor']")).not.toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator("[data-hero-copy='home']")).toHaveAttribute("aria-hidden", "true");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Protect what matters. Wherever you are.");
+    // Pause (without hovering, so only the button is stopping it) freezes the progress bar.
+    await page.getByTestId("hero-pause").evaluate((b) => b.click());
+    await expect(page.getByTestId("hero-pause")).toHaveAccessibleName("Play slideshow");
+    await expect(page.getByTestId("hero-progress")).toHaveCSS("animation-play-state", "paused");
+    // Choosing a slide by hand preselects its cover until the visitor picks one themselves.
+    await slides.getByRole("button", { name: /^Home/ }).click();
+    await expect(card.getByRole("radio", { name: "Home" })).toBeChecked();
+    await card.getByRole("radio", { name: "Travel" }).check({ force: true });
+    await slides.getByRole("button", { name: /^Phone/ }).click();
+    await expect(page.locator("[data-hero-copy='phone']")).toContainText("In your pocket.");
+    await expect(card.getByRole("radio", { name: "Travel" })).toBeChecked();
+    await card.getByRole("button", { name: /Compare quotes/ }).click();
+    await page.waitForURL(/\/quote\?category=travel/);
+  });
+
+  test("home hero with reduced motion: no autoplay, no zoom, instant swaps", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    const slides = page.getByRole("list", { name: "Choose a slide" });
+    await expect(page.getByTestId("hero-pause")).toHaveAccessibleName("Play slideshow");
+    await expect(page.locator("[data-hero-media='family'] .hero-photo")).toHaveCSS("animation-name", "none");
+    await page.waitForTimeout(8_500);
+    await expect(slides.getByRole("button", { name: /^Family/ })).toHaveAttribute("aria-current", "true");
+    await slides.getByRole("button", { name: /^Motor/ }).click();
+    await expect(page.locator("[data-hero-media='motor']")).toHaveCSS("transition-property", "none");
+    await expect(page.locator("[data-hero-media='motor']")).toHaveCSS("opacity", "1");
+    await expect(page.getByRole("form", { name: "What would you like to insure?" }).getByRole("radio", { name: "Motor" })).toBeChecked();
+  });
+
   test("hero quote card hands over to /quote and the flow asks one question per screen", async ({ page }) => {
     await page.goto("/");
-    const card = page.getByRole("form", { name: "What do you want to insure?" }).locator("visible=true").first();
+    const card = page.getByRole("form", { name: "What would you like to insure?" });
     await card.getByRole("radio", { name: "Health" }).check({ force: true });
-    await card.getByRole("button", { name: /Get quotes/ }).click();
+    await card.getByRole("button", { name: /Compare quotes/ }).click();
     await page.waitForURL(/\/quote\?category=health/);
     // Step 2 of 6: the first question for health cover, with a progress bar and the sticky bar.
     await expect(page.getByText(/Step 2 of 6/)).toBeVisible();
@@ -209,14 +265,14 @@ test.describe("marketing site", () => {
   test("A/B hooks: control by default, ?exp= override is sticky and limited to known variants", async ({ page }) => {
     await page.goto("/");
     const h1 = page.getByRole("heading", { level: 1 });
-    await expect(h1).toContainText("Real quotes. Your broker.");
+    await expect(h1).toHaveText("Protect what matters. Wherever you are.");
     const exp = page.locator("[data-experiment='home_hero_headline']");
     await expect(exp).toHaveAttribute("data-variant", "control");
     expect((await page.context().cookies()).find((c) => c.name === "covva_exp")).toBeUndefined();
     // QA override forces a variant and persists it for the browser.
     await page.goto("/?exp=home_hero_headline:instant");
     await expect(exp).toHaveAttribute("data-variant", "instant");
-    await expect(exp).toContainText("Compare, buy and manage insurance");
+    await expect(exp).toContainText("Compare quotes from licensed brokers in minutes");
     expect(decodeURIComponent((await page.context().cookies()).find((c) => c.name === "covva_exp")?.value ?? "")).toBe("home_hero_headline:instant");
     await page.goto("/");
     await expect(exp).toHaveAttribute("data-variant", "instant");
@@ -224,7 +280,7 @@ test.describe("marketing site", () => {
     await page.goto("/?exp=home_hero_headline:nope");
     await expect(exp).toHaveAttribute("data-variant", "instant");
     await page.goto("/?exp=home_hero_headline:control");
-    await expect(exp).toContainText("Tell us what you want to insure");
+    await expect(exp).toContainText("Compare insurance quotes from licensed brokers in Ghana");
   });
 
   test("header navigation exposes the Insurance and Partners menus to the keyboard", async ({ page }) => {
@@ -403,9 +459,9 @@ test.describe("site-wide language switcher (Phase 3 i18n)", () => {
     await context.clearCookies();
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
-    await expect(page.getByRole("heading", { level: 2, name: "What do you want to insure?" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Get quotes" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Protect what matters. Wherever you are.");
+    await expect(page.getByRole("heading", { level: 2, name: "What would you like to insure?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Compare quotes" })).toBeVisible();
     await expect(page.getByRole("link", { name: "For partners" })).toBeVisible();
     await expect(page.getByRole("contentinfo")).toContainText("Technology platform. Not an insurer or broker.");
     await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Diaspora" })).toBeVisible();
@@ -423,7 +479,7 @@ test.describe("site-wide language switcher (Phase 3 i18n)", () => {
     const cookies = await context.cookies();
     expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
     // Nothing is machine-translated: the page stays in English.
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Real quotes. Your broker. Pay by MoMo.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Protect what matters. Wherever you are.");
 
     // The choice survives a reload (cookie → <html lang> script, notice after hydration).
     await page.reload();
