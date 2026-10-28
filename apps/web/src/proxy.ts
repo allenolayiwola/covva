@@ -27,8 +27,9 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const path = request.nextUrl.pathname;
 
-  // API v1 uses bearer tokens (mobile) — never redirect API calls.
-  if (path.startsWith("/api/")) return response;
+  // API v1 uses bearer tokens (mobile) — never redirect API calls. The CMS admin and its REST API
+  // (/cms, /cms-api) use Payload's own auth cookie: pass them through untouched.
+  if (path.startsWith("/api/") || path === "/cms" || path.startsWith("/cms/") || path.startsWith("/cms-api/")) return response;
 
   // Embedded widget: frame-ancestors from the partner's allowed domains (global X-Frame-Options skips /embed).
   if (path === "/embed" || path.startsWith("/embed/")) {

@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea, cn } from "@im/ui";
-import { submitLead, type LeadState } from "@/app/(marketing)/actions";
+import { submitLead, type LeadState } from "@/app/(site)/(marketing)/actions";
 import type { LeadTag } from "./lead-tags";
 import { track } from "./analytics";
 

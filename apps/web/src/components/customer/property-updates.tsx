@@ -3,8 +3,8 @@ import { formatDate, formatDateTime, propertyProgress, propertyTimeline } from "
 import { Card, Pill } from "@im/ui";
 import { INSPECTION_STATUS } from "@/server/property";
 import { UploadDropzone } from "@/components/customer/upload";
-import { signUrls, type Supabase } from "@/app/(customer)/account/_lib/data";
-import { addPropertyPhoto, requestPropertyInspection } from "@/app/(customer)/account/policies/[id]/property-actions";
+import { signUrls, type Supabase } from "@/app/(site)/(customer)/account/_lib/data";
+import { addPropertyPhoto, requestPropertyInspection } from "@/app/(site)/(customer)/account/policies/[id]/property-actions";
 import { InspectionRequestForm } from "./property-inspection-form";
 
 /**

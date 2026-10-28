@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, LogOut, User } from "lucide-react";
 import { buttonClass } from "@im/ui";
-import { signOut } from "@/app/(auth)/actions";
+import { signOut } from "@/app/(site)/(auth)/actions";
 import { useT } from "@/lib/i18n/client";
 import { ACCOUNT_NAV } from "./account-nav";
 

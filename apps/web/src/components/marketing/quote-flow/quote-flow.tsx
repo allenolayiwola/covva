@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Lock, Mail, Pencil, Smartphone } from "lucide-re
 import { CATEGORY_AVAILABILITY, ROLE_STATEMENTS, formatGHS, riskSchemaToZod } from "@im/core";
 import { Container, Notice, Pill, Spinner, buttonClass, cn } from "@im/ui";
 import { createClient } from "@/lib/supabase/client";
-import { submitQuoteRequest } from "@/app/(marketing)/quote/actions";
+import { submitQuoteRequest } from "@/app/(site)/(marketing)/quote/actions";
 import { track } from "../analytics";
 import { CategoryIcon } from "../category-icon";
 import { BrokerPicker } from "./broker-picker";

@@ -11,3 +11,6 @@ dist
 coverage
 supabase/.temp
 supabase/.branches
+
+# Payload CMS local media (no storage credentials configured)
+apps/web/.cms-media

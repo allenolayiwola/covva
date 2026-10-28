@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { BellRing, CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, cn } from "@im/ui";
-import { submitLead, type LeadState } from "@/app/(marketing)/actions";
+import { submitLead, type LeadState } from "@/app/(site)/(marketing)/actions";
 import { track } from "./analytics";
 
 export interface ReminderCategory { slug: string; name: string }

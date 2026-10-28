@@ -16,8 +16,8 @@ Main files:
 | Types | `packages/db/src/database.types.ts` (hand-edited in the generator's format: 5 tables, `requests.welfare_group_id`, `claims.welfare_group_id` / `welfare_member_id`, `product_bundles.settings`, 7 RPCs) |
 | Pure logic | `packages/core/src/welfare.ts` (+ tests), `bundles.ts` (`bundleSponsorPlan`), `property.ts` (photo timeline), `remittance.ts` (adapter interface only) |
 | Server | `apps/web/src/server/welfare.ts`; hooks in `payments.ts` (`initiatePolicyCollection.displayCurrency`, welfare outcome routing), `requests.ts` (`welfareGroup` arg), `property.ts` (inspection photos → documents), `cron.ts` (`welfare-reminders`) |
-| Customer UI | `apps/web/src/app/(customer)/account/groups/**` (list, new, `[id]` with Overview / Members / Contributions / Claims tabs, `[id]/claims/new`, `join/[token]`, `sponsor/[token]`), nav entry "Groups" |
-| Partner UI | `apps/web/src/app/(partner)/partner/(workspace)/groups/page.tsx` ("Welfare groups" in the broker and insurer navs) |
+| Customer UI | `apps/web/src/app/(site)/(customer)/account/groups/**` (list, new, `[id]` with Overview / Members / Contributions / Claims tabs, `[id]/claims/new`, `join/[token]`, `sponsor/[token]`), nav entry "Groups" |
+| Partner UI | `apps/web/src/app/(site)/(partner)/partner/(workspace)/groups/page.tsx` ("Welfare groups" in the broker and insurer navs) |
 | Marketing | `/diaspora` "Group plans" card now links to `/account/groups/new`; Parents' Care Pack copy updated |
 | Tests | `packages/core/src/welfare.test.ts`, `property.test.ts`, `bundles.test.ts`; `apps/web/tests/welfare-rules.test.mjs` (DB rules, `E2E-WELFARE` rows — written, not run) |
 

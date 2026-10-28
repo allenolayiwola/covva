@@ -2,13 +2,21 @@ import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
 import { Container, DemoBadge } from "@im/ui";
 import type { PublicOrg } from "@/lib/catalog";
+import type { PartnerView } from "@/server/cms";
 import { displayOrgName, isDemoOrg } from "./brand";
 import { OrgTile } from "./org-tile";
+import { PartnerLogos } from "./partner-logos";
 import { PaymentBadges, SecurityBadges } from "./payment-badges";
 
-/** Home trust bar: partner insurer logos, "Licensed partners only", payment and security badges. */
-export function TrustBar({ insurers, demo }: { insurers: PublicOrg[]; demo: boolean }) {
-  const anyDemo = demo || insurers.some((i) => isDemoOrg(i.settings));
+/**
+ * Home trust bar: partner logos, "Licensed partners only", payment and security badges.
+ * CMS partners (docs/CMS.md) replace the directory list for insurers/brokers once any are published,
+ * and the text payment badges once a payment partner has a logo; otherwise today's rendering.
+ */
+export function TrustBar({ insurers, demo, partners }: { insurers: PublicOrg[]; demo: boolean; partners?: PartnerView[] | null }) {
+  const cmsInsurers = (partners ?? []).filter((p) => p.type === "insurer" || p.type === "broker");
+  const cmsPayments = (partners ?? []).filter((p) => p.type === "payment" && p.logo);
+  const anyDemo = cmsInsurers.length > 0 ? demo : demo || insurers.some((i) => isDemoOrg(i.settings));
   return (
     <section aria-labelledby="trust-bar-title" className="border-y border-line bg-white">
       <Container className="py-8 sm:py-10">
@@ -19,21 +27,28 @@ export function TrustBar({ insurers, demo }: { insurers: PublicOrg[]; demo: bool
               <BadgeCheck aria-hidden className="size-4" />
               Licensed partners only
             </p>
-            <ul className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3" aria-label="Participating insurers">
-              {insurers.slice(0, 6).map((i) => (
-                <li key={i.id} className="flex items-center gap-2.5">
-                  <OrgTile name={i.name} color={i.brand_color} size={30} />
-                  <span className="text-[15px] font-medium text-ink-2">{displayOrgName(i.name)}</span>
-                </li>
-              ))}
-              <li>
+            {cmsInsurers.length > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <PartnerLogos partners={cmsInsurers.slice(0, 6)} />
                 <Link href="/partners" className="rounded text-[14px] font-semibold text-brand underline-offset-4 hover:underline">All partners</Link>
-              </li>
-            </ul>
+              </div>
+            ) : (
+              <ul className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3" aria-label="Participating insurers">
+                {insurers.slice(0, 6).map((i) => (
+                  <li key={i.id} className="flex items-center gap-2.5">
+                    <OrgTile name={i.name} color={i.brand_color} size={30} />
+                    <span className="text-[15px] font-medium text-ink-2">{displayOrgName(i.name)}</span>
+                  </li>
+                ))}
+                <li>
+                  <Link href="/partners" className="rounded text-[14px] font-semibold text-brand underline-offset-4 hover:underline">All partners</Link>
+                </li>
+              </ul>
+            )}
             {anyDemo && <DemoBadge className="mt-3" />}
           </div>
           <div className="space-y-3">
-            <PaymentBadges compact />
+            {cmsPayments.length > 0 ? <PartnerLogos partners={cmsPayments} aria-label="Accepted payment methods" /> : <PaymentBadges compact />}
             <SecurityBadges compact />
           </div>
         </div>

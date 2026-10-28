@@ -15,7 +15,7 @@ requests and how long it keeps data it does not need.
 |---|---|
 | Database | `supabase/migrations/20261031100100_data_subject_requests.sql` (tables, guard trigger, RPCs, RLS, retention function) |
 | Rules (pure) | `packages/core/src/privacy.ts` + `privacy.test.ts` (transitions, due date, retention plan, scope, export shape and redaction) |
-| Customer | `apps/web/src/app/(customer)/account/privacy/` (page, form, actions, `[id]/download/route.ts`); linked from the account nav and Profile → Your data |
+| Customer | `apps/web/src/app/(site)/(customer)/account/privacy/` (page, form, actions, `[id]/download/route.ts`); linked from the account nav and Profile → Your data |
 | Staff | `apps/admin/src/app/(admin)/privacy-requests/` (queue, detail, actions), `apps/admin/src/server/privacy.ts` (export assembly) |
 | Cron | `apps/web/src/server/privacy.ts`, job `privacy-retention` in `apps/web/src/server/cron.ts`, schedule in `apps/web/vercel.json` |
 | Tests | `packages/core/src/privacy.test.ts` (unit), `apps/web/tests/privacy-rules.test.mjs` (database rules against Supabase; not run by CI) |

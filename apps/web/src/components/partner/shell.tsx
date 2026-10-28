@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Bell, ChevronDown, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { Avatar, Pill } from "@im/ui";
 import { formatDateTime } from "@im/core";
-import { getPartnerContext, type PartnerContext } from "@/app/(partner)/partner/_lib/context";
-import { markNotificationsRead, signOut, switchOrg } from "@/app/(partner)/partner/(workspace)/actions";
+import { getPartnerContext, type PartnerContext } from "@/app/(site)/(partner)/partner/_lib/context";
+import { markNotificationsRead, signOut, switchOrg } from "@/app/(site)/(partner)/partner/(workspace)/actions";
 import { NavLinks, OrgSwitcher, type NavItem } from "./nav";
 import { Skeleton } from "./ui";
 

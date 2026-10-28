@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Pill, cn } from "@im/ui";
-import type { PartnerContext } from "@/app/(partner)/partner/_lib/context";
+import type { PartnerContext } from "@/app/(site)/(partner)/partner/_lib/context";
 
 export const CHECKLIST_ITEMS = [
   { key: "documents", label: "Documents" },

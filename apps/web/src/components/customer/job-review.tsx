@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
-import type { Supabase } from "@/app/(customer)/account/_lib/data";
-import { rateClaimJob } from "@/app/(customer)/account/claims/[id]/review-actions";
+import type { Supabase } from "@/app/(site)/(customer)/account/_lib/data";
+import { rateClaimJob } from "@/app/(site)/(customer)/account/claims/[id]/review-actions";
 import { myJobReviews } from "@/server/partner-network";
 import { JobReviewForm } from "./job-review-form";
 

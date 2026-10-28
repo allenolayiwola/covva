@@ -1,14 +1,12 @@
+import type { SimpleContentBlock } from "@im/core";
+
 /**
- * Learn hub articles (Addendum 5 §8). Plain-language, Ghana-specific, authored in English.
+ * Learn hub articles (Addendum 5 §8). These are the fallback (and the seed) for the CMS `articles`
+ * collection: once the CMS has published articles, the site reads those instead (docs/CMS.md). Plain-language, Ghana-specific, authored in English.
  * Twi, Ga and Ewe translations are not available yet: the language switcher stores the
  * preference and says so honestly. Never machine-translate these.
  */
-export type ArticleBlock =
-  | { type: "p"; text: string }
-  | { type: "h2"; text: string }
-  | { type: "ul"; items: string[] }
-  | { type: "ol"; items: string[] }
-  | { type: "tip"; text: string };
+export type ArticleBlock = SimpleContentBlock;
 
 export interface Article {
   slug: string;
@@ -156,10 +154,11 @@ export function findArticle(slug: string): Article | undefined {
   return ARTICLES.find((a) => a.slug === slug);
 }
 
+/** Labels for the Learn hub switcher; which ones are offered depends on the CMS translations that exist. */
 export const ARTICLE_LANGUAGES = [
-  { code: "en", label: "English", native: "English", available: true },
-  { code: "tw", label: "Twi", native: "Twi", available: false },
-  { code: "gaa", label: "Ga", native: "Gã", available: false },
-  { code: "ee", label: "Ewe", native: "Eʋegbe", available: false },
+  { code: "en", label: "English", native: "English" },
+  { code: "tw", label: "Twi", native: "Twi" },
+  { code: "gaa", label: "Ga", native: "Gã" },
+  { code: "ee", label: "Ewe", native: "Eʋegbe" },
 ] as const;
 export type ArticleLanguage = (typeof ARTICLE_LANGUAGES)[number]["code"];

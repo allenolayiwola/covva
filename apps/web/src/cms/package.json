@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "private": true,
+  "description": "Marks the CMS config graph as ESM so the Payload CLI (tsx) loads it natively instead of converting Payload to CommonJS. Not a package."
+}

@@ -1,7 +1,7 @@
 # Marketing site — analytics, experiments, performance and CMS
 
-Status: 26 October 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
-Everything here lives under `apps/web/src/components/marketing/` and `apps/web/src/app/(marketing)/`; nothing touches the
+Status: 28 October 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
+Everything here lives under `apps/web/src/components/marketing/` and `apps/web/src/app/(site)/(marketing)/`; nothing touches the
 customer app, partner workspace, API or database.
 
 ## 1. Consent model (Act 843)
@@ -79,25 +79,13 @@ Rules of the road:
 
 <!-- LIGHTHOUSE -->
 
-## 5. Headless CMS — decision needed
+## 5. Headless CMS — Payload (built)
 
-The brief asks for a CMS so the marketing team can edit pages, articles, FAQs, testimonials and partner logos without
-developers. Today that content is typed TypeScript (`content.ts`, `articles.ts`, `products-content.ts`) plus the partner
-directory from the database, which is why the site prerenders and scores well.
-
-| Option | Fits because | Watch out for |
-|---|---|---|
-| **Payload 3 (recommended)** | Runs inside the Next.js app (`apps/web/src/app/(payload)`), stores content in our existing Supabase Postgres (separate schema), admin UI is React and takes the design tokens, no extra vendor, no per-seat pricing, draft/preview and versions built in, TypeScript types generated from the collections. | Adds ~1 route group and a Postgres schema to the web project; admin users need their own auth (Payload's), or an SSO shim to Supabase Auth; first migration of the typed content takes about a week. |
-| Sanity | Hosted, real-time editing, excellent live preview for Next.js, generous free tier. | Another vendor and data residency outside Ghana/UK to assess under Act 843; GROQ learning curve; cost rises with seats and bandwidth. |
-| Keep typed content | Zero cost, strongest performance, every change reviewed in a PR. | Every copy change needs a developer; not what the brief asks for. |
-
-Whichever is chosen, the shape is the same: collections for `pages`, `articles` (with `language` for Twi/Ga/Ewe),
-`faqs`, `testimonials` (with a `consented` flag; illustrative cards stay until real ones exist), `partnerLogos`, `pressKit`;
-`getContent()` helpers behind `"use cache"` with `cacheLife("hours")` and on-demand revalidation from the CMS webhook, so
-the pages stay static shells. The existing typed files become the seed data.
-
-**Decision needed from you:** Payload (self-hosted in the web app, data in our Supabase) or Sanity (hosted). Nothing else
-on the marketing site waits on it.
+Payload 3 runs inside the web app: admin at `/cms`, content in the Supabase Postgres schema `cms`, read through the
+Local API by `apps/web/src/server/cms.ts` with `'use cache'` + tags and on-publish `revalidateTag`. Pages, Learn
+articles, FAQs, testimonials and partner logos are editable; the typed files (`content.ts`, `articles.ts`) remain the
+fallback and the seed, so a deployment without the CMS env renders exactly as before. Everything about it — the
+version decision, env vars, `cms:migrate` / `cms:seed`, edge protection, preview, translations — is in `docs/CMS.md`.
 
 ## 6. Still waiting on assets
 
