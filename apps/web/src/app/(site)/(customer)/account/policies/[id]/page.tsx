@@ -95,32 +95,33 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
         <div className="relative">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/75">{coverLabel(policy.category?.name, policy.insured_items as Record<string, unknown>)}</p>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
-              {policy.status === "active" && <Check aria-hidden className="size-4" />}
-              {POLICY_STATUS[policy.status].label}
+            {/* A policy the customer added themselves is not confirmed by the insurer, so it is never shown as "Active". */}
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/20 px-3 py-1 text-sm font-medium text-white">
+              {policy.status === "active" && !policy.external_source && <Check aria-hidden className="size-4" />}
+              {policy.external_source ? "Added by you" : POLICY_STATUS[policy.status].label}
             </span>
           </div>
           <h1 className="mt-2 text-[28px] font-semibold leading-tight sm:text-[32px]">{title}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-white/85">
             {insurer?.brand_color && <span aria-hidden className="inline-block size-3 rounded-sm" style={{ background: insurer.brand_color }} />}
             {insurer?.name ?? policy.external_insurer_name ?? "Insurer not listed"} · Policy {policy.policy_number ?? policy.internal_reference}
-            {isDemo && <span className="rounded bg-white/15 px-1.5 text-[11px]">Demo</span>}
+            {isDemo && <span className="rounded bg-black/20 px-1.5 py-0.5 text-[13px] font-medium text-white">Demo</span>}
           </p>
           <dl className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
             <div>
-              <dt className="text-sm text-white/70">Cover starts</dt>
+              <dt className="text-sm text-white/85">Cover starts</dt>
               <dd className="text-lg font-semibold">{formatDate(policy.cover_start)}</dd>
             </div>
             <div>
-              <dt className="text-sm text-white/70">Cover ends</dt>
+              <dt className="text-sm text-white/85">Cover ends</dt>
               <dd className="text-lg font-semibold">{formatDate(policy.cover_end)}</dd>
             </div>
             <div>
-              <dt className="text-sm text-white/70">Premium</dt>
+              <dt className="text-sm text-white/85">Premium</dt>
               <dd className="text-lg font-semibold">{policy.premium ? `${formatGHS(Number(policy.premium))} / ${policy.billing_period === "month" ? "mo" : "yr"}` : "—"}</dd>
             </div>
             <div>
-              <dt className="text-sm text-white/70">Sum insured</dt>
+              <dt className="text-sm text-white/85">Sum insured</dt>
               <dd className="text-lg font-semibold">{policy.sum_insured ? formatGHS(Number(policy.sum_insured)) : "—"}</dd>
             </div>
           </dl>

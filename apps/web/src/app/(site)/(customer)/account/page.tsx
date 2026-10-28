@@ -199,11 +199,11 @@ async function Overview({ searchParams }: Pick<PageProps<"/account">, "searchPar
             <h2 id="my-policies" className="text-[22px] font-semibold tracking-tight text-ink">My policies</h2>
             <div className="flex flex-wrap items-center gap-4">
               {savedQuotes && (
-                <Link href={`/account/requests/${savedQuotes.id}/quotes`} className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+                <Link href={`/account/requests/${savedQuotes.id}/quotes`} className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand hover:underline">
                   <Bookmark aria-hidden className="size-4" /> Saved quotes
                 </Link>
               )}
-              <Link href="/account/requests/new" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+              <Link href="/account/requests/new" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-brand hover:underline">
                 <Plus aria-hidden className="size-4" /> Get a new quote
               </Link>
             </div>
@@ -289,11 +289,12 @@ function HeroPolicy({ policy: p, demo }: { policy: PolicyWithRefs; demo: boolean
         <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/85">
           {p.insurer?.brand_color && <span aria-hidden className="inline-block size-3 rounded-sm" style={{ background: p.insurer.brand_color }} />}
           {p.insurer?.name ?? "Insurer"} · {p.policy_number ?? p.internal_reference}
-          {demo && (p.insurer?.settings as { demo?: boolean } | null)?.demo && <span className="rounded bg-white/15 px-1.5 text-[11px]">Demo</span>}
+          {/* Chips on the green hero use a darkening tint: white text stays ≥ 7:1 even over the decorative circles. */}
+          {demo && (p.insurer?.settings as { demo?: boolean } | null)?.demo && <span className="rounded bg-black/20 px-1.5 py-0.5 text-[13px] font-medium text-white">Demo</span>}
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link href={`/account/policies/${p.id}#documents`} className={buttonClass("white", "sm")}>View documents</Link>
-          <Link href={`/account/claims/new?policy=${p.id}`} className={buttonClass("ghost", "sm", "bg-white/15 text-white hover:bg-white/25")}>Report a claim</Link>
+          <Link href={`/account/claims/new?policy=${p.id}`} className={buttonClass("ghost", "sm", "bg-black/20 text-white hover:bg-black/30")}>Report a claim</Link>
         </div>
       </div>
     </div>

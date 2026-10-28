@@ -451,6 +451,20 @@ export function factKey(d: FactDims): string {
 }
 
 /**
+ * Display label for a fact row's grouping key as `analytics_facts` returns it. A fact with no region
+ * or no partner comes back with a SQL NULL key (and some drivers stringify it to "null"), which must
+ * read as "Not recorded" rather than crash a `.slice()`; otherwise `lookup` names the id, falling back
+ * to its first 8 characters.
+ */
+export function factKeyLabel(key: unknown, lookup?: (id: string) => string | null | undefined): string {
+  if (key === null || key === undefined) return "Not recorded";
+  const k = String(key).trim();
+  if (k === "" || k === "null") return "Not recorded";
+  const named = lookup?.(k);
+  return named ?? k.slice(0, 8);
+}
+
+/**
  * Sums partial fact rows (one metric each, as the per-entity aggregates produce them) into one
  * row per dimension tuple: the same shaping the SQL rollup does with its UNION ALL + GROUP BY.
  * Running it twice over the same input gives the same output (idempotent by construction).

@@ -8,8 +8,10 @@ import { getArticle, getArticles } from "@/server/cms";
  * Learn article in Twi (tw), Ga (gaa) or Ewe (ee): /learn/<slug>/<lang>. Rendered on request
  * (no static params), reading the CMS translation; a missing translation shows the English text
  * with a notice and keeps the English page as canonical, so nothing is machine-translated and
- * nothing untranslated is indexed as a translation. `instant = false`: params are read before
- * streaming so unknown slugs answer with a real 404 (reads are cached).
+ * nothing untranslated is indexed as a translation. The real 404 status for an unknown slug or locale
+ * comes from the proxy (src/proxy.ts, `cmsSlugMissing`): the route is partially prerendered, so the
+ * `notFound()` calls below can only stream a soft 404. `instant = false`: the segment may block on the
+ * (cached) CMS read.
  */
 export const instant = false;
 

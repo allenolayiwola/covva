@@ -1,0 +1,43 @@
+name: Purge E2E rows
+
+# On-demand only: deletes (or moves to their terminal state) the rows the automated suites leave in the shared
+# demo Supabase project — everything tagged E2E-… (see apps/web/tests/purge-e2e-data.mjs). Uses the same secrets
+# as integration.yml, which runs this purge as its final step too; this workflow is for running it by itself,
+# e.g. after a suite was run locally or a run was cancelled before its teardown.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: purge-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://krmnyqaweawkpygjmdry.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_31vynddS7Uu45RJAYp0MUQ_OaBkDx22' }}
+  CI: "true"
+
+jobs:
+  purge:
+    name: Purge E2E rows from the shared demo database
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # reads "packageManager" from package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Purge E2E rows
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: pnpm --filter @im/web test:purge

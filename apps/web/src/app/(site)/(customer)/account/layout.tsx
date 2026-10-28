@@ -35,9 +35,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             <AccountSidebarForUser />
           </Suspense>
         </aside>
-        <main id="main" className="min-w-0 flex-1 px-4 pb-32 pt-6 sm:px-6 lg:pb-16 lg:pl-12 lg:pr-0 lg:pt-8">
+        {/* Bottom padding keeps the last action clear of the tab bar + "Ask about my cover" launcher (phones) and of
+            the launcher alone (desktop), so nothing at the end of a page is ever covered. */}
+        <main id="main" className="min-w-0 flex-1 px-4 pb-44 pt-6 sm:px-6 lg:pb-28 lg:pl-12 lg:pr-0 lg:pt-8">
           <Suspense fallback={null}>
-            <MobileDemoBadge />
+            <AccountDemoBadge />
           </Suspense>
           <Suspense fallback={<PageSkeleton hero />}>
             <OnboardingGate>{children}</OnboardingGate>
@@ -84,22 +86,14 @@ async function OnboardingGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-async function MobileDemoBadge() {
+/** Demo badge at the top of every account page (in flow, so it never covers a form or a button). */
+async function AccountDemoBadge() {
   const flags = await getFlags();
-  return flags.demo_mode ? <DemoBadge className="mb-4 lg:hidden" /> : null;
+  return flags.demo_mode ? <DemoBadge className="mb-4" /> : null;
 }
 
-/** Demo badge and AI assistant, both driven by admin-controlled feature flags (cached). */
+/** AI assistant launcher, driven by an admin-controlled feature flag (cached). */
 async function FlaggedExtras() {
   const flags = await getFlags();
-  return (
-    <>
-      {flags.demo_mode && (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-30 hidden lg:block">
-          <DemoBadge className="shadow-card" />
-        </div>
-      )}
-      {flags.ai_assistant && <Assistant />}
-    </>
-  );
+  return flags.ai_assistant ? <Assistant /> : null;
 }

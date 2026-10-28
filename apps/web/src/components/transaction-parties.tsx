@@ -22,8 +22,13 @@ export interface TransactionPartiesProps {
   insurers: PartyOrg[];
   /** Name of an insurer not on the platform (policy bought elsewhere). */
   externalInsurerName?: string | null;
-  /** Broker of record, or null when the insurer sells directly. */
+  /** Broker of record, or null when none is assigned (yet) or the insurer sells directly. */
   broker: PartyOrg | null;
+  /**
+   * `requests.routing_mode`. Without a broker, a request is "being assigned" unless it was routed
+   * straight to the insurer (`insurer_direct`); a policy without a broker was issued directly.
+   */
+  routingMode?: string | null;
   /** Product version behind the accepted quote / policy — gives issuance type and SLA. */
   productVersionId?: string | null;
   /** "request" while quoting, "policy" once issued. Changes the issuance wording. */
@@ -75,6 +80,7 @@ export async function TransactionParties(props: TransactionPartiesProps) {
   const nicUrl = complaints?.nic_url || "https://nic.gov.gh";
   const nicPhone = complaints?.nic_phone && !complaints.nic_phone.startsWith("[") ? complaints.nic_phone : null;
 
+  const brokerPending = !props.broker && props.stage === "request" && props.routingMode !== "insurer_direct";
   const insurers = props.insurers.filter((i) => i.name);
   const insurerLine =
     insurers.length === 1
@@ -122,6 +128,11 @@ export async function TransactionParties(props: TransactionPartiesProps) {
               </dd>
               <dd className="text-xs text-muted">{ROLE_STATEMENTS.broker}</dd>
             </>
+          ) : brokerPending ? (
+            <dd className="mt-0.5 font-medium text-ink">
+              Not assigned yet
+              <span className="block text-xs font-normal text-muted">We are finding a licensed broker of record for this request. Their name appears here before you apply for any cover.</span>
+            </dd>
           ) : (
             <dd className="mt-0.5 font-medium text-ink">
               No broker — issued directly by the insurer
@@ -137,7 +148,7 @@ export async function TransactionParties(props: TransactionPartiesProps) {
         <div>
           <dt className="text-xs uppercase tracking-wide text-subtle">Complaints</dt>
           <dd className="mt-0.5 text-ink-2">
-            Raise it with your {props.broker ? "broker or the insurer" : "insurer"} first. If it isn&apos;t resolved, contact the platform
+            Raise it with your {props.broker ? "broker or the insurer" : brokerPending ? "broker (once assigned) or the insurer" : "insurer"} first. If it isn&apos;t resolved, contact the platform
             {complaintsEmail && (
               <>
                 {" "}

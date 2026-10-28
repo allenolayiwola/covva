@@ -131,7 +131,7 @@ async function Telematics() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Consent" value={data.consent.granted ? "Given" : "Not given"} hint={data.consent.at ? `${data.consent.granted ? "Given" : "Withdrawn"} ${formatDate(data.consent.at)}` : "Recorded when you enrol"} />
-        <StatCard label="Scoring" value={`v${data.scoring.version}`} hint="Weights published in the rules" />
+        <StatCard label="How your score is worked out" value="Same rules for everyone" hint="Speed, harsh braking, night driving and phone use, weighted the same way for every driver" />
         <StatCard label="Stored" value="Summaries only" hint="No GPS trace, ever" />
       </div>
       <p className="flex items-start gap-2 text-[13px] text-muted"><ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0" /> Your insurer sees monthly scores for the policy it insures, never trips. Your broker sees neither. A discount at renewal is the insurer&apos;s decision and is shown line by line on the renewal quote.</p>

@@ -55,7 +55,21 @@ async function Dashboard() {
         <Kpi label="Request SLA breaches" value={fmtNum(m.sla.breached)} tone={m.sla.breached ? "danger" : "ok"} hint={`${fmtNum(m.sla.openRequests)} open · ${fmtNum(m.sla.unassigned)} without broker`} href="/requests?breached=1" />
         <Kpi label="Renewal rate" value={fmtPct(m.renewal.rate)} hint={`Policies ending in last 90 days (${fmtNum(m.renewal.dueWindow)})`} />
         <Kpi label="Active customers" value={fmtNum(m.customers.active)} hint="Active policy or request in 30 days" href="/users" />
-        <Kpi label="Active partners" value={`${m.network.activeBrokers} · ${m.network.activeInsurers}`} hint={`Brokers · insurers · ${m.network.pendingOrgs} pending onboarding`} href="/organisations" />
+        <Kpi
+          label="Active partners"
+          value={
+            <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <span>
+                {fmtNum(m.network.activeBrokers)} <span className="text-sm font-medium text-muted">brokers</span>
+              </span>
+              <span>
+                {fmtNum(m.network.activeInsurers)} <span className="text-sm font-medium text-muted">insurers</span>
+              </span>
+            </span>
+          }
+          hint={`${fmtNum(m.network.pendingOrgs)} pending onboarding`}
+          href="/organisations"
+        />
       </section>
 
       <section aria-label="Money" className="grid gap-3 md:grid-cols-3">

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { REFERRAL_COOKIE, attributionWindowDays, decodeReferralCookie, encodeReferralCookie, frameAncestors, parseReferralParam, type ReferralSource } from "@im/core";
+import { REFERRAL_COOKIE, attributionWindowDays, decodeReferralCookie, encodeReferralCookie, frameAncestors, isCmsLocale, isValidSlug, parseReferralParam, type ReferralSource } from "@im/core";
 
 /**
  * Refreshes the Supabase session cookie and does optimistic route protection.
@@ -39,6 +39,15 @@ export async function proxy(request: NextRequest) {
 
   captureReferral(request, response);
 
+  // Unknown CMS slugs answer with a real 404 (the page alone can only stream a soft one; see cmsSlugMissing).
+  if (await cmsSlugMissing(request)) {
+    const url = request.nextUrl.clone();
+    url.pathname = NOT_FOUND_PATH;
+    const notFound = NextResponse.rewrite(url);
+    response.cookies.getAll().forEach((c) => notFound.cookies.set(c));
+    return notFound;
+  }
+
   if (!data?.claims && PROTECTED.some((p) => path === p || path.startsWith(`${p}/`))) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
@@ -71,6 +80,51 @@ function captureReferral(request: NextRequest, response: NextResponse) {
     path: "/",
     maxAge: attributionWindowDays * 86_400,
   });
+}
+
+/**
+ * `/pages/<slug>` and `/learn/<slug>[/<lang>]` are partially prerendered: their shell streams before the page
+ * can call `notFound()`, so an unknown slug would otherwise answer 200 (a "soft 404"). The slug is checked
+ * here, before anything streams, through the app's own cached CMS lookups (one loopback request on these two
+ * routes only; results are kept per instance for a minute). A route that does not exist is then served, which
+ * renders the not-found page with a 404 status. If the check itself fails, the page decides as before.
+ */
+const NOT_FOUND_PATH = "/__cms-not-found";
+const slugCache = new Map<string, { exists: boolean; at: number }>();
+async function cmsSlugMissing(request: NextRequest): Promise<boolean> {
+  const path = request.nextUrl.pathname;
+  let kind: "page" | "article";
+  let slug: string;
+  const page = /^\/pages\/([^/]+)$/.exec(path);
+  const article = /^\/learn\/([^/]+)(?:\/([^/]+))?$/.exec(path);
+  if (page) {
+    kind = "page";
+    slug = decodeURIComponent(page[1]!);
+  } else if (article) {
+    kind = "article";
+    slug = decodeURIComponent(article[1]!);
+    if (article[2] !== undefined && !isCmsLocale(decodeURIComponent(article[2]))) return true; // /learn/<slug>/<not-a-locale>
+  } else {
+    return false;
+  }
+  if (!isValidSlug(slug)) return true;
+  const key = `${kind}:${slug}`;
+  const hit = slugCache.get(key);
+  if (hit && Date.now() - hit.at < 60_000) return !hit.exists;
+  try {
+    const res = await fetch(`${request.nextUrl.origin}/api/cms/exists?kind=${kind}&slug=${encodeURIComponent(slug)}`, {
+      headers: { cookie: request.headers.get("cookie") ?? "" }, // draft-mode previews see unpublished pages too
+      signal: AbortSignal.timeout(3_000),
+    });
+    if (!res.ok) return false;
+    const body = (await res.json()) as { data?: { exists?: boolean } };
+    const exists = body.data?.exists === true;
+    if (slugCache.size > 500) slugCache.clear();
+    slugCache.set(key, { exists, at: Date.now() });
+    return !exists;
+  } catch {
+    return false;
+  }
 }
 
 /** Allowed embedding origins for a partner code (public RPC), cached per instance for 5 minutes. */

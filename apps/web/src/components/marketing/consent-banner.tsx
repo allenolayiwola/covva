@@ -88,7 +88,7 @@ export function ConsentBanner() {
             <Link href="/legal/cookies" className="font-medium text-brand underline-offset-2 hover:underline">Notice</Link>
             {" · "}
             <button type="button" onClick={() => setManage(true)} className="font-medium text-brand underline-offset-2 hover:underline sm:hidden">Choose</button>
-            <button type="button" onClick={() => setManage(true)} className="hidden font-medium text-brand underline-offset-2 hover:underline sm:inline">Choose for me</button>
+            <button type="button" onClick={() => setManage(true)} className="hidden min-h-10 font-medium text-brand underline-offset-2 hover:underline sm:inline-flex sm:items-center">Choose for me</button>
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
             <button type="button" onClick={() => choose("essential")} className={buttonClass("outline", "sm", "flex-1 px-3 sm:flex-none")}>Essential only</button>

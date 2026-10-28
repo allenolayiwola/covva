@@ -53,18 +53,30 @@ export function Assistant() {
       {!open && (
         <button
           type="button"
+          data-assistant-launcher
           onClick={() => setOpen(true)}
-          className="fixed bottom-[84px] right-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white shadow-float hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:bottom-14 lg:right-6"
+          aria-label="Ask about my cover"
+          title="Ask about my cover"
+          className="group fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 items-center rounded-full bg-brand pl-3.5 pr-3.5 text-sm font-semibold text-white shadow-float hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:bottom-6 lg:right-6 print:hidden"
         >
-          <Sparkles aria-hidden className="size-4" />
-          Ask about my cover
+          <Sparkles aria-hidden className="size-5 shrink-0" />
+          {/* A 48px round button: on phones that is all there is room for above the tab bar; on desktops the content
+              column fills the viewport up to ~1400px, so the label slides out on hover/focus and is only always
+              shown once there is a gutter for it. The accessible name is the aria-label. */}
+          <span
+            aria-hidden
+            className="inline-block max-w-0 overflow-hidden whitespace-nowrap transition-[max-width,margin] duration-200 group-hover:ml-2 group-hover:max-w-48 group-focus-visible:ml-2 group-focus-visible:max-w-48 motion-reduce:transition-none min-[1400px]:ml-2 min-[1400px]:max-w-48"
+          >
+            Ask about my cover
+          </span>
         </button>
       )}
       {open && (
         <section
           role="dialog"
           aria-label="Ask about my cover"
-          className="fixed inset-x-2 bottom-[84px] z-50 flex max-h-[75dvh] flex-col overflow-hidden rounded-card border border-line bg-white shadow-float sm:inset-x-auto sm:right-4 sm:w-[400px] lg:bottom-6 lg:right-6"
+          data-assistant-panel
+          className="fixed inset-x-2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 flex max-h-[75dvh] flex-col overflow-hidden rounded-card border border-line bg-white shadow-float sm:inset-x-auto sm:right-4 sm:w-[400px] lg:bottom-6 lg:right-6"
         >
           <header className="flex items-start gap-3 border-b border-line px-4 py-3">
             <span className="mt-0.5 grid size-8 place-items-center rounded-full bg-mint text-brand">

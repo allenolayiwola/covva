@@ -4,6 +4,7 @@ import {
   aggregateRatings,
   computeScorecard,
   factKey,
+  factKeyLabel,
   funnelRates,
   maskReviewerName,
   median,
@@ -314,4 +315,16 @@ test("funnelRates: step conversions from totals", () => {
   const r = funnelRates({ requests: 40, quotes: 100, binding_quotes: 60, conversions: 20, policies_issued: 18 });
   assert.deepEqual(r, { quotesPerRequest: 2.5, bindingShare: 0.6, requestToConversion: 0.5, conversionToPolicy: 0.9, requestToPolicy: 0.45 });
   assert.equal(funnelRates({ requests: 0, quotes: 0, binding_quotes: 0, conversions: 0, policies_issued: 0 }).requestToPolicy, null);
+});
+
+test("factKeyLabel: null / empty / \"null\" keys read as Not recorded, ids are named or shortened", () => {
+  assert.equal(factKeyLabel(null), "Not recorded");
+  assert.equal(factKeyLabel(undefined), "Not recorded");
+  assert.equal(factKeyLabel(""), "Not recorded");
+  assert.equal(factKeyLabel("null"), "Not recorded");
+  assert.equal(factKeyLabel("  "), "Not recorded");
+  assert.equal(factKeyLabel("Greater Accra", (k) => k), "Greater Accra");
+  assert.equal(factKeyLabel("4f2c1d9e-0000-4000-8000-000000000000", () => "Coastline Assurance"), "Coastline Assurance");
+  assert.equal(factKeyLabel("4f2c1d9e-0000-4000-8000-000000000000", () => undefined), "4f2c1d9e");
+  assert.equal(factKeyLabel("4f2c1d9e-0000-4000-8000-000000000000"), "4f2c1d9e");
 });

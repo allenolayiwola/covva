@@ -24,6 +24,12 @@ export default function PrivacyRequestDetailPage({ params }: PageProps<"/privacy
 const sel = "mt-1.5 block h-10 w-full rounded-field border border-line bg-white px-3 text-sm";
 const area = "mt-1.5 block min-h-20 w-full rounded-field border border-line p-3 text-sm";
 
+/** "staff_note" → "Staff note": timeline events without a status change are shown as a sentence-case label. */
+function eventLabel(event: string) {
+  const words = event.replace(/_/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 const METHODS = [
   { value: "signed_in_session", label: "Signed-in session (request made from their verified account)" },
   { value: "ghana_card", label: "Ghana Card checked" },
@@ -206,7 +212,7 @@ async function Detail({ params }: Pick<PageProps<"/privacy-requests/[id]">, "par
             <Timeline
               steps={(events ?? []).map((e) => ({
                 state: "done" as const,
-                title: e.to_status ? PRIVACY_STATUS[e.to_status].label : e.event.replace(/_/g, " "),
+                title: e.to_status ? PRIVACY_STATUS[e.to_status].label : eventLabel(e.event),
                 detail: (
                   <span>
                     {formatDateTime(e.created_at)} · {e.actor_party}

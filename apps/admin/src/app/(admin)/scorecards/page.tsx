@@ -3,11 +3,14 @@ import Link from "next/link";
 import { PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
 import { SCORE_BAND_LABEL, formatDuration } from "@im/core";
 import { requireStaff } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { orgMap, sp, type SearchParams } from "@/lib/query";
 import { formatDateTime } from "@/lib/format";
 import { FilterBar, FilterSelect, LoadingBlock, Panel } from "@/components/ui/layout";
 import { HBars } from "@/components/ui/charts";
+import { ActionForm } from "@/components/ui/forms";
+import { refreshScorecards } from "./actions";
 
 export default function ScorecardsPage({ searchParams }: PageProps<"/scorecards">) {
   return (
@@ -27,7 +30,8 @@ export default function ScorecardsPage({ searchParams }: PageProps<"/scorecards"
 const BAND_TONE = { excellent: "ok", good: "ok", fair: "wait", needs_attention: "danger", new: "neutral" } as const;
 
 async function Scorecards({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  await requireStaff();
+  const staff = await requireStaff();
+  const canRefresh = can(staff.roles, "platform");
   const params = await searchParams;
   const window = sp(params, "window") === "30" ? 30 : 90;
   const supabase = await createClient();
@@ -77,7 +81,20 @@ async function Scorecards({ searchParams }: { searchParams: Promise<SearchParams
               <Td className="tabular-nums">{r.requests_received}</Td>
             </tr>
           ))}
-          {!rows.length && <tr><Td colSpan={10} className="py-10 text-center text-muted">No scorecards yet. The scorecard-refresh job computes them nightly (apply migration 20261031100400 first).</Td></tr>}
+          {!rows.length && (
+            <tr>
+              <Td colSpan={10} className="py-10 text-center text-muted">
+                <p>No scorecards yet: the nightly scorecard-refresh job hasn&apos;t run.</p>
+                {canRefresh ? (
+                  <div className="mt-4 flex justify-center">
+                    <ActionForm action={refreshScorecards} submitLabel="Run it now" inline />
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs">A platform admin can run it now from this page.</p>
+                )}
+              </Td>
+            </tr>
+          )}
         </tbody>
       </Table>
       <p className="text-xs text-subtle">Formulas and windows: docs/SCORECARDS_ANALYTICS.md. Components without enough history (5 measured; 3 reviews) are left out; a broker without a score is neutral in routing.</p>
