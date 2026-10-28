@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { PageHeader, Table, THead, Th, Td } from "@im/ui";
-import { FACT_METRICS, PREMIUM_BANDS, funnelRates, sumFacts, type FactMetric } from "@im/core";
+import { FACT_METRICS, PREMIUM_BANDS, factKeyLabel, funnelRates, sumFacts, type FactMetric } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -47,7 +47,8 @@ async function Dashboard({ searchParams }: { searchParams: Promise<SearchParams>
     const { data, error } = await supabase.rpc("analytics_facts", { ...filters, p_group: group });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r) => {
-      const out = { key: r.key } as FactsRow;
+      // Facts with no region / partner come back with a NULL key: keep it a string so grouping never crashes.
+      const out = { key: r.key == null ? "" : String(r.key) } as FactsRow;
       for (const m of FACT_METRICS) out[m] = Number(r[m] ?? 0) || 0;
       return out;
     });
@@ -65,7 +66,8 @@ async function Dashboard({ searchParams }: { searchParams: Promise<SearchParams>
   const totals = sumFacts(byDay);
   const rates = funnelRates(totals);
   const lastRun = (runs?.value as { at?: string; ok?: boolean } | null) ?? null;
-  const name = (kind: "category" | "region" | "broker" | "insurer", key: string) => (key === "" || key === "null" ? "Not recorded" : kind === "category" ? (cats.get(key)?.name ?? key.slice(0, 8)) : kind === "region" ? key : (orgs.get(key)?.name ?? key.slice(0, 8)));
+  const name = (kind: "category" | "region" | "broker" | "insurer", key: string | null | undefined) =>
+    factKeyLabel(key, (k) => (kind === "category" ? cats.get(k)?.name : kind === "region" ? k : orgs.get(k)?.name));
   const breakdown = (rows: FactsRow[], kind: "category" | "region" | "broker" | "insurer", metric: FactMetric) =>
     rows.filter((r) => r[metric] > 0).sort((a, b) => b[metric] - a[metric]).slice(0, 8).map((r) => ({ label: name(kind, r.key), value: r[metric] }));
   const premiumBands = PREMIUM_BANDS.map((b) => ({ label: b.label, value: totals[`premium_${b.key.replace("from_", "").replace("_to_", "_to_")}` as FactMetric] ?? 0 }));
@@ -80,7 +82,7 @@ async function Dashboard({ searchParams }: { searchParams: Promise<SearchParams>
         <FilterInput name="from" label="From" value={from} type="date" />
         <FilterInput name="to" label="To" value={to} type="date" />
         <FilterSelect name="category" label="Category" value={category} options={[...cats.values()].map((c) => ({ value: c.id, label: c.name }))} />
-        <FilterSelect name="region" label="Region" value={region} options={byRegion.filter((r) => r.key && r.key !== "null").map((r) => ({ value: r.key, label: r.key }))} />
+        <FilterSelect name="region" label="Region" value={region} options={byRegion.filter((r) => r.key && r.key !== "null").map((r) => ({ value: r.key, label: name("region", r.key) }))} />
         <FilterSelect name="broker" label="Broker" value={broker} options={[...orgs.values()].filter((o) => o.type === "broker").map((o) => ({ value: o.id, label: o.name }))} />
         <FilterSelect name="insurer" label="Insurer" value={insurer} options={[...orgs.values()].filter((o) => o.type === "insurer").map((o) => ({ value: o.id, label: o.name }))} />
       </FilterBar>
@@ -166,14 +168,14 @@ async function Dashboard({ searchParams }: { searchParams: Promise<SearchParams>
   );
 }
 
-function BreakdownTable({ rows, kind, name, className }: { rows: FactsRow[]; kind: "category" | "region" | "broker" | "insurer"; name: (k: typeof kind, key: string) => string; className?: string }) {
+function BreakdownTable({ rows, kind, name, className }: { rows: FactsRow[]; kind: "category" | "region" | "broker" | "insurer"; name: (k: typeof kind, key: string | null | undefined) => string; className?: string }) {
   const sorted = [...rows].sort((a, b) => b.requests + b.quotes + b.policies_issued - (a.requests + a.quotes + a.policies_issued)).slice(0, 12);
   return (
     <Table className={className}>
       <THead><tr><Th>{kind[0]!.toUpperCase() + kind.slice(1)}</Th><Th>Requests</Th><Th>Quotes</Th><Th>Policies</Th><Th>Premium</Th><Th>Renewed / due</Th><Th>Claims opened / settled</Th></tr></THead>
       <tbody>
         {sorted.map((r) => (
-          <tr key={r.key}>
+          <tr key={r.key || "not-recorded"}>
             <Td className="font-medium text-ink">{name(kind, r.key)}</Td>
             <Td className="tabular-nums">{fmtNum(r.requests)}</Td>
             <Td className="tabular-nums">{fmtNum(r.quotes)}</Td>

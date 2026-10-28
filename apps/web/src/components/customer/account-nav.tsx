@@ -92,7 +92,7 @@ export function TabBarList({ pathname }: { pathname: string | null }) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={cn("flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium", active ? "text-brand" : "text-muted")}
+                className={cn("flex min-h-12 flex-col items-center gap-1 py-2 text-[13px] font-medium leading-none", active ? "text-brand" : "text-muted")}
               >
                 <item.icon aria-hidden className="size-5" />
                 {item.mobileKey ? t(item.mobileKey) : item.mobile}

@@ -113,10 +113,11 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
     detail: formatDateTime(request.submitted_at ?? submittedEvent?.created_at ?? request.created_at),
     state: status === "draft" ? "current" : "done",
   });
+  // A draft has not been sent, so broker assignment is still ahead (never two "current" steps at once).
   steps.push({
     title: broker ? "Assigned to your broker" : "Finding your broker",
-    detail: broker ? (contact?.person ? `${contact.person} · ${broker.name}` : broker.name) : "We route every request to one licensed broker of record.",
-    state: broker ? "done" : isClosed ? "upcoming" : "current",
+    detail: broker ? (contact?.person ? `${contact.person} · ${broker.name}` : broker.name) : status === "draft" ? "Starts when you send the request. We route every request to one licensed broker of record." : "We route every request to one licensed broker of record.",
+    state: broker ? "done" : isClosed || status === "draft" ? "upcoming" : "current",
   });
   for (const t of doneCustomerTasks) {
     steps.push({ title: t.title, detail: t.completed_at ? `Done ${formatDateTime(t.completed_at)}` : "Done", state: "done" });
@@ -364,6 +365,7 @@ async function Tracker({ params, searchParams }: Pick<PageProps<"/account/reques
             stage="request"
             insurers={partyInsurers}
             broker={broker ? { name: broker.name, nic_licence_number: broker.nic_licence_number } : null}
+            routingMode={request.routing_mode}
             productVersionId={acceptedQuote?.product_version_id ?? (partyQuotes.length === 1 ? partyQuotes[0]!.product_version_id : null)}
           />
           {unread > 0 && (

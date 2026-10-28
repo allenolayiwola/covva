@@ -56,7 +56,7 @@ async function Loyalty() {
                   <p className="font-medium text-ink">{i.insurerName}</p>
                   <p className="text-[13px] text-muted">
                     {i.yearsWithInsurer} year{i.yearsWithInsurer === 1 ? "" : "s"} with this insurer
-                    {i.rulesVersion === null ? " · no reward rules published yet" : i.isPlatformFallback ? " · platform rules apply" : ` · insurer rules v${i.rulesVersion}`}
+                    {i.rulesVersion === null ? " · no reward rules published yet" : i.isPlatformFallback ? " · platform rules apply" : i.rulesUpdated ? ` · rules updated ${formatDate(i.rulesUpdated)}` : " · insurer rules apply"}
                   </p>
                 </div>
                 {i.tier ? <Pill tone={i.tier.pct > 0 ? "ok" : "neutral"}>{i.tier.name}{i.tier.pct > 0 ? ` · ${i.tier.pct}% off` : ""}</Pill> : <Pill>No tiers</Pill>}

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { personName, profileMap } from "@/lib/query";
 import { formatDateTime } from "@/lib/format";
 import { ChangesDiff, JsonView } from "@/components/ui/layout";
+import { CopyText } from "@/components/ui/copy-text";
 
 const ENTITY_LINK: Record<string, (id: string) => string> = {
   organizations: (id) => `/organisations/${id}`,
@@ -90,7 +91,16 @@ export async function AuditTable({ rows, compact = false }: { rows: Row<"audit_e
                   </summary>
                   <div className="mt-2 space-y-2">
                     {data.changes ? <ChangesDiff changes={data.changes} /> : <JsonView value={data.row ?? data} className="max-h-64" />}
-                    <p className="break-all font-mono text-[10px] text-subtle">hash {e.hash.slice(0, 24)}… · prev {e.prev_hash?.slice(0, 16)}…</p>
+                    <p className="flex flex-wrap items-center gap-x-1 gap-y-1 font-mono text-[13px] text-subtle">
+                      <span>hash {e.hash.slice(0, 12)}…</span>
+                      <CopyText value={e.hash} label="Copy the full hash" />
+                      {e.prev_hash && (
+                        <>
+                          <span>· prev {e.prev_hash.slice(0, 12)}…</span>
+                          <CopyText value={e.prev_hash} label="Copy the full previous hash" />
+                        </>
+                      )}
+                    </p>
                   </div>
                 </details>
               </Td>

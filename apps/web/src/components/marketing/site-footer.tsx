@@ -85,24 +85,24 @@ export async function SiteFooter() {
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             <div>
               <h3 className="text-sm font-semibold text-ink"><T k="footer.col.insurance" /></h3>
-              <ul className="mt-4 space-y-2.5 text-sm">
+              <ul className="mt-2 text-sm">
                 {PRODUCT_LINES.map((p) => (
                   <li key={p.slug}>
-                    <Link href={`/insurance/${p.slug}`} className="rounded text-muted hover:text-brand">{p.short}</Link>
+                    <Link href={`/insurance/${p.slug}`} className="inline-flex min-h-10 items-center rounded text-muted hover:text-brand">{p.short}</Link>
                   </li>
                 ))}
                 <li>
-                  <Link href="/explore" className="rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
+                  <Link href="/explore" className="inline-flex min-h-10 items-center rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
                 </li>
               </ul>
             </div>
             {COLUMNS.map((col) => (
               <div key={col.title}>
                 <h3 className="text-sm font-semibold text-ink"><T k={col.titleKey} /></h3>
-                <ul className="mt-4 space-y-2.5 text-sm">
+                <ul className="mt-2 text-sm">
                   {col.links.map((l) => (
                     <li key={l.href}>
-                      <Link href={l.href} className="rounded text-muted hover:text-brand"><T k={l.k} /></Link>
+                      <Link href={l.href} className="inline-flex min-h-10 items-center rounded text-muted hover:text-brand"><T k={l.k} /></Link>
                     </li>
                   ))}
                 </ul>

@@ -107,7 +107,7 @@ async function Body() {
       <section aria-labelledby="members">
         <div className="mb-3 flex items-center justify-between">
           <h2 id="members" className="text-lg font-semibold text-ink">Family members</h2>
-          <Link href="/account/family/beneficiaries/new" className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
+          <Link href="/account/family/beneficiaries/new" className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-brand hover:underline">
             <Plus aria-hidden className="size-4" /> Add
           </Link>
         </div>

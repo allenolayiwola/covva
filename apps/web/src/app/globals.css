@@ -18,6 +18,20 @@
   :focus-visible {
     outline-color: var(--color-brand);
   }
+  /*
+   * Links inside running text are told apart by an underline, not by colour alone (WCAG 1.4.1 / axe
+   * link-in-text-block). Button-styled links (they carry a bg- class) and nav lists are left alone.
+   */
+  :where(p, dd, dt, figcaption, blockquote, small, legend, label) > a:where(:not([class*="bg-"]):not([role="button"])) {
+    text-decoration-line: underline;
+    text-decoration-thickness: from-font;
+    text-underline-offset: 0.16em;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+  :where(p, dd, dt, figcaption, blockquote, small, legend, label) > a:where(:not([class*="bg-"]):not([role="button"])):hover {
+    text-decoration-color: currentColor;
+  }
+
   /* Type: Plus Jakarta Sans throughout; headings SemiBold (600), body Regular (400). */
   h1, h2 {
     font-family: var(--font-display);
@@ -103,5 +117,26 @@ body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
   body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp],
   body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
     bottom: 12.5rem;
+  }
+}
+
+/*
+ * Account area: the "Ask about my cover" launcher sits above the phone tab bar and moves up again over a sticky
+ * Back/Continue bar. While someone is typing in a form on a phone it gets out of the way entirely, so it can never
+ * sit on top of the field they are filling in.
+ */
+body:has([data-sticky-bar]) [data-assistant-launcher],
+body:has([data-sticky-bar]) [data-assistant-panel] {
+  bottom: calc(9.75rem + env(safe-area-inset-bottom));
+}
+@media (width >= 64rem) {
+  body:has([data-sticky-bar]) [data-assistant-launcher],
+  body:has([data-sticky-bar]) [data-assistant-panel] {
+    bottom: 5.25rem;
+  }
+}
+@media (width < 64rem) {
+  body:has(#main :focus-within) [data-assistant-launcher] {
+    display: none;
   }
 }

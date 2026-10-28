@@ -70,11 +70,11 @@ function PolicyGrid({ t, title, policies, empty }: { t: Translator; title: strin
     <section aria-label={title}>
       <h2 className="mb-3 text-lg font-semibold text-ink">{title}</h2>
       {!policies.length && empty && <p className="text-sm text-muted">{empty}</p>}
-      <ul className="grid gap-4 md:grid-cols-2">
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
         {policies.map((p) => {
           const days = p.status === "active" ? daysUntil(p.cover_end) : null;
           return (
-            <li key={p.id}>
+            <li key={p.id} className="min-w-0">
               <Link href={`/account/policies/${p.id}`} className="block h-full rounded-card border border-line bg-white p-5 transition-colors hover:border-brand">
                 <div className="flex items-start gap-3">
                   <CategoryIcon icon={p.category?.icon} />
@@ -83,7 +83,7 @@ function PolicyGrid({ t, title, policies, empty }: { t: Translator; title: strin
                     <p className="truncate text-[17px] font-semibold text-ink">{policyTitle(p)}</p>
                     <p className="truncate text-sm text-muted">{p.insurer?.name ?? p.external_insurer_name ?? t("wallet.insurerNotListed")} · {p.policy_number ?? p.internal_reference}</p>
                   </div>
-                  <StatusPill meta={POLICY_STATUS[p.status]} />
+                  {p.external_source ? <Pill tone="neutral">{t("wallet.addedByYou")}</Pill> : <StatusPill meta={POLICY_STATUS[p.status]} />}
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div>
@@ -97,7 +97,6 @@ function PolicyGrid({ t, title, policies, empty }: { t: Translator; title: strin
                 </dl>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {days !== null && days >= 0 && days <= 60 && <Pill tone="wait">{t("wallet.renewalIn", { days })}</Pill>}
-                  {p.external_source && <Pill tone="neutral">{t("wallet.addedByYou")}</Pill>}
                 </div>
               </Link>
             </li>

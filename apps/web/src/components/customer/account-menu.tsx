@@ -35,7 +35,7 @@ export function AccountMenu() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" className={buttonClass("secondary", "sm")} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button type="button" className={buttonClass("secondary", "sm")} aria-haspopup="menu" aria-expanded={open} aria-label={t("account.menu.myAccount")} onClick={() => setOpen((o) => !o)}>
         <User aria-hidden className="size-4" />
         <span className="hidden sm:inline">{t("account.menu.myAccount")}</span>
         <ChevronDown aria-hidden className="size-3.5" />

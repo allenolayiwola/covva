@@ -258,7 +258,7 @@ export interface LoyaltySummary {
   creditBalance: number;
   currency: "GHS";
   /** Tier with each insurer the customer currently holds cover with. */
-  insurers: { insurerOrgId: string; insurerName: string; yearsWithInsurer: number; tier: ReturnType<typeof loyaltyTierStatus>; rulesVersion: number | null; isPlatformFallback: boolean }[];
+  insurers: { insurerOrgId: string; insurerName: string; yearsWithInsurer: number; tier: ReturnType<typeof loyaltyTierStatus>; rulesVersion: number | null; rulesUpdated: string | null; isPlatformFallback: boolean }[];
   /** Active policies ending within 120 days, with the perks the insurer's rules would give at renewal. */
   upcomingRenewals: { policyId: string; policyNumber: string | null; categoryName: string; insurerName: string; coverEnd: string | null; daysLeft: number | null; perks: RenewalPerk[] }[];
   /** Discount lines recorded on the customer's quotes in the last year ("what you saved"). */
@@ -298,6 +298,7 @@ export async function loyaltySummaryForUser(db: UserClient, userId: string, now 
       yearsWithInsurer: h.yearsWithInsurer,
       tier: set ? loyaltyTierStatus(set, h.yearsWithInsurer) : null,
       rulesVersion: set?.version ?? null,
+      rulesUpdated: set?.effectiveFrom ?? null,
       isPlatformFallback: !!set && set.insurerOrgId === null,
     };
   });

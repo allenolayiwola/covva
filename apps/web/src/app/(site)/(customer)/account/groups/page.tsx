@@ -74,11 +74,11 @@ async function Body() {
       {mine.admin.length > 0 && (
         <section aria-labelledby="admin-h" className="space-y-3">
           <h2 id="admin-h" className="text-lg font-semibold text-ink">Groups you run</h2>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
             {mine.admin.map((g) => {
               const meta = statusMeta(g.status);
               return (
-                <li key={g.id}>
+                <li key={g.id} className="min-w-0">
                   <Link href={`/account/groups/${g.id}`} className="block rounded-[20px] border border-line bg-white p-5 transition-colors hover:border-brand">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -99,11 +99,11 @@ async function Body() {
       {mine.member.length > 0 && (
         <section aria-labelledby="member-h" className="space-y-3">
           <h2 id="member-h" className="text-lg font-semibold text-ink">Groups you belong to</h2>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
             {mine.member.map(({ group: g, me }) => {
               const meta = memberMeta(me.status);
               return (
-                <li key={me.id}>
+                <li key={me.id} className="min-w-0">
                   <Link href={`/account/groups/${g.id}`} className="block rounded-[20px] border border-line bg-white p-5 transition-colors hover:border-brand">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -125,9 +125,9 @@ async function Body() {
         <section aria-labelledby="sponsor-h" className="space-y-3">
           <h2 id="sponsor-h" className="text-lg font-semibold text-ink">Members you pay for</h2>
           <p className="text-sm text-muted">You see only the members you sponsor. Each contribution you pay settles directly to the insurer; you can pay in {mine.sponsored[0]!.sponsorship.display_currency} with the cedi amount shown.</p>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2">
             {mine.sponsored.map(({ group: g, member: m, sponsorship: s, standing, unpaidGhs }) => (
-              <li key={s.id} className="rounded-[20px] border border-line bg-white p-5">
+              <li key={s.id} className="min-w-0 rounded-[20px] border border-line bg-white p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-ink">{m.full_name}</p>

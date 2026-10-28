@@ -9,8 +9,10 @@ import { siteUrl } from "@/lib/site-url";
 /**
  * CMS pages at /pages/<slug> (block-built landing pages). Unknown slugs are a 404 rendered with the
  * marketing layout; with the CMS unconfigured every slug is a 404. Vanity top-level URLs can be
- * added as redirects in next.config.ts when marketing needs them. `instant = false`: the slug is read
- * before anything streams so an unknown page answers with a real 404 status (the read is cached).
+ * added as redirects in next.config.ts when marketing needs them. The route is partially prerendered,
+ * so `notFound()` here can only stream a soft 404; the real 404 status for an unknown slug comes from the
+ * proxy (src/proxy.ts, `cmsSlugMissing`), which checks the slug through /api/cms/exists before anything
+ * streams. `instant = false`: the segment is allowed to block on the (cached) CMS read.
  */
 export const instant = false;
 
