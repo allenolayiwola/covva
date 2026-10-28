@@ -20,10 +20,6 @@ function expectRule(r, pattern) {
   assert.equal(r.code, "P0001", `expected trigger error P0001, got ${r.code}: ${r.message}`);
   if (pattern) assert.match(r.message ?? "", pattern);
 }
-function expectRefused(r) {
-  assert.ok(r.status >= 400, `expected a rejection, got ${r.status} ${JSON.stringify(r.body)}`);
-  assert.ok(["42501", "P0001", "23503", "23514", "23502", "23505"].includes(r.code), `expected RLS/guard rejection, got ${r.code}: ${r.message}`);
-}
 function expectOk(r) {
   assert.ok(r.status < 300, `expected success, got ${r.status} ${JSON.stringify(r.body)}`);
 }
