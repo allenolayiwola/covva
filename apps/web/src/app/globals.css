@@ -92,13 +92,10 @@
 }
 
 /*
- * Floating launchers (WhatsApp bottom-right, chat bottom-left) stay clear of the cookie bar (a bottom-left pill on
- * desktop, a full-width bar on phones) and of the sticky Back/Continue bar on flow pages. Order matters: later
- * rules override earlier ones for the same element.
+ * Floating launchers (both bottom-right: "Chat with us" in the corner, WhatsApp just left of it) stay clear of the
+ * cookie bar (a bottom-left pill on desktop, a full-width bar on phones) and of the sticky Back/Continue bar on flow
+ * pages. Order matters: later rules override earlier ones for the same element.
  */
-body:has([data-consent-banner]) [data-chat-launcher] {
-  bottom: 5.5rem;
-}
 @media (width < 40rem) {
   body:has([data-consent-banner]) [data-whatsapp],
   body:has([data-consent-banner]) [data-chat-launcher] {
@@ -109,9 +106,6 @@ body:has([data-sticky-bar]) [data-consent-banner],
 body:has([data-sticky-bar]) [data-whatsapp],
 body:has([data-sticky-bar]) [data-chat-launcher] {
   bottom: 5.25rem;
-}
-body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
-  bottom: 9.75rem;
 }
 @media (width < 40rem) {
   body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp],
@@ -203,28 +197,29 @@ body:has([data-sticky-bar]) [data-assistant-panel] {
 }
 
 /*
- * Legibility scrims (brand Forest #0F514D). White text needs the photo under it at ≥ 0.8 cover: on phones the
- * copy sits in the bottom half, on desktop in the left column, whose right edge is max(720px, 50%)
- * (640px column + container padding, centred above 1440px). Top band: header links and logo.
+ * Legibility scrims: neutral black (no brand tint) so the photo keeps its natural colours. White text still
+ * meets 4.5:1 over the brightest pixel under it. On phones the copy sits in the bottom half and the picker
+ * below the photo on neutral-950; on desktop the copy sits in the left column, whose right edge is
+ * max(720px, 50%) (640px column + container padding, centred above 1440px). Top band: header links and logo.
  */
 .hero-scrim {
   background:
-    linear-gradient(180deg, rgb(6 32 30 / 0.72) 0, rgb(6 32 30 / 0.45) 7rem, rgb(6 32 30 / 0) 14rem),
-    linear-gradient(180deg, rgb(15 81 77 / 0) 32%, rgb(15 81 77 / 0.82) 52%, rgb(15 81 77 / 0.92) 68%, rgb(15 81 77) 100%);
+    linear-gradient(180deg, rgb(0 0 0 / 0.6) 0, rgb(0 0 0 / 0.35) 7rem, rgb(0 0 0 / 0) 14rem),
+    linear-gradient(180deg, rgb(10 10 10 / 0) 34%, rgb(10 10 10 / 0.72) 54%, rgb(10 10 10 / 0.85) 70%, rgb(10 10 10) 100%);
 }
 @media (width >= 64rem) {
   .hero-scrim {
     --hero-text-edge: max(720px, 50%);
     background:
-      linear-gradient(180deg, rgb(6 32 30 / 0.78) 0, rgb(6 32 30 / 0.5) 72px, rgb(6 32 30 / 0) 200px),
-      linear-gradient(0deg, rgb(6 32 30 / 0.65) 0, rgb(6 32 30 / 0) 200px),
+      linear-gradient(180deg, rgb(0 0 0 / 0.6) 0, rgb(0 0 0 / 0.35) 72px, rgb(0 0 0 / 0) 200px),
+      linear-gradient(0deg, rgb(0 0 0 / 0.5) 0, rgb(0 0 0 / 0) 200px),
       linear-gradient(
         90deg,
-        rgb(15 81 77 / 0.9) 0,
-        rgb(15 81 77 / 0.85) calc(var(--hero-text-edge) + 24px),
-        rgb(15 81 77 / 0.45) calc(var(--hero-text-edge) + 170px),
-        rgb(15 81 77 / 0.12) calc(var(--hero-text-edge) + 330px),
-        rgb(15 81 77 / 0) calc(var(--hero-text-edge) + 470px)
+        rgb(0 0 0 / 0.72) 0,
+        rgb(0 0 0 / 0.62) calc(var(--hero-text-edge) + 24px),
+        rgb(0 0 0 / 0.3) calc(var(--hero-text-edge) + 170px),
+        rgb(0 0 0 / 0.08) calc(var(--hero-text-edge) + 330px),
+        rgb(0 0 0 / 0) calc(var(--hero-text-edge) + 470px)
       );
   }
 }

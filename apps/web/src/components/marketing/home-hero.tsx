@@ -27,7 +27,7 @@ const SIZES_TALL = "(max-aspect-ratio: 3/5) 60vh, 100vw";
 function HeroPicture({ slide, first }: { slide: HeroSlide; first: boolean }) {
   // Slide 1 is the LCP image: eager + high priority, plus a media-scoped <link rel="preload"> per art-directed file
   // (next/image's `preload` prop would fetch both), so its request starts from <head> alongside CSS and fonts.
-  // No blur placeholder: the section's Forest background shows until the photo arrives.
+  // No blur placeholder: the section's neutral dark background shows until the photo arrives.
   const loading = first ? ({ loading: "eager", fetchPriority: "high" } as const) : ({ loading: "lazy", fetchPriority: "low" } as const);
   const common = { alt: slide.image.alt, fill: true, quality: QUALITY, ...loading };
   const {

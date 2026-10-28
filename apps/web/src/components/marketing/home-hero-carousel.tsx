@@ -141,7 +141,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
       data-hero-overlay
       aria-labelledby="hero-title"
       aria-roledescription="carousel"
-      className={cn("relative isolate -mt-16 overflow-hidden bg-brand-deep text-white lg:-mt-[72px]", className)}
+      className={cn("relative isolate -mt-16 overflow-hidden bg-neutral-950 text-white lg:-mt-[72px]", className)}
       onPointerEnter={(e) => e.pointerType === "mouse" && setHovering(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHovering(false)}
       onFocus={(e) => {
@@ -215,7 +215,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
         </div>
 
         {/* Slide controls: topic labels with progress bars, and Pause/Play (WCAG 2.2.2). */}
-        <div className="mt-3 flex items-center gap-2 [grid-area:controls] max-lg:rounded-full max-lg:bg-[rgb(6_32_30/0.62)] max-lg:p-1 max-lg:pr-4 max-lg:backdrop-blur-md sm:gap-3 lg:mt-7 lg:max-w-[560px]">
+        <div className="mt-3 flex items-center gap-2 [grid-area:controls] max-lg:rounded-[2px] max-lg:bg-black/55 max-lg:p-1 max-lg:pr-4 max-lg:backdrop-blur-md sm:gap-3 lg:mt-7 lg:max-w-[560px]">
           <button
             type="button"
             onClick={() => {
@@ -227,7 +227,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
             }}
             aria-label={showsPlaying ? "Pause slideshow" : "Play slideshow"}
             data-testid="hero-pause"
-            className="grid size-10 shrink-0 place-items-center rounded-full border border-white/40 bg-black/20 text-white backdrop-blur-sm transition-colors hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="grid size-10 shrink-0 place-items-center rounded-[2px] border border-white/40 bg-black/20 text-white backdrop-blur-sm transition-colors hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             {showsPlaying ? <Pause aria-hidden className="size-4" /> : <Play aria-hidden className="size-4" />}
           </button>
@@ -269,7 +269,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
           action="/quote"
           method="get"
           aria-labelledby="hero-quote-title"
-          className="mb-12 w-full max-w-[560px] rounded-hero bg-[#FFF9EF] p-5 text-ink shadow-float [grid-area:card] sm:p-6 lg:mb-0 lg:mt-6 lg:max-w-[520px] lg:p-5"
+          className="mb-12 w-full max-w-[560px] rounded-[2px] bg-[#FFF9EF] p-5 text-ink shadow-float [grid-area:card] sm:p-6 lg:mb-0 lg:mt-6 lg:max-w-[520px] lg:p-5"
         >
           <h2 id="hero-quote-title" className="font-display text-[20px] leading-tight text-ink sm:text-[22px]">
             What would you like to insure?
@@ -281,7 +281,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
                 <label
                   key={line}
                   className={cn(
-                    "flex min-h-[64px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[14px] border border-line bg-white px-1 py-2 text-[14px] font-medium text-ink-2 transition-colors sm:min-h-[72px] sm:text-[15px] lg:min-h-[64px]",
+                    "flex min-h-[64px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[2px] border border-line bg-white px-1 py-2 text-[14px] font-medium text-ink-2 transition-colors sm:min-h-[72px] sm:text-[15px] lg:min-h-[64px]",
                     "hover:border-brand/50 has-[:checked]:border-brand has-[:checked]:bg-mint/70 has-[:checked]:text-brand-deep has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand has-[:focus-visible]:ring-offset-2",
                   )}
                 >
@@ -299,13 +299,13 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
               ))}
             </div>
           </fieldset>
-          <button type="submit" className={buttonClass("primary", "lg", "mt-4 w-full")}>
+          <button type="submit" className={buttonClass("primary", "lg", "mt-4 w-full rounded-[2px]!")}>
             Compare quotes <ArrowRight aria-hidden className="size-4" />
           </button>
           <p className="mt-3 text-center text-[13px] leading-snug text-muted">Cover begins only after insurer acceptance and policy issuance.</p>
         </form>
 
-        <p aria-hidden className="hidden self-end justify-self-end rounded-full bg-[rgb(6_32_30/0.62)] px-4 py-1.5 font-accent text-[19px] italic text-white backdrop-blur-md [grid-area:caption] lg:block">
+        <p aria-hidden className="hidden self-end justify-self-end rounded-[2px] bg-black/55 px-4 py-1.5 font-accent text-[19px] italic text-white backdrop-blur-md [grid-area:caption] lg:block">
           {slide.caption}
         </p>
       </div>

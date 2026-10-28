@@ -29,7 +29,7 @@ export function ChatWidget({ whatsappNumber }: { whatsappNumber?: string | null 
           onPointerEnter={prefetch}
           onFocus={prefetch}
           data-chat-launcher
-          className="fixed bottom-5 left-4 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-brand pl-3 pr-4 text-sm font-semibold text-white shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 motion-reduce:transition-none sm:bottom-6 sm:left-6 print:hidden"
+          className="fixed bottom-5 right-4 z-40 inline-flex h-12 w-[5.5rem] items-center justify-center gap-2 rounded-full bg-brand px-3 text-sm font-semibold text-white shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 motion-reduce:transition-none sm:bottom-6 sm:right-6 sm:w-[9.5rem] print:hidden"
           aria-label="Chat with us"
         >
           <MessageSquareText aria-hidden className="size-5" strokeWidth={2} />
@@ -41,7 +41,7 @@ export function ChatWidget({ whatsappNumber }: { whatsappNumber?: string | null 
         <React.Suspense
           fallback={
             open ? (
-              <div role="status" className="fixed inset-x-2 bottom-20 z-50 rounded-card border border-line bg-white px-4 py-6 text-center text-sm text-muted shadow-float sm:inset-x-auto sm:bottom-6 sm:left-6 sm:w-[400px]">
+              <div role="status" className="fixed inset-x-2 bottom-20 z-50 rounded-card border border-line bg-white px-4 py-6 text-center text-sm text-muted shadow-float sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[400px]">
                 Opening chat…
               </div>
             ) : null

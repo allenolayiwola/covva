@@ -94,7 +94,7 @@ Timing and the picker's preselection rules are pure functions in `packages/core/
 - Images: 3840px landscape JPEGs plus portrait crops for phones in `src/assets/hero/`, served by `next/image` at quality 85
   (`images.qualities` allows 75 and 85; `deviceSizes` adds 2560). Today they are AI-generated illustrations owned by Covva,
   with no visible credit; replace each with commissioned photography by swapping its two imports in `hero-slides.ts`.
-- Contrast: the Forest scrims keep every hero text run at ≥ 4.5:1 against the brightest pixel under it on all four slides
+- Contrast: the neutral black scrims keep every hero text run at ≥ 4.5:1 against the brightest pixel under it on all four slides
   (checked from 360px to 2560px wide); recheck when a photo changes.
 
 ## 6. Headless CMS — Payload (built)
