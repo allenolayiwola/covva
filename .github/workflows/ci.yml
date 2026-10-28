@@ -1,8 +1,10 @@
 name: CI
 
-# Quick checks for every pull request and for main: typecheck, lint, unit tests, build.
+# Quick checks for every pull request and for main: typecheck, lint, unit tests, build, plus the
+# "tests with every feature" gate on pull requests (a changed @im/core module needs a changed test).
 # Nothing here talks to the shared Supabase project (no database or browser suites; see
-# integration.yml, which is run manually).
+# integration.yml, which is run manually). Branch protection on main should require both jobs —
+# see docs/OPERATIONS.md § "Branch protection".
 on:
   pull_request:
   push:
@@ -61,3 +63,24 @@ jobs:
 
       - name: Build web and admin
         run: pnpm turbo run build --filter=@im/web --filter=@im/admin
+
+  core-test-coverage:
+    # Fails a PR that changes packages/core/src/<name>.ts without changing <name>.test.ts.
+    # Escape hatch: "[skip-test-check]" in the PR title (printed in the log so reviewers see it).
+    name: Core tests change with core modules
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check that changed @im/core modules come with test changes
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/check-core-tests.mjs "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" "$PR_TITLE"

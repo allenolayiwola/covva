@@ -48,3 +48,6 @@ export * from "./scorecards";
 export * from "./privacy";
 export * from "./loyalty";
 export * from "./telematics";
+export * from "./household";
+export * from "./activity";
+export * from "./product-management";

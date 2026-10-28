@@ -13,7 +13,7 @@ Four suites, all runnable locally with no extra setup beyond `pnpm install` and 
 
 ## Core unit tests
 
-`packages/core/src/*.test.ts`, Node's built-in runner (`node --test` with type stripping, no framework). One file per module
+`packages/core/src/*.test.ts`, Node's built-in runner (`node --test` with type stripping, no framework). One file per module, named after it (`household.ts` ↔ `household.test.ts`; CI checks the pairing)
 (`rating`, `comparison`, `needs`, `routing`, `risk`, `status`, `format`, `api`) plus the original `core.test.ts`. They are pure and
 run in under a second.
 
@@ -123,14 +123,24 @@ Leftovers to expect after a local run without the secret: cancelled `requests` t
 
 ## CI (`.github/workflows/ci.yml`)
 
-One job on every push and pull request (concurrency group per ref, 25-minute timeout):
-`pnpm install --frozen-lockfile` (pnpm store cached) → `turbo typecheck` → core unit tests → database rules → `next build` for
-web and admin (`.next/cache` cached) → global `playwright@1.63.0` + `playwright install --with-deps chromium` (browser cache) →
-web e2e → admin e2e → purge → upload `playwright-report-web` and `playwright-report-admin` artifacts (HTML report + traces).
+Two quick jobs, no database and no browser, so a pull request gets its answer in minutes:
 
-Repository secrets: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `E2E_PASSWORD`. Optional repository variables
-`E2E_*_EMAIL` override the demo accounts. Without the secrets the workflow still runs: public values fall back to the demo project,
-the privileged journey is skipped, request creation in the browser test takes the "unavailable" branch, and the purge is skipped.
+- **`checks`** (every push to `main` and every PR): `pnpm install --frozen-lockfile` (pnpm store cached) →
+  `turbo typecheck` → `turbo lint` → `turbo test` (the `@im/core` unit suite) → `next build` for web and admin
+  (`.next/cache` cached). Only public Supabase values are needed at build time; the build never calls the database.
+- **`core-test-coverage`** (PRs only): `scripts/check-core-tests.mjs` diffs base…head and fails when
+  `packages/core/src/<name>.ts` changed without `packages/core/src/<name>.test.ts` changing too. `index.ts`, the
+  `i18n/` catalogues and deleted modules are exempt. Escape hatch: `[skip-test-check]` in the PR title (the skip
+  is printed in the job log). Run it locally with `node scripts/check-core-tests.mjs origin/main HEAD`.
+
+Both jobs should be required checks on `main` (docs/OPERATIONS.md § "Branch protection").
+
+The database-rules and browser suites run from `.github/workflows/integration.yml`, started by hand
+(`workflow_dispatch`) against the shared Supabase project: `pnpm install` → build → `test:db` → web e2e → admin e2e
+→ purge → `playwright-report-web` / `playwright-report-admin` artifacts. Repository secrets: `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `E2E_PASSWORD`; optional repository variables `E2E_*_EMAIL`
+override the demo accounts. Without the secrets the workflow still runs: public values fall back to the demo
+project, the privileged journeys are skipped, and the purge is skipped.
 
 ## Known limitations
 

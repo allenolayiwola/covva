@@ -8862,33 +8862,39 @@ export type Database = {
           actor_id: string | null
           actor_role: string | null
           changed_fields: string[] | null
+          detail: Json | null
           entity_id: string | null
           entity_type: string | null
           id: number | null
           occurred_at: string | null
           org_id: string | null
+          subject_user_id: string | null
         }
         Insert: {
           action?: string | null
           actor_id?: string | null
           actor_role?: string | null
           changed_fields?: never
+          detail?: never
           entity_id?: string | null
           entity_type?: string | null
           id?: number | null
           occurred_at?: string | null
           org_id?: string | null
+          subject_user_id?: never
         }
         Update: {
           action?: string | null
           actor_id?: string | null
           actor_role?: string | null
           changed_fields?: never
+          detail?: never
           entity_id?: string | null
           entity_type?: string | null
           id?: number | null
           occurred_at?: string | null
           org_id?: string | null
+          subject_user_id?: never
         }
         Relationships: []
       }
@@ -9067,6 +9073,10 @@ export type Database = {
       build_settlement_statement: {
         Args: { p_end: string; p_org: string; p_start: string }
         Returns: string
+      }
+      bulk_set_product_status: {
+        Args: { p_action: string; p_product_ids: string[]; p_reason?: string }
+        Returns: Json
       }
       complete_broker_change: {
         Args: { p_broker_org_id?: string; p_request: string }
@@ -9486,6 +9496,23 @@ export type Database = {
         }
         Returns: Json
       }
+      product_change_history: {
+        Args: { p_limit?: number; p_product_id: string }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_name: string
+          actor_role: string
+          changes: Json
+          entity_id: string
+          entity_label: string
+          entity_type: string
+          event_id: number
+          note: string
+          occurred_at: string
+          version_no: number
+        }[]
+      }
       publish_loyalty_rule_set: {
         Args: {
           p_effective_from?: string
@@ -9520,6 +9547,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_mfa_change: { Args: { p_org_id?: string }; Returns: Json }
       record_privacy_export: {
         Args: {
           p_bytes: number

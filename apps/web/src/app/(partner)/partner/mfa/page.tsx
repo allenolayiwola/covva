@@ -6,7 +6,9 @@ import { connection } from "next/server";
 import { ShieldCheck } from "lucide-react";
 import { Logo, Spinner } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
-import { getAssuranceLevel, getUser, partnerMfaRequired } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { getAssuranceLevel, getMemberships, getUser, partnerMfaRequired } from "@/lib/auth";
+import { ORG_COOKIE } from "../_lib/context";
 import { MfaFlow } from "./MfaFlow";
 
 export const metadata: Metadata = { title: "Two-step verification · Partner workspace", robots: { index: false, follow: false } };
@@ -65,5 +67,9 @@ async function Gate({ searchParams }: Pick<PageProps<"/partner/mfa">, "searchPar
   // `?manage=1` lets an already verified user re-enrol a new authenticator from Security settings.
   if ((await getAssuranceLevel()) === "aal2" && params.manage !== "1") redirect(next);
 
-  return <MfaFlow next={next} email={user.email ?? ""} forceEnrol={params.manage === "1"} />;
+  // The organisation the enrolment is recorded against in its activity log (the active workspace, else the first).
+  const [memberships, jar] = await Promise.all([getMemberships(), cookies()]);
+  const wanted = jar.get(ORG_COOKIE)?.value;
+  const orgId = (memberships.find((m) => m.org_id === wanted) ?? memberships[0])?.org_id ?? null;
+  return <MfaFlow next={next} email={user.email ?? ""} forceEnrol={params.manage === "1"} orgId={orgId} />;
 }

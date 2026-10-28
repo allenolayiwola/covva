@@ -5,6 +5,7 @@ import { CalendarClock, Camera, Gift, HeartHandshake, Plus, RefreshCw, Shield, U
 import { CLAIM_STATUS, CONSENT_STATUS, POLICY_STATUS, formatDate, formatGHS, humanize, relationshipLabel } from "@im/core";
 import { Card, EmptyState, Notice, PageHeader, Pill, StatCard, StatusPill, buttonClass } from "@im/ui";
 import { getProfile } from "@/lib/auth";
+import { FamilyTabs } from "@/components/customer/family-tabs";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { familyDashboard } from "@/server/diaspora";
 import { account } from "../_lib/data";
@@ -23,6 +24,7 @@ export default function FamilyPage() {
           </Link>
         }
       />
+      <FamilyTabs active="family" />
       <Suspense fallback={<PageSkeleton rows={4} />}>
         <Body />
       </Suspense>
@@ -51,9 +53,12 @@ async function Body() {
           </>
         }
         action={
-          <Link href="/account/family/beneficiaries/new" className={buttonClass("primary")}>
-            <UserPlus aria-hidden className="size-4" /> Add a family member
-          </Link>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/account/family/beneficiaries/new" className={buttonClass("primary")}>
+              <UserPlus aria-hidden className="size-4" /> Add a family member
+            </Link>
+            <Link href="/account/household" className={buttonClass("secondary")}>See your household&apos;s cover</Link>
+          </div>
         }
       />
     );
