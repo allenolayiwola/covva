@@ -5,6 +5,7 @@ import { Pill } from "@im/ui";
 import { PageHero } from "@/components/marketing/page-hero";
 import { Section } from "@/components/marketing/section";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
+import { LearnArticleLink } from "@/components/marketing/learn-article-link";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { getArticleLocales, getArticles } from "@/server/cms";
 import { siteUrl } from "@/lib/site-url";
@@ -49,7 +50,13 @@ export default async function LearnPage() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ARTICLES.map((a) => (
             <li key={a.slug}>
-              <Link href={`/learn/${a.slug}`} className="group flex h-full flex-col rounded-card border border-line bg-white p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              {/* Follows the chosen language: /learn/<slug> in English, /learn/<slug>/<lang> otherwise. */}
+              <LearnArticleLink
+                slug={a.slug}
+                available={locales}
+                translations={a.availableLocales}
+                className="group flex h-full flex-col rounded-card border border-line bg-white p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <Pill>{a.topic}</Pill>
                   <span className="inline-flex items-center gap-1 text-[13px] text-muted"><Clock aria-hidden className="size-3.5" /> {a.readMinutes} min</span>
@@ -59,7 +66,7 @@ export default async function LearnPage() {
                 <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-brand">
                   Read <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />
                 </span>
-              </Link>
+              </LearnArticleLink>
             </li>
           ))}
         </ul>
