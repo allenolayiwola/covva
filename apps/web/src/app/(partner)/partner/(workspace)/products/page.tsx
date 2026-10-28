@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { DemoBadge, EmptyState, Field, Input, PageHeader, Pill, Select, Table, Td, Th, THead } from "@im/ui";
-import { formatDate, humanize } from "@im/core";
+import { DemoBadge, EmptyState, Field, Input, PageHeader, Pill, Select, Table, Td, Th, THead, buttonClass } from "@im/ui";
+import { formatDate, productStatusLabel } from "@im/core";
 import { can, requireKind, ROLES } from "../../_lib/context";
 import { getCategoryMap } from "../../_lib/data";
 import { ActionForm } from "@/components/partner/action-form";
@@ -14,7 +14,16 @@ export const metadata: Metadata = { title: "Products" };
 export default function ProductsPage() {
   return (
     <>
-      <PageHeader title="Products" description="Your product data: cover, limits, excesses, exclusions and approved rates. Every change is versioned and approved before use." />
+      <PageHeader
+        title="Products"
+        description="Your product data: cover, limits, excesses, exclusions and approved rates. Every change is versioned, approved before use and kept in each product's history."
+        actions={
+          <>
+            <Link href="/partner/products/import" className={buttonClass("secondary", "sm")}>Bulk rate import</Link>
+            <Link href="/partner/products/bulk" className={buttonClass("secondary", "sm")}>Pause / withdraw / republish</Link>
+          </>
+        }
+      />
       <Suspense fallback={<PageSkeleton stats={0} />}>
         <Products />
       </Suspense>
@@ -37,7 +46,7 @@ async function Products() {
     <>
       {(data ?? []).length === 0 ? <EmptyState title="No products yet" body="Create a product, then submit its first version for approval." /> : (
         <Table>
-          <THead><tr><Th>Product</Th><Th>Category</Th><Th>Status</Th><Th>Current version</Th><Th>Pending</Th></tr></THead>
+          <THead><tr><Th>Product</Th><Th>Category</Th><Th>Status</Th><Th>Current version</Th><Th>Pending</Th><Th /></tr></THead>
           <tbody>
             {(data ?? []).map((p) => {
               const versions = ((p.versions ?? []) as { id: string; version: number; status: string; effective_from: string; approved_at: string | null }[]).sort((a, b) => b.version - a.version);
@@ -47,9 +56,10 @@ async function Products() {
                 <tr key={p.id} className="hover:bg-mist/60">
                   <Td><Link href={`/partner/products/${p.id}`} className="font-semibold text-ink hover:text-brand">{p.name}</Link><p className="text-xs text-muted">{p.code}{p.tier ? ` · ${p.tier}` : ""}</p></Td>
                   <Td>{cats.get(p.category_id)?.name ?? "—"}</Td>
-                  <Td><Pill tone={tone(p.status)}>{humanize(p.status)}</Pill></Td>
+                  <Td><Pill tone={tone(p.status)}>{productStatusLabel(p.status)}</Pill></Td>
                   <Td>{current ? <>v{current.version} <span className="text-xs text-muted">· approved {formatDate(current.approved_at)}</span></> : "—"}</Td>
                   <Td>{pending.length ? <Pill tone="wait">{pending.map((v) => `v${v.version}`).join(", ")} awaiting approval</Pill> : <span className="text-xs text-subtle">—</span>}</Td>
+                  <Td><Link href={`/partner/products/${p.id}/history`} className="whitespace-nowrap text-sm font-semibold text-brand hover:underline">History →</Link></Td>
                 </tr>
               );
             })}

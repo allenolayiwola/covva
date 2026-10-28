@@ -61,6 +61,8 @@ export function MfaFlow({ next, email }: { next: string; email: string }) {
       setError(error.message.includes("Invalid") ? "That code didn't match. Codes change every 30 seconds — try the current one." : error.message);
       return;
     }
+    // Audit (staff): enrolment or removal recorded from the real factor state, see record_mfa_change.
+    await supabase.rpc("record_mfa_change", {}).then(() => undefined, () => undefined);
     router.replace(next);
     router.refresh();
   }

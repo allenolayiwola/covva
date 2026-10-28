@@ -15,8 +15,11 @@ type Mode =
  * we enrol one (QR code + secret); otherwise we challenge the existing factor. A successful
  * verification upgrades the session to AAL2, which `requirePartner` demands for the workspace.
  * `forceEnrol` adds a new authenticator even when one is already verified (Security settings).
+ * After every successful verification `record_mfa_change` compares the account's verified factors with the
+ * last recorded state and writes `mfa.enrolled` / `mfa.removed` to the organisation's audit trail (a factor
+ * removed by support shows up at the next sign-in). It reads the real factor state, so nothing is self-reported.
  */
-export function MfaFlow({ next, email, forceEnrol = false }: { next: string; email: string; forceEnrol?: boolean }) {
+export function MfaFlow({ next, email, forceEnrol = false, orgId = null }: { next: string; email: string; forceEnrol?: boolean; orgId?: string | null }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [code, setCode] = useState("");
@@ -62,6 +65,8 @@ export function MfaFlow({ next, email, forceEnrol = false }: { next: string; ema
       setError(error.message.includes("Invalid") ? "That code didn't match. Codes change every 30 seconds — try the current one." : error.message);
       return;
     }
+    // Audit: enrolment (or a removal since the last check) is recorded from auth.mfa_factors, never from the client.
+    await supabase.rpc("record_mfa_change", { p_org_id: orgId ?? undefined }).then(() => undefined, () => undefined);
     router.replace(next);
     router.refresh();
   }

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { DemoBadge, Notice, Pill, Table, Td, Th, THead } from "@im/ui";
-import { formatDate, formatDateTime, humanize, issuanceLabel, type RiskField } from "@im/core";
+import { DemoBadge, Notice, Pill, Table, Td, Th, THead, buttonClass } from "@im/ui";
+import { formatDate, formatDateTime, humanize, issuanceLabel, productStatusLabel, type RiskField } from "@im/core";
 import { can, requireKind, ROLES } from "../../../_lib/context";
 import { getCategoryMap } from "../../../_lib/data";
 import { VersionEditor, type VersionDraft } from "@/components/partner/version-editor";
@@ -59,13 +59,18 @@ async function Product({ params }: { params: Promise<{ id: string }> }) {
       <nav aria-label="Breadcrumb" className="mb-3 text-sm text-muted">
         <Link href="/partner/products" className="hover:text-brand">Products</Link> <span aria-hidden>›</span> {product.name}
       </nav>
-      <div className="mb-6">
-        <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">{product.name}</h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
-          {product.code} · {category?.name} {product.tier ? `· ${product.tier}` : ""}
-          <Pill tone={product.status === "approved" ? "ok" : "wait"}>{humanize(product.status)}</Pill>
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">{product.name}</h1>
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+            {product.code} · {category?.name} {product.tier ? `· ${product.tier}` : ""}
+            <Pill tone={product.status === "approved" ? "ok" : product.status === "suspended" ? "wait" : product.status === "retired" ? "danger" : "neutral"}>{productStatusLabel(product.status)}</Pill>
+          </p>
+        </div>
+        <Link href={`/partner/products/${product.id}/history`} className={buttonClass("secondary", "sm")}>Change history</Link>
       </div>
+      {product.status === "suspended" && <Notice tone="wait" className="mb-5">This product is paused: customers do not see it and brokers cannot quote it. Republish it from <Link href="/partner/products/bulk" className="font-medium underline">Pause / withdraw / republish</Link>.</Notice>}
+      {product.status === "retired" && <Notice tone="danger" className="mb-5">This product is withdrawn. Existing policies run to their end date; only Covva compliance can bring it back.</Notice>}
 
       <Section title="Versions" description="The current version is the approved one used for quoting and comparison.">
         {(versions ?? []).length === 0 ? <p className="text-sm text-muted">No versions yet.</p> : (

@@ -10,17 +10,21 @@ import { VerifyChain } from "./VerifyChain";
 import { verifyChain } from "./actions";
 
 const ENTITY_TYPES = [
-  "organizations", "memberships", "product_categories", "products", "product_versions", "insurer_broker_appointments", "broker_routing_rules",
-  "requests", "broker_disclosures", "insurer_submissions", "quotes", "applications", "payments", "policies", "claims", "complaints",
-  "consents", "kyc_verifications", "api_keys", "subscriptions", "feature_flags", "platform_settings",
+  "organizations", "memberships", "invitations", "mfa", "product_categories", "products", "product_versions", "rate_tables", "underwriting_rules",
+  "document_templates", "insurer_broker_appointments", "broker_routing_rules", "requests", "broker_disclosures", "insurer_submissions", "quotes",
+  "applications", "payments", "policies", "claims", "complaints", "consents", "kyc_verifications", "api_keys", "subscriptions", "feature_flags",
+  "platform_settings",
 ];
+
+/** Trigger actions plus the named events written by RPCs (two-step verification, bulk product updates). */
+const ACTIONS = ["insert", "update", "delete", "mfa.enrolled", "mfa.removed", "products.bulk_pause", "products.bulk_withdraw", "products.bulk_republish"];
 
 export default function AuditPage({ searchParams }: PageProps<"/audit">) {
   return (
     <>
       <PageHeader
         title="Audit log"
-        description="Append-only, hash-chained record of every change to regulated records. Written by database triggers — it cannot be edited or deleted, including by staff."
+        description="Append-only, hash-chained record of every change to regulated records, written by database triggers — it cannot be edited or deleted, including by staff. Team changes (roles, invitations, deactivations, two-step verification) and bulk product updates are shown as plain sentences."
       />
       <Suspense fallback={<LoadingBlock label="Loading audit events…" />}>
         <Audit searchParams={searchParams} />
@@ -58,7 +62,7 @@ async function Audit({ searchParams }: { searchParams: Promise<SearchParams> }) 
   let query = supabase.from("audit_events").select("*", { count: "estimated" }).order("id", { ascending: !!fromId }).range(from, to);
   if (entity) query = query.eq("entity_type", entity);
   if (entityId) query = query.eq("entity_id", entityId);
-  if (action && ["insert", "update", "delete"].includes(action)) query = query.eq("action", action);
+  if (action && ACTIONS.includes(action)) query = query.eq("action", action);
   if (actorId) query = query.eq("actor_id", actorId);
   if (isUuid(org)) query = query.eq("org_id", org);
   if (dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) query = query.gte("occurred_at", `${dateFrom}T00:00:00Z`);
@@ -75,7 +79,7 @@ async function Audit({ searchParams }: { searchParams: Promise<SearchParams> }) 
         <FilterBar action="/audit">
           <FilterSelect name="entity" label="Entity type" value={entity} options={ENTITY_TYPES.map((e) => ({ value: e, label: e }))} />
           <FilterInput name="entity_id" label="Entity id" value={entityId} />
-          <FilterSelect name="action" label="Action" value={action} options={["insert", "update", "delete"].map((a) => ({ value: a, label: a }))} />
+          <FilterSelect name="action" label="Action" value={action} options={ACTIONS.map((a) => ({ value: a, label: a }))} />
           <FilterInput name="actor" label="Actor (email or id)" value={actor} />
           <FilterSelect name="org" label="Organisation" value={org} options={[...orgs.values()].map((o) => ({ value: o.id, label: o.name }))} />
           <FilterInput name="from" label="From" type="date" value={dateFrom} />
