@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Checkbox, Notice, PageHeader, Pill } from "@im/ui";
+import { Checkbox, Notice, Pill } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import type { RatingRule, RiskField } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
@@ -86,7 +87,7 @@ async function Review({ params }: Pick<PageProps<"/products/review/[versionId]">
       {!pending && <Notice tone="info" className="mb-5">This version is {v.status.replace("_", " ")}{v.approved_at ? ` — approved ${formatDateTime(v.approved_at)} by ${personName(people.get(v.approved_by ?? ""), "staff")}` : ""}.</Notice>}
       <div className="mb-5 flex flex-wrap gap-2 text-xs">
         <Pill tone={v.insurer_approved_at ? "ok" : "wait"}>{v.insurer_approved_at ? `Insurer signed off ${formatDate(v.insurer_approved_at)}` : "No insurer sign-off recorded"}</Pill>
-        {v.wording_url ? <Link href={v.wording_url} target="_blank" className="rounded-full bg-info-bg px-2.5 py-0.5 font-medium text-info">Open policy wording ↗</Link> : <Pill tone="wait">No wording document</Pill>}
+        {v.wording_url ? <Link href={v.wording_url} target="_blank" className="rounded-sm bg-info-bg px-2.5 py-0.5 font-medium text-info">Open policy wording ↗</Link> : <Pill tone="wait">No wording document</Pill>}
       </div>
       <div className="space-y-6">
         <Panel title={current ? `Changes vs current v${current.version}` : "New product — no current version"} description="Red = current value, green = proposed value." bodyClassName="p-0">

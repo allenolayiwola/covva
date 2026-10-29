@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { PageHeader } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";

@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { TriangleAlert } from "lucide-react";
 import { ACCOUNTING_EXPORT_KINDS, ACCOUNTING_EXPORT_LABEL, commissionReport, monthPeriod, type LedgerEntryLike } from "@im/core";
-import { Field, Input, Notice, PageHeader, Pill, Select, Table, THead, Th, Td, Textarea } from "@im/ui";
+import { Field, Input, Notice, Pill, Select, Textarea } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";

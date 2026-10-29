@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Notice, PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
+import { Notice, Pill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { REFERRAL_CREDIT_NOTE } from "@im/core";
 import { requireStaff, hasAnyRole } from "@/lib/auth";
 import { PERMS } from "@/lib/roles";

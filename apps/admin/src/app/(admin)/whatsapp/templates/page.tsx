@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Input, Label, PageHeader, Pill, Select, Textarea } from "@im/ui";
+import { Input, Label, Pill, Select, Textarea } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { renderTemplatePreview } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

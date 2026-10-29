@@ -6,7 +6,7 @@ import { signOut } from "@/app/sign-in/actions";
 export function UserMenu({ name, email, roleLabels, aal }: { name: string; email: string | null; roleLabels: string[]; aal: string | null }) {
   return (
     <details className="relative">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-[10px] px-1.5 py-1 hover:bg-mist [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-1.5 py-1 hover:bg-mist [&::-webkit-details-marker]:hidden">
         <Avatar name={name} size={32} />
         <span className="hidden text-left sm:block">
           <span className="block text-sm font-semibold leading-tight text-ink">{name}</span>
@@ -18,7 +18,7 @@ export function UserMenu({ name, email, roleLabels, aal }: { name: string; email
         {email && <p className="text-xs text-muted">{email}</p>}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {roleLabels.map((r) => (
-            <span key={r} className="rounded-full bg-mint px-2 py-0.5 text-xs font-medium text-brand-deep">{r}</span>
+            <span key={r} className="rounded-sm bg-mint px-2 py-0.5 text-xs font-medium text-brand-deep">{r}</span>
           ))}
         </div>
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">

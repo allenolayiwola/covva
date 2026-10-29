@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Circle } from "lucide-react";
-import { Checkbox, Field, Input, Notice, PageHeader, Select, StatusPill, Textarea } from "@im/ui";
+import { Checkbox, Field, Input, Notice, Select, StatusPill, Textarea } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { CATEGORY_AVAILABILITY, type RiskField } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

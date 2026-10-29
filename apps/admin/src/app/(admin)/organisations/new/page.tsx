@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { PageHeader, Field, Select, Checkbox, Notice } from "@im/ui";
+import { Field, Select, Checkbox, Notice } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { PERMS } from "@/lib/roles";
 import { Breadcrumb, LoadingBlock, Panel } from "@/components/ui/layout";

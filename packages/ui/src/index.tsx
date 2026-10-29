@@ -12,9 +12,13 @@ export { BRAND, CanopyMark, LogoMark, Logo, type LogoProps, type CanopyMarkProps
 type ButtonVariant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "white";
 type ButtonSize = "sm" | "md" | "lg";
 
-/** Every button is a full pill (desktop redesign). Heights sit on the 8pt grid; the smallest is a 40px tap target. */
+/**
+ * Every button is a full pill on the public site (desktop redesign): `rounded-button` defaults to a full pill in
+ * @im/tokens and an app may override `--radius-button` (the admin uses near-square corners). Heights sit on the
+ * 8pt grid; the smallest is a 40px tap target.
+ */
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 rounded-button font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
 const buttonVariants: Record<ButtonVariant, string> = {
   primary: "bg-brand text-white hover:bg-brand-dark",
   secondary: "bg-mint text-brand-deep hover:bg-[#cfe7da]",
@@ -70,7 +74,7 @@ const toneClass: Record<Tone, string> = {
 
 export function Pill({ tone = "neutral", children, className }: { tone?: Tone; children: React.ReactNode; className?: string }) {
   return (
-    <span className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", toneClass[tone], className)}>
+    <span className={clsx("inline-flex items-center gap-1 rounded-pill px-2.5 py-0.5 text-xs font-medium whitespace-nowrap", toneClass[tone], className)}>
       {children}
     </span>
   );

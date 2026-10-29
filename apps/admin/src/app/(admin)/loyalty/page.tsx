@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Checkbox, Field, Input, Notice, PageHeader, Pill, Table, THead, Th, Td, Textarea } from "@im/ui";
+import { Checkbox, Field, Input, Notice, Pill, Textarea } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import {
   LOYALTY_DISCOUNT_NOTE,
   LOYALTY_RULE_HELP,

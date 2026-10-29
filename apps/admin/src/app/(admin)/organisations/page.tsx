@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { PageHeader, Pill, Table, THead, Th, Td, buttonClass } from "@im/ui";
+import { Pill, buttonClass } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import type { Enum } from "@im/db";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DisclosureBlock, Notice, PageHeader, Pill, StatusPill } from "@im/ui";
+import { DisclosureBlock, Notice, Pill, StatusPill } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { buildDisclosure, CLAIM_STATUS, PAYMENT_STATUS, POLICY_STATUS } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";

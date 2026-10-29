@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { Building2 } from "lucide-react";
 import { INVOICE_STATUS, SCHEME_STATUS, type BusinessProfile, type SchemeStatus } from "@im/core";
-import { Notice, PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
+import { Notice, Pill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { categoryMap, orgMap, pageOf, sp, type SearchParams, type Supabase } from "@/lib/query";

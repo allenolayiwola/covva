@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { CheckCircle2, CircleAlert, XCircle } from "lucide-react";
-import { PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
+import { Pill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff, mfaRequired } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { nowMs, orgMap } from "@/lib/query";

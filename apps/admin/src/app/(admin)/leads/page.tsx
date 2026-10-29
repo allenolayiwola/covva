@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
+import { Pill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import type { Enum } from "@im/db";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
@@ -81,10 +82,10 @@ async function Leads({ searchParams }: { searchParams: Promise<SearchParams> }) 
                   <div className="mt-2">
                     <ActionForm action={updateLead} inline submitLabel="Update" submitVariant="secondary" readOnly={!canAct}>
                       <input type="hidden" name="leadId" value={l.id} />
-                      <select name="status" defaultValue={l.status} className="h-9 rounded-[10px] border border-line bg-white px-2 text-sm" aria-label="Status">
+                      <select name="status" defaultValue={l.status} className="h-9 rounded-md border border-line bg-white px-2 text-sm" aria-label="Status">
                         {STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <input name="note" placeholder="Add a note" className="h-9 w-40 rounded-[10px] border border-line px-2 text-sm" aria-label="Note" />
+                      <input name="note" placeholder="Add a note" className="h-9 w-40 rounded-md border border-line px-2 text-sm" aria-label="Note" />
                     </ActionForm>
                   </div>
                 </Td>

@@ -1,6 +1,7 @@
 import type { Row } from "@im/db";
 import { describeActivity, isTeamActivity } from "@im/core";
-import { Pill, Table, THead, Th, Td } from "@im/ui";
+import { Pill } from "@im/ui";
+import { Table, THead, Th, Td } from "@/components/ui/page";
 import { createClient } from "@/lib/supabase/server";
 import { personName, profileMap } from "@/lib/query";
 import { formatDateTime } from "@/lib/format";

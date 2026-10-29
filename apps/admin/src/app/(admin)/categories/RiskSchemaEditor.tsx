@@ -156,7 +156,7 @@ export function RiskSchemaEditor({ initial, disabled }: { initial: RiskField[]; 
               ) : f.type === "region" ? (
                 <Select disabled><option>Choose a region</option>{GHANA_REGIONS.map((r) => <option key={r}>{r}</option>)}</Select>
               ) : f.type === "multiselect" ? (
-                <div className="flex flex-wrap gap-2">{f.options?.map((o) => <span key={o.value} className="rounded-full border border-line px-3 py-1 text-sm text-ink-2">{o.label}</span>)}</div>
+                <div className="flex flex-wrap gap-2">{f.options?.map((o) => <span key={o.value} className="rounded-sm border border-line px-3 py-1 text-sm text-ink-2">{o.label}</span>)}</div>
               ) : f.type === "boolean" ? (
                 <div className="flex gap-2"><span className="rounded-lg border border-line px-4 py-2 text-sm">Yes</span><span className="rounded-lg border border-line px-4 py-2 text-sm">No</span></div>
               ) : (

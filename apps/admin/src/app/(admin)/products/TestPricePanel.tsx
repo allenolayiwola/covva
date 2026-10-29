@@ -64,7 +64,7 @@ export function TestPricePanel({ fields, current, proposed }: { fields: RiskFiel
   const a = run(current);
   const b = run(proposed);
   const delta = a && b && !("error" in a) && !("error" in b) && a.premium ? (b.premium - a.premium) / a.premium : null;
-  const ctl = "h-9 w-full rounded-[10px] border border-line bg-white px-2 text-sm";
+  const ctl = "h-9 w-full rounded-md border border-line bg-white px-2 text-sm";
 
   return (
     <div className="space-y-4">

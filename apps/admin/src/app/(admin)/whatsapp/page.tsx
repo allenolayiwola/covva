@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Label, PageHeader, Pill, Select, Tabs, Textarea } from "@im/ui";
+import { Label, Pill, Select, Tabs, Textarea } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { withinServiceWindow } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

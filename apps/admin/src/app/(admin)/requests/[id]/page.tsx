@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader, StatusPill, Pill, Notice, Timeline, Table, THead, Th, Td } from "@im/ui";
+import { StatusPill, Pill, Notice, Timeline } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { OPEN_REQUEST_STATUSES, PAYMENT_STATUS, POLICY_STATUS, QUOTE_STATUS, REQUEST_STATUS } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

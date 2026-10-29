@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { PageHeader, Table, THead, Th, Td } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { FACT_METRICS, PREMIUM_BANDS, factKeyLabel, funnelRates, sumFacts, type FactMetric } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
@@ -155,9 +155,9 @@ async function Dashboard({ searchParams }: { searchParams: Promise<SearchParams>
       <Panel title="Rollup" description="Facts are rebuilt per day (idempotent). Use a dry run to count rows without writing; backfill after applying the migration or after a data correction.">
         {canRun ? (
           <ActionForm action={runRollup} submitLabel="Run rollup" inline>
-            <label className="flex flex-col gap-1 text-xs font-medium text-muted">From<input name="from" type="date" defaultValue={from} className="h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm text-ink" required /></label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-muted">To<input name="to" type="date" defaultValue={to} className="h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm text-ink" required /></label>
-            <label className="flex h-9 items-center gap-2 self-end rounded-[10px] border border-line bg-white px-3 text-sm text-ink-2"><input type="checkbox" name="dry_run" value="1" className="size-4 accent-brand" /> Dry run</label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted">From<input name="from" type="date" defaultValue={from} className="h-9 rounded-md border border-line bg-white px-2.5 text-sm text-ink" required /></label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted">To<input name="to" type="date" defaultValue={to} className="h-9 rounded-md border border-line bg-white px-2.5 text-sm text-ink" required /></label>
+            <label className="flex h-9 items-center gap-2 self-end rounded-md border border-line bg-white px-3 text-sm text-ink-2"><input type="checkbox" name="dry_run" value="1" className="size-4 accent-brand" /> Dry run</label>
           </ActionForm>
         ) : (
           <p className="text-sm text-muted">Platform admins can run or backfill the rollup.</p>
