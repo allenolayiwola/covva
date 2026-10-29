@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PageHeader, Pill, Tabs } from "@im/ui";
+import { Pill, Tabs } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { taskDueState } from "@im/core";
 import { requireCrm, staffDirectory } from "@/lib/crm";
 import { sp, type SearchParams } from "@/lib/query";

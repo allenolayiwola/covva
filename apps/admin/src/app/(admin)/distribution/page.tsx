@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Field, Input, Notice, PageHeader, Pill, Select, Table, THead, Th, Td, Textarea } from "@im/ui";
+import { Field, Input, Notice, Pill, Select, Textarea } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { EMBED_DISCLOSURE, PARTNER_SEGMENTS, PARTNER_SEGMENT_LABEL } from "@im/core";
 import { requireStaff, hasAnyRole } from "@/lib/auth";
 import { PERMS } from "@/lib/roles";

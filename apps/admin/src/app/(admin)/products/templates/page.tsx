@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { PageHeader, Pill, Table, THead, Th, Td, Tabs } from "@im/ui";
+import { Pill, Tabs } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { renderTemplate, validateTemplate, type DocumentTemplate } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Globe2 } from "lucide-react";
-import { Notice, PageHeader, Pill, Table, THead, Th, Td } from "@im/ui";
+import { Notice, Pill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { COUNTRY_OPTIONS, CONSENT_STATUS, relationshipLabel } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";

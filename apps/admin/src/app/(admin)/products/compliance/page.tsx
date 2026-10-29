@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Checkbox, PageHeader, Pill, Table, THead, Th, Td, Tabs } from "@im/ui";
+import { Checkbox, Pill, Tabs } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { issuanceLabel } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

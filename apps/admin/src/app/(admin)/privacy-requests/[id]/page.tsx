@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Notice, PageHeader, StatusPill, Timeline } from "@im/ui";
+import { Notice, StatusPill, Timeline } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { DELETION_RETAINED, PRIVACY_REQUEST_TYPES, PRIVACY_STATUS, describeRetainedRecords, privacyActionsFor, privacyDeadline } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

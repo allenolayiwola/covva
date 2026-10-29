@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import { Avatar, Checkbox, DemoBadge, Notice, PageHeader, Pill, Table, THead, Th, Td, Tabs, Textarea, Field, Input, Select } from "@im/ui";
+import { Avatar, Checkbox, DemoBadge, Notice, Pill, Tabs, Textarea, Field, Input, Select } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import type { Enum } from "@im/db";
 import { requireStaff } from "@/lib/auth";
 import { can, ROLE_LABEL, type StaffRole } from "@/lib/roles";
@@ -243,7 +244,7 @@ async function MembersTab({ supabase, org, canAct, staffRoles }: { supabase: Sup
   const people = await profileMap(supabase, (members ?? []).map((m) => m.user_id));
   const roles = ROLES_BY_ORG_TYPE[org.type];
   const platformLocked = org.type === "platform" && !staffRoles.includes("platform_admin");
-  const sel = "h-9 rounded-[10px] border border-line bg-white px-2 text-sm";
+  const sel = "h-9 rounded-md border border-line bg-white px-2 text-sm";
 
   return (
     <div className="space-y-6">

@@ -4,6 +4,59 @@
 /* Scan shared component sources so their classes are generated */
 @source "../../../../packages/ui/src";
 
+/*
+ * Admin console theme ("Ledger" layout, "Brand rail" colours). These overrides live only in the admin's own CSS
+ * build, so the public site (apps/web) keeps its rounded look and palette.
+ *
+ * Corners: near-square (3px, 4px at most) on cards, panels, fields, buttons, chips, badges, tables, dialogs,
+ * drawers and menus. Avatars and status dots keep `rounded-full`.
+ */
+@theme {
+  --radius: 3px;
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-4xl: 4px;
+  --radius-card: 3px;
+  --radius-hero: 4px;
+  --radius-field: 3px;
+  --radius-button: 3px;
+  --radius-pill: 3px;
+
+  /* Neutrals: light teal-grey. Text keeps the token muted/subtle greys (both >= 4.5:1 on white). */
+  --color-ink: #13302c;
+  --color-line: #e3ebe9;
+  --color-head: #f6f9f8;
+  --color-canvas: #ffffff;
+
+  /* Brand rail: deep Covva teal surface with gold as a marker/accent only (never large fills or text on white). */
+  --color-rail: #0d4a43;
+  --color-rail-hover: #155a52;
+  --color-rail-active: #0a3c36;
+  --color-rail-line: #22605a;
+  --color-rail-text: #d6e9e5;
+  --color-rail-muted: #a3c9c2;
+  --color-highlight: #e9c46a;
+
+  /* Status pills (approved / awaiting / suspended). Each pair is >= 5:1. */
+  --color-status-ok: #16683f;
+  --color-status-ok-bg: #e3f3ea;
+  --color-status-ok-dot: #1f8a55;
+  --color-status-wait: #8a5a00;
+  --color-status-wait-bg: #fbf0d9;
+  --color-status-wait-dot: #d99a1e;
+  --color-status-off: #55615f;
+  --color-status-off-bg: #eef1f0;
+  --color-status-off-dot: #9aa4a2;
+  --color-status-danger: #b42318;
+  --color-status-danger-bg: #fee4e2;
+  --color-status-danger-dot: #d92d20;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -48,7 +101,11 @@
     stroke-linejoin: round;
   }
   dialog::backdrop {
-    background: rgb(21 52 62 / 0.45);
+    background: rgb(19 48 44 / 0.4);
+  }
+  /* A modal dialog or drawer is open: keep the page behind it from scrolling. */
+  html:has(dialog:modal) {
+    overflow: hidden;
   }
 }
 

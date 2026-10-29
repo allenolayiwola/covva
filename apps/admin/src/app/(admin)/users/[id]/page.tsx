@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Avatar, Field, PageHeader, Pill, Select, Table, THead, Th, Td } from "@im/ui";
+import { Avatar, Field, Pill, Select } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can, ROLE_LABEL } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -95,7 +96,7 @@ async function UserDetail({ params }: Pick<PageProps<"/users/[id]">, "params">) 
                       <Td>
                         <ActionForm action={changeMemberRole} inline submitLabel="Change" submitVariant="ghost" readOnly={!canAct || locked}>
                           <input type="hidden" name="membershipId" value={m.id} />
-                          <select name="role" defaultValue={m.role} className="h-9 rounded-[10px] border border-line bg-white px-2 text-sm" aria-label="Role">
+                          <select name="role" defaultValue={m.role} className="h-9 rounded-md border border-line bg-white px-2 text-sm" aria-label="Role">
                             {roles.map((r) => <option key={r} value={r}>{(ROLE_LABEL as Record<string, string>)[r] ?? r.replace("_", " ")}</option>)}
                           </select>
                         </ActionForm>

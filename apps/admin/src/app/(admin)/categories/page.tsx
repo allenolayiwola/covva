@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PageHeader, StatusPill, Table, THead, Th, Td, Pill } from "@im/ui";
+import { StatusPill, Pill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { CATEGORY_AVAILABILITY } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";

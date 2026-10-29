@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Field, Input, PageHeader, Pill, Select, Table, THead, Th, Td, Textarea } from "@im/ui";
+import { Field, Input, Pill, Select, Textarea } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { LOCALES, MESSAGE_KEYS, catalogueCoverage, en, localeDef, mergeCatalogue, normaliseLocale, type Locale } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
@@ -115,22 +116,22 @@ async function Translations({ searchParams }: { searchParams: Promise<SearchPara
       <form action={base} method="get" className="flex flex-wrap items-end gap-2 rounded-card border border-line bg-white p-3">
         <label className="flex flex-col gap-1 text-xs font-medium text-muted">
           Locale
-          <select name="locale" defaultValue={active} className="h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm text-ink">
+          <select name="locale" defaultValue={active} className="h-9 rounded-md border border-line bg-white px-2.5 text-sm text-ink">
             {LOCALES.filter((l) => l.code !== "en").map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-muted">
           Show
-          <select name="show" defaultValue={show ?? ""} className="h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm text-ink">
+          <select name="show" defaultValue={show ?? ""} className="h-9 rounded-md border border-line bg-white px-2.5 text-sm text-ink">
             <option value="">All keys</option>
             {SHOW.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-muted">
           Search
-          <input name="q" defaultValue={q ?? ""} placeholder="key or text" className="h-9 w-56 rounded-[10px] border border-line bg-white px-2.5 text-sm text-ink" />
+          <input name="q" defaultValue={q ?? ""} placeholder="key or text" className="h-9 w-56 rounded-md border border-line bg-white px-2.5 text-sm text-ink" />
         </label>
-        <button type="submit" className="h-9 rounded-[10px] bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark">Apply</button>
+        <button type="submit" className="h-9 rounded-md bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark">Apply</button>
       </form>
 
       <Panel title={`${localeDef(active).label} strings`} description="Placeholders in braces ({name}, {count, plural, …}) must be kept exactly. USSD strings must stay within 160 characters per screen." bodyClassName="p-0">

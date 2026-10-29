@@ -49,7 +49,7 @@ async function Invoice({ params }: Pick<PageProps<"/invoices/[id]">, "params">) 
             <ActionForm action={transitionInvoice} inline submitLabel="Issue invoice" readOnly={!canAct}>
               <input type="hidden" name="invoiceId" value={inv.id} />
               <input type="hidden" name="to" value="issued" />
-              <label className="text-sm text-muted">Due in <input name="dueDays" type="number" defaultValue={14} min={0} max={120} className="h-9 w-16 rounded-[10px] border border-line px-2" /> days</label>
+              <label className="text-sm text-muted">Due in <input name="dueDays" type="number" defaultValue={14} min={0} max={120} className="h-9 w-16 rounded-md border border-line px-2" /> days</label>
             </ActionForm>
           )}
           {(inv.status === "issued" || inv.status === "overdue") && (

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PageHeader } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { CRM_STAGES, pipelineSummary, type CrmStage } from "@im/core";
 import { requireCrm, staffDirectory, type CrmAccount } from "@/lib/crm";
 import { fmtNum, formatGHS } from "@/lib/format";

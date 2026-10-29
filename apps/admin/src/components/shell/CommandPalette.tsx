@@ -62,13 +62,13 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={open}
-        className="hidden h-9 w-72 items-center gap-2 rounded-[10px] border border-line bg-white px-3 text-sm text-subtle hover:border-brand/40 md:flex"
+        className="hidden h-9 w-72 items-center gap-2 rounded-md border border-line bg-white px-3 text-sm text-subtle hover:border-brand/40 md:flex"
       >
         <Search className="size-4" aria-hidden />
         <span className="flex-1 text-left">Search or jump to…</span>
         <kbd className="rounded border border-line bg-mist px-1.5 text-[11px] font-medium text-muted">Ctrl K</kbd>
       </button>
-      <button type="button" onClick={open} className="grid size-9 place-items-center rounded-[10px] border border-line md:hidden" aria-label="Search">
+      <button type="button" onClick={open} className="grid size-9 place-items-center rounded-md border border-line md:hidden" aria-label="Search">
         <Search className="size-4" />
       </button>
       <dialog

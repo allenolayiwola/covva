@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Notice, PageHeader } from "@im/ui";
+import { Notice } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { leadKindToAccountKind } from "@im/core";
 import { requireCrm, staffDirectory } from "@/lib/crm";
 import { isUuid, orgMap, sp, type SearchParams } from "@/lib/query";

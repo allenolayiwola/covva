@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Avatar, PageHeader, Pill, buttonClass } from "@im/ui";
+import { Avatar, Pill, buttonClass } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { CRM_ACCOUNT_KINDS, CRM_PIPELINE_STAGES, pipelineSummary, type CrmStage } from "@im/core";
 import { requireCrm, staffDirectory, contactOf, type CrmAccount } from "@/lib/crm";
 import { ilikeTerm, isUuid, sp, type SearchParams } from "@/lib/query";
@@ -120,7 +121,7 @@ function AccountCard({ account: a, owner }: { account: CrmAccount; owner?: strin
       <Link href={accountHref(a.id)} className="block min-h-14 rounded-xl border border-line bg-white p-3 transition-colors hover:border-brand/50 active:bg-mist">
         <div className="flex items-start justify-between gap-2">
           <p className="font-semibold leading-snug text-ink">{a.name}</p>
-          {owner ? <Avatar name={owner} size={26} /> : <span className="rounded-full bg-amber-bg px-2 py-0.5 text-[10px] font-semibold uppercase text-amber">Unowned</span>}
+          {owner ? <Avatar name={owner} size={26} /> : <span className="rounded-sm bg-amber-bg px-2 py-0.5 text-[10px] font-semibold uppercase text-amber">Unowned</span>}
         </div>
         <p className="mt-1 text-xs text-muted">
           {KIND_LABEL[a.kind as keyof typeof KIND_LABEL] ?? a.kind}

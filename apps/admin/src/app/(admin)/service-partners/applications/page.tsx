@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { SERVICE_PARTNER_KIND_LABELS, type ServicePartnerKind } from "@im/core";
-import { Checkbox, Field, PageHeader, Pill, Select, Table, THead, Th, Td, Textarea } from "@im/ui";
+import { Checkbox, Field, Pill, Select, Textarea } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
@@ -71,7 +72,7 @@ async function Queue({ searchParams }: { searchParams: Promise<SearchParams> }) 
                       <Field label="Note / reason" htmlFor={`r-${a.id}`}><Textarea id={`r-${a.id}`} name="reason" rows={2} /></Field>
                     </ActionForm>
                   ) : a.service_partner_id ? (
-                    <Link href={`/service-partners?edit=${a.service_partner_id}`} className="text-sm font-semibold text-brand hover:underline">Open partner</Link>
+                    <Link href={`/service-partners?id=${a.service_partner_id}`} className="text-sm font-semibold text-brand hover:underline">Open partner</Link>
                   ) : null}
                 </Td>
               </tr>

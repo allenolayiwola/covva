@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader, StatusPill, Timeline, Notice } from "@im/ui";
+import { StatusPill, Timeline, Notice } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { COMPLAINT_STATUS } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

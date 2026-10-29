@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ShieldAlert, XCircle } from "lucide-react";
-import { PageHeader, Pill } from "@im/ui";
+import { Pill } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { computeAlerts, computeMetrics } from "@/lib/metrics";

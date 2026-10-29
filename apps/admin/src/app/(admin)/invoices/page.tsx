@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Field, Input, PageHeader, Pill, Select, Table, THead, Th, Td } from "@im/ui";
+import { Field, Input, Pill, Select } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import type { Enum } from "@im/db";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

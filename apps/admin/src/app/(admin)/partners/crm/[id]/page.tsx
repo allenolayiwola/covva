@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CalendarDays, Check, Download, ExternalLink, ListChecks, Mail, Paperclip, Phone, Pin, Send, StickyNote, XCircle } from "lucide-react";
-import { Avatar, Field, Input, Notice, PageHeader, Pill, Select, Textarea } from "@im/ui";
+import { Avatar, Field, Input, Notice, Pill, Select, Textarea } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { canMoveStage, CRM_PIPELINE_STAGES, crmStageLabel, nextStages, taskDueState, type CrmStage } from "@im/core";
 import { attachmentUrl, contactOf, requireCrm, staffDirectory } from "@/lib/crm";
 import { isUuid, orgMap, profileMap, personName } from "@/lib/query";
@@ -71,8 +72,8 @@ async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
         description={`${SOURCE_LABEL[acc.source as keyof typeof SOURCE_LABEL] ?? acc.source}${acc.region ? ` · ${acc.region}` : ""} · ${owner ? `Owned by ${owner.name}` : "No owner yet"} · Created ${formatDate(acc.created_at)}`}
         actions={
           <>
-            {contact.phone && <a href={`tel:${contact.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-mist"><Phone className="size-4" aria-hidden /> Call</a>}
-            {contact.email && <a href={`mailto:${contact.email}`} className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-mist"><Mail className="size-4" aria-hidden /> Email</a>}
+            {contact.phone && <a href={`tel:${contact.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-mist"><Phone className="size-4" aria-hidden /> Call</a>}
+            {contact.email && <a href={`mailto:${contact.email}`} className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-sm font-medium text-ink hover:bg-mist"><Mail className="size-4" aria-hidden /> Email</a>}
           </>
         }
       />
@@ -88,14 +89,14 @@ async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
               <li
                 key={s}
                 aria-current={state === "current" ? "step" : undefined}
-                className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${state === "current" ? "bg-brand text-white" : state === "done" ? "bg-mint text-brand-deep" : "bg-mist text-muted"}`}
+                className={`flex h-9 items-center gap-1.5 rounded-sm px-3 text-xs font-semibold ${state === "current" ? "bg-brand text-white" : state === "done" ? "bg-mint text-brand-deep" : "bg-mist text-muted"}`}
               >
                 {state === "done" && <Check className="size-3.5" aria-hidden />}
                 {crmStageLabel(s)}
               </li>
             );
           })}
-          {stage === "lost" && <li aria-current="step" className="flex h-9 items-center rounded-full bg-danger px-3 text-xs font-semibold text-white">Lost</li>}
+          {stage === "lost" && <li aria-current="step" className="flex h-9 items-center rounded-sm bg-danger px-3 text-xs font-semibold text-white">Lost</li>}
         </ol>
         <div className="mt-4 flex flex-wrap gap-2">
           {nextStages(stage).map((to) => {
@@ -242,7 +243,7 @@ async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
           <Panel id="files" title="Attachments" description="Proposals, agreements and licences (private storage; links expire after 10 minutes)." className="scroll-mt-20">
             <ActionForm action={uploadAttachment} submitLabel={<><Paperclip className="size-4" aria-hidden /> Upload</>} readOnly={!canAct} audited={false} className="mb-5">
               <input type="hidden" name="accountId" value={acc.id} />
-              <input type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx" aria-label="File" className="block w-full text-sm text-ink-2 file:mr-3 file:h-10 file:rounded-[10px] file:border file:border-line file:bg-white file:px-3 file:text-sm file:font-medium file:text-ink" />
+              <input type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx" aria-label="File" className="block w-full text-sm text-ink-2 file:mr-3 file:h-10 file:rounded-md file:border file:border-line file:bg-white file:px-3 file:text-sm file:font-medium file:text-ink" />
             </ActionForm>
             {attachments?.length ? (
               <ul className="divide-y divide-line">
@@ -253,7 +254,7 @@ async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
                       <p className="text-xs text-muted">{SIZE_FMT(a.size_bytes)} · {who(a.uploaded_by)} · {formatDateTime(a.created_at)}</p>
                     </div>
                     {linkById.get(a.id) ? (
-                      <a href={linkById.get(a.id)!} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 shrink-0 items-center gap-1 rounded-[10px] border border-line px-3 text-sm text-brand hover:bg-mist"><Download className="size-4" aria-hidden /> Download</a>
+                      <a href={linkById.get(a.id)!} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-line px-3 text-sm text-brand hover:bg-mist"><Download className="size-4" aria-hidden /> Download</a>
                     ) : (
                       <span className="text-xs text-subtle">Unavailable</span>
                     )}
@@ -285,7 +286,7 @@ async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
                 {owner && <Avatar name={owner.name} size={32} />}
                 <ActionForm action={assignOwner} inline submitLabel="Assign" submitVariant="secondary" readOnly={!canAct}>
                   <input type="hidden" name="accountId" value={acc.id} />
-                  <select name="owner_user_id" defaultValue={acc.owner_user_id ?? ""} aria-label="Owner" className="h-10 max-w-48 rounded-[10px] border border-line bg-white px-2 text-sm">
+                  <select name="owner_user_id" defaultValue={acc.owner_user_id ?? ""} aria-label="Owner" className="h-10 max-w-48 rounded-md border border-line bg-white px-2 text-sm">
                     <option value="">Unassigned</option>
                     {staff.map((m) => <option key={m.userId} value={m.userId}>{m.name}{m.userId === actor.staff.userId ? " (me)" : ""}</option>)}
                   </select>

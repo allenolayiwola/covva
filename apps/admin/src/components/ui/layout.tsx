@@ -82,12 +82,12 @@ export function Pagination({ base, params, page, total }: { base: string; params
       </span>
       <div className="flex gap-2">
         {page > 1 ? (
-          <Link href={link(page - 1)} className="inline-flex h-9 items-center gap-1 rounded-[10px] border border-line bg-white px-3 hover:bg-mist">
+          <Link href={link(page - 1)} className="inline-flex h-9 items-center gap-1 rounded-md border border-line bg-white px-3 hover:bg-mist">
             <ChevronLeft className="size-4" /> Previous
           </Link>
         ) : null}
         {hasNext ? (
-          <Link href={link(page + 1)} className="inline-flex h-9 items-center gap-1 rounded-[10px] border border-line bg-white px-3 hover:bg-mist">
+          <Link href={link(page + 1)} className="inline-flex h-9 items-center gap-1 rounded-md border border-line bg-white px-3 hover:bg-mist">
             Next <ChevronRight className="size-4" />
           </Link>
         ) : null}
@@ -96,22 +96,54 @@ export function Pagination({ base, params, page, total }: { base: string; params
   );
 }
 
-/** GET form for list filters — works without JavaScript; keeps URLs shareable. */
-export function FilterBar({ action, children, resetHref }: { action: string; children: React.ReactNode; resetHref?: string }) {
+/**
+ * GET form for list filters, laid out as a compact toolbar of pill controls. Works without JavaScript and keeps
+ * URLs shareable. `hidden` carries params the toolbar does not edit (e.g. an open drawer); `trailing` sits at the
+ * far right (result counts, secondary links).
+ */
+export function FilterBar({
+  action,
+  children,
+  resetHref,
+  hidden,
+  trailing,
+  className,
+}: {
+  action: string;
+  children: React.ReactNode;
+  resetHref?: string;
+  hidden?: Record<string, string | undefined>;
+  trailing?: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <form action={action} method="get" className="mb-4 flex flex-wrap items-end gap-2 rounded-card border border-line bg-white p-3">
+    <form action={action} method="get" role="search" aria-label="Filters" className={cn("mb-4 flex flex-wrap items-center gap-2", className)}>
+      {Object.entries(hidden ?? {}).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
       {children}
-      <button type="submit" className="h-9 rounded-[10px] bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark">
+      <button
+        type="submit"
+        className="h-8 rounded-sm bg-brand-deep px-3 text-sm font-semibold text-white hover:bg-rail focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
         Apply
       </button>
-      <Link href={resetHref ?? action} className="h-9 content-center rounded-[10px] px-3 text-sm text-muted hover:bg-mist">
+      <Link href={resetHref ?? action} className="h-8 content-center rounded-sm px-2 text-sm text-muted hover:bg-head hover:text-ink">
         Reset
       </Link>
+      {trailing && <div className="ml-auto flex items-center gap-2 text-sm text-muted">{trailing}</div>}
     </form>
   );
 }
 
-const ctl = "h-9 rounded-[10px] border border-line bg-white px-2.5 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+/** One pill in the filter toolbar: visible label text on the left, borderless control on the right. */
+const pill = (active: boolean) =>
+  cn(
+    "inline-flex h-8 items-center gap-1.5 rounded-sm border bg-white pl-2.5 text-sm text-muted transition-colors",
+    "focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 hover:border-[#c6d6d3]",
+    active ? "border-brand-deep/45 bg-head" : "border-line",
+  );
+const bare = "h-full min-w-0 bg-transparent text-sm font-medium text-ink outline-none placeholder:font-normal placeholder:text-subtle";
+const chevron =
+  "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23486068%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[right_0.5rem_center] bg-no-repeat pr-7";
 
 export function FilterSelect({
   name,
@@ -127,9 +159,9 @@ export function FilterSelect({
   allLabel?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-      {label}
-      <select name={name} defaultValue={value ?? ""} className={cn(ctl, "min-w-36")}>
+    <label className={pill(!!value)}>
+      <span>{label}</span>
+      <select name={name} defaultValue={value ?? ""} className={cn(bare, chevron, "max-w-56 cursor-pointer")}>
         <option value="">{allLabel}</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
@@ -141,16 +173,16 @@ export function FilterSelect({
 
 export function FilterInput({ name, label, value, placeholder, type = "text" }: { name: string; label: string; value?: string; placeholder?: string; type?: string }) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-      {label}
-      <input name={name} type={type} defaultValue={value ?? ""} placeholder={placeholder} className={cn(ctl, type === "text" ? "w-56" : "w-40")} />
+    <label className={cn(pill(!!value), "pr-2")}>
+      <span className="whitespace-nowrap">{label}</span>
+      <input name={name} type={type} defaultValue={value ?? ""} placeholder={placeholder} className={cn(bare, "w-36")} />
     </label>
   );
 }
 
 export function FilterCheck({ name, label, checked }: { name: string; label: string; checked?: boolean }) {
   return (
-    <label className="flex h-9 items-center gap-2 rounded-[10px] border border-line bg-white px-3 text-sm text-ink-2">
+    <label className={cn(pill(!!checked), "cursor-pointer gap-2 pr-2.5 text-ink-2")}>
       <input type="checkbox" name={name} value="1" defaultChecked={checked} className="size-4 accent-brand" />
       {label}
     </label>

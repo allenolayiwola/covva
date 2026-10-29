@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Checkbox, Field, Input, PageHeader, Pill, Select, Table, THead, Th, Td, Textarea, buttonClass } from "@im/ui";
+import { Checkbox, Field, Input, Pill, Select, Textarea, buttonClass } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import type { Row } from "@im/db";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

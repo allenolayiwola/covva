@@ -14,7 +14,7 @@ export function VerifyChain({ action, disabled }: { action: (p: ActionState, fd:
       <form action={formAction} className="flex flex-wrap items-center gap-2">
         <label className="text-sm text-muted">
           Check up to{" "}
-          <select name="limit" defaultValue="10000" className="h-9 rounded-[10px] border border-line bg-white px-2 text-sm">
+          <select name="limit" defaultValue="10000" className="h-9 rounded-md border border-line bg-white px-2 text-sm">
             <option value="10000">10,000</option>
             <option value="100000">100,000</option>
             <option value="1000000">1,000,000</option>

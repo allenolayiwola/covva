@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Row } from "@im/db";
-import { Checkbox, Field, Input, PageHeader, Table, THead, Th, Td, Textarea } from "@im/ui";
+import { Checkbox, Field, Input, Textarea } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";

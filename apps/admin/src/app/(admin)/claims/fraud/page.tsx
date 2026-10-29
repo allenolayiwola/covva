@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
-import { Notice, PageHeader, Pill, StatusPill } from "@im/ui";
+import { Notice, Pill, StatusPill } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { CLAIM_STATUS, FRAUD_KIND_LABELS, FRAUD_STATUS_LABELS, type FraudKind, type FraudStatus } from "@im/core";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";

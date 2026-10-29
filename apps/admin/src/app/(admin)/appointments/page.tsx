@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PageHeader, Tabs, Notice } from "@im/ui";
+import { Tabs, Notice } from "@im/ui";
+import { PageHeader } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";

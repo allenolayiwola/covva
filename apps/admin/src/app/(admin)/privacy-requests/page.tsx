@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { PageHeader, Pill, StatusPill, Table, THead, Th, Td } from "@im/ui";
+import { Pill, StatusPill } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import {
   PENDING_PRIVACY_STATUSES,
   PRIVACY_REQUEST_TYPES,

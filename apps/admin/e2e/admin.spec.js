@@ -29,7 +29,85 @@ test.describe("admin portal", () => {
       await expect(page.getByText(kpi, { exact: true })).toBeVisible();
     }
     await expect(page.getByText(/Audit chain (intact|BROKEN|unavailable)/)).toBeVisible();
-    await expect(page.getByText(/not an insurer or broker and never holds premiums/)).toBeVisible();
+    // The provider note sits at the foot of the sidebar (and again in the mobile menu, hidden at this width).
+    await expect(page.getByText(/not an insurer or broker and never holds premiums/).first()).toBeVisible();
+  });
+
+  test("sidebar groups: the page's group is expanded and only the most specific item is highlighted", async ({ page }) => {
+    await page.goto("/claims/fraud");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Admin" }).first();
+    await expect(nav.getByRole("link", { name: "Fraud review", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(nav.getByRole("link", { name: "Claims", exact: true })).not.toHaveAttribute("aria-current", "page");
+    await expect(nav.getByRole("button", { name: "Claims" })).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByRole("navigation", { name: "Location" })).toContainText("Claims");
+    await expect(page.getByRole("navigation", { name: "Location" })).toContainText("Fraud review");
+
+    const finance = nav.getByRole("button", { name: "Finance" });
+    await expect(finance).toHaveAttribute("aria-expanded", "false");
+    await expect(nav.getByRole("link", { name: "FX rates", exact: true })).toBeHidden();
+    await finance.click();
+    await expect(finance).toHaveAttribute("aria-expanded", "true");
+    await expect(nav.getByRole("link", { name: "FX rates", exact: true })).toBeVisible();
+    await finance.click();
+    await expect(finance).toHaveAttribute("aria-expanded", "false");
+
+    await page.goto("/service-partners/applications");
+    await expect(nav.getByRole("link", { name: "Applications", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(nav.getByRole("link", { name: "Service partners", exact: true })).not.toHaveAttribute("aria-current", "page");
+  });
+
+  test("service partners: counts, filter toolbar and drawers open from the URL (nothing is saved)", async ({ page }) => {
+    await page.goto("/service-partners");
+    await expect(page.getByRole("heading", { level: 1, name: "Service partners" })).toBeVisible();
+    const counts = page.getByRole("list", { name: "Partner counts" });
+    for (const label of ["Approved", "Awaiting review", "Suspended", "Direct billing", "Garages", "Towing"]) {
+      await expect(counts.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(page.getByText("How direct billing works")).toBeVisible();
+
+    await page.getByLabel("Status").selectOption("approved");
+    await page.getByRole("button", { name: "Apply" }).click();
+    await expect(page).toHaveURL(/status=approved/);
+
+    // "Add partner" opens the form in a drawer addressed by ?new=1; Esc closes it and keeps the filters.
+    await page.getByRole("link", { name: "Add partner", exact: true }).click();
+    await expect(page).toHaveURL(/new=1/);
+    const add = page.getByRole("dialog", { name: "Add a partner" });
+    await expect(add).toBeVisible();
+    for (const label of ["Kind", "Name", "Phone", "Email", "Region", "Address", "Latitude", "Longitude", "Services", "Internal notes"]) {
+      await expect(add.getByLabel(label, { exact: true })).toBeVisible();
+    }
+    await expect(add.getByText("Direct billing with")).toBeVisible();
+    await expect(add.getByText("This action is recorded in the audit log.")).toBeVisible();
+    await expect(add.getByRole("button", { name: "Add partner" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page).not.toHaveURL(/new=1/);
+    await expect(page).toHaveURL(/status=approved/);
+    await expect(page.getByRole("dialog", { name: "Add a partner" })).toHaveCount(0);
+
+    // A refresh keeps the drawer open.
+    await page.goto("/service-partners?new=1");
+    await expect(page.getByRole("dialog", { name: "Add a partner" })).toBeVisible();
+    await page.getByRole("link", { name: "Close" }).click();
+    await expect(page).not.toHaveURL(/new=1/);
+
+    // When the directory has partners, a row opens its detail drawer with an Edit tab.
+    const row = page.locator("main table tbody a").first();
+    if (await row.count()) {
+      const name = (await row.textContent())?.trim() ?? "";
+      await row.click();
+      await expect(page).toHaveURL(/[?&]id=[0-9a-f-]{36}/);
+      const detail = page.getByRole("dialog", { name });
+      await expect(detail).toBeVisible();
+      await detail.getByRole("link", { name: "Edit", exact: true }).click();
+      await expect(page).toHaveURL(/tab=edit/);
+      await expect(detail.getByRole("button", { name: "Save changes" })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page).not.toHaveURL(/[?&]id=/);
+    } else {
+      await expect(page.getByText("No service partners yet")).toBeVisible();
+    }
   });
 
   test("organisations list and detail tabs", async ({ page }) => {

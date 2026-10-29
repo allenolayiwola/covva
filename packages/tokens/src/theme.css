@@ -32,6 +32,12 @@
   --radius-card: 20px;
   --radius-hero: 24px;
   --radius-field: 12px;
+  /*
+   * Pill shapes as variables so an app can opt out: the public site keeps full pills (these defaults render exactly
+   * like `rounded-full`); the admin console overrides both to near-square corners in its own globals.css.
+   */
+  --radius-button: calc(infinity * 1px);
+  --radius-pill: calc(infinity * 1px);
 
   /* Site container: content never wider than 1440px; `wide:` variant = ≥1440px side padding step. */
   --container-site: 1440px;

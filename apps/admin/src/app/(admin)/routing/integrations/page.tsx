@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Checkbox, Field, Input, PageHeader, Pill, Select, Table, THead, Th, Td } from "@im/ui";
+import { Checkbox, Field, Input, Pill, Select } from "@im/ui";
+import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import { requireStaff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
