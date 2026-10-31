@@ -14,7 +14,6 @@ export function ForgotPasswordForm() {
     setError(null);
     let redirectTo: string;
     try {
-      if (!process.env.NEXT_PUBLIC_ADMIN_URL?.trim()) throw new Error("Missing admin URL");
       redirectTo = adminPasswordResetUrl();
     } catch {
       setError("Password reset is unavailable right now; contact your administrator");

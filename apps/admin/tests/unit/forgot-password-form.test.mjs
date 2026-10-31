@@ -35,7 +35,21 @@ function formHarness(result) {
   return { calls, render, async submit() { render().props.onSubmit({ preventDefault() {}, currentTarget: {} }); await new Promise(resolve => setImmediate(resolve)); } };
 }
 
-for (const mode of ['production', 'development', 'test']) {
+test('development without admin URL falls back to the local admin port and sends the reset', async t => {
+  const previous = { ...process.env };
+  t.after(() => { process.env = previous; });
+  process.env.NODE_ENV = 'development';
+  delete process.env.NEXT_PUBLIC_ADMIN_URL;
+  const form = formHarness({ error: null });
+  await form.submit();
+  const html = renderToStaticMarkup(form.render());
+  assert.doesNotMatch(html, /role="alert"/);
+  assert.match(html, /you will receive a password reset link/);
+  assert.equal(form.calls.length, 2);
+  assert.match(form.calls[1][1].redirectTo, /^http:\/\/localhost:\d+\//);
+});
+
+for (const mode of ['production', 'test']) {
   test(`missing admin URL shows an error without sending a reset in ${mode}`, async t => {
     const previous = { ...process.env };
     t.after(() => { process.env = previous; });
