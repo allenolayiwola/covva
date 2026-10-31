@@ -295,7 +295,7 @@ async function CategoryContent({ params }: Pick<PageProps<"/explore/[slug]">, "p
       <Section labelledBy="who-title">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h2 id="who-title" className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Participating insurers</h2>
+            <h2 id="who-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Participating insurers</h2>
             <p className="mt-2 text-[15px] text-muted">
               {cmp.insurers.length > 0
                 ? `${cmp.insurers.length} insurer${cmp.insurers.length === 1 ? "" : "s"} with approved ${category.name.toLowerCase()} products.`
@@ -314,7 +314,7 @@ async function CategoryContent({ params }: Pick<PageProps<"/explore/[slug]">, "p
             {(demo || anyDemo) && cmp.insurers.length > 0 && <DemoBadge className="mt-3" />}
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">What you will need</h2>
+            <h2 className="text-[30px] leading-[1.12] md:text-[42px] text-ink">What you will need</h2>
             <p className="mt-2 text-[15px] text-muted">Have these ready to speed things up. You can upload them later from your phone.</p>
             <ul className="mt-6 space-y-3">
               {(docs.length ? docs : ["id_document"]).map((d) => (
@@ -345,7 +345,7 @@ async function CategoryContent({ params }: Pick<PageProps<"/explore/[slug]">, "p
       <Section tone="mist" labelledBy="cat-faq-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
-            <h2 id="cat-faq-title" className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[36px]">
+            <h2 id="cat-faq-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">
               {category.name}: common questions
             </h2>
             <p className="mt-4 text-[16px] leading-relaxed text-muted">

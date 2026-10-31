@@ -150,7 +150,7 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-card border border-line bg-white p-6">
             <IconTile><CreditCard /></IconTile>
-            <h2 id="price-title" className="mt-5 text-[19px] font-semibold tracking-tight text-ink">Example prices</h2>
+            <h2 id="price-title" className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">Example prices</h2>
             <p className="mt-2 text-[15px] leading-relaxed text-muted">
               From <span className="font-semibold text-ink">GH₵ {from.monthly}/month</span> (about GH₵ {from.monthly * 12} a year). Indicative only — the premium depends on the sum insured, your details and the insurer.
             </p>
@@ -158,20 +158,20 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
           </div>
           <div className="rounded-card border border-line bg-white p-6">
             <IconTile><Clock /></IconTile>
-            <h3 className="mt-5 text-[19px] font-semibold tracking-tight text-ink">Instalment options</h3>
+            <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">Instalment options</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-muted">{line.instalments}</p>
           </div>
           {line.callout ? (
             <div className="rounded-card border border-line bg-mint/60 p-6 text-ink">
               <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-white text-brand"><QrCode className="size-5" /></span>
-              <h3 className="mt-5 text-[19px] font-semibold tracking-tight">{line.callout.title}</h3>
+              <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px]">{line.callout.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{line.callout.body}</p>
               <Link href="/verify" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline-offset-4 hover:underline">Verify a policy <ArrowRight aria-hidden className="size-4" /></Link>
             </div>
           ) : (
             <div className="rounded-card border border-line bg-mint/60 p-6 text-ink">
               <span aria-hidden className="inline-grid size-11 place-items-center rounded-xl bg-white text-brand"><QrCode className="size-5" /></span>
-              <h3 className="mt-5 text-[19px] font-semibold tracking-tight">Digital wallet with QR verification</h3>
+              <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px]">Digital wallet with QR verification</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">Your certificate lives in the Covva wallet, offline, with a QR code anyone can scan to confirm the policy is valid — without seeing your personal details.</p>
               <Link href="/verify" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline-offset-4 hover:underline">Verify a policy <ArrowRight aria-hidden className="size-4" /></Link>
             </div>
@@ -195,7 +195,7 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
             <p className="mt-4 flex items-start gap-2 text-[14px] leading-relaxed text-muted"><Clock aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />{line.claims.timeline}</p>
           </div>
           <div>
-            <h3 className="text-[19px] font-semibold tracking-tight text-ink">What you will need</h3>
+            <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">What you will need</h3>
             <ul className="mt-4 space-y-3">
               {line.claims.documents.map((d) => (
                 <li key={d} className="flex items-center gap-3 rounded-card border border-line bg-white p-4">
@@ -216,7 +216,7 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
       <Section labelledBy="pl-faq-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-16">
           <div>
-            <h2 id="pl-faq-title" className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[36px]">{line.short}: common questions</h2>
+            <h2 id="pl-faq-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">{line.short}: common questions</h2>
             <FaqList items={line.faqs} className="mt-6" />
             {primaryCategory && (
               <p className="mt-4 text-[14px] text-muted">

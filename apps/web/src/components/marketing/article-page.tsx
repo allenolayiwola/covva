@@ -49,7 +49,7 @@ export function ArticleBody({ article: a, others, locale }: { article: ArticleVi
               <Pill>{a.topic}</Pill>
               <span className="inline-flex items-center gap-1 text-[13px] text-muted"><Clock aria-hidden className="size-3.5" /> {a.readMinutes} min read</span>
             </div>
-            <h1 className="mt-4 text-balance text-[34px] font-bold leading-[1.08] tracking-[-0.035em] text-ink sm:text-[46px]">{a.title}</h1>
+            <h1 className="mt-4 text-balance text-[38px] leading-[1.06] md:text-[60px] text-ink">{a.title}</h1>
             <p className="mt-4 text-[18px] leading-relaxed text-muted">{a.summary}</p>
             <p className="mt-4 text-[13px] text-subtle">Published {new Date(a.published).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · General information, not advice.</p>
           </div>

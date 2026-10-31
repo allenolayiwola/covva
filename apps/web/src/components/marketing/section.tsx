@@ -116,7 +116,7 @@ export function FeatureCard({
   return (
     <div className={cn("rounded-card border border-line bg-white p-6", className)}>
       <IconTile tone={iconTone}>{icon}</IconTile>
-      <h3 className="mt-5 text-[17px] font-semibold tracking-tight text-ink">{title}</h3>
+      <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">{title}</h3>
       <div className="mt-2 text-[15px] leading-relaxed text-muted">{children}</div>
     </div>
   );

@@ -64,7 +64,7 @@ async function Directory() {
     <div className="space-y-10">
       {groups.map((g) => (
         <section key={g.region} aria-labelledby={`region-${g.region.replace(/\W+/g, "-")}`}>
-          <h3 id={`region-${g.region.replace(/\W+/g, "-")}`} className="flex items-center gap-2 text-[19px] font-semibold tracking-tight text-ink"><MapPin aria-hidden className="size-4 text-brand" /> {g.region}</h3>
+          <h3 id={`region-${g.region.replace(/\W+/g, "-")}`} className="flex items-center gap-2 text-[20px] leading-[1.25] md:text-[24px] text-ink"><MapPin aria-hidden className="size-4 text-brand" /> {g.region}</h3>
           {g.kinds.map((k) => (
             <div key={k.kind} className="mt-4">
               <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-muted">{ICON[k.kind]} {k.label}</p>

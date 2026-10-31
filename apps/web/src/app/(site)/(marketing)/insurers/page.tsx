@@ -133,7 +133,7 @@ export default async function InsurersPage() {
           {COMMERCIAL.map((c) => (
             <div key={c.title} className="rounded-card border border-line bg-white p-6">
               <Pill>{c.tag}</Pill>
-              <h3 className="mt-4 text-[18px] font-semibold tracking-tight text-ink">{c.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{c.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{c.body}</p>
             </div>
           ))}

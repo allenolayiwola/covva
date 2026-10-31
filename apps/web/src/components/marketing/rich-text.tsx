@@ -51,9 +51,9 @@ export function RichText({ nodes, className }: { nodes: RichNode[]; className?: 
         switch (n.type) {
           case "heading":
             return n.level === 2 ? (
-              <h2 key={i} className="mt-10 text-[24px] font-bold leading-tight tracking-[-0.02em] text-ink sm:text-[28px]"><Inline nodes={n.children} /></h2>
+              <h2 key={i} className="mt-10 text-[30px] leading-[1.12] md:text-[42px] text-ink"><Inline nodes={n.children} /></h2>
             ) : n.level === 3 ? (
-              <h3 key={i} className="mt-8 text-[20px] font-semibold leading-snug tracking-tight text-ink"><Inline nodes={n.children} /></h3>
+              <h3 key={i} className="mt-8 text-[20px] leading-[1.25] md:text-[24px] text-ink"><Inline nodes={n.children} /></h3>
             ) : (
               <h4 key={i} className="mt-6 text-[17px] font-semibold text-ink"><Inline nodes={n.children} /></h4>
             );

@@ -41,7 +41,7 @@ async function Shared({ params }: Pick<PageProps<"/q/[token]">, "params">) {
       <Container className="py-12 sm:py-16">
         <div className="mx-auto max-w-3xl">
           <Eyebrow>Shared from Covva</Eyebrow>
-          <h1 className="mt-3 text-[32px] font-bold leading-tight tracking-[-0.03em] text-ink sm:text-[42px]">{heading}</h1>
+          <h1 className="mt-3 text-[38px] leading-[1.06] md:text-[60px] text-ink">{heading}</h1>
           <p className="mt-3 text-[15px] text-muted">
             {share.expired
               ? "This link has expired. Share links work for 14 days."
