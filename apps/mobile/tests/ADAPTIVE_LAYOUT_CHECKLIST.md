@@ -4,7 +4,10 @@
 
 Automated coverage: breakpoint/grid helpers, explicit-fold pane geometry, iOS
 orientation config, Android policy and idempotent Kotlin source transform,
-phone sign-in render/scroll sizing, and preview selection across width changes.
+phone sign-in render/scroll sizing, preview selection across width changes, and
+category/quote list-detail at 840px with risk-form values retained across resizing.
+Mobile PR 2 also covers risk validation, lookup fallback, request submission,
+planned categories, comparison copy, disclosure and Apply gating.
 The Kotlin fixture is copied from Expo 58.0.21's installed template. Its manifest
 already includes screenSize, smallestScreenSize, screenLayout, and orientation;
 the plugin preserves all flags and ensures these four plus resizeableActivity.
@@ -24,16 +27,17 @@ attempted phone rotation. Check text scaling, scrolling, safe areas and focus.
 | --- | --- | --- | --- |
 | 375 | Original compact spacing and bottom tabs | Pending | Phone must remain portrait |
 | 466 | Compact; Duo outer 466×678, about 84pt right safe inset | Pending | Phone must remain portrait |
-| 669 | Wide, reading cap, preview list-detail when available content fits | Pending | Pending on tablet/eligible Android |
-| 768 | Wide, reading cap, preview list-detail | Pending | Pending on tablet/eligible Android |
-| 951 | Wide, side navigation rail, preview list-detail | Pending | Pending on tablet/eligible Android |
-| 1024 | Wide, side navigation rail, preview list-detail | Pending | Pending on tablet/eligible Android |
+| 669 | Wide, reading cap; categories/quotes show one pane | Pending | Pending on tablet/eligible Android |
+| 768 | Wide, reading cap; categories/quotes show one pane | Pending | Pending on tablet/eligible Android |
+| 951 | Wide, side navigation rail, category/quote list-detail | Pending | Pending on tablet/eligible Android |
+| 1024 | Wide, side navigation rail, category/quote list-detail | Pending | Pending on tablet/eligible Android |
 
 Use current **window** width for layout, not physical device width. Rail begins
-at 840. Split requires 552pt of actual content width after safe areas, rail and
-padding. Reading pages (including Account) cap at 720; preview pages cap at
-1100. There are no live data lists, grids, sheets or modals in this scaffold.
-Preview entries are explicitly informational, not fabricated customer records.
+at 840, as do category and quote list-detail. The remaining My Cover preview
+splits when at least 552pt of content width is available. Reading pages
+(including Account) cap at 720; category/quote and preview pages cap at 1100.
+Explore and Requests use the configured test-mode REST API. My Cover preview
+entries remain explicitly informational, not fabricated customer records.
 The existing launch screen has no custom full-width content; in-app welcome and
 loading use the capped reading wrapper. For future sheets: centre/cap within a
 safe pane and round all four corners; verify keyboard and dismissal controls.
@@ -52,6 +56,10 @@ safe pane and round all four corners; verify keyboard and dismissal controls.
 - [ ] Change wide preview selection to Preview Availability, fold to compact,
       unfold, and confirm selection remains. No dimension-based component keys.
 - [ ] At 839↔840 confirm the same tab remains selected as the rail moves.
+- [ ] Enter motor details, select a quote, then resize across 840; form values
+      and quote selection remain. On compact widths, Back to List is visible.
+- [ ] Check category and quote panes at 840 with large text and safe insets;
+      every field, badge, disclosure and button remains readable and scrollable.
 - [ ] Scroll the sign-in form with keyboard open on compact and wide; the
       ScrollView content uses flexGrow: 1. Render test checks visible fields and
       noncollapsed ancestors; native keyboard/geometry checks remain manual.
