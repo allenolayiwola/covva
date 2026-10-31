@@ -17,7 +17,7 @@ export default async function CookiesPage() {
   const rows = [
     { name: "sb-…-auth-token", purpose: "Keeps you signed in securely", type: "Strictly necessary", duration: "Session / up to 1 week" },
     { name: "Session storage: im:needs:v1", purpose: "Remembers your Help me choose answers in this tab", type: "Functional (stays on your device)", duration: "Until you close the tab" },
-    { name: "Form drafts", purpose: "Saves request forms so you can resume on a slow connection", type: "Functional", duration: "Until submitted or [90] days" },
+    { name: "Form drafts", purpose: "Saves request forms so you can resume on a slow connection", type: "Functional", duration: "Until submitted or To be confirmed before launch days" },
     { name: "covva_consent", purpose: PIXELS_CONFIGURED ? "Remembers your cookie choice (all, analytics only or essential only)" : "Remembers your cookie choice (analytics or essential only)", type: "Strictly necessary", duration: "180 days" },
     { name: EXPERIMENT_COOKIE, purpose: "Keeps you on the same version of a page while we test two designs (a random letter, no personal data)", type: "Functional", duration: "90 days" },
     { name: "covva_lang", purpose: "Remembers your preferred language across the site", type: "Functional", duration: "1 year" },

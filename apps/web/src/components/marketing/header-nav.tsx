@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n/client";
 import { PRIMARY_NAV, isGroup, navText, type NavGroup } from "./nav-links";
 
 const linkClass =
-  "relative inline-flex h-10 items-center gap-1 rounded-md px-1.5 text-[14.5px] font-medium transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:px-2 lg:text-[15px]";
+  "relative inline-flex h-11 items-center gap-1 rounded-md px-1.5 text-[14.5px] font-medium transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand lg:px-2 lg:text-[15px]";
 
 /** Desktop primary navigation with dropdown groups (Insurance ▾, Partners ▾) and the active section highlighted. */
 export function HeaderNav() {
