@@ -31,7 +31,7 @@ export default async function ComplaintsPage() {
                 <li>from your account — open the request or policy and choose “Raise a complaint”;</li>
                 <li>by email to <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>;</li>
                 <li>through our <Link href="/contact">contact form</Link>;</li>
-                <li>by phone or in writing to To be confirmed before launch.</li>
+                <li>by phone or in writing, using contact details to be confirmed before launch.</li>
               </ul>
               <p>Please tell us your name, how to contact you, the request or policy reference (if any), what happened and what you would like us to do. You can ask someone to complain on your behalf with your written permission.</p>
             </>
@@ -57,7 +57,7 @@ export default async function ComplaintsPage() {
           title: "What happens and when",
           body: (
             <ol>
-              <li><strong>Acknowledgement</strong> — within To be confirmed before launch working days, with a reference number and the name of the person handling it.</li>
+              <li><strong>Acknowledgement</strong> — within a number of working days to be confirmed before launch, with a reference number and the name of the person handling it.</li>
               <li><strong>Investigation</strong> — we, your broker or the insurer review what happened, including records and messages. We may ask you for more information.</li>
               <li><strong>Final response</strong> — we aim to resolve complaints within {days} days. If we need longer, we will tell you why and when to expect an answer.</li>
               <li><strong>If you are not satisfied</strong> — our final response explains how to escalate, including to the National Insurance Commission.</li>
@@ -73,7 +73,7 @@ export default async function ComplaintsPage() {
                 If your complaint about a broker or insurer is not resolved to your satisfaction, or you have not received a final response within the time above, you can refer it to the Complaints Bureau of the {REGULATION.nic.name}.
               </p>
               <p>
-                Website: <a href={REGULATION.nic.url} target="_blank" rel="noreferrer">nic.gov.gh</a>. To be confirmed before launch
+                Website: <a href={REGULATION.nic.url} target="_blank" rel="noreferrer">nic.gov.gh</a>. Additional contact details are to be confirmed before launch.
               </p>
               <p>Complaints about how we handle personal data can also be raised with the <a href={REGULATION.dpc.url} target="_blank" rel="noreferrer">{REGULATION.dpc.name}</a>.</p>
             </>
