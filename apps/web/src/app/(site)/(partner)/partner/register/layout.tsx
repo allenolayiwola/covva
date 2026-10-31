@@ -5,7 +5,7 @@ import { ROLE_STATEMENTS } from "@im/core";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
-  title: { default: "Partner registration", template: "%s · Covva partners" },
+  title: "Partner registration",
   robots: { index: false, follow: false },
 };
 

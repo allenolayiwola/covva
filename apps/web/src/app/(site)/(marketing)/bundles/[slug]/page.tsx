@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/bundles/[slug]">)
   const bundle = await getPublishedBundle(slug);
   if (!bundle) return { title: "Bundle not found", robots: { index: false } };
   const description = bundle.description ?? `${bundle.name}: a bundle of cover for family in Ghana, paid from abroad.`;
-  return { title: `${bundle.name} — cover for family in Ghana`, description, alternates: { canonical: `/bundles/${bundle.slug}` }, openGraph: { title: bundle.name, description, url: `/bundles/${bundle.slug}` } };
+  return { title: `${bundle.name} — cover for family in Ghana`, description, alternates: { canonical: `/bundles/${bundle.slug}` }, openGraph: { title: bundle.name, description, url: `/bundles/${bundle.slug}`, images: [sitePath("/opengraph-image")] } };
 }
 
 /** `params` is request-time data under Cache Components: the content streams inside Suspense. */

@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import type { RiskField } from "@im/core";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   description: "Answer a few questions, choose up to three licensed brokers and get real quotes from participating insurers in Ghana. Start without an account. A quote request is not cover.",
   alternates: { canonical: "/quote" },
   robots: { index: true, follow: true },
-  openGraph: { title: "Get insurance quotes · Covva", description: "One question at a time. Choose your brokers. Pay by MoMo or card when you are ready.", url: "/quote", images: ["/opengraph-image"] },
+  openGraph: { title: "Get insurance quotes · Covva", description: "One question at a time. Choose your brokers. Pay by MoMo or card when you are ready.", url: "/quote", images: [sitePath("/opengraph-image")] },
 };
 
 /**
@@ -50,6 +51,7 @@ export default async function QuotePage() {
       <Suspense
         fallback={
           <Container className="py-16">
+            <h1 className="sr-only">Get insurance quotes</h1>
             <div className="mx-auto flex max-w-xl items-center justify-center gap-3 text-muted"><Spinner className="size-5" /> Loading…</div>
           </Container>
         }

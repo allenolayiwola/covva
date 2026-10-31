@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BellRing, Church, Gift, Globe2, HeartHandshake, House, LayoutDashboard, Package, Users, Wallet } from "lucide-react";
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   description:
     "Look after your family in Ghana from anywhere. Pay in GBP, USD, EUR or CAD for parents’ health and funeral cover, the family car or the home you are building. Family dashboard, dual notifications, gift a policy, group plans for churches and associations.",
   alternates: { canonical: "/diaspora" },
-  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora", images: ["/opengraph-image"] },
+  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora", images: [sitePath("/opengraph-image")] },
 };
 
 const FEATURES = [
