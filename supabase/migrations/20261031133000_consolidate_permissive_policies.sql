@@ -3,6 +3,7 @@
 -- Auth helpers already use scalar SELECT initplans (advisor count: zero).
 -- Lock each table before inspecting its policies; source guards abort on policy drift.
 begin;
+set local lock_timeout = '5s';
 set local search_path = public, extensions;
 
 -- public.applications
