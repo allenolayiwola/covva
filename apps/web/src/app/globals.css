@@ -32,13 +32,14 @@
     text-decoration-color: currentColor;
   }
 
-  /* Brand type: Outfit Light headings; Inter body and UI. */
-  h1, h2, h3, h4, h5, h6 {
+  /* Brand type: Outfit Light headings on the marketing site only (wrapper in (marketing)/layout.tsx); the account and
+     partner apps keep Inter headings at their own weights. Inter is the body and UI face everywhere. */
+  [data-marketing] :is(h1, h2, h3, h4, h5, h6) {
     font-family: var(--font-display);
     font-weight: 300 !important;
     letter-spacing: -0.02em;
   }
-  h3, h4 {
+  [data-marketing] :is(h3, h4) {
     letter-spacing: -0.01em;
   }
   h1, h2, h3, h4 {

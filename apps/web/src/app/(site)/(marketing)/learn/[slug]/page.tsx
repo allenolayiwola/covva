@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/learn/[slug]">): 
     description,
     alternates: { canonical: `/learn/${a.slug}`, languages: Object.fromEntries(a.availableLocales.filter((l) => l !== "en").map((l) => [l, `/learn/${a.slug}/${l}`])) },
     robots: a.seo.noIndex ? { index: false, follow: false } : undefined,
-    openGraph: { type: "article", title, description, url: `/learn/${a.slug}`, publishedTime: a.published, modifiedTime: a.updated ?? a.published, images: [a.coverImage?.url ?? "/opengraph-image"] },
+    openGraph: { type: "article", title, description, url: `/learn/${a.slug}`, publishedTime: a.published, modifiedTime: a.updated ?? a.published, images: [a.coverImage?.url ?? sitePath("/opengraph-image")] },
   };
 }
 

@@ -1,3 +1,4 @@
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, Compass, Eye, Layers, LockKeyhole, Mail, MessageSquareWarning, Scale, ShieldCheck, UserRoundCheck, Users } from "lucide-react";
@@ -9,12 +10,7 @@ import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/com
 import { CtaBand } from "@/components/marketing/cta-band";
 import { REGULATION } from "@/components/marketing/content";
 
-export const metadata: Metadata = {
-  title: "About us",
-  description:
-    "Our vision is to be Ghana’s most trusted independent insurance access point. Learn how we work with licensed brokers and insurers, and how we are governed.",
-  alternates: { canonical: "/about" },
-};
+export const metadata: Metadata = pageMetadata(pageCopy.about);
 
 const PRINCIPLES = [
   { icon: Eye, title: "Clarity over persuasion", body: "We explain cover in plain language and show the details that matter, not just the price." },
@@ -78,7 +74,7 @@ export default async function AboutPage() {
           <FeatureCard icon={<Building2 />} title="Insurers — cover">{ROLE_STATEMENTS.insurer}</FeatureCard>
         </div>
         <p className="mt-6 text-sm text-muted">
-          We earn technology fees from partner brokers and insurers. We do not earn more by steering you to a particular insurer. See our{" "}
+          We earn a commission per policy sold. We do not earn more by steering you to a particular insurer. See our{" "}
           <Link href="/legal/disclosures" className="font-medium text-brand hover:underline">disclosures</Link>.
         </p>
       </Section>

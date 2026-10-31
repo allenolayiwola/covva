@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -185,7 +186,7 @@ export default function HowItWorksPage() {
               "One broker of record per request, named before advice or application.",
               "The same risk is never submitted twice to the same insurer.",
               "Quotes are checked again at checkout; expired quotes cannot be paid.",
-              "Premiums settle to the insurer — we never hold your money.",
+              PAYMENTS_DISCLOSURE,
             ]}
           />
         </div>

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { getCategories } from "@/lib/catalog";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
 import { getArticles, getPageSlugs } from "@/server/cms";
-import { siteUrl } from "@/lib/site-url";
+import { sitePath } from "@/lib/site-url";
 
 const STATIC_ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
@@ -36,12 +36,12 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [categories, ARTICLES, pages] = await Promise.all([getCategories(), getArticles(), getPageSlugs()]);
   return [
-    ...STATIC_ROUTES.map((r) => ({ url: r.path === "/" ? siteUrl() : `${siteUrl()}${r.path}`, priority: r.priority, changeFrequency: r.changeFrequency })),
-    ...PRODUCT_LINES.map((p) => ({ url: `${siteUrl()}/insurance/${p.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
-    ...ARTICLES.filter((a) => !a.seo.noIndex).map((a) => ({ url: `${siteUrl()}/learn/${a.slug}`, lastModified: a.updated ?? a.published, changeFrequency: "monthly" as const, priority: 0.6 })),
-    ...pages.map((p) => ({ url: `${siteUrl()}/pages/${p.slug}`, lastModified: p.updated, changeFrequency: "monthly" as const, priority: 0.5 })),
+    ...STATIC_ROUTES.map((r) => ({ url: sitePath(r.path), priority: r.priority, changeFrequency: r.changeFrequency })),
+    ...PRODUCT_LINES.map((p) => ({ url: sitePath(`/insurance/${p.slug}`), changeFrequency: "monthly" as const, priority: 0.9 })),
+    ...ARTICLES.filter((a) => !a.seo.noIndex).map((a) => ({ url: sitePath(`/learn/${a.slug}`), lastModified: a.updated ?? a.published, changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...pages.map((p) => ({ url: sitePath(`/pages/${p.slug}`), lastModified: p.updated, changeFrequency: "monthly" as const, priority: 0.5 })),
     ...categories.map((c) => ({
-      url: `${siteUrl()}/explore/${c.slug}`,
+      url: sitePath(`/explore/${c.slug}`),
       lastModified: c.updated_at,
       changeFrequency: "weekly" as const,
       priority: c.availability === "planned" ? 0.5 : 0.8,

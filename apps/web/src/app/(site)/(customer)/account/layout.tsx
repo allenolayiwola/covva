@@ -14,7 +14,7 @@ import { Assistant } from "@/components/customer/assistant";
 import { PageSkeleton } from "@/components/customer/skeletons";
 
 export const metadata: Metadata = {
-  title: { default: "My account", template: "%s · My account" },
+  title: "My account",
   robots: { index: false, follow: false },
 };
 

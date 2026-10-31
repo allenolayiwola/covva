@@ -10,9 +10,10 @@
  *    testimonials, payment-method partners) as *published* documents, so the site renders exactly
  *    as before the switch-over.
  *
- * Idempotent: documents are matched by slug / key and never overwritten, so editors' changes
- * survive a re-run (with CMS_SEED_FORCE=1 once the admin exists). Nothing here talks to the
- * application schema (`public`).
+ * Idempotent: documents are matched by slug / key. Existing FAQ payment answers (what-is, cost,
+ * methods) are corrected; all other existing content and FAQ metadata survive a re-run
+ * (with CMS_SEED_FORCE=1 once the admin exists). Nothing here talks to the application schema
+ * (`public`).
  */
 import { getPayload } from "payload";
 import { simpleBlocksToLexical } from "@im/core";
@@ -20,6 +21,8 @@ import config from "./payload.config";
 import { cmsConfigured, cmsDisabledReason } from "./env";
 import { ARTICLES } from "../components/marketing/articles";
 import { FAQ_GROUPS, HOME_FAQ_IDS, PAYMENT_METHODS, TESTIMONIALS } from "../components/marketing/content";
+
+const PAYMENT_FAQ_IDS = new Set(["what-is", "cost", "methods"]);
 
 const CLAIMS_FAQ_IDS = ["how-claim", "who-decides", "declined"];
 
@@ -105,7 +108,19 @@ async function main() {
           data: { key: it.id, question: it.q, answer: it.a, category: g.id as never, order: HOME_FAQ_IDS.includes(it.id) ? HOME_FAQ_IDS.indexOf(it.id) + 1 : order, placements, _status: "published" },
         });
         tally("faqs", true);
-      } else tally("faqs", false);
+      } else {
+        // Correct only these English answers; preserve questions, placements, order and status.
+        // The answer predicate makes repeated seeds a no-op once the correction is applied.
+        if (PAYMENT_FAQ_IDS.has(it.id)) {
+          await payload.update({
+            collection: "faqs",
+            locale: "en",
+            where: { and: [{ key: { equals: it.id } }, { answer: { not_equals: it.a } }] },
+            data: { answer: it.a },
+          });
+        }
+        tally("faqs", false);
+      }
       order += 10;
     }
   }

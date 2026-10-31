@@ -232,6 +232,7 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
   if (!booted) {
     return (
       <Container className="py-16">
+        <h1 className="sr-only">Get insurance quotes</h1>
         <div className="mx-auto flex max-w-xl items-center justify-center gap-3 text-muted"><Spinner className="size-5" /> Loading…</div>
       </Container>
     );
