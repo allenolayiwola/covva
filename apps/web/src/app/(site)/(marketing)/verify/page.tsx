@@ -55,7 +55,7 @@ export default async function VerifyPage() {
             <p className="mt-6 text-[14px] leading-relaxed text-muted">A “not found” result is not proof that someone is uninsured. Policies bought outside Covva must be checked with the insurer directly. Lookups are rate-limited to prevent abuse.</p>
           </div>
           <div className="rounded-card border border-line bg-white p-6">
-            <h3 className="font-semibold text-ink">For insurers and partners</h3>
+            <h3 className="text-[20px] leading-[1.25] text-ink">For insurers and partners</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-muted">Need verification inside your own systems? The same check is available as an API for licensed partners, with scoped keys and audit logs.</p>
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
               <Link href="/partners/embedded" className={textLinkClass}>Embedded partners <ArrowRight aria-hidden className="size-4" /></Link>

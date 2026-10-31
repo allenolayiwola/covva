@@ -111,13 +111,13 @@ export default async function AboutPage() {
             {COMMITTEES.map((c) => (
               <li key={c.title} className="rounded-card border border-line bg-white p-5">
                 <IconTile size="sm"><Compass /></IconTile>
-                <h3 className="mt-3 font-semibold text-ink">{c.title}</h3>
+                <h3 className="mt-3 text-[20px] leading-[1.25] text-ink">{c.title}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-muted">{c.body}</p>
               </li>
             ))}
           </ul>
           <div className="rounded-card border border-line bg-mist p-6">
-            <h3 className="font-semibold text-ink">Key policies</h3>
+            <h3 className="text-[20px] leading-[1.25] text-ink">Key policies</h3>
             <CheckList className="mt-4" items={POLICIES} />
           </div>
         </div>

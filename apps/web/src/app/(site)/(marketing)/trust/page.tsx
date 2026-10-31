@@ -66,7 +66,7 @@ export default async function TrustPage() {
           <FeatureCard icon={<CreditCard />} title="Payment provider">{ROLE_STATEMENTS.payment}</FeatureCard>
         </div>
         <div className="mt-10 rounded-[20px] border border-line bg-white p-6 shadow-card sm:p-8">
-          <h3 className="font-semibold text-ink">The mandatory disclosure</h3>
+          <h3 className="text-[20px] leading-[1.25] text-ink">The mandatory disclosure</h3>
           <p className="mt-1.5 text-[15px] text-muted">
             Before any advice or application — and on every quote, checkout and policy screen — you see a statement like this, built from the actual broker and insurer for your request:
           </p>
@@ -91,7 +91,7 @@ export default async function TrustPage() {
             <div className="rounded-card border border-line bg-white p-6">
               <div className="flex items-center gap-3">
                 <IconTile><Landmark /></IconTile>
-                <h3 className="font-semibold text-ink">Check a licence yourself</h3>
+                <h3 className="text-[20px] leading-[1.25] text-ink">Check a licence yourself</h3>
               </div>
               <p className="mt-3 text-[15px] leading-relaxed text-muted">
                 Every participating broker and insurer is listed with its NIC licence number. You can verify licensed entities with the regulator.
@@ -116,7 +116,7 @@ export default async function TrustPage() {
           {INTEGRITY.map((r) => (
             <li key={r.title} className="rounded-card border border-line bg-white p-6">
               <IconTile size="sm"><Scale /></IconTile>
-              <h3 className="mt-4 font-semibold text-ink">{r.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] text-ink">{r.title}</h3>
               <p className="mt-1.5 text-[14.5px] leading-relaxed text-muted">{r.body}</p>
             </li>
           ))}
@@ -145,7 +145,7 @@ export default async function TrustPage() {
           <div className="rounded-card border border-line bg-white p-6">
             <div className="flex items-center gap-3">
               <IconTile><LockKeyhole /></IconTile>
-              <h3 className="font-semibold text-ink">Our commitments</h3>
+              <h3 className="text-[20px] leading-[1.25] text-ink">Our commitments</h3>
             </div>
             <CheckList
               className="mt-5"
@@ -171,7 +171,7 @@ export default async function TrustPage() {
           ].map((s) => (
             <li key={s.step} className="relative rounded-card border border-line bg-white p-6">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold text-white">{s.step}</span>
-              <h3 className="mt-4 font-semibold text-ink">{s.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] text-ink">{s.title}</h3>
               <p className="mt-1.5 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}

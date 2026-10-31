@@ -338,7 +338,7 @@ function Results({
 
       <aside aria-labelledby="answers-title" className="h-fit rounded-card border border-line bg-mist p-5 lg:sticky lg:top-24">
         <div className="flex items-center justify-between">
-          <h3 id="answers-title" className="font-semibold text-ink">Your answers</h3>
+          <h3 id="answers-title" className="text-[20px] leading-[1.25] text-ink">Your answers</h3>
           <button type="button" onClick={onReset} className="inline-flex items-center gap-1 rounded text-sm font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             <RotateCcw aria-hidden className="size-3.5" /> Start again
           </button>

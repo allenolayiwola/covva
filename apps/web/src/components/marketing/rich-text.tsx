@@ -55,7 +55,7 @@ export function RichText({ nodes, className }: { nodes: RichNode[]; className?: 
             ) : n.level === 3 ? (
               <h3 key={i} className="mt-8 text-[20px] leading-[1.25] md:text-[24px] text-ink"><Inline nodes={n.children} /></h3>
             ) : (
-              <h4 key={i} className="mt-6 text-[17px] font-semibold text-ink"><Inline nodes={n.children} /></h4>
+              <h4 key={i} className="mt-6 text-[20px] leading-[1.25] text-ink"><Inline nodes={n.children} /></h4>
             );
           case "list":
             return n.ordered ? (
