@@ -1,3 +1,4 @@
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, Mail, Newspaper, UserRoundCheck } from "lucide-react";
@@ -7,11 +8,7 @@ import { PageHero } from "@/components/marketing/page-hero";
 import { IconTile, Section } from "@/components/marketing/section";
 import { LeadForm } from "@/components/marketing/lead-form";
 
-export const metadata: Metadata = {
-  title: "Contact us",
-  description: "Get in touch with the Covva team — customers, brokers, insurers, businesses and press.",
-  alternates: { canonical: "/contact" },
-};
+export const metadata: Metadata = pageMetadata(pageCopy.contact);
 
 export default async function ContactPage() {
   const [brand, categories] = await Promise.all([getBrand(), getCategories()]);

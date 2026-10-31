@@ -1,34 +1,14 @@
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "../globals.css";
-import { siteUrl } from "@/lib/site-url";
+import { rootMetadata } from "@/lib/root-metadata";
 import { HTML_LANG_SCRIPT } from "@/lib/i18n/html-lang";
 
 const outfit = Outfit({ subsets: ["latin"], weight: "300", display: "swap", variable: "--font-outfit" });
 // Inter supplies body/UI text and the extended Latin letters used in Ghanaian languages.
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-inter" });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl()),
-  title: {
-    default: "Covva — Find cover. Understand it. Move forward.",
-    template: "%s · Covva",
-  },
-  description:
-    "Compare cover from participating licensed insurers in Ghana, with a named broker by your side from first question to policy delivery. Keep every policy in one wallet and get help with renewals and claims.",
-  applicationName: "Covva",
-  openGraph: {
-    type: "website",
-    siteName: "Covva",
-    locale: "en_GH",
-  },
-  twitter: { card: "summary_large_image" },
-  formatDetection: { telephone: false },
-  icons: {
-    icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/favicon.png", type: "image/png", sizes: "64x64" }, { url: "/icon-192.png", type: "image/png", sizes: "192x192" }],
-    apple: "/apple-touch-icon.png",
-  },
-};
+export const metadata = rootMetadata();
 
 export const viewport: Viewport = {
   themeColor: "#00796E",

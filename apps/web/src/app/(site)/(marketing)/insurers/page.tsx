@@ -25,7 +25,7 @@ const BENEFITS = [
 
 const COMMERCIAL = [
   { title: "Portal (Level 1)", body: "A flat monthly platform fee per insurer. No per-policy charge while you learn the channel.", tag: "Fixed" },
-  { title: "Connected (Levels 2–3)", body: "A lower platform fee plus a small per-policy technology fee on issued policies, invoiced monthly with a reconciliation feed.", tag: "Usage" },
+  { title: "Connected (Levels 2–3)", body: "A commission per issued policy, with a monthly reconciliation feed.", tag: "Usage" },
   { title: "What never changes", body: "Premiums settle to the insurer. Broker commission is set by you and disclosed to the customer. Covva never earns more by steering customers to one insurer.", tag: "Principle" },
 ];
 

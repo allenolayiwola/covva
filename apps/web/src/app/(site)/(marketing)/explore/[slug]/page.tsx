@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: PageProps<"/explore/[slug]">)
     title,
     description,
     alternates: { canonical: `/explore/${category.slug}` },
-    openGraph: { title, description, url: `/explore/${category.slug}`, images: ["/opengraph-image"] },
+    openGraph: { title, description, url: `/explore/${category.slug}`, images: [sitePath("/opengraph-image")] },
   };
 }
 

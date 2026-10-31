@@ -18,7 +18,7 @@ const STATUSES: Enum<"invoice_status">[] = ["draft", "issued", "paid", "overdue"
 export default function InvoicesPage({ searchParams }: PageProps<"/invoices">) {
   return (
     <>
-      <PageHeader title="Invoices" description="Technology fees billed to partners (subscriptions and usage). Premiums are never invoiced by the platform." />
+      <PageHeader title="Invoices" description="Partner invoices. Premiums are never invoiced by the platform." />
       <Suspense fallback={<LoadingBlock label="Loading invoices…" />}>
         <Invoices searchParams={searchParams} />
       </Suspense>

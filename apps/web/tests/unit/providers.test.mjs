@@ -71,8 +71,8 @@ test('simulator link completion authenticates reference and is always disabled i
   assert.equal((await simulatorProvider.refund('fixture', 100)).status, 'processed');
   process.env.PAYMENTS_MODE = 'live';
   process.env.PAYMENTS_SIMULATOR = 'true';
-  assert.equal(simulatorProvider.verifyWebhook('fixture', url.searchParams.get('sig')), false);
-  await assert.rejects(simulatorProvider.initialise({ reference: 'fixture' }), /disabled/);
+  assert.throws(() => simulatorProvider.verifyWebhook('fixture', url.searchParams.get('sig')), /PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE/);
+  await assert.rejects(simulatorProvider.initialise({ reference: 'fixture' }), /PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE/);
 });
 
 test('startup validates credentials before accepting requests without exposing key values', async t => {
@@ -86,6 +86,8 @@ test('startup validates credentials before accepting requests without exposing k
     process.env.PAYMENT_PROVIDER = provider;
     assert.throws(register, /credentials.*live/);
   }
+  process.env.PAYMENT_PROVIDER = 'simulator';
+  assert.throws(register, { message: 'PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE.' });
 });
 
 test('Paystack refuses empty settlementAccount before transport, including with a split', async t => {

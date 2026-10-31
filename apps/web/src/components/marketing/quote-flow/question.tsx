@@ -108,7 +108,7 @@ function FieldControl({ field: f, value, error, onChange, autoFocus, multi }: { 
   }
 
   const v = typeof value === "string" ? value : "";
-  const common = { id, "aria-invalid": !!error, "aria-describedby": error ? errId : undefined, autoFocus };
+  const common = { id, required: f.required, "aria-invalid": !!error, "aria-describedby": error ? errId : undefined, autoFocus };
   // On a single-input screen the heading already asks the question: keep the label for assistive tech only.
   const label = (
     <span className={multi ? "text-[16px]" : "sr-only"}>
@@ -142,7 +142,7 @@ function FieldControl({ field: f, value, error, onChange, autoFocus, multi }: { 
       control = (
         <div className="flex">
           <span className="inline-flex items-center rounded-l-field border border-r-0 border-line bg-mist px-4 text-[15px] text-muted">GH₵</span>
-          <Input {...common} className="h-14 rounded-l-none text-[16px]" type="number" inputMode="decimal" min={f.min} max={f.max} step="any" value={v} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} />
+          <Input {...common} className="h-14 rounded-l-none text-[16px]" type="number" inputMode="decimal" min={f.min} max={f.max} step="any" value={v} placeholder={f.placeholder ?? (f.key === "vehicle_value" ? "120000" : undefined)} onChange={(e) => onChange(e.target.value)} />
         </div>
       );
       break;

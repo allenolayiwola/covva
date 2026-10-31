@@ -1,3 +1,5 @@
+import { JsonLd } from "./json-ld";
+import { sitePath } from "@/lib/site-url";
 import * as React from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -29,6 +31,7 @@ export function PageHero({
       <Container className="relative py-14 sm:py-20">
         {breadcrumb && breadcrumb.length > 0 && (
           <nav aria-label="Breadcrumb" className="mb-6">
+            <JsonLd data={{ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ label: "Home", href: "/" }, ...breadcrumb].map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.label, ...(item.href ? { item: sitePath(item.href) } : {}) })) }} />
             <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
               <li>
                 <Link href="/" className="rounded hover:text-brand">Home</Link>

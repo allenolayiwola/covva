@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { isCmsLocale, localeDef, type CmsLocale } from "@im/core";
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/learn/[slug]/[lan
     description,
     alternates: { canonical: a.translated ? `/learn/${a.slug}/${locale}` : `/learn/${a.slug}`, languages: { en: `/learn/${a.slug}` } },
     robots: a.seo.noIndex || !a.translated ? { index: false, follow: true } : undefined,
-    openGraph: { type: "article", title, description, url: `/learn/${a.slug}/${locale}`, locale: localeDef(locale).htmlLang, publishedTime: a.published, modifiedTime: a.updated ?? a.published, images: [a.coverImage?.url ?? "/opengraph-image"] },
+    openGraph: { type: "article", title, description, url: `/learn/${a.slug}/${locale}`, locale: localeDef(locale).htmlLang, publishedTime: a.published, modifiedTime: a.updated ?? a.published, images: [a.coverImage?.url ?? sitePath("/opengraph-image")] },
   };
 }
 
