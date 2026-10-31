@@ -74,7 +74,7 @@ export default async function AboutPage() {
           <FeatureCard icon={<Building2 />} title="Insurers — cover">{ROLE_STATEMENTS.insurer}</FeatureCard>
         </div>
         <p className="mt-6 text-sm text-muted">
-          We earn technology fees from partner brokers and insurers. We do not earn more by steering you to a particular insurer. See our{" "}
+          We earn a commission per policy sold. We do not earn more by steering you to a particular insurer. See our{" "}
           <Link href="/legal/disclosures" className="font-medium text-brand hover:underline">disclosures</Link>.
         </p>
       </Section>

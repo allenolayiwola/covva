@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSetting } from "@/lib/catalog";
@@ -30,7 +31,7 @@ export default async function TermsPage() {
                 {n} (“we”, “us”) is the brand name of a technology platform whose operating company, Ghanaian company registration number and registered office address are to be confirmed before launch.
               </p>
               <p>
-                We provide technology that helps you explore, compare and manage insurance. <strong>We are not an insurer and not an insurance broker.</strong> We do not give insurance advice in our own name, we do not underwrite risks, we do not decide claims and we never hold your premium.
+                We provide technology that helps you explore, compare and manage insurance. <strong>We are not an insurer and not an insurance broker.</strong> We do not give insurance advice in our own name, we do not underwrite risks, we do not decide claims. {PAYMENTS_DISCLOSURE}
               </p>
             </>
           ),
@@ -89,7 +90,7 @@ export default async function TermsPage() {
           title: "Payment and when cover starts",
           body: (
             <>
-              <p>Premiums are paid through an authorised payment provider directly to the insurer. We do not hold, pool or have access to your premium.</p>
+              <p>{PAYMENTS_DISCLOSURE}</p>
               <p>
                 <strong>Payment confirmation alone does not make a policy active.</strong> Cover starts only when the insurer confirms acceptance and issues your policy. Until then your request shows as awaiting insurer issuance. If the insurer declines, any premium paid is refunded in line with the insurer’s and payment provider’s procedures.
               </p>
@@ -113,7 +114,7 @@ export default async function TermsPage() {
         {
           id: "fees",
           title: "Fees",
-          body: <p>Using the platform as a customer is free. Brokers and insurers pay us technology fees. Brokers are paid commission by insurers. See our <Link href="/legal/disclosures">disclosures</Link>.</p>,
+          body: <p>Using the platform as a customer is free. {PAYMENTS_DISCLOSURE} See our <Link href="/legal/disclosures">disclosures</Link>.</p>,
         },
         {
           id: "ip",

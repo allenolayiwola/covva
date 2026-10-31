@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -259,7 +260,7 @@ export default async function HomePage() {
               <FeatureCard icon={<Layers />} title={<>{brand.name} <span className="font-normal text-muted">· technology</span></>}>{ROLE_STATEMENTS.platform}</FeatureCard>
               <FeatureCard icon={<UserRoundCheck />} title="Broker of record">{ROLE_STATEMENTS.broker}</FeatureCard>
               <FeatureCard icon={<Building2 />} title="Licensed insurer">{ROLE_STATEMENTS.insurer}</FeatureCard>
-              <FeatureCard icon={<CreditCard />} title="Payment provider">{ROLE_STATEMENTS.payment} We never hold your premium.</FeatureCard>
+              <FeatureCard icon={<CreditCard />} title="Payment provider">{PAYMENTS_DISCLOSURE}</FeatureCard>
             </div>
             {(demo || anyDemoPartner) && <DemoBadge className="mt-4" />}
           </div>

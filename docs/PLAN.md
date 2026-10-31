@@ -129,7 +129,7 @@ due_at, SLA), `request_messages`, `request_tasks` (e.g. "vehicle document needed
 After-sale: `claims`, `claim_documents`, `claim_events`, `complaints`
 (SLA deadlines, escalation), `notifications`.
 
-SaaS: `plans`, `subscriptions`, `usage_events` (per-transaction technology fees,
+SaaS: `plans`, `subscriptions`, `usage_events` (per-transaction commission,
 AI usage), `invoices`, `api_keys`, `webhooks`, `connector_configs`.
 
 Governance: `audit_events` (hash-chained), `feature_flags`, `platform_settings`.

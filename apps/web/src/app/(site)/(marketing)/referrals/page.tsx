@@ -42,7 +42,7 @@ export default function ReferralsPage() {
           <FeatureCard icon={<Wallet />} title="3. Earn when they buy">When their first policy is issued and paid, you both get Covva credits once their cover has been active for 14 days.</FeatureCard>
         </div>
         <Notice tone="info" className="mt-8">
-          Rewards are funded by Covva’s technology fees, not by the insurer’s premium, and are disclosed on every referred quote. Referral rewards never change which insurer or product we show you.
+          Rewards are funded by Covva’s commission, not by the insurer’s premium, and are disclosed on every referred quote. Referral rewards never change which insurer or product we show you.
         </Notice>
       </Section>
 

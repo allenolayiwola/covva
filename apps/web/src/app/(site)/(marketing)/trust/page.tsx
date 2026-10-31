@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Building2, CreditCard, ExternalLink, FileWarning, Landmark, Layers, LockKeyhole, Scale, UserRoundCheck } from "lucide-react";
@@ -21,7 +22,7 @@ const INTEGRITY = [
   { title: "We say how many we compared", body: "Every comparison shows the number of participating insurers and products included, and which insurers did not respond." },
   { title: "No whole-market claims", body: "We compare participating insurers only. We never say or imply we cover every insurer in Ghana." },
   { title: "Paid placement kept separate", body: "If paid placements are ever shown, they are clearly labelled and never affect the ranking." },
-  { title: "Commission disclosed", body: "Brokers are paid commission by insurers. We explain how this works before you apply, and tell you the amount on request." },
+  { title: "Commission disclosed", body: PAYMENTS_DISCLOSURE },
   { title: "Time-stamped quotes", body: "Each quote shows when it was made, its state and its validity date, and is checked again at checkout." },
   { title: "No unexplained “best”", body: "Labels like “Lowest price” say exactly what they mean. We never call a policy “the best” for you." },
 ];
