@@ -1,3 +1,4 @@
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import { Suspense } from "react";
 import type { Row } from "@im/db";
 import { Checkbox, Field, Input, Pill, Select, Textarea } from "@im/ui";
@@ -24,6 +25,7 @@ export default function PlansPage() {
 async function Plans() {
   const staff = await requireStaff();
   const supabase = await createClient();
+  if (!await partnerBillingEnabled(supabase)) return <p>Partner platform-fee billing is disabled. Enable partner_platform_fee in Feature flags after review.</p>;
   const [{ data: plans }, { data: subs }] = await Promise.all([
     supabase.from("plans").select("*").order("sort_order"),
     supabase.from("subscriptions").select("plan_id, status").in("status", ["trialing", "active", "past_due"]),
@@ -77,11 +79,11 @@ function PlanForm({ plan, canAct }: { plan?: Row<"plans">; canAct: boolean }) {
             <option value="broker">Broker</option><option value="insurer">Insurer</option><option value="enterprise">Enterprise</option>
           </Select>
         </Field>
-        <Field label="Monthly fee (GH₵)" htmlFor={`fee-${idp}`}><Input id={`fee-${idp}`} name="monthly_fee" type="number" step="0.01" min={0} defaultValue={plan?.monthly_fee ?? 0} /></Field>
+        <Field label="Monthly platform fee (GH₵)" htmlFor={`fee-${idp}`}><Input id={`fee-${idp}`} name="monthly_fee" type="number" step="0.01" min={0} required defaultValue={plan?.monthly_fee ?? ""} /></Field>
         <Field label="Included seats" htmlFor={`seats-${idp}`} hint="Empty = unlimited"><Input id={`seats-${idp}`} name="included_seats" type="number" min={0} defaultValue={plan?.included_seats ?? ""} /></Field>
         <Field label="Included requests / month" htmlFor={`req-${idp}`} hint="Empty = unlimited"><Input id={`req-${idp}`} name="included_requests" type="number" min={0} defaultValue={plan?.included_requests ?? ""} /></Field>
-        <Field label="Fee per request over allowance" htmlFor={`prf-${idp}`}><Input id={`prf-${idp}`} name="per_request_fee" type="number" step="0.01" min={0} defaultValue={plan?.per_request_fee ?? 0} /></Field>
-        <Field label="Fee per active policy" htmlFor={`pap-${idp}`}><Input id={`pap-${idp}`} name="per_active_policy_fee" type="number" step="0.01" min={0} defaultValue={plan?.per_active_policy_fee ?? 0} /></Field>
+        <Field label="Fee per request over allowance" htmlFor={`prf-${idp}`}><Input id={`prf-${idp}`} name="per_request_fee" type="number" step="0.01" min={0} required defaultValue={plan?.per_request_fee ?? ""} /></Field>
+        <Field label="Fee per active policy" htmlFor={`pap-${idp}`}><Input id={`pap-${idp}`} name="per_active_policy_fee" type="number" step="0.01" min={0} required defaultValue={plan?.per_active_policy_fee ?? ""} /></Field>
         <Field label="Sort order" htmlFor={`so-${idp}`}><Input id={`so-${idp}`} name="sort_order" type="number" defaultValue={plan?.sort_order ?? 100} /></Field>
         <Field label="Description" htmlFor={`desc-${idp}`} className="md:col-span-3"><Input id={`desc-${idp}`} name="description" defaultValue={plan?.description ?? ""} /></Field>
         <Field label="Features (one per line)" htmlFor={`feat-${idp}`} className="md:col-span-2">

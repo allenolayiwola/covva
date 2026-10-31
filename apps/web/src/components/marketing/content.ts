@@ -14,12 +14,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: "what-is",
         q: "What is Covva?",
-        a: `We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker and we do not give insurance advice in our own name. ${PAYMENTS_DISCLOSURE}`,
+        a: `We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker and we do not give insurance advice in our own name. Partners pay Covva a platform fee in addition to commission; neither commission nor fees affect rankings. Commission is taken via the Paystack split. Paystack, not Covva, holds customer funds. ${PAYMENTS_DISCLOSURE}`,
       },
       {
         id: "cost",
         q: "Does it cost anything to use?",
-        a: `Exploring cover, using Help me choose and requesting quotes are free. You pay the premium the insurer sets. ${PAYMENTS_DISCLOSURE}`,
+        a: `Exploring cover, using Help me choose and requesting quotes are free. You pay the premium the insurer sets. Partners pay Covva a platform fee in addition to commission; neither commission nor fees affect rankings. Commission is taken via the Paystack split. Paystack, not Covva, holds customer funds. ${PAYMENTS_DISCLOSURE}`,
       },
       {
         id: "how-many",
@@ -50,7 +50,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: "methods",
         q: "How can I pay?",
-        a: `You can pay by mobile money or card through an authorised payment provider. ${PAYMENTS_DISCLOSURE}`,
+        a: `You can pay by mobile money or card through an authorised payment provider. Partners pay Covva a platform fee in addition to commission; neither commission nor fees affect rankings. Commission is taken via the Paystack split. Paystack, not Covva, holds customer funds. ${PAYMENTS_DISCLOSURE}`,
       },
       {
         id: "paid-active",

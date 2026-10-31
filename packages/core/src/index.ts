@@ -54,3 +54,4 @@ export * from "./product-management";
 export * from "./cms";
 export * from "./hero-carousel";
 export * from "./provider-config";
+export * from "./partner-billing";

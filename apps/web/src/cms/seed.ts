@@ -11,7 +11,7 @@
  *    as before the switch-over.
  *
  * Idempotent: documents are matched by slug / key. Existing FAQ payment answers (what-is, cost,
- * methods) are corrected; all other existing content and FAQ metadata survive a re-run
+ * methods) include the partner platform-fee disclosure; all other existing content and FAQ metadata survive a re-run
  * (with CMS_SEED_FORCE=1 once the admin exists). Nothing here talks to the application schema
  * (`public`).
  */
