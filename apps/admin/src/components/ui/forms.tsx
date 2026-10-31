@@ -1,8 +1,9 @@
 "use client";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ScrollText } from "lucide-react";
 import { Button, Notice, Textarea, Label, cn, type ButtonProps } from "@im/ui";
+import { showFieldErrors } from "@/lib/field-errors";
 import type { ActionState } from "@/lib/action-state";
 
 export type ServerAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -25,12 +26,27 @@ export function AuditNote({ className }: { className?: string }) {
   );
 }
 
+/** Server-rendered children cannot consume a client context; bind errors to their named controls. */
+export function FieldErrors({ state }: { state: ActionState }) {
+  const marker = useRef<HTMLSpanElement>(null);
+  const id = useId();
+  useEffect(() => {
+    const form = marker.current?.closest("form");
+    if (!form || !state || state.ok || !state.fieldErrors) return;
+    return showFieldErrors(form, state.fieldErrors, id);
+  }, [state, id]);
+  return <span ref={marker} hidden />;
+}
+
 export function ResultNotice({ state, className }: { state: ActionState; className?: string }) {
   if (!state) return null;
   return (
-    <Notice tone={state.ok ? "ok" : "danger"} className={cn("py-2.5", className)}>
-      <span role={state.ok ? "status" : "alert"}>{state.ok ? state.message ?? "Saved." : state.error}</span>
-    </Notice>
+    <>
+      <FieldErrors state={state} />
+      <Notice tone={state.ok ? "ok" : "danger"} className={cn("py-2.5", className)}>
+        <span role={state.ok ? "status" : "alert"}>{state.ok ? state.message ?? "Saved." : state.error}</span>
+      </Notice>
+    </>
   );
 }
 
@@ -64,6 +80,7 @@ export function ActionForm({
     return (
       <form action={formAction} className={cn("flex flex-wrap items-center gap-2", className)}>
         {children}
+        <FieldErrors state={state} />
         <SubmitButton variant={submitVariant} disabled={readOnly} title={readOnly ? "Read-only for your role" : undefined}>
           {submitLabel}
         </SubmitButton>
