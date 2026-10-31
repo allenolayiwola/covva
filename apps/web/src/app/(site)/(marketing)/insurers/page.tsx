@@ -125,7 +125,7 @@ export default async function InsurersPage() {
       </Section>
 
       <Section labelledBy="commercial-title">
-        <SectionHeading id="commercial-title" eyebrow="Commercial model" title="Simple, published, and never tied to steering" />
+        <SectionHeading id="commercial-title" eyebrow="Commercial model" title="Simple, transparent, and never tied to steering." />
         <div className="grid gap-4 md:grid-cols-3">
           {COMMERCIAL.map((c) => (
             <div key={c.title} className="rounded-card border border-line bg-white p-6">
