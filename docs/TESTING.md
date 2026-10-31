@@ -157,3 +157,17 @@ project, the privileged journeys are skipped, and the purge is skipped.
   toggles a feature flag (`ussd_channel`, restored afterwards).
 - No `SUPABASE_SECRET_KEY` locally means the privileged journey, request creation, payments and cron paths are not exercised outside CI.
 - Playwright's own `@playwright/test` package is not in the lockfile; the runner comes from a global install (see above).
+
+## Local production-hardening rules
+
+`supabase/tests/production_hardening.test.sql` is a transactional pgTAP suite for the RPC
+execute grants, partner membership/finance boundaries, public policy verification, and
+CMS schema/RLS protection. With a local Supabase database containing the repo migrations,
+run `supabase test db`. All fixtures (including a CMS test page) roll back. The suite uses
+both JWT claim settings to support local Auth fixtures and Supabase Auth helpers.
+Do not run this suite or the REST database suites against production during hardening work.
+
+`pnpm test` also runs the web unit tests in `apps/web/tests/unit`: the actual cron handler
+with job side effects stubbed, plus the admin rollup action with authorization and database
+clients stubbed. These verify fail-closed cron authentication and that service-role rollups
+only follow successful platform authorization and input validation.
