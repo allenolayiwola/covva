@@ -1,5 +1,5 @@
 import "server-only";
-import { normaliseRegistration, type VehicleData } from "@im/core";
+import { identityConfiguration, normaliseRegistration, type VehicleData } from "@im/core";
 import type { Json } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { log } from "@/server/log";
@@ -79,6 +79,8 @@ export function cacheVehicleProvider(svc: Svc): VehicleLookupProvider {
 export const dvlaVehicleProvider: VehicleLookupProvider = {
   name: "dvla",
   async lookup(registration) {
+    identityConfiguration(process.env);
+    if (process.env.VEHICLE_LOOKUP_PROVIDER !== "dvla") return null;
     const base = process.env.DVLA_API_URL?.replace(/\/$/, "");
     const key = process.env.DVLA_API_KEY;
     if (!base || !key) return null;
@@ -159,14 +161,13 @@ export interface IdentityCheckResult {
   checkedAt?: string | null;
 }
 
-export interface IdentityProvider {
-  readonly name: "manual" | "nia";
-  verify(input: IdentityCheckInput): Promise<IdentityCheckResult>;
-}
+export type { IdentityProvider } from "@/server/providers/identity-provider";
+import type { IdentityProvider } from "@/server/providers/identity-provider";
 
 /** Manual: every submission goes to the admin KYC review queue. */
 export const manualIdentityProvider: IdentityProvider = {
   name: "manual",
+  lookup: (registration) => manualVehicleProvider.lookup(registration),
   async verify() {
     return { provider: "manual", status: "pending", reference: null, result: null, checkedAt: null };
   },
@@ -179,7 +180,9 @@ export const manualIdentityProvider: IdentityProvider = {
  */
 export const niaIdentityProvider: IdentityProvider = {
   name: "nia",
+  lookup: (registration) => dvlaVehicleProvider.lookup(registration),
   async verify(input) {
+    if (identityConfiguration(process.env) !== "nia") return manualIdentityProvider.verify(input);
     const base = process.env.NIA_API_URL?.replace(/\/$/, "");
     const key = process.env.NIA_API_KEY;
     if (!base || !key) return manualIdentityProvider.verify(input);
@@ -212,7 +215,7 @@ export const niaIdentityProvider: IdentityProvider = {
 };
 
 export function identityProvider(): IdentityProvider {
-  return (process.env.IDENTITY_PROVIDER ?? "manual").toLowerCase() === "nia" ? niaIdentityProvider : manualIdentityProvider;
+  return identityConfiguration(process.env) === "nia" ? niaIdentityProvider : manualIdentityProvider;
 }
 
 /**

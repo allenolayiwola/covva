@@ -4,8 +4,8 @@ import { simulatorEnabled, verifySimulatorSignature } from "@/server/env";
 import { applyPaymentResult } from "@/server/payments";
 
 /**
- * SANDBOX PAYMENT SIMULATOR — only when PAYSTACK_SECRET_KEY is absent and NODE_ENV !== "production"
- * (or PAYMENTS_SIMULATOR=true). No money moves. Runs the same applyPaymentResult path as the webhook.
+ * SANDBOX PAYMENT SIMULATOR — default when no provider is configured, including production.
+ * Always disabled by PAYMENTS_MODE=live. No money moves; uses the same result path as webhooks.
  */
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

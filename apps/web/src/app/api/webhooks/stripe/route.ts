@@ -1,6 +1,7 @@
+import { paymentProvider } from "@/server/providers/payment";
+import { paymentConfig } from "@/server/env";
 import { randomUUID } from "node:crypto";
 import { applyPaymentResult } from "@/server/payments";
-import { verifyStripeSignature } from "@/server/providers/stripe";
 import { log } from "@/server/log";
 
 interface StripeEvent {
@@ -18,9 +19,10 @@ interface StripeEvent {
  * before the insurer is paid.
  */
 export async function POST(req: Request) {
+  if (paymentConfig().provider !== "stripe") return Response.json({ ok: false }, { status: 401 });
   const requestId = randomUUID();
   const raw = await req.text();
-  if (!verifyStripeSignature(raw, req.headers.get("stripe-signature"))) {
+  if (!paymentProvider().verifyWebhook(raw, req.headers.get("stripe-signature"))) {
     log.warn("stripe.webhook_bad_signature", { requestId });
     return Response.json({ ok: false, error: { code: "unauthorised", message: "Invalid signature" } }, { status: 401 });
   }
@@ -41,14 +43,14 @@ export async function POST(req: Request) {
           if (evt.type === "checkout.session.completed" && o.payment_status && o.payment_status !== "paid") break;
           // Stripe amounts are in the DISPLAY currency; the GHS contract amount is on the payment row,
           // so no minor-unit comparison is possible here — the currency check is skipped on purpose.
-          await applyPaymentResult(ref, { status: "succeeded", paidAt: new Date().toISOString(), channel: "card", event: evt as unknown, source: "webhook" });
+          await applyPaymentResult(ref, { status: "succeeded", paidAt: new Date().toISOString(), channel: "card", event: evt as unknown, source: "webhook", provider: "stripe" });
           break;
         case "payment_intent.payment_failed":
         case "checkout.session.expired":
-          await applyPaymentResult(ref, { status: evt.type === "checkout.session.expired" ? "abandoned" : "failed", failureReason: o.last_payment_error?.message ?? "Declined", event: evt as unknown, source: "webhook" });
+          await applyPaymentResult(ref, { status: evt.type === "checkout.session.expired" ? "abandoned" : "failed", failureReason: o.last_payment_error?.message ?? "Declined", event: evt as unknown, source: "webhook", provider: "stripe" });
           break;
         case "charge.refunded":
-          await applyPaymentResult(ref, { status: "refunded", event: evt as unknown, source: "webhook" });
+          await applyPaymentResult(ref, { status: "refunded", event: evt as unknown, source: "webhook", provider: "stripe" });
           break;
         default:
           break;
