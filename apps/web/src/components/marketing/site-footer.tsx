@@ -80,6 +80,7 @@ export async function SiteFooter() {
               <StoreBadges size="sm" />
             </div>
             <PaymentBadges compact className="mt-5" />
+            {demo && <DemoBadge className="mt-5 text-sm!" />}
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
@@ -138,7 +139,6 @@ export async function SiteFooter() {
           <p className="text-sm">
             <Link href="/legal/cookies" className="inline-flex min-h-11 min-w-11 items-center rounded hover:text-brand"><T k="footer.cookiesConsent" /></Link>
           </p>
-          {demo && <DemoBadge className="text-sm!" />}
         </div>
       </Container>
     </footer>

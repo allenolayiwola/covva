@@ -192,6 +192,11 @@ run `supabase test db`. All fixtures (including a CMS test page) roll back. The 
 both JWT claim settings to support local Auth fixtures and Supabase Auth helpers.
 Do not run this suite or the REST database suites against production during hardening work.
 
+Requirements for the SQL suites (`production_hardening.test.sql`, `cms_schema.test.sql`): Postgres 17 (matches
+`major_version = 17` in `supabase/config.toml`) with the pgTAP extension. They pull migrations in with `\ir`
+(include relative to the test file), so pass the file path with `-f`, for example
+`psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/cms_schema.test.sql`; piping the file through stdin breaks `\ir`.
+
 `pnpm test` also runs the web unit tests in `apps/web/tests/unit`: the actual cron handler
 with job side effects stubbed, plus the admin rollup action with authorization and database
 clients stubbed. These verify fail-closed cron authentication and that service-role rollups

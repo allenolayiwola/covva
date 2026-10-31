@@ -28,12 +28,12 @@ export default async function PrivacyPage() {
           body: (
             <>
               <p>
-                To be confirmed before launch, operating as {n}, is the data controller for personal data processed through our website and apps. We intend to be registered with the {REGULATION.dpc.name} as required by Act 843 To be confirmed before launch.
+                The company operating as {n}, whose legal name is to be confirmed before launch, is the data controller for personal data processed through our website and apps. We intend to be registered with the {REGULATION.dpc.name} as required by Act 843. Registration details are to be confirmed before launch.
               </p>
               <p>
                 Your broker of record and the insurers you ask for quotes are separate controllers for the data they receive to advise you, underwrite your risk and administer your policy. Their own privacy notices also apply.
               </p>
-              <p>Data protection contact: To be confirmed before launch, <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>.</p>
+              <p>Data protection contact: to be confirmed before launch. For now, email <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>.</p>
             </>
           ),
         },
@@ -90,12 +90,12 @@ export default async function PrivacyPage() {
         {
           id: "transfers",
           title: "International transfers",
-          body: <p>Some of our service providers may store or process data outside Ghana. Where they do, we put safeguards in place as required by Act 843, such as contractual commitments and security controls. To be confirmed before launch</p>,
+          body: <p>Some of our service providers may store or process data outside Ghana. Where they do, we put safeguards in place as required by Act 843, such as contractual commitments and security controls. Details of these safeguards are to be confirmed before launch.</p>,
         },
         {
           id: "retention",
           title: "How long we keep it",
-          body: <p>We keep personal data only as long as needed for the purposes above and to meet legal, regulatory and insurer record-keeping requirements — generally To be confirmed before launch years after your last policy ends or your request closes, unless a longer period is required by law or for an ongoing claim or complaint. Unsubmitted drafts are deleted after To be confirmed before launch days.</p>,
+          body: <p>We keep personal data only as long as needed for the purposes above and to meet legal, regulatory and insurer record-keeping requirements — generally for a number of years after your last policy ends or your request closes (the number of years is to be confirmed before launch), unless a longer period is required by law or for an ongoing claim or complaint. Unsubmitted drafts are deleted after a number of days to be confirmed before launch.</p>,
         },
         {
           id: "rights",
@@ -111,7 +111,7 @@ export default async function PrivacyPage() {
                 <li>withdraw consent where we rely on it;</li>
                 <li>complain to the <a href={REGULATION.dpc.url} target="_blank" rel="noreferrer">{REGULATION.dpc.name}</a>.</li>
               </ul>
-              <p>To exercise your rights, use the privacy settings in your account or email <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>. We will respond within To be confirmed before launch days.</p>
+              <p>To exercise your rights, use the privacy settings in your account or email <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a>. We will respond within a number of days to be confirmed before launch.</p>
             </>
           ),
         },

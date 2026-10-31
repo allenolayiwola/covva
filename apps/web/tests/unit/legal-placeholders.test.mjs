@@ -18,6 +18,7 @@ for (const slug of ["terms", "privacy", "cookies", "complaints", "disclosures"])
     }
     visit(source);
     assert.doesNotMatch(content.join("\n"), /\[[^\]]+\]/);
-    assert.match(content.join("\n"), /To be confirmed before launch/);
+    assert.doesNotMatch(content.join(" "), /(?:within|after|generally|until submitted or|operated by|in writing to|office at|registration number)\s+to be confirmed before launch|to be confirmed before launch\s+(?:working days|days|years)|Act 843\s+to be confirmed/i);
+    assert.match(content.join("\n"), /to be confirmed before launch/i);
   });
 }
