@@ -18,10 +18,10 @@ import {
 } from "lucide-react";
 import { DemoBadge, Eyebrow, Pill, buttonClass } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
-import { getCategories, getPartnerDirectory, getTrustPartners } from "@/lib/catalog";
+import { getCategories, getPartnerDirectory } from "@/lib/catalog";
 import { displayOrgName, getBrand, isDemoMode, isDemoOrg } from "@/components/marketing/brand";
 import { HeroVisual } from "@/components/marketing/hero-visual";
-import { HeroTrustStrip, HomeHero } from "@/components/marketing/home-hero";
+import { HomeHero } from "@/components/marketing/home-hero";
 import { TrustBar } from "@/components/marketing/trust-bar";
 import { CompareIllustration, PayIllustration, PolicyIllustration } from "@/components/marketing/how-it-works-illustrations";
 import { CategoryIcon } from "@/components/marketing/category-icon";
@@ -36,10 +36,12 @@ import { RenewalReminderForm } from "@/components/marketing/renewal-reminder-for
 import { Reveal } from "@/components/marketing/reveal";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { KEY_BENEFITS, STATS } from "@/components/marketing/content";
-import { getFaqsFor, getPartners, getTestimonials } from "@/server/cms";
+import { getFaqsFor, getTestimonials } from "@/server/cms";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
 import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
+
+import { HOME_SOCIAL_PROOF_ENABLED } from "@/components/marketing/trust-copy";
 
 export const metadata: Metadata = pageMetadata(pageCopy.home);
 
@@ -52,17 +54,15 @@ const STEPS = [
 const BENEFIT_ICONS = { instant: Zap, instalments: CreditCard, reminders: BellRing, claims: FileText, wallet: QrCode } as const;
 
 export default async function HomePage() {
-  // CMS-managed blocks (FAQs, testimonials, partner logos) fall back to the typed content / partner directory.
-  const [categories, directory, demo, brand, prices, faqs, testimonials, partners, trustPartners] = await Promise.all([
+  // CMS FAQs fall back to typed content. Customer stories remain off until verified.
+  const [categories, directory, demo, brand, prices, faqs, testimonials] = await Promise.all([
     getCategories(),
     getPartnerDirectory(),
     isDemoMode(),
     getBrand(),
     getFromPrices(),
     getFaqsFor("home"),
-    getTestimonials(),
-    getPartners(),
-    getTrustPartners(),
+    HOME_SOCIAL_PROOF_ENABLED ? getTestimonials() : Promise.resolve([]),
   ]);
 
   const preferred = ["coastline-general", "volta-mutual", "ashanti-shield"];
@@ -81,9 +81,7 @@ export default async function HomePage() {
       <JsonLd data={faqJsonLd(faqs)} />
 
       <HomeHero />
-      <HeroTrustStrip />
-
-      <TrustBar organizations={trustPartners} demo={demo} partners={partners} />
+      <TrustBar />
 
       {/* How it works ------------------------------------------------------------ */}
       <Section labelledBy="how-title">
@@ -230,7 +228,7 @@ export default async function HomePage() {
       <AppDownload insurers={heroInsurers.map((i) => i.name)} />
 
       {/* Stats + testimonials ------------------------------------------------------ */}
-      <Section labelledBy="stats-title">
+      {HOME_SOCIAL_PROOF_ENABLED && <Section labelledBy="stats-title">
         <SectionHeading
           id="stats-title"
           eyebrow="Covva in numbers"
@@ -241,7 +239,7 @@ export default async function HomePage() {
         <div className="mt-10">
           <Testimonials items={testimonials} />
         </div>
-      </Section>
+      </Section>}
 
       <PartnerCtaStrip />
 

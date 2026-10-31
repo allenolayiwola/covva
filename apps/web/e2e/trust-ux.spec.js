@@ -4,7 +4,8 @@ for (const width of [360, 390, 1280]) {
   test(`trust and phone controls at ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#trust-bar-title')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'How trust works at Covva' })).toHaveCount(1);
+    await expect(page.locator('#stats-title')).toHaveCount(0);
     const banner = page.getByRole('region', { name: 'Cookie consent' });
     await expect(banner).toBeVisible();
     expect((await banner.boundingBox()).height).toBeLessThanOrEqual(844 * .25);
