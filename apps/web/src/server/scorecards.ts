@@ -22,7 +22,8 @@ import { BusinessRuleError, ruleMessage } from "@/server/requests";
  * DEFINER function `broker_scorecard_inputs` (migration 20261031100400); the composite score is
  * `@im/core` computeScorecard; snapshots live in `broker_scorecards` (one per broker and window)
  * and are refreshed by the `scorecard-refresh` cron. Public summaries are read through
- * `broker_score_summary` / `broker_public_reviews` (anonymised; no customer data).
+ * `broker_score_summary` (public aggregates) and the service-only `broker_public_reviews`
+ * (approved text with masked reviewer names).
  */
 type Db = SupabaseClient<Database>;
 type Svc = ReturnType<typeof createServiceClient>;
@@ -134,21 +135,24 @@ export async function getPublicScoreSummaries(brokerOrgIds: string[]): Promise<R
   cacheTag("scorecards");
   const ids = [...new Set(brokerOrgIds)].sort();
   if (!ids.length) return {};
-  const { data, error } = await createPublicClient().rpc("broker_score_summary", { p_broker_org_ids: ids });
-  if (error) {
-    log.warn("scorecards.summary_failed", { err: error });
-    return {};
-  }
   const out: Record<string, PublicScoreSummary> = {};
-  for (const r of data ?? []) {
-    out[r.broker_org_id] = {
-      brokerOrgId: r.broker_org_id,
-      ratingAvg: r.rating_avg == null ? null : Number(r.rating_avg),
-      reviewCount: Number(r.review_count ?? 0),
-      responseBand: (r.response_band as ResponseBand | null) ?? null,
-      scoreBand: (r.score_band as ScoreBand) ?? "new",
-      computedAt: r.computed_at ?? null,
-    };
+  // Match the database's bounded public input without truncating large directories.
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const { data, error } = await createPublicClient().rpc("broker_score_summary", { p_broker_org_ids: ids.slice(offset, offset + 100) });
+    if (error) {
+      log.warn("scorecards.summary_failed", { err: error });
+      return {};
+    }
+    for (const r of data ?? []) {
+      out[r.broker_org_id] = {
+        brokerOrgId: r.broker_org_id,
+        ratingAvg: r.rating_avg == null ? null : Number(r.rating_avg),
+        reviewCount: Number(r.review_count ?? 0),
+        responseBand: (r.response_band as ResponseBand | null) ?? null,
+        scoreBand: (r.score_band as ScoreBand) ?? "new",
+        computedAt: r.computed_at ?? null,
+      };
+    }
   }
   return out;
 }
@@ -168,7 +172,7 @@ export async function getPublicReviews(brokerOrgId: string, limit = 10): Promise
   "use cache";
   cacheLife("hours");
   cacheTag("scorecards", `reviews:${brokerOrgId}`);
-  const { data, error } = await createPublicClient().rpc("broker_public_reviews", { p_broker_org_id: brokerOrgId, p_limit: limit });
+  const { data, error } = await createServiceClient().rpc("broker_public_reviews", { p_broker_org_id: brokerOrgId, p_limit: limit });
   if (error) {
     log.warn("scorecards.reviews_failed", { brokerOrgId, err: error });
     return [];

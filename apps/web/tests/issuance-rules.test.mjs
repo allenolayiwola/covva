@@ -84,7 +84,7 @@ describe("customer", () => {
     expectRefused(await db.insert("policy_number_blocks", { insurer_org_id: ids.insurer, category_id: ids.motor, prefix: `${RUN}-`, next_number: 1, last_number: 10 }));
     expectRefused(await db.insert("issuance_jobs", { policy_id: uuid(), insurer_org_id: ids.insurer, mode: "delegated", status: "queued" }));
     expectRefused(await db.insert("sla_timers", { subject_type: "request", subject_id: uuid(), due_at: new Date().toISOString() }));
-    expectRule(await db.rpc("allocate_policy_number", { p_insurer: ids.insurer, p_category: ids.motor }), /Only the insurer or the platform/);
+    assert.equal((await db.rpc("allocate_policy_number", { p_insurer: ids.insurer, p_category: ids.motor })).code, "42501", "allocation requires the service role");
   });
 
   test("sees the verification code of their own policies only (never other customers')", async () => {
@@ -103,7 +103,7 @@ describe("broker", () => {
     expectHidden(await db.get("policy_number_blocks?select=id&limit=5"), "policy_number_blocks");
     expectHidden(await db.get("issuance_jobs?select=id&limit=5"), "issuance_jobs");
     expectRefused(await db.insert("policy_number_blocks", { insurer_org_id: ids.insurer, prefix: `${RUN}-`, next_number: 1, last_number: 10 }));
-    expectRule(await db.rpc("allocate_policy_number", { p_insurer: ids.insurer }), /Only the insurer or the platform/);
+    assert.equal((await db.rpc("allocate_policy_number", { p_insurer: ids.insurer })).code, "42501", "allocation requires the service role");
   });
 
   test("a submission without a broker of record is refused unless the order is insurer-direct", async () => {
@@ -132,7 +132,7 @@ describe("insurer", () => {
     expectRefused(await db.insert("policy_number_blocks", { insurer_org_id: ids.insurer, prefix: `${RUN}-UW-`, next_number: 1, last_number: 10 }));
     if (ids.otherInsurer) {
       expectRefused(await db.insert("policy_number_blocks", { insurer_org_id: ids.otherInsurer, prefix: `${RUN}-X-`, next_number: 1, last_number: 10 }));
-      expectRule(await db.rpc("allocate_policy_number", { p_insurer: ids.otherInsurer }), /Only the insurer or the platform/);
+      assert.equal((await db.rpc("allocate_policy_number", { p_insurer: ids.otherInsurer })).code, "42501", "allocation requires the service role");
     }
   });
 
