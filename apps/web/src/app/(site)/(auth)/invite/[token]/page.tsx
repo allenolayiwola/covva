@@ -6,7 +6,7 @@ import { Building2, Mail } from "lucide-react";
 import { formatDate, humanize } from "@im/core";
 import { Avatar, Card, Notice, buttonClass } from "@im/ui";
 import { getUser } from "@/lib/auth";
-import { createPublicClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { AcceptForm } from "./accept-form";
 
@@ -31,8 +31,8 @@ async function Body({ params }: Pick<PageProps<"/invite/[token]">, "params">) {
   await connection();
   const { token } = await params;
   const valid = /^[A-Za-z0-9_-]{16,128}$/.test(token);
-  // Anonymous RPC: the token is the credential, so no session is needed to preview.
-  const { data } = valid ? await createPublicClient().rpc("invitation_preview", { p_token: token }) : { data: null };
+  // Server-only RPC: validate the invitation token before reading invitation metadata.
+  const { data } = valid ? await createServiceClient().rpc("invitation_preview", { p_token: token }) : { data: null };
   const invite = data?.[0] ?? null;
   const user = await getUser();
   const here = `/invite/${encodeURIComponent(token)}`;
