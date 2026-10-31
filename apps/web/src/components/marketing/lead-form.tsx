@@ -7,6 +7,7 @@ import { CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea, cn } from "@im/ui";
 import { submitLead, type LeadState } from "@/app/(site)/(marketing)/actions";
 import type { LeadTag } from "./lead-tags";
+import { LeadSchema } from "./lead-schema";
 import { track } from "./analytics";
 
 type Kind = "customer" | "broker" | "insurer" | "enterprise" | "press" | "other";
@@ -71,7 +72,9 @@ function LeadFormInstance({
   tag,
   onReset,
 }: LeadFormProps & { onReset: () => void }) {
-  const [state, formAction, pending] = useActionState(submitLead, INITIAL);
+  const [serverState, formAction, pending] = useActionState(submitLead, INITIAL);
+  const [clientState, setClientState] = React.useState<LeadState | null>(null);
+  const state = clientState ?? serverState;
   const startedRef = React.useRef<HTMLInputElement>(null);
   const pageRef = React.useRef<HTMLInputElement>(null);
   const utmRef = React.useRef<HTMLInputElement>(null);
@@ -127,7 +130,19 @@ function LeadFormInstance({
   }
 
   return (
-    <form action={formAction} noValidate className={cn("relative rounded-card border border-line bg-white p-6 sm:p-8", className)}>
+    <form action={formAction} onSubmit={(event) => {
+      const raw = Object.fromEntries(new FormData(event.currentTarget));
+      const parsed = LeadSchema.safeParse(raw);
+      if (!parsed.success) {
+        event.preventDefault();
+        const fieldErrors: NonNullable<LeadState["fieldErrors"]> = {};
+        for (const issue of parsed.error.issues) {
+          const key = issue.path[0] as keyof typeof fieldErrors;
+          if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+        }
+        setClientState({ status: "error", message: "Please check the highlighted fields.", fieldErrors });
+      } else setClientState(null);
+    }} noValidate className={cn("relative rounded-card border border-line bg-white p-6 sm:p-8", className)}>
       {state.status === "error" && state.message && (
         <div ref={statusRef} tabIndex={-1} className="mb-6 focus:outline-none">
           <Notice tone="danger">
@@ -176,8 +191,8 @@ function LeadFormInstance({
         ) : (
           <div className="hidden sm:block" />
         )}
-        <Field label="Email" htmlFor={id("email")} error={fieldError("email")} hint="We’ll reply here. Or leave a phone number.">
-          <Input id={id("email")} name="email" aria-describedby={describedBy("email")} type="email" autoComplete="email" inputMode="email" defaultValue={val.email} aria-invalid={!!err.email} />
+        <Field label="Email" htmlFor={id("email")} error={fieldError("email")} hint="We’ll reply here.">
+          <Input id={id("email")} name="email" aria-describedby={describedBy("email")} type="email" required autoComplete="email" inputMode="email" defaultValue={val.email} aria-invalid={!!err.email} />
         </Field>
         <Field label={<>Phone <span className="font-normal text-subtle">(optional)</span></>} htmlFor={id("phone")} error={fieldError("phone")}>
           <Input id={id("phone")} name="phone" aria-describedby={describedBy("phone")} type="tel" autoComplete="tel" inputMode="tel" placeholder="024 123 4567" defaultValue={val.phone} aria-invalid={!!err.phone} />
