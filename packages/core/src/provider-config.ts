@@ -3,10 +3,10 @@ export type ProviderEnvironment = Readonly<Record<string, string | undefined>>;
 export type PaymentProviderName = 'simulator' | 'paystack' | 'hubtel' | 'stripe';
 export type PaymentMode = 'Simulator' | 'Test' | 'Live';
 
-/** Production simulation requires an explicit opt-in; live mode always disables it. */
+/** Explicit opt-out and live mode disable simulation; production requires an explicit opt-in. */
 export function paymentSimulatorEnabled(env: ProviderEnvironment, provider: PaymentProviderName): boolean {
   const isProd = env.NODE_ENV === 'production' || env.VERCEL_ENV === 'production';
-  return provider === 'simulator' && env.PAYMENTS_MODE !== 'live' && (!isProd || env.PAYMENTS_SIMULATOR === 'true');
+  return provider === 'simulator' && env.PAYMENTS_MODE !== 'live' && env.PAYMENTS_SIMULATOR !== 'false' && (!isProd || env.PAYMENTS_SIMULATOR === 'true');
 }
 
 export function validateSimulatorSecret(env: ProviderEnvironment): void {
@@ -29,6 +29,9 @@ export function paymentConfiguration(env: ProviderEnvironment): { provider: Paym
   }
   const wanted = (env.PAYMENT_PROVIDER || 'simulator').toLowerCase();
   if (!['simulator', 'paystack', 'hubtel', 'stripe'].includes(wanted)) throw new Error('PAYMENT_PROVIDER must be simulator, paystack, hubtel or stripe.');
+  if (wanted === 'simulator' && mode === 'live') {
+    throw new Error('PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE.');
+  }
   const key = wanted === 'paystack' ? env.PAYSTACK_SECRET_KEY : wanted === 'stripe' ? env.STRIPE_SECRET_KEY : wanted === 'hubtel' && env.HUBTEL_CLIENT_ID ? env.HUBTEL_CLIENT_SECRET : undefined;
   if (mode === 'live' && wanted !== 'simulator' && !key) {
     throw new Error('Selected PAYMENT_PROVIDER requires its credentials in live mode.');

@@ -2,6 +2,26 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { paymentConfiguration, identityConfiguration, paymentSimulatorEnabled } from './provider-config';
 
+test('development simulator respects explicit opt-out while preserving the default', () => {
+  for (const provider of ['simulator', 'paystack']) {
+    const env = { NODE_ENV: 'development', PAYMENT_PROVIDER: provider };
+    assert.equal(paymentSimulatorEnabled(env, paymentConfiguration(env).provider), true);
+    const disabled = { ...env, PAYMENTS_SIMULATOR: 'false' };
+    assert.equal(paymentSimulatorEnabled(disabled, paymentConfiguration(disabled).provider), false);
+  }
+});
+
+test('startup configuration rejects simulator in live mode without reporting values', () => {
+  for (const provider of [undefined, 'simulator']) {
+    for (const enabled of [undefined, 'false', 'true']) {
+      assert.throws(() => paymentConfiguration({
+        NODE_ENV: 'development', PAYMENT_PROVIDER: provider, PAYMENTS_MODE: 'live',
+        PAYMENTS_SIMULATOR: enabled, PAYMENTS_SIMULATOR_SECRET: 'private-fixture',
+      }), { message: 'PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE.' });
+    }
+  }
+});
+
 test('non-live provider selection uses simulator when credentials are missing', () => {
   for (const env of [{}, { NODE_ENV: 'production' }, { PAYMENT_PROVIDER: 'paystack' }, { PAYMENT_PROVIDER: 'stripe' }, { PAYMENT_PROVIDER: 'hubtel' }, { PAYSTACK_SECRET_KEY: 'sk_test_fixture' }]) {
     assert.deepEqual(paymentConfiguration({ NODE_ENV: 'development', ...env }), { provider: 'simulator', mode: 'Simulator' });

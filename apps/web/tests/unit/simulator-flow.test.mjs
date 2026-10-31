@@ -82,6 +82,10 @@ test('production explicitly enabled simulator checkout → signed simulator call
   assert.equal(issuanceStarts, 1);
   process.env.PAYMENTS_MODE = 'live';
   process.env.PAYMENTS_SIMULATOR = 'true';
+  await assert.rejects(complete(), /PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE/);
+  await assert.rejects(applyPaymentResult(payment.reference, { source: 'simulator', status: 'succeeded' }), /PAYMENT_PROVIDER is incompatible with PAYMENTS_MODE/);
+  process.env.PAYMENTS_MODE = 'test';
+  process.env.PAYMENTS_SIMULATOR = 'false';
   assert.equal((await complete()).status, 404);
   await assert.rejects(applyPaymentResult(payment.reference, { source: 'simulator', status: 'succeeded' }), /disabled/);
 });
