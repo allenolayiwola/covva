@@ -81,7 +81,7 @@ export default async function HomePage() {
       <JsonLd data={faqJsonLd(faqs)} />
 
       <HomeHero />
-      <TrustBar />
+      <TrustBar tone="mist" />
 
       {/* How it works ------------------------------------------------------------ */}
       <Section labelledBy="how-title">

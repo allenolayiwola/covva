@@ -3,9 +3,9 @@ import { CirclePlus, FileText, LockKeyhole, Scale } from "lucide-react";
 import { Container } from "@im/ui";
 
 /** Role explanations only: no partner logos, endorsement badges or unverified claims. */
-export function TrustBar() {
+export function TrustBar({ tone = "white" }: { tone?: "white" | "mist" } = {}) {
   return (
-    <section aria-labelledby="trust-bar-title" className="bg-white">
+    <section aria-labelledby="trust-bar-title" className={tone === "mist" ? "bg-mist" : "bg-white"}>
       <Container className="py-12">
         <h2 id="trust-bar-title" className="sr-only">How trust works at Covva</h2>
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
@@ -20,8 +20,8 @@ export function TrustBar() {
                 <Icon aria-hidden className="size-5" />
               </span>
               <div>
-                <Link href={href} className="rounded text-[15px] font-semibold text-ink-2 underline-offset-4 hover:underline">{title}</Link>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+                <Link href={href} className="rounded text-[15px] font-semibold text-ink underline-offset-4 hover:underline">{title}</Link>
+                <p className="mt-1 text-sm leading-relaxed text-muted [text-wrap:pretty]">{body}</p>
               </div>
             </li>
           ))}

@@ -59,12 +59,12 @@ export default async function TrustPage() {
           <div>
             <h2 id="sellers-title" className="text-h2 text-ink">Who sells your policy</h2>
             <p className="mt-4 text-muted">Policies are sold by insurers and brokers licensed by the National Insurance Commission (NIC). You see the partner’s name and licence number before you buy.</p>
-            <a href={REGULATION.nic.url} className={`${textLinkClass} mt-3`}>Check a licence at nic.gov.gh <ArrowRight aria-hidden className="size-4" /></a>
+            <a href={REGULATION.nic.url} target="_blank" rel="noreferrer" className={`${textLinkClass} mt-3`}>Check a licence at nic.gov.gh <ExternalLink aria-hidden className="size-4" /><span className="sr-only">(opens in a new tab)</span></a>
           </div>
           <div className="rounded-card border border-line bg-white p-6">
             <h3 className="text-[20px] leading-[1.25] text-ink md:text-[24px]">If something goes wrong</h3>
             <p className="mt-3 text-sm leading-relaxed text-muted">Raise a complaint with us and your partner first. If it is not resolved, you can contact the NIC Complaints Bureau.</p>
-            <p className="mt-4 rounded-xl bg-mist p-4 text-sm text-ink-2">Covva does not hold an NIC licence and is not an insurer or broker.</p>
+            <p className="mt-4 rounded-2xl bg-[#FFF0D6] px-[18px] py-3.5 text-sm text-[#5E4615]">Covva does not hold an NIC licence and is not an insurer or broker.</p>
             <Link href="#complaints" className={`${textLinkClass} mt-3`}>Complaints & escalation <ArrowRight aria-hidden className="size-4" /></Link>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default async function TrustPage() {
       </Section>
 
       <Section id="integrity" labelledBy="integrity-title">
-        <SectionHeading id="integrity-title" eyebrow="Comparison integrity" title="Rules we hold ourselves to" description="Our systems enforce these rules; they are reviewed by our comparison integrity committee." />
+        <SectionHeading id="integrity-title" eyebrow="Comparison integrity" title="Rules we hold ourselves to" description="Our systems enforce these rules. Ranking rules are published on this page and applied the same way to every partner." />
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {INTEGRITY.map((r) => (
             <li key={r.title} className="rounded-card border border-line bg-white p-6">
