@@ -6,7 +6,7 @@ export const HERO_CATEGORIES = [
   { line: "home", label: "Home", Icon: House },
   { line: "health", label: "Health", Icon: HeartPulse },
   { line: "travel", label: "Travel", Icon: Plane },
-  { line: "life-funeral", label: "Life", Icon: Umbrella },
+  { line: "life-funeral", label: "Life & funeral", Icon: Umbrella },
   { line: "business", label: "Business", Icon: Briefcase },
 ] as const;
 

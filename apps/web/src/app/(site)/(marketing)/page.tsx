@@ -40,13 +40,13 @@ import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
 export const metadata: Metadata = {
-  title: { absolute: "Covva — Protect what matters. Wherever you are." },
+  title: { absolute: "Covva — Compare insurance quotes in Ghana." },
   description:
-    "Compare insurance quotes from licensed brokers in Ghana, at home or from abroad. Get real quotes for motor, home, health, travel, life and business insurance from licensed insurers in Ghana through brokers you choose. Pay by MoMo or card; the insurer issues your policy to a digital wallet with QR verification.",
+    "Compare insurance quotes from licensed brokers in Ghana. Get real quotes for motor, home, health, travel, life and business insurance from licensed insurers in Ghana through brokers you choose. Pay by MoMo or card; the insurer issues your policy to a digital wallet with QR verification.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Covva — Protect what matters. Wherever you are.",
-    description: "Insurance for Ghana and the diaspora: compare quotes from licensed insurers through your broker, pay by MoMo or card, get your policy in your wallet.",
+    title: "Covva — Compare insurance quotes in Ghana.",
+    description: "Insurance in Ghana: compare quotes from licensed insurers through your broker, pay by MoMo or card, get your policy in your wallet.",
     url: "/",
     images: ["/opengraph-image"],
   },
