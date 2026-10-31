@@ -42,7 +42,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           <LocaleSwitcher />
           {right ?? (
             <>
-              <Link href="/brokers" data-header-fg className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium text-muted hover:text-brand lg:inline-block">
+              <Link href="/brokers" data-header-fg className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium whitespace-nowrap text-muted hover:text-brand lg:inline-block">
                 <T k="header.forPartners" />
               </Link>
               <span className="hidden sm:block">

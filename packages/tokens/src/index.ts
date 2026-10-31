@@ -46,10 +46,10 @@ export const brandAssets = {
 export const typography = {
   fontFamily: "Inter",
   displayFamily: "Outfit",
-  display: { size: 56, lineHeight: 1.02, weight: "300", letterSpacing: -1 },
+  display: { size: 60, lineHeight: 1.06, weight: "300", letterSpacing: -1 },
   h1: { size: 36, lineHeight: 1.1, weight: "300", letterSpacing: -0.5 },
-  h2: { size: 26, lineHeight: 1.2, weight: "300", letterSpacing: -0.3 },
-  h3: { size: 18, lineHeight: 1.3, weight: "300", letterSpacing: -0.1 },
+  h2: { size: 42, lineHeight: 1.12, weight: "300", letterSpacing: -0.3 },
+  h3: { size: 24, lineHeight: 1.25, weight: "300", letterSpacing: -0.1 },
   body: { size: 16, lineHeight: 1.5, weight: "400", letterSpacing: 0 },
   small: { size: 14, lineHeight: 1.45, weight: "400", letterSpacing: 0 },
   caption: { size: 12, lineHeight: 1.4, weight: "500", letterSpacing: 0.6 },

@@ -306,7 +306,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
           <p className="mt-3 text-center text-[13px] leading-snug text-muted">Cover begins only after insurer acceptance and policy issuance.</p>
         </form>
 
-        <p aria-hidden className="hidden self-end justify-self-end rounded-[2px] bg-black/55 px-4 py-1.5 font-accent text-[19px] italic text-white backdrop-blur-md [grid-area:caption] lg:block">
+        <p aria-hidden className="hidden self-end justify-self-end rounded-[2px] bg-black/55 px-4 py-1.5 font-sans text-[15px] font-medium text-white backdrop-blur-md [grid-area:caption] lg:block">
           {slide.caption}
         </p>
       </div>

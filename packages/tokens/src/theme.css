@@ -58,10 +58,3 @@
   }
 }
 
-/*
- * Italic serif accent (Instrument Serif Italic): one short line per block at most, e.g. the home hero's second line.
- * `inline` because next/font sets the font variable on the element that loads it (the hero), not on :root.
- */
-@theme inline {
-  --font-accent: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
-}
