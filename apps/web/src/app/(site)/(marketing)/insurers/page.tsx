@@ -133,7 +133,7 @@ export default async function InsurersPage() {
           {COMMERCIAL.map((c) => (
             <div key={c.title} className="rounded-card border border-line bg-white p-6">
               <Pill>{c.tag}</Pill>
-              <h3 className="mt-4 text-[18px] font-semibold tracking-tight text-ink">{c.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{c.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{c.body}</p>
             </div>
           ))}
@@ -146,7 +146,7 @@ export default async function InsurersPage() {
           {ONBOARDING.map((g, i) => (
             <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold tabular-nums text-white">{i + 1}</span>
-              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
             </li>
           ))}
@@ -209,7 +209,7 @@ export default async function InsurersPage() {
           {GOVERNANCE.map((g) => (
             <div key={g.title} className="rounded-card border border-line bg-white p-6">
               <IconTile><g.icon /></IconTile>
-              <h3 className="mt-5 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{g.body}</p>
             </div>
           ))}

@@ -78,7 +78,7 @@ export default async function ClaimsPage() {
                 <IconTile><s.icon /></IconTile>
                 <span className="text-sm font-semibold tabular-nums text-subtle">0{i + 1}</span>
               </div>
-              <h3 className="mt-5 text-[17px] font-semibold tracking-tight text-ink">{s.title}</h3>
+              <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">{s.title}</h3>
               <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}
@@ -127,7 +127,7 @@ export default async function ClaimsPage() {
             <p className="mt-4 text-[13px] text-muted">No app? Sign in on the web from your account — it works on any phone browser.</p>
           </div>
           <div>
-            <h3 className="text-[19px] font-semibold tracking-tight text-ink">Claims questions</h3>
+            <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">Claims questions</h3>
             <FaqList items={faq} className="mt-4" />
             <Link href="/learn/how-to-make-a-claim" className={`${textLinkClass} mt-5`}>Read the full claims guide <ArrowRight aria-hidden className="size-4" /></Link>
           </div>

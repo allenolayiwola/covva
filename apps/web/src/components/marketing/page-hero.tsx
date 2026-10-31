@@ -52,7 +52,7 @@ export function PageHero({
         <div className={cn("grid gap-10", aside && "lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:items-center lg:gap-16")}>
           <div className="motion-safe:animate-fade-up">
             {eyebrow && <Eyebrow className="mb-4">{eyebrow}</Eyebrow>}
-            <h1 className="text-balance text-h2 text-ink">{title}</h1>
+            <h1 className="text-balance text-h1 text-ink">{title}</h1>
             {lede && <p className="mt-5 max-w-2xl text-lead text-muted">{lede}</p>}
             {actions && <div className="mt-8 flex flex-wrap gap-3">{actions}</div>}
             {children}

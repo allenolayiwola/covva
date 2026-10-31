@@ -106,7 +106,7 @@ async function ProductGrid() {
       {cards.map((c) => (
         <li key={c.versionId} className="flex flex-col rounded-card border border-line bg-white p-6">
           <p className="text-sm text-muted">{c.insurerName}</p>
-          <h3 className="mt-1 text-[17px] font-semibold tracking-tight text-ink">{c.productName}</h3>
+          <h3 className="mt-1 text-[20px] leading-[1.25] md:text-[24px] text-ink">{c.productName}</h3>
           {c.summary && <p className="mt-2 text-[15px] text-muted">{c.summary}</p>}
           <p className="mt-4 text-2xl font-bold text-ink">{c.fromLabel}</p>
           {c.audiences.length > 0 && <p className="mt-2 text-xs text-subtle">For {c.audiences.map((a) => a.label.toLowerCase()).join(", ")}</p>}

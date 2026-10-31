@@ -1,15 +1,10 @@
 import { getImageProps } from "next/image";
 import { preload } from "react-dom";
-import { Instrument_Serif } from "next/font/google";
 import { Banknote, ShieldCheck, Smartphone } from "lucide-react";
 import { Container } from "@im/ui";
 import { Experiment } from "./experiment";
 import { HERO_SLIDES, type HeroSlide } from "./hero-slides";
 import { HomeHeroCarousel, type HeroCarouselSlide } from "./home-hero-carousel";
-
-// The italic serif accent (`--font-accent` in @im/tokens). Loaded by the home hero only, so other routes do not
-// fetch it; one weight, italic, Latin.
-const accentFace = Instrument_Serif({ subsets: ["latin"], weight: "400", style: "italic", display: "swap", variable: "--font-instrument-serif" });
 
 /** Phones (tall portrait screens) get the portrait crop; tablets and up the 3840px landscape image. Keep in sync with globals.css. */
 const PORTRAIT_MEDIA = "(max-aspect-ratio: 2/3)";
@@ -77,7 +72,7 @@ export function HomeHero() {
     focus: s.image.focus,
     media: <HeroPicture slide={s} first={i === 0} />,
   }));
-  return <HomeHeroCarousel slides={slides} className={accentFace.variable} />;
+  return <HomeHeroCarousel slides={slides} />;
 }
 
 const TRUST_ITEMS = [

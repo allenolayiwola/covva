@@ -69,7 +69,7 @@ export default function ReferralsPage() {
 
       <Section labelledBy="r-faq-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
-          <h2 id="r-faq-title" className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[36px]">Referral questions</h2>
+          <h2 id="r-faq-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Referral questions</h2>
           <FaqList items={FAQ} />
         </div>
       </Section>

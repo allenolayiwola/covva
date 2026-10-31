@@ -277,7 +277,7 @@ function Results({
     <div className="grid gap-10 motion-safe:animate-fade-up lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
       <div>
         <Pill tone="ok">Your suggestions</Pill>
-        <h2 ref={headingRef} tabIndex={-1} className="mt-4 text-balance text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink focus:outline-none sm:text-[38px]">
+        <h2 ref={headingRef} tabIndex={-1} className="mt-4 text-balance text-[30px] leading-[1.12] md:text-[42px] text-ink focus:outline-none">
           Here’s the cover worth considering
         </h2>
         <p className="mt-3 text-[16px] leading-relaxed text-muted">
@@ -339,7 +339,7 @@ function Results({
 
       <aside aria-labelledby="answers-title" className="h-fit rounded-card border border-line bg-mist p-5 lg:sticky lg:top-24">
         <div className="flex items-center justify-between">
-          <h3 id="answers-title" className="font-semibold text-ink">Your answers</h3>
+          <h3 id="answers-title" className="text-[20px] leading-[1.25] text-ink">Your answers</h3>
           <button type="button" onClick={onReset} className="inline-flex items-center gap-1 rounded text-sm font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             <RotateCcw aria-hidden className="size-3.5" /> Start again
           </button>

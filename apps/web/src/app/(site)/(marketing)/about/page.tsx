@@ -53,7 +53,7 @@ export default async function AboutPage() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Why we exist</Eyebrow>
-            <h2 id="vision-title" className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">{brand.tagline}</h2>
+            <h2 id="vision-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">{brand.tagline}</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-muted">
               Too many people in Ghana go without cover, or hold policies they do not understand. Buying is slow, comparing is hard, and help after the sale is patchy. We think a clear, trustworthy digital front door — backed by licensed professionals — can change that.
             </p>
@@ -107,13 +107,13 @@ export default async function AboutPage() {
             {COMMITTEES.map((c) => (
               <li key={c.title} className="rounded-card border border-line bg-white p-5">
                 <IconTile size="sm"><Compass /></IconTile>
-                <h3 className="mt-3 font-semibold text-ink">{c.title}</h3>
+                <h3 className="mt-3 text-[20px] leading-[1.25] text-ink">{c.title}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-muted">{c.body}</p>
               </li>
             ))}
           </ul>
           <div className="rounded-card border border-line bg-mist p-6">
-            <h3 className="font-semibold text-ink">Key policies</h3>
+            <h3 className="text-[20px] leading-[1.25] text-ink">Key policies</h3>
             <CheckList className="mt-4" items={POLICIES} />
           </div>
         </div>

@@ -122,7 +122,7 @@ export default function HowItWorksPage() {
             <div className="lg:sticky lg:top-28 lg:self-start">
               <span className="grid size-12 place-items-center rounded-2xl bg-brand text-xl font-bold text-white">{j.letter}</span>
               <Eyebrow className="mt-6">Journey {j.letter}</Eyebrow>
-              <h2 id={`${j.id}-title`} className="mt-2 text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">{j.title}</h2>
+              <h2 id={`${j.id}-title`} className="mt-2 text-[30px] leading-[1.12] md:text-[42px] text-ink">{j.title}</h2>
               <p className="mt-4 text-[17px] leading-relaxed text-muted">{j.summary}</p>
               {j.id === "choose" && (
                 <Link href="/get-started" className={`${textLinkClass} mt-6`}>Try Help me choose <ArrowRight aria-hidden className="size-4" /></Link>
@@ -137,7 +137,7 @@ export default function HowItWorksPage() {
                   <IconTile><s.icon /></IconTile>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h3 className="font-semibold text-ink">
+                      <h3 className="text-[20px] leading-[1.25] text-ink">
                         <span className="mr-2 text-sm tabular-nums text-subtle">{i + 1}.</span>
                         {s.title}
                       </h3>
@@ -220,7 +220,7 @@ export default function HowItWorksPage() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <Eyebrow className="mb-3">What happens to your data</Eyebrow>
-            <h2 id="data-title" className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">Shared only with the people arranging your cover</h2>
+            <h2 id="data-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Shared only with the people arranging your cover</h2>
             <p className="mt-4 text-[17px] leading-relaxed text-muted">
               We process personal data under Ghana’s Data Protection Act, 2012 (Act 843). You can see, correct and ask us to delete your information.
             </p>

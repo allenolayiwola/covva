@@ -100,7 +100,7 @@ export default async function HomePage() {
               <s.Illustration className="h-auto w-full rounded-[16px]" />
               <div className="mt-5 flex items-center gap-3">
                 <span className="grid size-8 place-items-center rounded-full bg-brand text-sm font-semibold tabular-nums text-white">{i + 1}</span>
-                <h3 className="text-[19px] font-semibold tracking-tight text-ink">{s.title}</h3>
+                <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">{s.title}</h3>
               </div>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{s.body}</p>
             </Reveal>
@@ -162,7 +162,7 @@ export default async function HomePage() {
             return (
               <Reveal key={b.id} as="li" delay={i * 60} className="rounded-card border border-line bg-white p-6">
                 <IconTile><Icon /></IconTile>
-                <h3 className="mt-5 font-semibold tracking-tight text-ink">{b.title}</h3>
+                <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">{b.title}</h3>
                 <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{b.body}</p>
               </Reveal>
             );

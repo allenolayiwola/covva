@@ -150,7 +150,7 @@ export default async function BrokersPage() {
           {ONBOARDING.map((g, i) => (
             <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold tabular-nums text-white">{i + 1}</span>
-              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
             </li>
           ))}
@@ -167,7 +167,7 @@ export default async function BrokersPage() {
           {GATES.map((g, i) => (
             <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold text-white tabular-nums">{i + 1}</span>
-              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
               {i < GATES.length - 1 && <ArrowRight aria-hidden className="absolute -right-3 top-8 z-10 hidden size-5 rounded-full bg-mist text-subtle md:block" />}
             </li>

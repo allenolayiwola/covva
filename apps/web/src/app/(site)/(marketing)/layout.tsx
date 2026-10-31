@@ -39,14 +39,16 @@ export default async function MarketingLayout({ children }: LayoutProps<"/">) {
       />
       <SmartAppBanner />
       <PreviewBanner />
-      <SiteHeader />
-      <main id="main" tabIndex={-1} className="focus:outline-none">
-        {children}
-      </main>
-      <SiteFooter />
-      <WhatsAppButton />
-      <ChatWidget whatsappNumber={process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? null} />
-      <ConsentBanner />
+      <div data-marketing className="contents">
+        <SiteHeader />
+        <main id="main" tabIndex={-1} className="focus:outline-none">
+          {children}
+        </main>
+        <SiteFooter />
+        <WhatsAppButton />
+        <ChatWidget whatsappNumber={process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? null} />
+        <ConsentBanner />
+      </div>
       <AnalyticsClicks />
     </>
   );

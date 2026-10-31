@@ -25,7 +25,7 @@ export function usePrefersReducedMotion() {
 
 /**
  * Subtle scroll-reveal wrapper. Content is always in the DOM and visible without JavaScript;
- * with JS, it fades/slides in once when it enters the viewport. Respects prefers-reduced-motion.
+ * with JS, it slides into place once when it enters the viewport. Respects prefers-reduced-motion.
  */
 export function Reveal({ children, className, delay = 0, as: As = "div" }: { children: React.ReactNode; className?: string; delay?: number; as?: "div" | "li" | "section" }) {
   const ref = React.useRef<HTMLElement | null>(null);

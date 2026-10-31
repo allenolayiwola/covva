@@ -40,7 +40,7 @@ export function LegalPage({
           <div className="flex flex-wrap items-center gap-2">
             {version && <Pill>Version {version}</Pill>}
           </div>
-          <h1 className="mt-4 text-[34px] font-bold leading-tight tracking-[-0.03em] text-ink sm:text-[46px]">{title}</h1>
+          <h1 className="mt-4 text-[38px] leading-[1.06] md:text-[60px] text-ink">{title}</h1>
           <div className="mt-4 max-w-3xl text-[17px] leading-relaxed text-muted">{summary}</div>
         </Container>
       </div>
@@ -79,7 +79,7 @@ export function LegalPage({
             <div className="space-y-12">
               {sections.map((s, i) => (
                 <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`} className="scroll-mt-28">
-                  <h2 id={`${s.id}-h`} className="text-[22px] font-bold tracking-tight text-ink">
+                  <h2 id={`${s.id}-h`} className="text-[20px] leading-[1.25] md:text-[24px] text-ink">
                     <span className="mr-2 text-subtle tabular-nums">{i + 1}.</span>
                     {s.title}
                   </h2>
