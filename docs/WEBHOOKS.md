@@ -121,12 +121,14 @@ duplicates, actions } }` once the signature is valid; a processing error on one 
 ## Payment and identity test-mode gates (W1c)
 
 `PAYMENT_PROVIDER` selects `simulator` (default), `paystack`, `hubtel`, or `stripe`.
-No selected credentials means simulator, including production. `PAYMENTS_MODE` defaults to
+Missing selected credentials can use simulation only outside live mode. Production simulation requires
+explicit opt-in through `PAYMENTS_SIMULATOR` and a dedicated `PAYMENTS_SIMULATOR_SECRET` of at least
+32 characters. Production means either NODE_ENV or VERCEL_ENV identifies production. `PAYMENTS_MODE` defaults to
 `test`. Real Paystack test calls require `PAYMENT_PROVIDER` plus `PAYSTACK_SECRET_KEY` with
 a test prefix; tests in this repo mock transport and never call Paystack.
 Startup and runtime reject a live-prefixed key without explicit live mode, a test-prefixed key
 with live mode, unknown selectors, and unrecognised prefixes. Errors contain variable names only.
-`PAYMENTS_SIMULATOR=false` disables simulation; `true` cannot override live mode.
+Simulation is always disabled in live mode. Outside development, enabled simulation requires the dedicated signing secret.
 Insurer preferences cannot bypass the deployment gate.
 
 All inbound payment routes reject inactive providers before processing:
@@ -170,7 +172,7 @@ For **Paystack P1**, after provider onboarding and staging validation:
 - Provision each insurer's `organizations.paystack_subaccount_code`, and its approved three-party
   split (`organizations.paystack_split_code` or `PAYSTACK_SPLIT_GROUP_CODE`). Keys cannot provision
   settlement accounts. Validate insurer/broker/platform allocations and a refund in staging.
-- Admin visibility: set `NEXT_PUBLIC_SITE_URL` on admin, and the same `REVALIDATE_SECRET` on web and
+- Admin visibility: set `NEXT_PUBLIC_SITE_URL` on admin, and the same dedicated `PAYMENTS_MODE_SECRET` on web and
   admin. The staff-only reconciliation page reads web's authenticated `GET /api/payments/mode`,
   displaying Simulator/Test/Live read-only. Missing configuration or a failed request displays
   Unavailable rather than guessing from the admin deployment's environment. Do not copy PSP keys to admin.

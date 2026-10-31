@@ -1,4 +1,10 @@
-import { test } from 'node:test';
+import { test, beforeEach } from 'node:test';
+// These values exist only in this isolated test worker.
+beforeEach(t => {
+  const original = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'development';
+  t.after(() => { if (original === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = original; });
+});
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { verifyPaystackSignature, verifyStripeSignature, verifyHubtelWebhook } from '../../src/server/providers/signatures.ts';
@@ -53,7 +59,9 @@ test('Paystack test transport uses mocked fetch for initialise, verify, refund a
 test('simulator link completion authenticates reference and is always disabled in live mode', async t => {
   const { simulatorProvider } = await import('../../src/server/providers/simulator.ts');
   process.env.NODE_ENV = 'production';
-  t.after(() => { delete process.env.PAYMENTS_MODE; delete process.env.PAYMENTS_SIMULATOR; delete process.env.NODE_ENV; });
+  process.env.PAYMENTS_SIMULATOR = 'true';
+  process.env.PAYMENTS_SIMULATOR_SECRET = 'isolated-test-signing-secret-32-chars';
+  t.after(() => { delete process.env.PAYMENTS_MODE; delete process.env.PAYMENTS_SIMULATOR; delete process.env.NODE_ENV; delete process.env.PAYMENTS_SIMULATOR_SECRET; });
   t.mock.method(globalThis, 'fetch', () => { throw new Error('Unexpected network'); });
   const result = await simulatorProvider.initialise({ reference: 'fixture', amountMinor: 100, currency: 'GHS', email: 'test@example.test', callbackUrl: 'https://example.test', description: 'Test', settlementAccount: 'SIMULATED' });
   const url = new URL(result.authorizationUrl);
@@ -73,4 +81,31 @@ test('startup validates credentials before accepting requests without exposing k
   process.env.PAYSTACK_SECRET_KEY = 'sk_test_startup_fixture';
   t.after(() => { delete process.env.PAYMENT_PROVIDER; delete process.env.PAYMENTS_MODE; delete process.env.PAYSTACK_SECRET_KEY; });
   assert.throws(register, error => /PAYSTACK_SECRET_KEY/.test(error.message) && !error.message.includes('sk_test_startup_fixture'));
+  delete process.env.PAYSTACK_SECRET_KEY;
+  for (const provider of ['paystack', 'stripe', 'hubtel']) {
+    process.env.PAYMENT_PROVIDER = provider;
+    assert.throws(register, /credentials.*live/);
+  }
+});
+
+test('Paystack refuses empty settlementAccount before transport, including with a split', async t => {
+  const { paystackProvider } = await import('../../src/server/providers/paystack.ts');
+  t.mock.method(globalThis, 'fetch', () => { assert.fail('Settlement validation must precede transport'); });
+  for (const settlementAccount of ['', '   ']) {
+    for (const splitCode of [undefined, 'SPL_fixture']) {
+      assert.throws(() => paystackProvider.settlement({ subaccount: settlementAccount, splitCode }), /settlementAccount/);
+      await assert.rejects(paystackProvider.initialise({ settlementAccount, splitCode }), /settlementAccount/);
+    }
+  }
+});
+
+test('startup rejects enabled production simulator without a dedicated strong secret', async t => {
+  const { register } = await import('../../src/instrumentation.ts');
+  process.env.NODE_ENV = 'production';
+  process.env.PAYMENTS_SIMULATOR = 'true';
+  t.after(() => { delete process.env.PAYMENTS_SIMULATOR; delete process.env.PAYMENTS_SIMULATOR_SECRET; });
+  for (const secret of ['', 'short-fixture']) {
+    process.env.PAYMENTS_SIMULATOR_SECRET = secret;
+    assert.throws(register, error => /PAYMENTS_SIMULATOR_SECRET.*32/.test(error.message) && !error.message.includes('short-fixture'));
+  }
 });

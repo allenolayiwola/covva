@@ -1,17 +1,19 @@
 import "server-only";
-import { paymentConfiguration } from "@im/core";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { paymentConfiguration, paymentSimulatorEnabled, validateSimulatorSecret } from "@im/core";
+import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 
 /** Server-side environment helpers. Read at call time (not module load) so runtime env is used. */
 export { siteUrl } from "@/lib/site-url";
 
-/** No-key deployments retain the simulator; explicit live mode always disables its endpoints. */
+/** Shared startup and runtime configuration validation. */
 export const paymentConfig = () => paymentConfiguration(process.env);
-export const simulatorEnabled = () => paymentConfig().provider === "simulator" && process.env.PAYMENTS_MODE !== "live" && process.env.PAYMENTS_SIMULATOR !== "false";
+export const simulatorEnabled = () => paymentSimulatorEnabled(process.env, paymentConfig().provider);
 export const paystackKey = () => paymentConfig().provider === "paystack" ? process.env.PAYSTACK_SECRET_KEY || null : null;
 
+const developmentSimulatorSecret = randomBytes(32).toString('hex');
 function simulatorSecret() {
-  return process.env.PAYMENTS_SIMULATOR_SECRET ?? process.env.SUPABASE_SECRET_KEY ?? "dev-simulator-secret";
+  validateSimulatorSecret(process.env);
+  return process.env.PAYMENTS_SIMULATOR_SECRET || developmentSimulatorSecret;
 }
 
 /** HMAC tag for simulator links so references can't be completed by a guessed URL. */

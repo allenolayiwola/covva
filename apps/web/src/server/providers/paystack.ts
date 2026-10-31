@@ -18,7 +18,10 @@ export async function paystack<T>(path: string, init: { method: 'GET' | 'POST'; 
 }
 export const paystackProvider: PaymentProvider = {
   name: 'paystack',
-  settlement: ({ subaccount, splitCode }): Record<string, string> => splitCode ? { split_code: splitCode } : { subaccount, bearer: 'subaccount' },
+  settlement: ({ subaccount, splitCode }): Record<string, string> => {
+    if (!subaccount.trim()) throw new Error('Paystack settlementAccount is required.');
+    return splitCode ? { split_code: splitCode } : { subaccount, bearer: 'subaccount' };
+  },
   async initialise(input) {
     const r = await paystack<{ authorization_url: string }>('/transaction/initialize', { method: 'POST', body: {
       reference: input.reference, amount: input.amountMinor, currency: input.currency, email: input.email,

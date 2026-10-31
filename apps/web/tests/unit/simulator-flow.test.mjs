@@ -47,10 +47,12 @@ mock.module('../../src/server/issuance.ts', { namedExports: { startIssuance: asy
 const { initiatePayment, applyPaymentResult } = await import('../../src/server/payments.ts');
 const simulator = await import('../../src/app/api/payments/simulate/route.ts');
 
-test('production no-key checkout → signed simulator callback → one pending policy and issuance handoff', async t => {
+test('production explicitly enabled simulator checkout → signed simulator callback → one pending policy and issuance handoff', async t => {
   process.env.NODE_ENV = 'production';
+  process.env.PAYMENTS_SIMULATOR = 'true';
+  process.env.PAYMENTS_SIMULATOR_SECRET = 'isolated-test-signing-secret-32-chars';
   process.env.NEXT_PUBLIC_SITE_URL = 'https://example.test';
-  for (const key of ['PAYMENT_PROVIDER', 'PAYSTACK_SECRET_KEY', 'STRIPE_SECRET_KEY', 'HUBTEL_CLIENT_SECRET', 'PAYMENTS_MODE', 'PAYMENTS_SIMULATOR']) delete process.env[key];
+  for (const key of ['PAYMENT_PROVIDER', 'PAYSTACK_SECRET_KEY', 'STRIPE_SECRET_KEY', 'HUBTEL_CLIENT_SECRET', 'PAYMENTS_MODE']) delete process.env[key];
   t.mock.method(globalThis, 'fetch', () => { throw new Error('No network allowed'); });
   const payment = await initiatePayment({ applicationId: 'app', userId: 'customer', channel: 'card' });
   assert.equal(payment.provider, 'simulator');
@@ -106,11 +108,14 @@ test('NIA stub is pending by default and test verification/DVLA never require a 
 
 test('mode endpoint requires the internal secret and returns only provider and mode', async t => {
   const { GET } = await import('../../src/app/api/payments/mode/route.ts');
-  delete process.env.PAYMENTS_MODE; delete process.env.REVALIDATE_SECRET;
+  delete process.env.PAYMENTS_MODE; delete process.env.PAYMENTS_MODE_SECRET;
   assert.equal((await GET(new Request('https://example.test/api/payments/mode'))).status, 401);
-  process.env.REVALIDATE_SECRET = 'fixture-status-secret';
-  t.after(() => { delete process.env.REVALIDATE_SECRET; });
-  const response = await GET(new Request('https://example.test/api/payments/mode', { headers: { 'x-revalidate-secret': 'fixture-status-secret' } }));
+  process.env.REVALIDATE_SECRET = 'unrelated-secret';
+  assert.equal((await GET(new Request('https://example.test/api/payments/mode', { headers: { 'x-payments-mode-secret': 'unrelated-secret', 'x-revalidate-secret': 'unrelated-secret' } }))).status, 401);
+  process.env.PAYMENTS_MODE_SECRET = 'fixture-status-secret';
+  t.after(() => { delete process.env.REVALIDATE_SECRET; delete process.env.PAYMENTS_MODE_SECRET; });
+  assert.equal((await GET(new Request('https://example.test/api/payments/mode', { headers: { 'x-payments-mode-secret': 'unrelated-secret' } }))).status, 401);
+  const response = await GET(new Request('https://example.test/api/payments/mode', { headers: { 'x-payments-mode-secret': 'fixture-status-secret' } }));
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.deepEqual(await response.json(), { ok: true, data: { provider: 'simulator', mode: 'Simulator' } });
