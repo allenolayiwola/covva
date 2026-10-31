@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
     default: "Covva — Find cover. Understand it. Move forward.",
-    template: "%s · Covva",
+    template: "%s | Covva",
   },
   description:
     "Compare cover from participating licensed insurers in Ghana, with a named broker by your side from first question to policy delivery. Keep every policy in one wallet and get help with renewals and claims.",
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Covva",
     locale: "en_GH",
+    images: [`${siteUrl()}/opengraph-image`],
   },
   twitter: { card: "summary_large_image" },
   formatDetection: { telephone: false },

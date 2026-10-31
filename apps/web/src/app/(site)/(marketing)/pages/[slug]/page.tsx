@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isValidSlug } from "@im/core";
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: PageProps<"/pages/[slug]">): 
     description,
     alternates: { canonical: `/pages/${page.slug}` },
     robots: page.seo.noIndex ? { index: false, follow: false } : undefined,
-    openGraph: { type: "website", title, description, url: `/pages/${page.slug}`, images: ["/opengraph-image"] },
+    openGraph: { type: "website", title, description, url: `/pages/${page.slug}`, images: [sitePath("/opengraph-image")] },
   };
 }
 

@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -28,12 +29,7 @@ export async function generateMetadata({ params }: PageProps<"/insurance/[slug]"
   const line = findProductLine(slug);
   if (!line) return { title: "Cover not found", robots: { index: false } };
   const title = `${line.name} in Ghana`;
-  return {
-    title,
-    description: line.lede,
-    alternates: { canonical: `/insurance/${line.slug}` },
-    openGraph: { title, description: line.lede, url: `/insurance/${line.slug}`, images: ["/opengraph-image"] },
-  };
+  return pageMetadata({ title, description: line.lede, path: `/insurance/${line.slug}` });
 }
 
 /** `params` is request-time data under Cache Components, so the content streams inside Suspense. */
@@ -59,19 +55,13 @@ async function ProductLineContent({ params }: Pick<PageProps<"/insurance/[slug]"
 
   const productJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Product",
+    "@type": "Service",
     name: line.name,
     description: line.lede,
     url: `${siteUrl()}/insurance/${line.slug}`,
-    category: "Insurance",
-    brand: { "@type": "Organization", name: "Covva" },
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "GHS",
-      lowPrice: from.monthly,
-      offerCount: PRODUCT_LINES.length,
-      description: "Indicative monthly premium from participating licensed insurers. Final price confirmed at quote.",
-    },
+    serviceType: "Insurance comparison and access through licensed partners",
+    areaServed: { "@type": "Country", name: "Ghana" },
+    provider: { "@type": "Organization", name: "Covva", url: siteUrl(), description: "Technology platform. Licensed partner brokers arrange cover; licensed partner insurers issue policies." },
   };
 
   return (

@@ -1,3 +1,4 @@
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
@@ -12,11 +13,7 @@ import { OrgTile } from "@/components/marketing/org-tile";
 import { REGULATION } from "@/components/marketing/content";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
-export const metadata: Metadata = {
-  title: "Participating partners",
-  description: "The licensed brokers and insurers participating in Covva, with their NIC licence numbers.",
-  alternates: { canonical: "/partners" },
-};
+export const metadata: Metadata = pageMetadata(pageCopy.partners);
 
 function OrgCard({ org, demo, score }: { org: PublicOrg; demo: boolean; score?: PublicScoreSummary | null }) {
   const isDemo = demo && isDemoOrg(org.settings);

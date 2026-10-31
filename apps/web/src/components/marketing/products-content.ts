@@ -69,7 +69,7 @@ export const PRODUCT_LINES: ProductLine[] = [
     },
     callout: {
       title: "Sticker and QR verification",
-      body: "Your insurer issues the motor certificate and sticker. Every policy in your Covva wallet also carries a QR code: police, a buyer or a landlord scans it (or enters the policy number at covva.com.gh/verify) and sees only whether the policy is valid, with the insurer and cover dates. Nothing personal is shown.",
+      body: "Your insurer issues the motor certificate and sticker. Every policy in your Covva wallet also carries a QR code: police, a buyer or a landlord scans it (or enters the policy number on the policy verification page) and sees only whether the policy is valid, with the insurer and cover dates. Nothing personal is shown.",
     },
     faqs: [
       { q: "Do I need the car registration to get a quote?", a: "No. The registration helps us pre-fill details, but you can start with the make, year and approximate value and add the registration before the policy is issued." },
