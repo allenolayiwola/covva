@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -268,7 +269,7 @@ export default async function HomePage() {
               <FeatureCard icon={<Layers />} title={<>{brand.name} <span className="font-normal text-muted">· technology</span></>}>{ROLE_STATEMENTS.platform}</FeatureCard>
               <FeatureCard icon={<UserRoundCheck />} title="Broker of record">{ROLE_STATEMENTS.broker}</FeatureCard>
               <FeatureCard icon={<Building2 />} title="Licensed insurer">{ROLE_STATEMENTS.insurer}</FeatureCard>
-              <FeatureCard icon={<CreditCard />} title="Payment provider">Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva.</FeatureCard>
+              <FeatureCard icon={<CreditCard />} title="Payment provider">{PAYMENTS_DISCLOSURE}</FeatureCard>
             </div>
             {(demo || anyDemoPartner) && <DemoBadge className="mt-4" />}
           </div>

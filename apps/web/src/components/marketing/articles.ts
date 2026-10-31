@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "./payments-disclosure";
 import type { SimpleContentBlock } from "@im/core";
 
 /**
@@ -140,7 +141,7 @@ export const ARTICLES: Article[] = [
     body: [
       { type: "p", text: "Three numbers appear on every insurance quote. Understanding them is most of what you need to compare fairly." },
       { type: "h2", text: "Premium" },
-      { type: "p", text: "What you pay for the cover — a year, a quarter or a month. Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva." },
+      { type: "p", text: `What you pay for the cover — a year, a quarter or a month. ${PAYMENTS_DISCLOSURE}` },
       { type: "h2", text: "Sum insured" },
       { type: "p", text: "The value you are insuring: the car, the building, the stock, or the benefit on a life or funeral plan. It is the most the insurer will pay in total. Declare it accurately." },
       { type: "h2", text: "Limits" },

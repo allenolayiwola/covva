@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -185,7 +186,7 @@ export default function HowItWorksPage() {
               "One broker of record per request, named before advice or application.",
               "The same risk is never submitted twice to the same insurer.",
               "Quotes are checked again at checkout; expired quotes cannot be paid.",
-              "Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
+              PAYMENTS_DISCLOSURE,
             ]}
           />
         </div>

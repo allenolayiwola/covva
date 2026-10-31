@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSetting } from "@/lib/catalog";
@@ -30,7 +31,7 @@ export default async function TermsPage() {
                 {n} (“we”, “us”) is the brand name of a technology platform operated by [legal entity name], a company registered in Ghana under registration number [number], with its registered office at [address].
               </p>
               <p>
-                We provide technology that helps you explore, compare and manage insurance. <strong>We are not an insurer and not an insurance broker.</strong> We do not give insurance advice in our own name, we do not underwrite risks, we do not decide claims. Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva.
+                We provide technology that helps you explore, compare and manage insurance. <strong>We are not an insurer and not an insurance broker.</strong> We do not give insurance advice in our own name, we do not underwrite risks, we do not decide claims. {PAYMENTS_DISCLOSURE}
               </p>
             </>
           ),
@@ -89,7 +90,7 @@ export default async function TermsPage() {
           title: "Payment and when cover starts",
           body: (
             <>
-              <p>Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva.</p>
+              <p>{PAYMENTS_DISCLOSURE}</p>
               <p>
                 <strong>Payment confirmation alone does not make a policy active.</strong> Cover starts only when the insurer confirms acceptance and issues your policy. Until then your request shows as awaiting insurer issuance. If the insurer declines, any premium paid is refunded in line with the insurer’s and payment provider’s procedures.
               </p>
@@ -113,7 +114,7 @@ export default async function TermsPage() {
         {
           id: "fees",
           title: "Fees",
-          body: <p>Using the platform as a customer is free. Brokers and insurers pay us technology fees. Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva. See our <Link href="/legal/disclosures">disclosures</Link>.</p>,
+          body: <p>Using the platform as a customer is free. Brokers and insurers pay us technology fees. {PAYMENTS_DISCLOSURE} See our <Link href="/legal/disclosures">disclosures</Link>.</p>,
         },
         {
           id: "ip",

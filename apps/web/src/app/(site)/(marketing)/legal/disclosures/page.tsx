@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import { DisclosureBlock } from "@im/ui";
 import { ROLE_STATEMENTS, buildDisclosure } from "@im/core";
@@ -52,7 +53,7 @@ export default async function DisclosuresPage() {
               <li><strong>Customers</strong> pay nothing to use the platform. You pay the premium set by the insurer.</li>
               <li>You can ask your broker for the amount of commission on your policy.</li>
               <li><strong>{brand.name}</strong> is paid technology fees by participating brokers and insurers (subscription and usage fees). Our fees do not depend on which insurer you choose.</li>
-              <li>Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva.</li>
+              <li>{PAYMENTS_DISCLOSURE}</li>
             </ul>
           ),
         },

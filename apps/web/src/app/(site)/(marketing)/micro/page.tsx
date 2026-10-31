@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 const AUDIENCE_ICON: Record<AudienceTag, typeof Bike> = { okada: Bike, trotro: Bus, ride_hailing: Car, trader: Store, artisan: Hammer, event: PartyPopper };
 
 const FAQ = [
-  { q: "Who provides the cover?", a: "A licensed insurer. Covva is a technology platform: we show you the insurer's product and price. Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva." },
+  { q: "Who provides the cover?", a: `A licensed insurer. Covva is a technology platform: we show you the insurer's product and price. ${PAYMENTS_DISCLOSURE}` },
   { q: "When does my cover start?", a: "As soon as the insurer issues it. For instant products that is a few moments after you approve the mobile money prompt. Your policy and receipt are in the app and sent by SMS." },
   { q: "What if I forget to renew?", a: "Turn on auto-renew and we send the prompt or charge your saved card before your cover ends. You can also renew in one tap from the app, WhatsApp or USSD." },
   { q: "Can I buy without a smartphone?", a: "Yes. Dial the USSD code shown by your insurer or chat with us on WhatsApp. You pay by mobile money on any phone." },
@@ -82,7 +83,7 @@ export default function MicroPage() {
           <FeatureCard icon={<Smartphone aria-hidden className="size-5" />} title="2. Enter your MoMo number">MTN MoMo, Telecel Cash or AirtelTigo Money.</FeatureCard>
           <FeatureCard icon={<Bike aria-hidden className="size-5" />} title="3. Approve and go">Approve the prompt with your PIN. Your policy arrives by SMS and in the app.</FeatureCard>
         </div>
-        <CheckList className="mt-8" items={["Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.", "Renew in one tap, or turn on auto-renew.", "Also on WhatsApp and USSD for any phone."]} />
+        <CheckList className="mt-8" items={[PAYMENTS_DISCLOSURE, "Renew in one tap, or turn on auto-renew.", "Also on WhatsApp and USSD for any phone."]} />
       </Section>
 
       <Section labelledBy="faq-title">

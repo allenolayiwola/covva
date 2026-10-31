@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "./payments-disclosure";
 /**
  * Long-form marketing copy shared between pages (FAQ, help centre, home preview).
  * Plain strings only so it can be passed to client components and JSON-LD.
@@ -13,12 +14,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: "what-is",
         q: "What is Covva?",
-        a: "We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker and we do not give insurance advice in our own name. Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
+        a: `We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker and we do not give insurance advice in our own name. ${PAYMENTS_DISCLOSURE}`,
       },
       {
         id: "cost",
         q: "Does it cost anything to use?",
-        a: "Exploring cover, using Help me choose and requesting quotes are free. You pay the premium the insurer sets. Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
+        a: `Exploring cover, using Help me choose and requesting quotes are free. You pay the premium the insurer sets. ${PAYMENTS_DISCLOSURE}`,
       },
       {
         id: "how-many",
@@ -49,7 +50,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: "methods",
         q: "How can I pay?",
-        a: "Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
+        a: `You can pay by mobile money or card through an authorised payment provider. ${PAYMENTS_DISCLOSURE}`,
       },
       {
         id: "paid-active",
