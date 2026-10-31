@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Field, Input, Notice } from "@im/ui";
@@ -44,6 +45,8 @@ export function SignInForm() {
       <Field label="Password" htmlFor="password">
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
       </Field>
+      <p><Link href="/forgot-password" className="text-sm font-semibold text-brand hover:underline">Forgot password?</Link></p>
+      <p className="text-sm text-muted">Need help? Contact your Covva platform administrator.</p>
       <Button type="submit" className="w-full" loading={pending}>
         Continue
       </Button>

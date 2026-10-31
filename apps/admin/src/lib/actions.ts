@@ -69,6 +69,6 @@ export function done(message: string): ActionState {
   return { ok: true, message };
 }
 
-export function fail(error: string): ActionState {
-  return { ok: false, error };
+export function fail(error: string, field?: string): ActionState {
+  return { ok: false, error, ...(field ? { fieldErrors: { [field]: [error] } } : {}) };
 }

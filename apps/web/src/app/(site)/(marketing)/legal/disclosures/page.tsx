@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function DisclosuresPage() {
   const brand = await getBrand();
-  const sample = buildDisclosure({ platform: brand.name, broker: { name: "[Broker name]", licence: "[licence number]" }, insurer: { name: "[Insurer name]" } });
+  const sample = buildDisclosure({ platform: brand.name, broker: { name: "To be confirmed before launch", licence: "To be confirmed before launch" }, insurer: { name: "To be confirmed before launch" } });
 
   return (
     <LegalPage

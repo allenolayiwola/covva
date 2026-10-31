@@ -274,6 +274,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
           <h2 id="hero-quote-title" className="font-display text-[20px] leading-tight text-ink sm:text-[22px]">
             What would you like to insure?
           </h2>
+          <p className="mt-1 text-[13px] text-muted">Start in minutes — sign in with your phone to see quotes.</p>
           <fieldset className="mt-4">
             <legend className="sr-only">Type of cover</legend>
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5">

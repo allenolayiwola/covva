@@ -1,7 +1,8 @@
 import * as React from "react";
 import Link from "next/link";
-import { FileWarning } from "lucide-react";
-import { Container, Notice, Pill } from "@im/ui";
+import { Container, Pill } from "@im/ui";
+
+import { LegalReviewBanner } from "./legal-review-banner";
 
 export interface LegalSection { id: string; title: string; body: React.ReactNode }
 
@@ -37,7 +38,6 @@ export function LegalPage({
             <span>Legal</span>
           </nav>
           <div className="flex flex-wrap items-center gap-2">
-            <Pill tone="wait">Draft — subject to legal review</Pill>
             {version && <Pill>Version {version}</Pill>}
           </div>
           <h1 className="mt-4 text-[34px] font-bold leading-tight tracking-[-0.03em] text-ink sm:text-[46px]">{title}</h1>
@@ -75,9 +75,7 @@ export function LegalPage({
             </nav>
           </aside>
           <article className="min-w-0 max-w-3xl">
-            <Notice tone="wait" icon={<FileWarning className="size-4" />} title="Draft document" className="mb-10">
-              This is a working draft prepared for a Ghanaian insurance technology platform ahead of launch. It is subject to legal and regulatory review and may change. Placeholders are shown in [square brackets].
-            </Notice>
+            <LegalReviewBanner />
             <div className="space-y-12">
               {sections.map((s, i) => (
                 <section key={s.id} id={s.id} aria-labelledby={`${s.id}-h`} className="scroll-mt-28">

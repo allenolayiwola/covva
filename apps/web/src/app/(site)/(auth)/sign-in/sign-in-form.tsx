@@ -33,7 +33,7 @@ export function SignInForm({ next, defaultMode = "phone" }: { next: string; defa
               aria-selected={mode === t.key}
               onClick={() => setMode(t.key)}
               className={cn(
-                "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                "inline-flex min-w-0 min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-sm whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
                 mode === t.key ? "bg-white text-brand-deep shadow-card" : "text-muted hover:text-ink",
               )}
             >

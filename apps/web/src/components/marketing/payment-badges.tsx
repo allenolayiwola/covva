@@ -12,7 +12,7 @@ export function PaymentBadges({ className, compact }: { className?: string; comp
       {PAYMENT_METHODS.map((m) => (
         <li
           key={m.id}
-          className={cn("inline-flex items-center gap-2 rounded-[10px] border border-line bg-white font-semibold text-ink", compact ? "h-8 px-2.5 text-[13px]" : "h-10 px-3 text-[13px]")}
+          className={cn("inline-flex items-center gap-2 rounded-[10px] border border-line bg-white font-semibold text-ink", compact ? "h-8 px-2.5 text-[14px]" : "h-10 px-3 text-[14px]")}
         >
           <span aria-hidden className="inline-block size-2.5 rounded-full ring-1 ring-black/5" style={{ backgroundColor: m.tone }} />
           {m.id === "visa" || m.id === "mastercard" ? <CreditCard aria-hidden className="size-4 text-muted" /> : <Smartphone aria-hidden className="size-4 text-muted" />}
@@ -32,7 +32,7 @@ export function SecurityBadges({ className, compact }: { className?: string; com
   return (
     <ul className={cn("flex flex-wrap gap-2", className)} aria-label="Security and compliance">
       {items.map((it) => (
-        <li key={it.label} className={cn("inline-flex items-center gap-2 rounded-[10px] bg-mist font-medium text-ink-2", compact ? "h-8 px-2.5 text-[13px]" : "h-10 px-3 text-[13px]")}>
+        <li key={it.label} className={cn("inline-flex items-center gap-2 rounded-[10px] bg-mist font-medium text-ink-2", compact ? "h-8 px-2.5 text-[14px]" : "h-10 px-3 text-[14px]")}>
           <it.icon aria-hidden className="size-4 text-brand" />
           {it.label}
         </li>

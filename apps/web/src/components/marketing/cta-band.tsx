@@ -18,7 +18,7 @@ export function CtaBand({
   return (
     <section aria-labelledby="cta-band-title" className="pb-16 lg:pb-24">
       <Container>
-        <div className="relative overflow-hidden rounded-hero border border-line bg-mint/60 px-6 py-14 sm:px-12 sm:py-16">
+        <div className="relative overflow-x-clip overflow-y-clip rounded-hero border border-line bg-mint/60 px-6 py-14 sm:px-12 sm:py-16">
           <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-white/60" />
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
