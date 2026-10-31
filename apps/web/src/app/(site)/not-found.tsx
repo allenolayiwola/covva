@@ -30,6 +30,8 @@ export default function NotFound() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href="/quote" className={buttonClass("primary", "lg")}>Get quotes</Link>
               <Link href="/" className={buttonClass("secondary", "lg")}>Back to home</Link>
+              <Link href="/explore" className={buttonClass("secondary", "lg")}>Explore cover</Link>
+              <Link href="/support" className={buttonClass("secondary", "lg")}>Help centre</Link>
             </div>
           </div>
           <nav aria-label="Insurance categories" className="mx-auto mt-12 max-w-3xl">

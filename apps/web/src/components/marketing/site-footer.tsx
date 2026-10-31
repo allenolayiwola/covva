@@ -67,12 +67,12 @@ export async function SiteFooter() {
       <Container className="py-14 sm:py-16">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
           <div className="max-w-sm">
-            <Link href="/" className="inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+            <Link href="/" className="inline-flex min-h-11 min-w-11 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
               <Logo height={36} label={brand.name} />
             </Link>
             <p className="mt-4 text-[15px] font-medium text-ink-2">{brand.tagline}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">{ROLE_STATEMENTS.platform}</p>
-            <a href={`mailto:${brand.supportEmail}`} className="mt-5 inline-flex items-center gap-2 rounded text-sm font-medium text-brand hover:underline">
+            <a href={`mailto:${brand.supportEmail}`} className="mt-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded text-sm font-medium text-brand hover:underline">
               <Mail aria-hidden className="size-4" />
               {brand.supportEmail}
             </a>
@@ -88,11 +88,11 @@ export async function SiteFooter() {
               <ul className="mt-2 text-sm">
                 {PRODUCT_LINES.map((p) => (
                   <li key={p.slug}>
-                    <Link href={`/insurance/${p.slug}`} className="inline-flex min-h-10 items-center rounded text-muted hover:text-brand">{p.short}</Link>
+                    <Link href={`/insurance/${p.slug}`} className="inline-flex min-h-11 min-w-11 items-center rounded text-muted hover:text-brand">{p.short}</Link>
                   </li>
                 ))}
                 <li>
-                  <Link href="/explore" className="inline-flex min-h-10 items-center rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
+                  <Link href="/explore" className="inline-flex min-h-11 min-w-11 items-center rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
                 </li>
               </ul>
             </div>
@@ -102,7 +102,7 @@ export async function SiteFooter() {
                 <ul className="mt-2 text-sm">
                   {col.links.map((l) => (
                     <li key={l.href}>
-                      <Link href={l.href} className="inline-flex min-h-10 items-center rounded text-muted hover:text-brand"><T k={l.k} /></Link>
+                      <Link href={l.href} className="inline-flex min-h-11 min-w-11 items-center rounded text-muted hover:text-brand"><T k={l.k} /></Link>
                     </li>
                   ))}
                 </ul>
@@ -111,11 +111,11 @@ export async function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-14 grid gap-4 rounded-card border border-line bg-white p-5 text-[13px] leading-relaxed text-muted sm:p-6 md:grid-cols-3">
+        <div className="mt-14 grid gap-4 rounded-card border border-line bg-white p-5 text-sm leading-relaxed text-muted sm:p-6 md:grid-cols-3">
           <p>
             <span className="font-semibold text-ink">Broking. </span>
             Insurance broking services are provided by participating brokers licensed by the{" "}
-            <a href={REGULATION.nic.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium text-brand hover:underline">
+            <a href={REGULATION.nic.url} target="_blank" rel="noreferrer" className="inline-flex min-h-11 min-w-11 items-center gap-0.5 font-medium text-brand hover:underline">
               NIC<ExternalLink aria-hidden className="size-3" /><span className="sr-only"> (opens in a new tab)</span>
             </a>
             . Your broker of record is named before any advice or application.
@@ -135,10 +135,10 @@ export async function SiteFooter() {
             © {year} {brand.name}
             {brand.workingName ? <T k="footer.workingName" /> : ""}<T k="footer.platformLine" />
           </p>
-          <p className="text-[13px]">
-            <Link href="/legal/cookies" className="rounded hover:text-brand"><T k="footer.cookiesConsent" /></Link>
+          <p className="text-sm">
+            <Link href="/legal/cookies" className="inline-flex min-h-11 min-w-11 items-center rounded hover:text-brand"><T k="footer.cookiesConsent" /></Link>
           </p>
-          {demo && <DemoBadge />}
+          {demo && <DemoBadge className="text-sm!" />}
         </div>
       </Container>
     </footer>

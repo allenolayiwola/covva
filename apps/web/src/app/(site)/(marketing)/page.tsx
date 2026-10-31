@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { DemoBadge, Eyebrow, Pill, buttonClass } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
-import { getCategories, getPartnerDirectory } from "@/lib/catalog";
+import { getCategories, getPartnerDirectory, getTrustPartners } from "@/lib/catalog";
 import { displayOrgName, getBrand, isDemoMode, isDemoOrg } from "@/components/marketing/brand";
 import { HeroVisual } from "@/components/marketing/hero-visual";
 import { HeroTrustStrip, HomeHero } from "@/components/marketing/home-hero";
@@ -52,7 +52,7 @@ const BENEFIT_ICONS = { instant: Zap, instalments: CreditCard, reminders: BellRi
 
 export default async function HomePage() {
   // CMS-managed blocks (FAQs, testimonials, partner logos) fall back to the typed content / partner directory.
-  const [categories, directory, demo, brand, prices, faqs, testimonials, partners] = await Promise.all([
+  const [categories, directory, demo, brand, prices, faqs, testimonials, partners, trustPartners] = await Promise.all([
     getCategories(),
     getPartnerDirectory(),
     isDemoMode(),
@@ -61,6 +61,7 @@ export default async function HomePage() {
     getFaqsFor("home"),
     getTestimonials(),
     getPartners(),
+    getTrustPartners(),
   ]);
 
   const preferred = ["coastline-general", "volta-mutual", "ashanti-shield"];
@@ -81,7 +82,7 @@ export default async function HomePage() {
       <HomeHero />
       <HeroTrustStrip />
 
-      <TrustBar insurers={directory.insurers} demo={demo} partners={partners} />
+      <TrustBar organizations={trustPartners} demo={demo} partners={partners} />
 
       {/* How it works ------------------------------------------------------------ */}
       <Section labelledBy="how-title">

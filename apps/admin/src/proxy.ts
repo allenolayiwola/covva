@@ -7,7 +7,7 @@ import { createServerClient } from "@supabase/ssr";
  * and Route Handler re-checks staff membership, role and MFA via `requireStaff()`,
  * and RLS is the final boundary.
  */
-const PUBLIC = ["/sign-in", "/mfa", "/no-access"];
+const PUBLIC = ["/sign-in", "/forgot-password", "/reset-password", "/mfa", "/no-access"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -55,5 +55,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)"],
+  matcher: ["/((?!api/health$|_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)"],
 };

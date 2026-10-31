@@ -29,6 +29,7 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
   const [policyNumber, setPolicyNumber] = React.useState(prefill);
   const [insurer, setInsurer] = React.useState(params.get("insurer") ?? insurers[0]?.slug ?? "");
   const [state, setState] = React.useState<{ kind: "idle" | "loading" | "done" | "error"; result?: VerifyResult; error?: string }>({ kind: "idle" });
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const resultRef = React.useRef<HTMLDivElement>(null);
   const uid = React.useId();
   const id = (f: string) => `${uid}-${f}`;
@@ -38,6 +39,12 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
     const number = policyNumber.trim();
     if (!number) {
       setState({ kind: "error", error: "Please enter the policy number." });
+      inputRef.current?.focus();
+      return;
+    }
+    if (!isCode(number) && (number.length < 3 || !insurer)) {
+      setState({ kind: "error", error: "Choose an insurer and enter a policy number of at least 3 characters." });
+      inputRef.current?.focus();
       return;
     }
     setState({ kind: "loading" });
@@ -52,6 +59,11 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
         return;
       }
       const json = (await res.json()) as VerifyResult;
+      if (!res.ok) {
+        setState({ kind: "error", error: json.message ?? "Verification is not available right now. Please try again." });
+        inputRef.current?.focus();
+        return;
+      }
       setState({ kind: "done", result: json });
       requestAnimationFrame(() => resultRef.current?.focus());
     } catch {
@@ -73,8 +85,8 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
               ))}
             </Select>
           </Field>
-          <Field label="Policy number" htmlFor={id("num")} hint={isCode(policyNumber) ? "Verification code recognised — the insurer is read from the code." : undefined} error={state.kind === "error" ? state.error : undefined}>
-            <Input id={id("num")} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} autoComplete="off" placeholder="Policy number or 10-character code" maxLength={60} aria-invalid={state.kind === "error"} />
+          <Field label="Policy number" htmlFor={id("num")} hint={isCode(policyNumber) ? "Verification code recognised — the insurer is read from the code." : "Use your policy number or 10-character wallet code."} error={state.kind === "error" ? <span id={id("error")} role="alert">{state.error}</span> : undefined}>
+            <Input ref={inputRef} aria-describedby={state.kind === "error" ? id("error") : undefined} id={id("num")} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} autoComplete="off" placeholder="Number or code" maxLength={60} aria-invalid={state.kind === "error"} />
           </Field>
         </div>
         <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

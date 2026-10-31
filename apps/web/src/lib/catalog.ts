@@ -58,6 +58,25 @@ export async function getPartnerDirectory(): Promise<{ brokers: PublicOrg[]; ins
   return { brokers: orgs.filter((o) => o.type === "broker"), insurers: orgs.filter((o) => o.type === "insurer") };
 }
 
+/** Status metadata is only needed by the home trust strip, not the public directory API. */
+export type TrustPartner = Pick<Row<"organizations">, "id" | "name" | "slug" | "brand_color" | "settings" | "status" | "licence_status" | "licence_verified_at">;
+
+export async function getTrustPartners(): Promise<TrustPartner[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("catalog", "partners");
+  if (process.env.HOME_PARTNER_STRIP_ENABLED !== "true") return [];
+  const { data } = await createPublicClient()
+    .from("organizations")
+    .select("id, name, slug, brand_color, settings, status, licence_status, licence_verified_at")
+    .eq("status", "active")
+    .eq("licence_status", "verified")
+    .not("licence_verified_at", "is", null)
+    .in("type", ["broker", "insurer"])
+    .order("name");
+  return data ?? [];
+}
+
 export async function getFlags(): Promise<Record<string, boolean>> {
   "use cache";
   cacheLife("minutes");
