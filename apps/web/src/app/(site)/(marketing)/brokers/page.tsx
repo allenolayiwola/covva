@@ -17,12 +17,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { DemoBadge, Pill, buttonClass } from "@im/ui";
-import { getPlans } from "@/lib/catalog";
 import { isDemoMode } from "@/components/marketing/brand";
 import { PageHero } from "@/components/marketing/page-hero";
 import { CheckList, FeatureCard, Section, SectionHeading } from "@/components/marketing/section";
 import { BrokerQueueMock } from "@/components/marketing/broker-queue-mock";
-import { PlanCards } from "@/components/marketing/plan-cards";
 import { LeadForm } from "@/components/marketing/lead-form";
 
 export const metadata: Metadata = {
@@ -46,8 +44,8 @@ const VALUE = [
 ];
 
 const MODELS = [
-  { icon: Percent, title: "Revenue share", tag: "No fixed fee", body: "Keep your commission; Covva takes an agreed technology share on policies issued through the platform. Best when you are starting out." },
-  { icon: LayoutDashboard, title: "Subscription", tag: "Predictable", body: "A flat monthly workspace fee per firm with no per-policy share. Best for established firms with steady volume." },
+  { icon: Percent, title: "Revenue share", tag: "Agreement", body: "Commission arrangements are set per partner agreement. Partners also pay Covva a platform fee." },
+  { icon: LayoutDashboard, title: "Platform fee", tag: "Agreement", body: "Platform fee: set per partner agreement, in addition to commission. Neither commission nor fees affect rankings." },
 ];
 
 const ONBOARDING = [
@@ -67,8 +65,7 @@ const GATES = [
 ];
 
 export default async function BrokersPage() {
-  const [plans, demo] = await Promise.all([getPlans(), isDemoMode()]);
-  const brokerPlans = plans.filter((p) => p.audience === "broker");
+  const demo = await isDemoMode();
 
   return (
     <>
@@ -124,7 +121,7 @@ export default async function BrokersPage() {
       </Section>
 
       <Section labelledBy="models-title">
-        <SectionHeading id="models-title" eyebrow="Commercial models" title="Revenue share or subscription — your choice" description="You keep your commission either way; our fees are for the technology, and are disclosed to customers." />
+        <SectionHeading id="models-title" eyebrow="Commercial models" title="Commission and platform fees" description="You keep your commission either way; our fees are for the technology, and are disclosed to customers." />
         <div className="grid gap-4 md:grid-cols-2">
           {MODELS.map((m) => (
             <article key={m.title} className="rounded-[20px] border border-line bg-white p-6 sm:p-7">
@@ -141,7 +138,7 @@ export default async function BrokersPage() {
 
       <Section id="plans" tone="mist" labelledBy="plans-title">
         <SectionHeading id="plans-title" eyebrow="Plans" title="Start with a pilot. Grow on evidence." description="Simple workspace plans for broker firms. You keep your commission; our fees are for the technology." />
-        <PlanCards plans={brokerPlans} />
+        <p className="text-muted">Platform fee: set per partner agreement, in addition to commission. Neither commission nor fees affect rankings.</p>
       </Section>
 
       <Section labelledBy="onboarding-title">
@@ -150,7 +147,7 @@ export default async function BrokersPage() {
           {ONBOARDING.map((g, i) => (
             <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold tabular-nums text-white">{i + 1}</span>
-              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
             </li>
           ))}
@@ -167,7 +164,7 @@ export default async function BrokersPage() {
           {GATES.map((g, i) => (
             <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold text-white tabular-nums">{i + 1}</span>
-              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
               {i < GATES.length - 1 && <ArrowRight aria-hidden className="absolute -right-3 top-8 z-10 hidden size-5 rounded-full bg-mist text-subtle md:block" />}
             </li>

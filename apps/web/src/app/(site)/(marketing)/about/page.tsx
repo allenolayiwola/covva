@@ -1,3 +1,4 @@
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, Compass, Eye, Layers, LockKeyhole, Mail, MessageSquareWarning, Scale, ShieldCheck, UserRoundCheck, Users } from "lucide-react";
@@ -9,12 +10,7 @@ import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/com
 import { CtaBand } from "@/components/marketing/cta-band";
 import { REGULATION } from "@/components/marketing/content";
 
-export const metadata: Metadata = {
-  title: "About us",
-  description:
-    "Our vision is to be Ghana’s most trusted independent insurance access point. Learn how we work with licensed brokers and insurers, and how we are governed.",
-  alternates: { canonical: "/about" },
-};
+export const metadata: Metadata = pageMetadata(pageCopy.about);
 
 const PRINCIPLES = [
   { icon: Eye, title: "Clarity over persuasion", body: "We explain cover in plain language and show the details that matter, not just the price." },
@@ -57,7 +53,7 @@ export default async function AboutPage() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Why we exist</Eyebrow>
-            <h2 id="vision-title" className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">{brand.tagline}</h2>
+            <h2 id="vision-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">{brand.tagline}</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-muted">
               Too many people in Ghana go without cover, or hold policies they do not understand. Buying is slow, comparing is hard, and help after the sale is patchy. We think a clear, trustworthy digital front door — backed by licensed professionals — can change that.
             </p>
@@ -78,7 +74,7 @@ export default async function AboutPage() {
           <FeatureCard icon={<Building2 />} title="Insurers — cover">{ROLE_STATEMENTS.insurer}</FeatureCard>
         </div>
         <p className="mt-6 text-sm text-muted">
-          We earn technology fees from partner brokers and insurers. We do not earn more by steering you to a particular insurer. See our{" "}
+          We earn a commission per policy sold. We do not earn more by steering you to a particular insurer. See our{" "}
           <Link href="/legal/disclosures" className="font-medium text-brand hover:underline">disclosures</Link>.
         </p>
       </Section>
@@ -111,13 +107,13 @@ export default async function AboutPage() {
             {COMMITTEES.map((c) => (
               <li key={c.title} className="rounded-card border border-line bg-white p-5">
                 <IconTile size="sm"><Compass /></IconTile>
-                <h3 className="mt-3 font-semibold text-ink">{c.title}</h3>
+                <h3 className="mt-3 text-[20px] leading-[1.25] text-ink">{c.title}</h3>
                 <p className="mt-1 text-sm leading-relaxed text-muted">{c.body}</p>
               </li>
             ))}
           </ul>
           <div className="rounded-card border border-line bg-mist p-6">
-            <h3 className="font-semibold text-ink">Key policies</h3>
+            <h3 className="text-[20px] leading-[1.25] text-ink">Key policies</h3>
             <CheckList className="mt-4" items={POLICIES} />
           </div>
         </div>

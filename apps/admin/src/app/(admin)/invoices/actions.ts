@@ -1,6 +1,8 @@
 "use server";
+import { canTransitionPartnerInvoice } from "@im/core";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import type { Json } from "@im/db";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { monthRange, type InvoiceLine } from "@/lib/billing";
@@ -23,13 +25,14 @@ const Generate = z.object({
 export async function generateInvoice(_: ActionState, fd: FormData): Promise<ActionState> {
   const auth = await authorize("commercial");
   if (!auth.ok) return fail(auth.error);
+  if (!await partnerBillingEnabled(auth.supabase)) return fail("Partner platform-fee billing is disabled.");
   const parsed = Generate.safeParse(formObject(fd));
   if (!parsed.success) return zodError(parsed.error);
   const { orgId, period } = parsed.data;
   const { supabase } = auth;
   const { start, end, endExclusive } = monthRange(period);
 
-  const [{ data: org }, { data: sub }, { data: existing }, { data: usage }, { data: taxSetting }] = await Promise.all([
+  const results = await Promise.all([
     supabase.from("organizations").select("id, slug, type, name").eq("id", orgId).single(),
     supabase
       .from("subscriptions")
@@ -40,8 +43,12 @@ export async function generateInvoice(_: ActionState, fd: FormData): Promise<Act
     supabase.from("invoices").select("id, number").eq("org_id", orgId).eq("period_start", start).neq("status", "void").maybeSingle(),
     supabase.from("usage_events").select("metric, quantity").eq("org_id", orgId).gte("occurred_at", `${start}T00:00:00Z`).lt("occurred_at", `${endExclusive}T00:00:00Z`).limit(50000),
     supabase.from("platform_settings").select("value").eq("key", "invoice_tax_rate").maybeSingle(),
-  ]);
-  if (!org) return fail("Organisation not found.");
+  ] as const);
+  const readError = results.find((result) => result.error)?.error;
+  if (readError) return fail(dbMessage(readError));
+  const [{ data: org }, { data: sub }, { data: existing }, { data: usage }, { data: taxSetting }] = results;
+  if (usage && usage.length >= 50000) return fail("Usage exceeds the invoice preview limit. Review usage before invoicing.");
+  if (!org || org.type === "platform") return fail("Choose a partner organisation.");
   if (existing) return fail(`An invoice already exists for this period (${existing.number}). Void it first to regenerate.`);
   const plan = sub?.plan as unknown as { name: string; code: string; currency: string; monthly_fee: number; included_requests: number | null; per_request_fee: number; per_active_policy_fee: number } | null;
   if (!sub || !plan) return fail("This organisation has no live subscription. Add one from its Subscription tab.");
@@ -52,14 +59,15 @@ export async function generateInvoice(_: ActionState, fd: FormData): Promise<Act
   let policyNote = "usage events";
   if (!activePolicies && Number(plan.per_active_policy_fee) > 0) {
     const col = org.type === "insurer" ? "insurer_org_id" : "broker_org_id";
-    const { count } = await supabase.from("policies").select("id", { count: "exact", head: true }).eq(col, org.id).eq("status", "active");
+    const { count, error: countError } = await supabase.from("policies").select("id", { count: "exact", head: true }).eq(col, org.id).eq("status", "active");
+    if (countError) return fail(dbMessage(countError));
     activePolicies = count ?? 0;
     policyNote = "active policies at generation";
   }
 
   const lines: InvoiceLine[] = [];
   const trial = sub.status === "trialing";
-  lines.push({ code: "subscription", description: `${plan.name} — monthly subscription${trial ? " (trial — no charge)" : ""}`, quantity: 1, unit_price: trial ? 0 : Number(plan.monthly_fee), amount: trial ? 0 : Number(plan.monthly_fee) });
+  lines.push({ code: "subscription", description: `${plan.name} — monthly platform fee${trial ? " (trial — no charge)" : ""}`, quantity: 1, unit_price: trial ? 0 : Number(plan.monthly_fee), amount: trial ? 0 : Number(plan.monthly_fee) });
   const included = plan.included_requests;
   const over = included === null ? 0 : Math.max(0, requests - included);
   lines.push({
@@ -95,23 +103,23 @@ export async function generateInvoice(_: ActionState, fd: FormData): Promise<Act
 
 const Transition = z.object({
   invoiceId: z.string().uuid(),
-  to: z.enum(["issued", "paid", "void", "overdue"]),
+  to: z.enum(["issued", "paid", "void"]),
   reason: z.string().trim().max(1000).optional(),
   dueDays: z.coerce.number().int().min(0).max(120).optional(),
 });
 
-/** Invoice lifecycle: draft → issued → paid / overdue; draft or issued → void (with reason). Never deleted. */
+/** Invoice lifecycle: draft → issued; draft or issued → paid / void (with reason). Never deleted. */
 export async function transitionInvoice(_: ActionState, fd: FormData): Promise<ActionState> {
   const auth = await authorize("commercial");
   if (!auth.ok) return fail(auth.error);
+  if (!await partnerBillingEnabled(auth.supabase)) return fail("Partner platform-fee billing is disabled.");
   const parsed = Transition.safeParse(formObject(fd));
   if (!parsed.success) return zodError(parsed.error);
   const { invoiceId, to, reason, dueDays } = parsed.data;
   const { data: inv } = await auth.supabase.from("invoices").select("status, lines").eq("id", invoiceId).single();
   if (!inv) return fail("Invoice not found.");
 
-  const allowed: Record<string, string[]> = { issued: ["draft"], paid: ["issued", "overdue"], overdue: ["issued"], void: ["draft", "issued", "overdue"] };
-  if (!allowed[to]!.includes(inv.status)) return fail(`Can't move an invoice from ${inv.status} to ${to}.`);
+  if (!canTransitionPartnerInvoice(inv.status, to)) return fail(`Can't move an invoice from ${inv.status} to ${to}.`);
   if (to === "void" && (!reason || reason.length < 5)) return fail("Give a reason for voiding (at least 5 characters).");
 
   const now = new Date();
@@ -123,7 +131,8 @@ export async function transitionInvoice(_: ActionState, fd: FormData): Promise<A
         : to === "void"
           ? { status: to, lines: [...((inv.lines as unknown as InvoiceLine[]) ?? []), { code: "void_note", description: `Voided: ${reason}`, quantity: 0, unit_price: 0, amount: 0 }] as unknown as Json }
           : { status: to };
-  const { error } = await auth.supabase.from("invoices").update(patch).eq("id", invoiceId);
+  const { data: changed, error } = await auth.supabase.from("invoices").update(patch).eq("id", invoiceId).eq("status", inv.status).select("id").maybeSingle();
   if (error) return fail(dbMessage(error));
-  return done(`Invoice ${to === "issued" ? "issued" : to === "paid" ? "marked paid" : to === "void" ? "voided" : "marked overdue"}.`);
+  if (!changed) return fail("Invoice changed while you were editing. Reload and try again.");
+  return done(`Invoice ${to === "issued" ? "issued" : to === "paid" ? "marked paid" : "voided"}.`);
 }

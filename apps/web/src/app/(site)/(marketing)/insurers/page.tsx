@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BarChart3, Braces, CalendarCheck, Database, FileCheck2, GitBranch, Globe2, KeyRound, LayoutDashboard, PlugZap, TrendingDown, Users, Workflow, Zap } from "lucide-react";
 import { Pill, buttonClass } from "@im/ui";
-import { getPlans } from "@/lib/catalog";
 import { PageHero } from "@/components/marketing/page-hero";
 import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/components/marketing/section";
-import { PlanCards } from "@/components/marketing/plan-cards";
 import { LeadForm } from "@/components/marketing/lead-form";
 
 export const metadata: Metadata = {
@@ -24,8 +22,8 @@ const BENEFITS = [
 ];
 
 const COMMERCIAL = [
-  { title: "Portal (Level 1)", body: "A flat monthly platform fee per insurer. No per-policy charge while you learn the channel.", tag: "Fixed" },
-  { title: "Connected (Levels 2–3)", body: "A lower platform fee plus a small per-policy technology fee on issued policies, invoiced monthly with a reconciliation feed.", tag: "Usage" },
+  { title: "Portal (Level 1)", body: "Platform fee: set per partner agreement.", tag: "Agreement" },
+  { title: "Connected (Levels 2–3)", body: "Commission and a platform fee set per partner agreement, with a monthly reconciliation feed.", tag: "Usage" },
   { title: "What never changes", body: "Premiums settle to the insurer. Broker commission is set by you and disclosed to the customer. Covva never earns more by steering customers to one insurer.", tag: "Principle" },
 ];
 
@@ -83,7 +81,6 @@ const GOVERNANCE = [
 ];
 
 export default async function InsurersPage() {
-  const plans = (await getPlans()).filter((p) => p.audience === "insurer");
 
   return (
     <>
@@ -128,12 +125,12 @@ export default async function InsurersPage() {
       </Section>
 
       <Section labelledBy="commercial-title">
-        <SectionHeading id="commercial-title" eyebrow="Commercial model" title="Simple, published, and never tied to steering" />
+        <SectionHeading id="commercial-title" eyebrow="Commercial model" title="Simple, transparent, and never tied to steering." />
         <div className="grid gap-4 md:grid-cols-3">
           {COMMERCIAL.map((c) => (
             <div key={c.title} className="rounded-card border border-line bg-white p-6">
               <Pill>{c.tag}</Pill>
-              <h3 className="mt-4 text-[18px] font-semibold tracking-tight text-ink">{c.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{c.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{c.body}</p>
             </div>
           ))}
@@ -146,7 +143,7 @@ export default async function InsurersPage() {
           {ONBOARDING.map((g, i) => (
             <li key={g.title} className="relative rounded-card border border-line bg-white p-5">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold tabular-nums text-white">{i + 1}</span>
-              <h3 className="mt-4 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">{g.body}</p>
             </li>
           ))}
@@ -182,7 +179,7 @@ export default async function InsurersPage() {
   "category": "motor",
   "cover_type": "comprehensive",
   "vehicle": { "make": "Toyota", "model": "Corolla", "year": 2019 },
-  "vehicle_value": 120000,
+  "vehicle_value": "<declared value>",
   "use": "private",
   "driver_age": 34,
   "claims_last_3_years": 0,
@@ -209,7 +206,7 @@ export default async function InsurersPage() {
           {GOVERNANCE.map((g) => (
             <div key={g.title} className="rounded-card border border-line bg-white p-6">
               <IconTile><g.icon /></IconTile>
-              <h3 className="mt-5 font-semibold tracking-tight text-ink">{g.title}</h3>
+              <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">{g.title}</h3>
               <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{g.body}</p>
             </div>
           ))}
@@ -218,7 +215,7 @@ export default async function InsurersPage() {
 
       <Section id="plans" tone="mist" labelledBy="plans-title">
         <SectionHeading id="plans-title" eyebrow="Insurer plans" title="Portal or connected" />
-        <PlanCards plans={plans} highlightIndex={-1} />
+        <p className="text-muted">Platform fee: set per partner agreement, in addition to commission. Neither commission nor fees affect rankings.</p>
       </Section>
 
       <Section id="enquire" labelledBy="enquire-title">

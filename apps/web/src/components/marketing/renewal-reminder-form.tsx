@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { BellRing, CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, cn } from "@im/ui";
-import { submitLead, type LeadState } from "@/app/(site)/(marketing)/actions";
+import { submitRenewalLead as submitLead, type LeadState } from "@/app/(site)/(marketing)/actions";
 import { track } from "./analytics";
 
 export interface ReminderCategory { slug: string; name: string }
@@ -56,7 +56,7 @@ function Instance({ categories, defaultCategory, className, onReset }: { categor
       <div className="flex items-start gap-3">
         <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-mint text-brand-deep"><BellRing className="size-5" /></span>
         <div>
-          <h3 id={id("title")} className="text-[17px] font-semibold text-ink">Already insured? Let us remind you.</h3>
+          <h3 id={id("title")} className="text-[20px] leading-[1.25] text-ink">Already insured? Let us remind you.</h3>
           <p className="mt-0.5 text-[14px] leading-relaxed text-muted">Tell us when your current policy expires and we’ll remind you with better quotes.</p>
         </div>
       </div>

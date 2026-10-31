@@ -10,7 +10,7 @@ export const Partners: CollectionConfig = {
     defaultColumns: ["name", "type", "order", "showOnSite", "_status"],
     group: "Content",
     description:
-      "Logos in the home-page trust bar. Only NIC-licensed insurers and brokers, and authorised payment providers: the strip is always headed \"Licensed partners only\". Insurer and broker logos replace the database directory on the home page once at least one is published and shown; payment logos replace the text badges once at least one has a logo.",
+      "Partner logos. Home display requires HOME_PARTNER_STRIP_ENABLED=true and a matching active, licence-verified, non-demo organisation slug in the directory. CMS entries do not verify a licence.",
   },
   access: { read: publishedOrStaff, create: staff, update: staff, delete: staff },
   versions: { drafts: { autosave: { interval: 2000 }, schedulePublish: true }, maxPerDoc: 20 },

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { findProductLine } from "@/components/marketing/products-content";
 import { createServerClient } from "@supabase/ssr";
 import { REFERRAL_COOKIE, attributionWindowDays, decodeReferralCookie, encodeReferralCookie, frameAncestors, isCmsLocale, isValidSlug, parseReferralParam, type ReferralSource } from "@im/core";
 
@@ -40,10 +41,11 @@ export async function proxy(request: NextRequest) {
   captureReferral(request, response);
 
   // Unknown CMS slugs answer with a real 404 (the page alone can only stream a soft one; see cmsSlugMissing).
-  if (await cmsSlugMissing(request)) {
+  const cover = /^\/cover\/([^/]+)\/?$/.exec(path);
+  if ((cover && !findProductLine(cover[1]!)) || await cmsSlugMissing(request)) {
     const url = request.nextUrl.clone();
     url.pathname = NOT_FOUND_PATH;
-    const notFound = NextResponse.rewrite(url);
+    const notFound = NextResponse.rewrite(url, { status: 404 });
     response.cookies.getAll().forEach((c) => notFound.cookies.set(c));
     return notFound;
   }

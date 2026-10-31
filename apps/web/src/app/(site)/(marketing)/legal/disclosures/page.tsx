@@ -1,3 +1,4 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
 import type { Metadata } from "next";
 import { DisclosureBlock } from "@im/ui";
 import { ROLE_STATEMENTS, buildDisclosure } from "@im/core";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function DisclosuresPage() {
   const brand = await getBrand();
-  const sample = buildDisclosure({ platform: brand.name, broker: { name: "[Broker name]", licence: "[licence number]" }, insurer: { name: "[Insurer name]" } });
+  const sample = buildDisclosure({ platform: brand.name, broker: { name: "To be confirmed before launch", licence: "To be confirmed before launch" }, insurer: { name: "To be confirmed before launch" } });
 
   return (
     <LegalPage
@@ -50,9 +51,9 @@ export default async function DisclosuresPage() {
           body: (
             <ul>
               <li><strong>Customers</strong> pay nothing to use the platform. You pay the premium set by the insurer.</li>
-              <li><strong>Brokers</strong> are paid commission by insurers, within limits set by the NIC. You can ask your broker for the amount of commission on your policy.</li>
-              <li><strong>{brand.name}</strong> is paid technology fees by participating brokers and insurers (subscription and usage fees). Our fees do not depend on which insurer you choose.</li>
-              <li>We never hold your premium. Payments settle directly to the insurer through an authorised payment provider.</li>
+              <li><strong>{brand.name}</strong> earns a commission per policy sold. Commission is taken via the Paystack split. Paystack, not Covva, holds customer funds.</li>
+              <li>{PAYMENTS_DISCLOSURE}</li>
+              <li>Partners pay Covva a platform fee in addition to commission. Neither the fee nor commission affects which insurers you see or how results are ranked.</li>
             </ul>
           ),
         },

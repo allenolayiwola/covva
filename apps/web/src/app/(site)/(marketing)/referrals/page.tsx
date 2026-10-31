@@ -42,7 +42,7 @@ export default function ReferralsPage() {
           <FeatureCard icon={<Wallet />} title="3. Earn when they buy">When their first policy is issued and paid, you both get Covva credits once their cover has been active for 14 days.</FeatureCard>
         </div>
         <Notice tone="info" className="mt-8">
-          Rewards are funded by Covva’s technology fees, not by the insurer’s premium, and are disclosed on every referred quote. Referral rewards never change which insurer or product we show you.
+          Rewards are funded by Covva’s commission, not by the insurer’s premium, and are disclosed on every referred quote. Referral rewards never change which insurer or product we show you.
         </Notice>
       </Section>
 
@@ -69,7 +69,7 @@ export default function ReferralsPage() {
 
       <Section labelledBy="r-faq-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
-          <h2 id="r-faq-title" className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[36px]">Referral questions</h2>
+          <h2 id="r-faq-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Referral questions</h2>
           <FaqList items={FAQ} />
         </div>
       </Section>

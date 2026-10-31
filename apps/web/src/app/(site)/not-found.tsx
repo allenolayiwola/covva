@@ -21,15 +21,17 @@ export default function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main id="main" tabIndex={-1} className="bg-gradient-to-b from-mist to-white focus:outline-none">
+      <main data-marketing id="main" tabIndex={-1} className="bg-gradient-to-b from-mist to-white focus:outline-none">
         <Container className="py-20 sm:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <Eyebrow>Page not found</Eyebrow>
-            <h1 className="mt-4 text-[38px] font-bold leading-tight tracking-[-0.035em] text-ink sm:text-[52px]">We couldn’t find that page.</h1>
+            <h1 className="mt-4 text-[38px] leading-[1.06] md:text-[60px] text-ink">We couldn’t find that page.</h1>
             <p className="mt-4 text-[17px] leading-relaxed text-muted">It may have moved, or the link may be incomplete. Start a quote, or pick a type of cover below.</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href="/quote" className={buttonClass("primary", "lg")}>Get quotes</Link>
               <Link href="/" className={buttonClass("secondary", "lg")}>Back to home</Link>
+              <Link href="/explore" className={buttonClass("secondary", "lg")}>Explore cover</Link>
+              <Link href="/support" className={buttonClass("secondary", "lg")}>Help centre</Link>
             </div>
           </div>
           <nav aria-label="Insurance categories" className="mx-auto mt-12 max-w-3xl">

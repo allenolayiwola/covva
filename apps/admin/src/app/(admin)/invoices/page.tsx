@@ -1,3 +1,4 @@
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Field, Input, Pill, Select } from "@im/ui";
@@ -13,12 +14,12 @@ import { ActionForm } from "@/components/ui/forms";
 import { generateInvoice } from "./actions";
 import { INVOICE_TONE } from "./meta";
 
-const STATUSES: Enum<"invoice_status">[] = ["draft", "issued", "paid", "overdue", "void"];
+const STATUSES: Enum<"invoice_status">[] = ["draft", "issued", "paid", "void"];
 
 export default function InvoicesPage({ searchParams }: PageProps<"/invoices">) {
   return (
     <>
-      <PageHeader title="Invoices" description="Technology fees billed to partners (subscriptions and usage). Premiums are never invoiced by the platform." />
+      <PageHeader title="Invoices" description="Partner invoices. Premiums are never invoiced by the platform." />
       <Suspense fallback={<LoadingBlock label="Loading invoices…" />}>
         <Invoices searchParams={searchParams} />
       </Suspense>
@@ -30,6 +31,7 @@ async function Invoices({ searchParams }: { searchParams: Promise<SearchParams> 
   const staff = await requireStaff();
   const params = await searchParams;
   const supabase = await createClient();
+  if (!await partnerBillingEnabled(supabase)) return <p>Partner platform-fee billing is disabled. Enable partner_platform_fee in Feature flags after review.</p>;
   const orgs = await orgMap(supabase);
   const { page, from, to } = pageOf(params);
   const status = sp(params, "status");

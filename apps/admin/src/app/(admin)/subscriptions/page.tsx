@@ -1,3 +1,4 @@
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Pill } from "@im/ui";
@@ -25,6 +26,7 @@ async function Subs({ searchParams }: { searchParams: Promise<SearchParams> }) {
   await requireStaff();
   const params = await searchParams;
   const supabase = await createClient();
+  if (!await partnerBillingEnabled(supabase)) return <p>Partner platform-fee billing is disabled. Enable partner_platform_fee in Feature flags after review.</p>;
   const status = sp(params, "status");
   const type = sp(params, "type");
   const [{ data: orgs }, { data: subs }, { data: plans }] = await Promise.all([
@@ -36,7 +38,9 @@ async function Subs({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const liveByOrg = new Map<string, NonNullable<typeof subs>[number]>();
   for (const s of subs ?? []) if (["trialing", "active", "past_due"].includes(s.status) && !liveByOrg.has(s.org_id)) liveByOrg.set(s.org_id, s);
 
-  let rows = (orgs ?? []).map((o) => ({ org: o, sub: liveByOrg.get(o.id) }));
+  const latestByOrg = new Map(liveByOrg);
+  for (const s of subs ?? []) if (!latestByOrg.has(s.org_id)) latestByOrg.set(s.org_id, s);
+  let rows = (orgs ?? []).map((o) => ({ org: o, sub: latestByOrg.get(o.id) }));
   if (type) rows = rows.filter((r) => r.org.type === type);
   if (status === "none") rows = rows.filter((r) => !r.sub);
   else if (status) rows = rows.filter((r) => r.sub?.status === status);
@@ -54,11 +58,11 @@ async function Subs({ searchParams }: { searchParams: Promise<SearchParams> }) {
         <Kpi label="Past due" value={live.filter((s) => s.status === "past_due").length} tone={live.some((s) => s.status === "past_due") ? "danger" : "default"} />
       </div>
       <FilterBar action="/subscriptions">
-        <FilterSelect name="status" label="Status" value={status} options={[{ value: "active", label: "Active" }, { value: "trialing", label: "Trialing" }, { value: "past_due", label: "Past due" }, { value: "none", label: "No subscription" }]} />
+        <FilterSelect name="status" label="Status" value={status} options={[{ value: "active", label: "Active" }, { value: "trialing", label: "Trialing" }, { value: "past_due", label: "Past due" }, { value: "cancelled", label: "Cancelled" }, { value: "none", label: "No subscription" }]} />
         <FilterSelect name="type" label="Organisation type" value={type} options={[{ value: "broker", label: "Broker" }, { value: "insurer", label: "Insurer" }, { value: "enterprise", label: "Enterprise" }]} />
       </FilterBar>
       <Table>
-        <THead><tr><Th>Organisation</Th><Th>Plan</Th><Th>Status</Th><Th>Trial ends</Th><Th>Current period</Th><Th>Monthly</Th><Th /></tr></THead>
+        <THead><tr><Th>Organisation</Th><Th>Plan</Th><Th>Status</Th><Th>Trial ends</Th><Th>Start date</Th><Th>Renewal date</Th><Th>Monthly</Th><Th /></tr></THead>
         <tbody>
           {rows.map(({ org, sub }) => {
             const plan = sub ? planById.get(sub.plan_id) : undefined;
@@ -69,13 +73,13 @@ async function Subs({ searchParams }: { searchParams: Promise<SearchParams> }) {
                 <Td>{plan?.name ?? <span className="text-muted">—</span>}</Td>
                 <Td>{sub ? <Pill tone={TONE[sub.status]}>{sub.status.replace("_", " ")}</Pill> : <Pill tone="wait">None</Pill>}{sub?.cancel_at_period_end && <Pill tone="neutral" className="ml-1">Cancels at period end</Pill>}</Td>
                 <Td>{sub?.trial_ends_on ? <span className={trialDays !== null && trialDays <= 14 ? "text-amber" : ""}>{formatDate(sub.trial_ends_on)}{trialDays !== null ? ` (${trialDays}d)` : ""}</span> : "—"}</Td>
-                <Td className="text-xs">{sub ? `${formatDate(sub.current_period_start)} – ${formatDate(sub.current_period_end)}` : "—"}</Td>
+                <Td>{formatDate(sub?.current_period_start)}</Td><Td>{formatDate(sub?.current_period_end)}</Td>
                 <Td className="tabular-nums">{plan ? formatGHS(Number(plan.monthly_fee)) : "—"}</Td>
                 <Td><Link href={`/organisations/${org.id}?tab=subscription`} className="text-sm text-brand hover:underline">Manage</Link></Td>
               </tr>
             );
           })}
-          {!rows.length && <tr><Td colSpan={7} className="py-8 text-center text-muted">Nothing matches.</Td></tr>}
+          {!rows.length && <tr><Td colSpan={8} className="py-8 text-center text-muted">Nothing matches.</Td></tr>}
         </tbody>
       </Table>
     </>

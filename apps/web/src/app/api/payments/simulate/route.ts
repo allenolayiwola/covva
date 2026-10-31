@@ -4,8 +4,8 @@ import { simulatorEnabled, verifySimulatorSignature } from "@/server/env";
 import { applyPaymentResult } from "@/server/payments";
 
 /**
- * SANDBOX PAYMENT SIMULATOR — only when PAYSTACK_SECRET_KEY is absent and NODE_ENV !== "production"
- * (or PAYMENTS_SIMULATOR=true). No money moves. Runs the same applyPaymentResult path as the webhook.
+ * SANDBOX PAYMENT SIMULATOR — default when no provider is configured, including production.
+ * Always disabled by PAYMENTS_MODE=live. No money moves; uses the same result path as webhooks.
  */
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -16,8 +16,8 @@ function page(body: string, status = 200) {
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sandbox payment</title>
 <style>body{margin:0;font-family:Inter,system-ui,sans-serif;background:#F1F7F3;color:#26434C}main{max-width:420px;margin:40px auto;padding:0 16px}.card{background:#fff;border:1px solid #DCE3E1;border-radius:16px;padding:24px}
 .badge{display:inline-block;background:#FFF0D6;color:#966E28;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}h1{font-size:20px;color:#15343E;margin:12px 0}
-dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}dt{color:#6F858C}button{width:100%;padding:14px;border-radius:10px;border:0;font-size:16px;font-weight:600;margin-top:12px;cursor:pointer}
-.ok{background:#00796E;color:#fff}.fail{background:#DCEEE4;color:#0F514D}p.small{font-size:12px;color:#6F858C}</style></head><body><main><div class="card">${body}</div></main></body></html>`,
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}dt{color:#486068}button{width:100%;padding:14px;border-radius:10px;border:0;font-size:16px;font-weight:600;margin-top:12px;cursor:pointer}
+.ok{background:#00796E;color:#fff}.fail{background:#DCEEE4;color:#0F514D}p.small{font-size:12px;color:#486068}</style></head><body><main><div class="card">${body}</div></main></body></html>`,
     { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } },
   );
 }

@@ -13,7 +13,7 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
       <h1 className="text-h4 text-ink">Sign in</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">A code to your phone or a link to your email. Your quotes, policies and broker messages are waiting.</p>
       <div className="mt-6">
-        <Suspense fallback={<SignInForm next="/account" />}>
+        <Suspense fallback={<div role="status" className="h-64 animate-pulse rounded-card bg-mist p-6 text-sm text-muted">Loading sign-in…</div>}>
           <SignInBody searchParams={searchParams} />
         </Suspense>
       </div>
@@ -31,6 +31,10 @@ async function SignInBody({ searchParams }: Pick<PageProps<"/sign-in">, "searchP
   const error = typeof sp.error === "string" ? sp.error : null;
   return (
     <>
+      {typeof sp.next === "string" && sp.next === next && (
+        next.split(/[?#]/)[0] === "/partner/register" ? <p className="mb-4 font-medium text-ink">Sign in to register as a partner</p>
+          : (next === "/account" || next.startsWith("/account/") || next.startsWith("/account?")) ? <p className="mb-4 font-medium text-ink">Sign in to view your account</p> : null
+      )}
       {sp.signed_out && <Notice tone="ok" className="mb-4">You&apos;ve signed out. See you soon.</Notice>}
       {error && (
         <Notice tone="danger" className="mb-4">

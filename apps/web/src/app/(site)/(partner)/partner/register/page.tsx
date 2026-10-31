@@ -367,14 +367,14 @@ async function StepBody({ type, step, application, completeness }: { type: Partn
               <input type="radio" name="commercial_model" value="revenue_share" defaultChecked={(app?.commercial_model ?? "revenue_share") === "revenue_share"} className="mt-1 accent-brand" />
               <span>
                 <span className="block font-semibold text-ink">Revenue share</span>
-                <span className="block text-sm text-muted">No monthly fee. Covva keeps {share ?? 20}% of your commission on business Covva sends you. Clients you bring yourself: no share.</span>
+                <span className="block text-sm text-muted">Commission share: {share == null ? "set per partner agreement" : `${share}%`}. A platform fee also applies, set per partner agreement.</span>
               </span>
             </label>
             <label className="flex cursor-pointer gap-3 rounded-xl border border-line p-4 has-[:checked]:border-brand has-[:checked]:bg-mint/40">
               <input type="radio" name="commercial_model" value="subscription" defaultChecked={app?.commercial_model === "subscription"} className="mt-1 accent-brand" />
               <span>
                 <span className="block font-semibold text-ink">Subscription</span>
-                <span className="block text-sm text-muted">A monthly plan and you keep your full commission. Plans: {brokerPlans.map((p) => `${p.name} (GHS ${Number(p.monthly_fee).toLocaleString()}/month)`).join(", ") || "agreed with the partnerships team"}.</span>
+                <span className="block text-sm text-muted">A platform fee in addition to the agreed commission arrangements. Plans: {brokerPlans.map((p) => `${p.name} (GHS ${Number(p.monthly_fee).toLocaleString()}/month)`).join(", ") || "agreed with the partnerships team"}.</span>
               </span>
             </label>
           </ActionForm>

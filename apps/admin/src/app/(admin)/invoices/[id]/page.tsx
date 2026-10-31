@@ -1,3 +1,4 @@
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { LogoMark, Pill } from "@im/ui";
@@ -26,6 +27,7 @@ async function Invoice({ params }: Pick<PageProps<"/invoices/[id]">, "params">) 
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const supabase = await createClient();
+  if (!await partnerBillingEnabled(supabase)) return <p>Partner platform-fee billing is disabled. Enable partner_platform_fee in Feature flags after review.</p>;
   const { data: inv } = await supabase.from("invoices").select("*").eq("id", id).maybeSingle();
   if (!inv) notFound();
   const [{ data: org }, { data: brand }] = await Promise.all([
@@ -52,19 +54,13 @@ async function Invoice({ params }: Pick<PageProps<"/invoices/[id]">, "params">) 
               <label className="text-sm text-muted">Due in <input name="dueDays" type="number" defaultValue={14} min={0} max={120} className="h-9 w-16 rounded-md border border-line px-2" /> days</label>
             </ActionForm>
           )}
-          {(inv.status === "issued" || inv.status === "overdue") && (
+          {(inv.status === "draft" || inv.status === "issued") && (
             <ActionForm action={transitionInvoice} inline submitLabel="Mark paid" readOnly={!canAct}>
               <input type="hidden" name="invoiceId" value={inv.id} />
               <input type="hidden" name="to" value="paid" />
             </ActionForm>
           )}
-          {inv.status === "issued" && (
-            <ActionForm action={transitionInvoice} inline submitLabel="Mark overdue" submitVariant="outline" readOnly={!canAct}>
-              <input type="hidden" name="invoiceId" value={inv.id} />
-              <input type="hidden" name="to" value="overdue" />
-            </ActionForm>
-          )}
-          {inv.status !== "paid" && inv.status !== "void" && (
+          {(inv.status === "draft" || inv.status === "issued") && (
             <ConfirmAction action={transitionInvoice} fields={{ invoiceId: inv.id, to: "void" }} label="Void" title={`Void ${inv.number}`} confirmLabel="Void invoice" confirmWord="VOID" disabled={!canAct} body="Voided invoices are kept for the record and can't be reissued. Generate a new draft for the period afterwards if needed." />
           )}
         </div>

@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import { BellRing, FileText, QrCode as QrIcon, Wallet } from "lucide-react";
 import { Eyebrow } from "@im/ui";
 import { Section } from "./section";
@@ -5,7 +6,7 @@ import { PhoneMock } from "./phone-mock";
 import { StoreBadges } from "./store-badges";
 import { QrCode } from "./qr-code";
 
-export const APP_LINK = "https://covva.com.gh/app";
+export const APP_LINK = sitePath("/app");
 
 /** App download section: store badges, a QR code to the app link, and the phone illustration. */
 export function AppDownload({ insurers }: { insurers: string[] }) {
@@ -14,7 +15,7 @@ export function AppDownload({ insurers }: { insurers: string[] }) {
       <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div>
           <Eyebrow className="mb-3">The Covva app</Eyebrow>
-          <h2 id="app-title" className="text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[40px]">
+          <h2 id="app-title" className="text-balance text-[30px] leading-[1.12] md:text-[42px] text-ink">
             Your policies, claims and renewals — in your pocket.
           </h2>
           <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-muted">
@@ -41,7 +42,7 @@ export function AppDownload({ insurers }: { insurers: string[] }) {
               <QrCode value={APP_LINK} size={88} label={`QR code linking to ${APP_LINK}`} className="rounded-md" />
               <p className="text-[13px] leading-relaxed text-muted">
                 <QrIcon aria-hidden className="mb-1 size-4 text-brand" />
-                Scan with your phone camera to open <span className="font-medium text-ink">covva.com.gh/app</span>
+                Scan with your phone camera to open <span className="font-medium text-ink">{APP_LINK.replace(/^https?:\/\//, "")}</span>
               </p>
             </div>
           </div>

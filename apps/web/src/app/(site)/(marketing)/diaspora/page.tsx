@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BellRing, Church, Gift, Globe2, HeartHandshake, House, LayoutDashboard, Package, Users, Wallet } from "lucide-react";
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   description:
     "Look after your family in Ghana from anywhere. Pay in GBP, USD, EUR or CAD for parents’ health and funeral cover, the family car or the home you are building. Family dashboard, dual notifications, gift a policy, group plans for churches and associations.",
   alternates: { canonical: "/diaspora" },
-  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora", images: ["/opengraph-image"] },
+  openGraph: { title: "Look after your family in Ghana from anywhere", description: "Pay in GBP, USD, EUR or CAD. Parents as beneficiaries, family dashboard, dual notifications, gift a policy.", url: "/diaspora", images: [sitePath("/opengraph-image")] },
 };
 
 const FEATURES = [
@@ -89,7 +90,7 @@ export default async function DiasporaPage() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Localised pricing</Eyebrow>
-            <h2 id="prices-title" className="text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[40px]">What it costs, in your currency</h2>
+            <h2 id="prices-title" className="text-balance text-[30px] leading-[1.12] md:text-[42px] text-ink">What it costs, in your currency</h2>
             <p className="mt-4 text-[17px] leading-relaxed text-muted">
               Example premiums for the things diaspora families insure most, converted at an indicative rate. Switch currency to see roughly what you would pay each month or year.
             </p>
@@ -142,7 +143,7 @@ export default async function DiasporaPage() {
                 <Pill>{s.tag}</Pill>
                 <Pill tone="wait">Illustrative</Pill>
               </div>
-              <h3 className="mt-4 text-[18px] font-semibold leading-snug tracking-tight text-ink">{s.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{s.title}</h3>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}
@@ -204,7 +205,7 @@ export default async function DiasporaPage() {
       <Section labelledBy="diaspora-faq-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
-            <h2 id="diaspora-faq-title" className="text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[36px]">Diaspora questions</h2>
+            <h2 id="diaspora-faq-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Diaspora questions</h2>
             <p className="mt-4 text-[16px] leading-relaxed text-muted">Something else? <Link href="/support" className="font-medium text-brand hover:underline">Visit the help centre</Link> or use the WhatsApp button.</p>
           </div>
           <FaqList items={FAQ} />

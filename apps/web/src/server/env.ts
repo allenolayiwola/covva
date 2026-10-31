@@ -1,17 +1,19 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { paymentConfiguration, paymentSimulatorEnabled, validateSimulatorSecret } from "@im/core";
+import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 
 /** Server-side environment helpers. Read at call time (not module load) so runtime env is used. */
 export { siteUrl } from "@/lib/site-url";
 
-/** Sandbox payment simulator: never in production unless explicitly enabled for a staging deploy. */
-export const simulatorEnabled = () =>
-  process.env.PAYMENTS_SIMULATOR === "true" || (process.env.NODE_ENV !== "production" && process.env.PAYMENTS_SIMULATOR !== "false");
+/** Shared startup and runtime configuration validation. */
+export const paymentConfig = () => paymentConfiguration(process.env);
+export const simulatorEnabled = () => paymentSimulatorEnabled(process.env, paymentConfig().provider);
+export const paystackKey = () => paymentConfig().provider === "paystack" ? process.env.PAYSTACK_SECRET_KEY || null : null;
 
-export const paystackKey = () => process.env.PAYSTACK_SECRET_KEY || null;
-
+const developmentSimulatorSecret = randomBytes(32).toString('hex');
 function simulatorSecret() {
-  return process.env.PAYMENTS_SIMULATOR_SECRET ?? process.env.SUPABASE_SECRET_KEY ?? "dev-simulator-secret";
+  validateSimulatorSecret(process.env);
+  return process.env.PAYMENTS_SIMULATOR_SECRET || developmentSimulatorSecret;
 }
 
 /** HMAC tag for simulator links so references can't be completed by a guessed URL. */

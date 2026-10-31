@@ -1,4 +1,5 @@
 "use client";
+import { FieldErrors } from "@/components/ui/forms";
 import { useActionState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Notice, Pill } from "@im/ui";
@@ -23,6 +24,7 @@ export function RoutingSimulator({
   return (
     <div className="space-y-4">
       <form action={formAction} className="grid gap-3 sm:grid-cols-4">
+        <FieldErrors state={state} />
         <label className="text-sm font-medium text-ink-2 sm:col-span-2">
           Category
           <select name="categoryId" required className={ctl} defaultValue="">

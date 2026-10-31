@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { EMBED_DISCLOSURE } from "@im/core";
 
 export const metadata: Metadata = {
-  title: { default: "Covva quotes", template: "%s · Covva" },
+  title: "Covva quotes",
   robots: { index: false, follow: false },
 };
 

@@ -61,7 +61,7 @@ export default async function LearnPage() {
                   <Pill>{a.topic}</Pill>
                   <span className="inline-flex items-center gap-1 text-[13px] text-muted"><Clock aria-hidden className="size-3.5" /> {a.readMinutes} min</span>
                 </div>
-                <h3 className="mt-4 text-[19px] font-semibold leading-snug tracking-tight text-ink">{a.title}</h3>
+                <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{a.title}</h3>
                 <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{a.summary}</p>
                 <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-brand">
                   Read <ArrowRight aria-hidden className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />

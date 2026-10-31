@@ -1,3 +1,4 @@
+import { paymentMode } from "@/lib/payment-mode";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Download } from "lucide-react";
@@ -33,6 +34,8 @@ export default function PaymentsPage({ searchParams }: PageProps<"/payments">) {
 
 async function Payments({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const staff = await requireStaff();
+  const mode = await paymentMode();
+  const modeBadge = <p className="mb-4"><Pill>Payments: {mode}</Pill></p>;
   const params = await searchParams;
   const supabase = await createClient();
   const orgs = await orgMap(supabase);
@@ -55,6 +58,7 @@ async function Payments({ searchParams }: { searchParams: Promise<SearchParams> 
     const exceptions = await findPaymentExceptions(supabase);
     return (
       <>
+        {modeBadge}
         {tabs}
         <ReadOnlyBanner show={!canAct} />
         <Notice tone="info" className="mb-4">
@@ -84,6 +88,7 @@ async function Payments({ searchParams }: { searchParams: Promise<SearchParams> 
 
   return (
     <>
+      {modeBadge}
       {tabs}
       <FilterBar action="/payments">
         <FilterInput name="q" label="Provider ref or id" value={q} />

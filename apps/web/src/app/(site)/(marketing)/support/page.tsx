@@ -28,7 +28,7 @@ export default async function SupportPage() {
         <Container className="relative py-14 sm:py-20">
           <div className="mx-auto max-w-3xl">
             <Eyebrow className="text-center">Help centre</Eyebrow>
-            <h1 id="support-title" className="mt-4 text-balance text-center text-[36px] font-bold leading-[1.08] tracking-[-0.035em] text-ink sm:text-[50px]">
+            <h1 id="support-title" className="mt-4 text-balance text-center text-[38px] leading-[1.06] md:text-[60px] text-ink">
               How can we help?
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-center text-[17px] leading-relaxed text-muted">
@@ -46,19 +46,19 @@ export default async function SupportPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link href="/account" className="group rounded-card border border-line bg-white p-6 transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             <IconTile><UserRoundCheck /></IconTile>
-            <h3 className="mt-5 font-semibold text-ink">Message your broker</h3>
+            <h3 className="mt-5 text-[20px] leading-[1.25] text-ink">Message your broker</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">For quotes, policies, renewals and claims. Threaded with your documents.</p>
             <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand">Go to my account <ArrowRight aria-hidden className="size-4" /></span>
           </Link>
           <a href={`mailto:${brand.supportEmail}`} className="rounded-card border border-line bg-white p-6 transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             <IconTile><Mail /></IconTile>
-            <h3 className="mt-5 font-semibold text-ink">Email us</h3>
+            <h3 className="mt-5 text-[20px] leading-[1.25] text-ink">Email us</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">We reply within two working days.</p>
             <span className="mt-4 block break-all text-sm font-semibold text-brand">{brand.supportEmail}</span>
           </a>
           <div className="rounded-card border border-line bg-white p-6">
             <IconTile><Phone /></IconTile>
-            <h3 className="mt-5 font-semibold text-ink">Call us</h3>
+            <h3 className="mt-5 text-[20px] leading-[1.25] text-ink">Call us</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">Mon–Fri 08:00–17:00, Sat 09:00–13:00 (GMT).</p>
             {brand.supportPhone ? (
               <a href={`tel:${brand.supportPhone.replace(/\s+/g, "")}`} className="mt-4 block text-sm font-semibold text-brand">{brand.supportPhone}</a>

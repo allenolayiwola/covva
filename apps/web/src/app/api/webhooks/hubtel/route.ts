@@ -1,8 +1,10 @@
+import { paymentProvider } from "@/server/providers/payment";
+import { paymentConfig } from "@/server/env";
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { applyPaymentResult, hubtelChannel } from "@/server/payments";
-import { hubtelVerify, parseHubtelCallback, verifyHubtelWebhook } from "@/server/providers/hubtel";
+import { hubtelVerify, parseHubtelCallback } from "@/server/providers/hubtel";
 import { log } from "@/server/log";
 
 /**
@@ -12,9 +14,10 @@ import { log } from "@/server/log";
  * applied. Idempotent through `applyPaymentResult`.
  */
 export async function POST(req: NextRequest) {
+  if (paymentConfig().provider !== "hubtel") return Response.json({ ok: false }, { status: 401 });
   const requestId = randomUUID();
   const provided = req.headers.get("x-hubtel-secret") ?? req.nextUrl.searchParams.get("secret");
-  if (!verifyHubtelWebhook(provided)) {
+  if (!paymentProvider().verifyWebhook("", provided)) {
     log.warn("hubtel.webhook_bad_secret", { requestId });
     return Response.json({ ok: false, error: { code: "unauthorised", message: "Invalid secret" } }, { status: 401 });
   }
@@ -33,25 +36,23 @@ export async function POST(req: NextRequest) {
     const { data: payment } = await svc.from("payments").select("id, provider, settlement_subaccount").eq("provider_reference", cb.clientReference).maybeSingle();
     if (!payment || payment.provider !== "hubtel") return Response.json({ ok: true, data: { received: true } });
 
-    if (cb.status === "succeeded") {
+    {
       // Trust the status API, not the callback body.
       const v = await hubtelVerify(cb.clientReference, payment.settlement_subaccount);
-      if (v.ok && v.status === "succeeded") {
+      if (v.ok && v.status === "succeeded" && v.amount !== undefined) {
         await applyPaymentResult(cb.clientReference, {
           status: "succeeded",
           amountMinor: v.amount !== undefined ? Math.round(v.amount * 100) : undefined,
           paidAt: v.paidAt,
           channel: hubtelChannel(v.paymentMethod ?? cb.paymentMethod),
-          event: { source: "webhook", callback: body, verify: v.raw },
-          source: "webhook",
+          event: { source: "webhook", provider: "hubtel", callback: body, verify: v.raw },
+          source: "webhook", provider: "hubtel",
         });
+      } else if (v.ok && (v.status === "failed" || v.status === "refunded")) {
+        await applyPaymentResult(cb.clientReference, { status: v.status, event: { source: "webhook", callback: body, verify: v.raw }, source: "webhook", provider: "hubtel" });
       } else {
-        log.warn("hubtel.webhook_unverified_success", { requestId, reference: cb.clientReference, verified: v.status });
+        return Response.json({ ok: false }, { status: 503 });
       }
-    } else if (cb.status === "failed") {
-      await applyPaymentResult(cb.clientReference, { status: "failed", failureReason: "Payment was not completed at Hubtel", event: { source: "webhook", callback: body }, source: "webhook" });
-    } else if (cb.status === "refunded") {
-      await applyPaymentResult(cb.clientReference, { status: "refunded", event: { source: "webhook", callback: body }, source: "webhook" });
     }
   } catch (err) {
     log.error("hubtel.webhook_failed", { requestId, reference: cb.clientReference, err });

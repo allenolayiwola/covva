@@ -117,3 +117,73 @@ duplicates, actions } }` once the signature is valid; a processing error on one 
 (`whatsapp.route_failed`) and does not make Meta retry the whole batch. Events for a different
 `phone_number_id` than `WHATSAPP_PHONE_NUMBER_ID` are ignored. See `docs/OPERATIONS.md` → "WhatsApp Business".
 
+
+## Payment and identity test-mode gates (W1c)
+
+`PAYMENT_PROVIDER` selects `simulator` (default), `paystack`, `hubtel`, or `stripe`.
+Missing selected credentials can use simulation only outside live mode. Production simulation requires
+explicit opt-in through `PAYMENTS_SIMULATOR` and a dedicated `PAYMENTS_SIMULATOR_SECRET` of at least
+32 characters. Production means either NODE_ENV or VERCEL_ENV identifies production. `PAYMENTS_MODE` defaults to
+`test`. Real Paystack test calls require `PAYMENT_PROVIDER` plus `PAYSTACK_SECRET_KEY` with
+a test prefix; tests in this repo mock transport and never call Paystack.
+Startup and runtime reject a live-prefixed key without explicit live mode, a test-prefixed key
+with live mode, unknown selectors, and unrecognised prefixes. Errors contain variable names only.
+Simulation is always disabled in live mode. Outside development, enabled simulation requires the dedicated signing secret.
+Insurer preferences cannot bypass the deployment gate.
+
+All inbound payment routes reject inactive providers before processing:
+
+- Paystack verifies exact HMAC-SHA512 over the raw body with `PAYSTACK_SECRET_KEY`.
+  Paystack uses that API secret for webhook signing; there is **no separate Paystack webhook-secret variable**.
+- Hubtel requires `HUBTEL_WEBHOOK_SECRET` (header or callback query) and re-verifies **all**
+  outcomes against the status API, including failures and refunds. Unconfirmed outcomes return
+  503 for retry. Success requires a verified amount. Hubtel has no documented prefix contract in
+  this integration: unprefixed credentials fail closed and must not be relabelled to bypass it.
+- Stripe verifies `STRIPE_WEBHOOK_SECRET`, strict hexadecimal HMAC-SHA256 and a finite timestamp
+  within five minutes; key rotation may supply multiple signatures. The Stripe insurer settlement
+  adapter remains unsupported and checkout cannot be enabled merely by providing credentials.
+- Simulator GET/POST links use reference-bound HMAC authentication and are rejected in live mode,
+  even if `PAYMENTS_SIMULATOR` is enabled. The result service repeats this guard.
+
+Payment references bind callbacks to the recorded provider. Conditional updates claim eligible
+payments once (including a verified late success after failure/abandonment); duplicate success cannot reissue a policy or resurrect a refunded/reversed payment.
+Removing provider credentials cannot turn a real Paystack refund into a simulated refund.
+Payment confirmation still creates pending issuance and invokes the existing insurer issuance flow.
+The no-network unit journey exercises checkout, signed simulator HTTP completion, persistence,
+issuance handoff, replay and live-mode rejection. It does not replace a database-backed Playwright run.
+
+`IDENTITY_PROVIDER` defaults to `manual` (`stub` is an alias). The shared `IdentityProvider`
+contract exposes Ghana Card verification and DVLA lookup. NIA and DVLA are **placeholder test
+contracts**, not validated live integrations: only labelled test fixture keys are accepted, and
+missing configuration returns pending manual review / manual vehicle entry. DVLA additionally
+requires explicit `VEHICLE_LOOKUP_PROVIDER`. There is no identity inbound webhook route today;
+do not configure one until its provider contract and authentication have been implemented.
+
+### Allen / Overwatch live checklist (names only; no credentials in the repository)
+
+For **Paystack P1**, after provider onboarding and staging validation:
+
+- Web deployment: `PAYMENT_PROVIDER`, `PAYMENTS_MODE`, `PAYSTACK_SECRET_KEY`,
+  `PAYSTACK_SPLIT_GROUP_CODE`, `NEXT_PUBLIC_SITE_URL`, `SUPABASE_SECRET_KEY`.
+  Select Paystack and live mode together with a live-prefixed secret, using the secure deployment
+  configuration process. Existing test/no-key deployments need no changes.
+- Configure the Paystack dashboard callback at `/api/webhooks/paystack`. Its signing secret is
+  `PAYSTACK_SECRET_KEY`; do not invent or set `PAYSTACK_WEBHOOK_SECRET`.
+- Provision each insurer's `organizations.paystack_subaccount_code`, and its approved three-party
+  split (`organizations.paystack_split_code` or `PAYSTACK_SPLIT_GROUP_CODE`). Keys cannot provision
+  settlement accounts. Validate insurer/broker/platform allocations and a refund in staging.
+- Admin visibility: set `NEXT_PUBLIC_SITE_URL` on admin, and the same dedicated `PAYMENTS_MODE_SECRET` on web and
+  admin. The staff-only reconciliation page reads web's authenticated `GET /api/payments/mode`,
+  displaying Simulator/Test/Live read-only. Missing configuration or a failed request displays
+  Unavailable rather than guessing from the admin deployment's environment. Do not copy PSP keys to admin.
+- Optional existing channels: `PAYSTACK_DVA_ENABLED`, `PAYSTACK_DVA_BANK`, `PAYSTACK_APPLE_PAY`,
+  `PAYSTACK_MANAGED_SUBSCRIPTIONS`, `DIASPORA_PSP`. These remain opt-in.
+
+**Not turnkey / retained for Overwatch:** P3 needs the actual NIA and DVLA contracts and a reviewed
+live-mode credential discriminator before setting `IDENTITY_PROVIDER`, `NIA_API_URL`, `NIA_API_KEY`,
+`VEHICLE_LOOKUP_PROVIDER`, `DVLA_API_URL`, `DVLA_API_KEY`. No NIA webhook secret is consumed today.
+Hubtel likewise needs a verified sandbox/live credential scheme before using `HUBTEL_CLIENT_ID`,
+`HUBTEL_CLIENT_SECRET`, `HUBTEL_MERCHANT_ACCOUNT`, `HUBTEL_WEBHOOK_SECRET`. Stripe still needs legal
+and settlement implementation before `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+`STRIPE_SETTLEMENT_APPROVED` can enable a collection flow. Never rename or wrap a real key to
+make it pass a prefix check. W1c changes no hosted variables, provider settings or databases.

@@ -58,10 +58,10 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
   const screens = React.useMemo<Screen[]>(() => (category ? buildScreens(category.risk_schema) : [{ kind: "category" }]), [category]);
   const screen = screens[Math.min(index, screens.length - 1)]!;
 
-  // Boot: restore the device draft, honour ?category= / ?resume=, and find out whether the visitor is signed in.
+  // Boot: restore the device draft, honour ?type= / ?category= / ?resume=, and find out whether the visitor is signed in.
   React.useEffect(() => {
     const draft = readDraft();
-    const wanted = params.get("category");
+    const wanted = params.get("type") ?? params.get("category");
     const wantedSlug = wanted ? (LINE_TO_CATEGORY[wanted] ?? wanted) : null;
     const resume = params.get("resume") === "1";
     let nextSlug: string | null = null;
@@ -232,6 +232,7 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
   if (!booted) {
     return (
       <Container className="py-16">
+        <h1 className="sr-only">Get insurance quotes</h1>
         <div className="mx-auto flex max-w-xl items-center justify-center gap-3 text-muted"><Spinner className="size-5" /> Loading…</div>
       </Container>
     );

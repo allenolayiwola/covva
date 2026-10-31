@@ -201,10 +201,10 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
                 </p>
                 <Headline
                   id={i === 0 ? "hero-title" : undefined}
-                  className="mt-4 font-display text-[36px] leading-[1.04] [font-weight:600] tracking-[-0.03em] text-white min-[380px]:text-[38px] sm:text-[52px] lg:mt-5 lg:text-[clamp(52px,4.3vw,80px)]"
+                  className="mt-4 font-display text-[36px] leading-[1.04] tracking-[-0.03em] text-white min-[380px]:text-[38px] sm:text-[52px] lg:mt-5 lg:text-[clamp(52px,4.3vw,80px)]"
                 >
                   {s.headline}{" "}
-                  <span className="block pt-1 font-accent text-[1.06em] font-normal italic leading-[1.02] tracking-[-0.01em] text-mint [font-synthesis:none]">{s.accent}</span>
+                  <span className="block pt-1 text-[1.06em] leading-[1.02] tracking-[-0.01em] text-mint">{s.accent}</span>
                 </Headline>
                 <p aria-hidden={hide} className="mt-5 max-w-[34rem] text-[16px] leading-relaxed text-white sm:text-[18px] lg:mt-6 lg:text-[19px]">
                   {s.subline}
@@ -274,6 +274,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
           <h2 id="hero-quote-title" className="font-display text-[20px] leading-tight text-ink sm:text-[22px]">
             What would you like to insure?
           </h2>
+          <p className="mt-1 text-[13px] text-muted">Start in minutes — sign in with your phone to see quotes.</p>
           <fieldset className="mt-4">
             <legend className="sr-only">Type of cover</legend>
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
@@ -305,7 +306,7 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
           <p className="mt-3 text-center text-[13px] leading-snug text-muted">Cover begins only after insurer acceptance and policy issuance.</p>
         </form>
 
-        <p aria-hidden className="hidden self-end justify-self-end rounded-[2px] bg-black/55 px-4 py-1.5 font-accent text-[19px] italic text-white backdrop-blur-md [grid-area:caption] lg:block">
+        <p aria-hidden className="hidden self-end justify-self-end rounded-[2px] bg-black/55 px-4 py-1.5 font-sans text-[15px] font-medium text-white backdrop-blur-md [grid-area:caption] lg:block">
           {slide.caption}
         </p>
       </div>

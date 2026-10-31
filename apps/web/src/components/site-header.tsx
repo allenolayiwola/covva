@@ -20,7 +20,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
       <div className={`${containerClass} flex h-16 items-center justify-between gap-4 lg:h-[72px]`}>
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+          className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           aria-label={`${brand.name} home`}
         >
           {/* Over the home hero photo the reverse lockup shows instead (globals.css, data-hero-*). */}
@@ -42,17 +42,17 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           <LocaleSwitcher />
           {right ?? (
             <>
-              <Link href="/brokers" data-header-fg className="hidden rounded-full px-3 py-2 text-[15px] font-medium text-muted hover:text-brand lg:inline-block">
+              <Link href="/brokers" data-header-fg className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium whitespace-nowrap text-muted hover:text-brand lg:inline-block">
                 <T k="header.forPartners" />
               </Link>
               <span className="hidden sm:block">
-                <Link href="/account" className={buttonClass("secondary", "sm")}>
+                <Link href="/account" className={`${buttonClass("secondary", "sm")} min-h-11`}>
                   <UserRound aria-hidden className="size-4" />
                   <T k="header.myAccount" />
                 </Link>
               </span>
               <span className="hidden md:block">
-                <Link href="/quote" className={buttonClass("primary", "sm")}>Get quotes</Link>
+                <Link href="/quote" className={`${buttonClass("primary", "sm")} min-h-11`}>Get quotes</Link>
               </span>
             </>
           )}

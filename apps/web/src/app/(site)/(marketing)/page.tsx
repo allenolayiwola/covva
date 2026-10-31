@@ -1,3 +1,5 @@
+import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -19,7 +21,7 @@ import { ROLE_STATEMENTS } from "@im/core";
 import { getCategories, getPartnerDirectory } from "@/lib/catalog";
 import { displayOrgName, getBrand, isDemoMode, isDemoOrg } from "@/components/marketing/brand";
 import { HeroVisual } from "@/components/marketing/hero-visual";
-import { HeroTrustStrip, HomeHero } from "@/components/marketing/home-hero";
+import { HomeHero } from "@/components/marketing/home-hero";
 import { TrustBar } from "@/components/marketing/trust-bar";
 import { CompareIllustration, PayIllustration, PolicyIllustration } from "@/components/marketing/how-it-works-illustrations";
 import { CategoryIcon } from "@/components/marketing/category-icon";
@@ -34,23 +36,14 @@ import { RenewalReminderForm } from "@/components/marketing/renewal-reminder-for
 import { Reveal } from "@/components/marketing/reveal";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { KEY_BENEFITS, STATS } from "@/components/marketing/content";
-import { getFaqsFor, getPartners, getTestimonials } from "@/server/cms";
+import { getFaqsFor, getTestimonials } from "@/server/cms";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
 import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
-export const metadata: Metadata = {
-  title: { absolute: "Covva — Protect what matters. Wherever you are." },
-  description:
-    "Compare insurance quotes from licensed brokers in Ghana, at home or from abroad. Get real quotes for motor, home, health, travel, life and business insurance from licensed insurers in Ghana through brokers you choose. Pay by MoMo or card; the insurer issues your policy to a digital wallet with QR verification.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "Covva — Protect what matters. Wherever you are.",
-    description: "Insurance for Ghana and the diaspora: compare quotes from licensed insurers through your broker, pay by MoMo or card, get your policy in your wallet.",
-    url: "/",
-    images: ["/opengraph-image"],
-  },
-};
+import { HOME_SOCIAL_PROOF_ENABLED } from "@/components/marketing/trust-copy";
+
+export const metadata: Metadata = pageMetadata(pageCopy.home);
 
 const STEPS = [
   { title: "Compare", body: "Tell us what you want to insure. See quotes from participating licensed insurers side by side — cover, excess and price.", Illustration: CompareIllustration },
@@ -61,16 +54,15 @@ const STEPS = [
 const BENEFIT_ICONS = { instant: Zap, instalments: CreditCard, reminders: BellRing, claims: FileText, wallet: QrCode } as const;
 
 export default async function HomePage() {
-  // CMS-managed blocks (FAQs, testimonials, partner logos) fall back to the typed content / partner directory.
-  const [categories, directory, demo, brand, prices, faqs, testimonials, partners] = await Promise.all([
+  // CMS FAQs fall back to typed content. Customer stories remain off until verified.
+  const [categories, directory, demo, brand, prices, faqs, testimonials] = await Promise.all([
     getCategories(),
     getPartnerDirectory(),
     isDemoMode(),
     getBrand(),
     getFromPrices(),
     getFaqsFor("home"),
-    getTestimonials(),
-    getPartners(),
+    HOME_SOCIAL_PROOF_ENABLED ? getTestimonials() : Promise.resolve([]),
   ]);
 
   const preferred = ["coastline-general", "volta-mutual", "ashanti-shield"];
@@ -89,9 +81,7 @@ export default async function HomePage() {
       <JsonLd data={faqJsonLd(faqs)} />
 
       <HomeHero />
-      <HeroTrustStrip />
-
-      <TrustBar insurers={directory.insurers} demo={demo} partners={partners} />
+      <TrustBar tone="mist" />
 
       {/* How it works ------------------------------------------------------------ */}
       <Section labelledBy="how-title">
@@ -108,7 +98,7 @@ export default async function HomePage() {
               <s.Illustration className="h-auto w-full rounded-[16px]" />
               <div className="mt-5 flex items-center gap-3">
                 <span className="grid size-8 place-items-center rounded-full bg-brand text-sm font-semibold tabular-nums text-white">{i + 1}</span>
-                <h3 className="text-[19px] font-semibold tracking-tight text-ink">{s.title}</h3>
+                <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">{s.title}</h3>
               </div>
               <p className="mt-2 text-[15px] leading-relaxed text-muted">{s.body}</p>
             </Reveal>
@@ -170,7 +160,7 @@ export default async function HomePage() {
             return (
               <Reveal key={b.id} as="li" delay={i * 60} className="rounded-card border border-line bg-white p-6">
                 <IconTile><Icon /></IconTile>
-                <h3 className="mt-5 font-semibold tracking-tight text-ink">{b.title}</h3>
+                <h3 className="mt-5 text-[20px] leading-[1.25] md:text-[24px] text-ink">{b.title}</h3>
                 <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{b.body}</p>
               </Reveal>
             );
@@ -238,7 +228,7 @@ export default async function HomePage() {
       <AppDownload insurers={heroInsurers.map((i) => i.name)} />
 
       {/* Stats + testimonials ------------------------------------------------------ */}
-      <Section labelledBy="stats-title">
+      {HOME_SOCIAL_PROOF_ENABLED && <Section labelledBy="stats-title">
         <SectionHeading
           id="stats-title"
           eyebrow="Covva in numbers"
@@ -249,7 +239,7 @@ export default async function HomePage() {
         <div className="mt-10">
           <Testimonials items={testimonials} />
         </div>
-      </Section>
+      </Section>}
 
       <PartnerCtaStrip />
 
@@ -268,7 +258,7 @@ export default async function HomePage() {
               <FeatureCard icon={<Layers />} title={<>{brand.name} <span className="font-normal text-muted">· technology</span></>}>{ROLE_STATEMENTS.platform}</FeatureCard>
               <FeatureCard icon={<UserRoundCheck />} title="Broker of record">{ROLE_STATEMENTS.broker}</FeatureCard>
               <FeatureCard icon={<Building2 />} title="Licensed insurer">{ROLE_STATEMENTS.insurer}</FeatureCard>
-              <FeatureCard icon={<CreditCard />} title="Payment provider">{ROLE_STATEMENTS.payment} We never hold your premium.</FeatureCard>
+              <FeatureCard icon={<CreditCard />} title="Payment provider">{PAYMENTS_DISCLOSURE}</FeatureCard>
             </div>
             {(demo || anyDemoPartner) && <DemoBadge className="mt-4" />}
           </div>

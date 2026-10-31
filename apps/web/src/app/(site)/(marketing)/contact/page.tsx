@@ -1,3 +1,4 @@
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Building2, Mail, Newspaper, UserRoundCheck } from "lucide-react";
@@ -7,11 +8,7 @@ import { PageHero } from "@/components/marketing/page-hero";
 import { IconTile, Section } from "@/components/marketing/section";
 import { LeadForm } from "@/components/marketing/lead-form";
 
-export const metadata: Metadata = {
-  title: "Contact us",
-  description: "Get in touch with the Covva team — customers, brokers, insurers, businesses and press.",
-  alternates: { canonical: "/contact" },
-};
+export const metadata: Metadata = pageMetadata(pageCopy.contact);
 
 export default async function ContactPage() {
   const [brand, categories] = await Promise.all([getBrand(), getCategories()]);
@@ -40,7 +37,7 @@ export default async function ContactPage() {
               <div key={c.title} className="flex gap-4 rounded-card border border-line bg-white p-5">
                 <IconTile size="sm"><c.icon /></IconTile>
                 <div>
-                  <h3 className="font-semibold text-ink">{c.title}</h3>
+                  <h3 className="text-[20px] leading-[1.25] text-ink">{c.title}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted">{c.body}</p>
                 </div>
               </div>

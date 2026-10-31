@@ -1,3 +1,4 @@
+import { pageCopy, pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ExternalLink, MapPin } from "lucide-react";
@@ -12,11 +13,7 @@ import { OrgTile } from "@/components/marketing/org-tile";
 import { REGULATION } from "@/components/marketing/content";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
-export const metadata: Metadata = {
-  title: "Participating partners",
-  description: "The licensed brokers and insurers participating in Covva, with their NIC licence numbers.",
-  alternates: { canonical: "/partners" },
-};
+export const metadata: Metadata = pageMetadata(pageCopy.partners);
 
 function OrgCard({ org, demo, score }: { org: PublicOrg; demo: boolean; score?: PublicScoreSummary | null }) {
   const isDemo = demo && isDemoOrg(org.settings);
@@ -72,7 +69,7 @@ export default async function PartnersPage() {
 
       <Section labelledBy="insurers-title">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="insurers-title" className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Insurers</h2>
+          <h2 id="insurers-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Insurers</h2>
           {anyDemo && <DemoBadge />}
         </div>
         {insurers.length ? (
@@ -86,7 +83,7 @@ export default async function PartnersPage() {
 
       <Section tone="mist" labelledBy="brokers-title">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="brokers-title" className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Brokers</h2>
+          <h2 id="brokers-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Brokers</h2>
           {anyDemo && <DemoBadge />}
         </div>
         {brokers.length ? (

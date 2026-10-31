@@ -32,13 +32,14 @@
     text-decoration-color: currentColor;
   }
 
-  /* Type: Plus Jakarta Sans throughout; headings SemiBold (600), body Regular (400). */
-  h1, h2 {
+  /* Brand type: Outfit Light headings on the marketing site only (wrapper in (marketing)/layout.tsx); the account and
+     partner apps keep Inter headings at their own weights. Inter is the body and UI face everywhere. */
+  [data-marketing] :is(h1, h2, h3, h4, h5, h6) {
     font-family: var(--font-display);
-    font-weight: 600 !important;
-    letter-spacing: -0.015em;
+    font-weight: 300 !important;
+    letter-spacing: -0.02em;
   }
-  h3, h4 {
+  [data-marketing] :is(h3, h4) {
     letter-spacing: -0.01em;
   }
   h1, h2, h3, h4 {
@@ -60,24 +61,24 @@
   text-wrap: balance;
 }
 
-/* Type scale (desktop / phone): h1 64/40, h2 48/32, h3 36/26, h4 28/22; body 18/16/14. */
+/* Type scale (desktop / phone), per the final mocks: h1 60/38 @1.06, h2 42/30 @1.12, h3 24/20 @1.25, h4 28/22; body 18/16/14. */
 @utility text-h1 {
-  font-size: 40px;
-  line-height: 1.04;
-  letter-spacing: -0.03em;
-  @media (width >= 64rem) { font-size: 64px; line-height: 1.02; letter-spacing: -0.035em; }
+  font-size: 38px;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 60px; }
 }
 @utility text-h2 {
-  font-size: 32px;
-  line-height: 1.1;
-  letter-spacing: -0.025em;
-  @media (width >= 64rem) { font-size: 48px; line-height: 1.06; }
+  font-size: 30px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 42px; }
 }
 @utility text-h3 {
-  font-size: 26px;
-  line-height: 1.15;
+  font-size: 20px;
+  line-height: 1.25;
   letter-spacing: -0.02em;
-  @media (width >= 64rem) { font-size: 36px; line-height: 1.12; }
+  @media (width >= 64rem) { font-size: 24px; }
 }
 @utility text-h4 {
   font-size: 22px;

@@ -274,7 +274,7 @@ ${name ? `<p style="margin:0 0 12px;font-size:15px">Hello ${escapeHtml(name)},</
 ${body ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.6">${body}</p>` : ""}
 ${href ? `<p style="margin:0 0 24px"><a href="${escapeHtml(href)}" style="display:inline-block;background:#00796E;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px">View details</a></p>` : ""}
 </td></tr>
-<tr><td style="padding:16px 24px 24px;border-top:1px solid #DCE3E1;font-size:12px;line-height:1.6;color:#6F858C">
+<tr><td style="padding:16px 24px 24px;border-top:1px solid #DCE3E1;font-size:12px;line-height:1.6;color:#486068">
 ${escapeHtml(ROLE_STATEMENTS.platform)} ${escapeHtml(ROLE_STATEMENTS.payment)}<br>
 You can change how we contact you in your account settings.
 </td></tr></table></td></tr></table></body></html>`;

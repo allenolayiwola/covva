@@ -25,10 +25,9 @@ Covva Teal `#00796E` (primary, buttons, links) · Deep Ink `#15343E` (headings, 
 (tints) · Mist `#F1F7F3` (page backgrounds) · Cream `#FFF0D6` (notices, placeholders).
 
 ## Type
-Display & headings: **Plus Jakarta Sans** SemiBold 600 (`--font-display`, applied to `h1`/`h2` and `.font-display`). Changed from Outfit in October 2026; the PDF guide still shows Outfit and Inter.
-Accent: **Instrument Serif Italic** 400 (`--font-accent`, `font-accent`) for one short line at most, e.g. the home hero's
-"Wherever you are."; loaded only by the components that use it (added October 2026, not in the PDF guide).
-Body, UI & numbers: **Plus Jakarta Sans** 400–500 (`--font-sans`). Tailwind `font-semibold`/`font-bold` map to 500 per the guide.
+Display & headings: **Outfit** Light 300 (`--font-display`, applied to `h1`–`h6` and `.font-display`), per the final boards and the PDF guide.
+Scale (desktop / phone): h1 60/38 at 1.06, h2 42/30 at 1.12, h3 24/20 at 1.25; letter-spacing -0.02em.
+Body, UI & numbers: **Inter** 400–500 (`--font-sans`). No serif or accent face.
 
 ## Icons & imagery
 Lucide icons at 1.75px rounded strokes (global CSS), teal with a single gold accent. Imagery: bright natural daylight

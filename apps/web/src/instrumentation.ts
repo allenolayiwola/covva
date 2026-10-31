@@ -1,7 +1,10 @@
+import { paymentConfiguration, identityConfiguration } from "@im/core";
 import type { Instrumentation } from "next";
 
 /** Server instrumentation: structured JSON logs for unhandled request errors. */
 export function register() {
+  paymentConfiguration(process.env);
+  identityConfiguration(process.env);
   if (process.env.NEXT_RUNTIME === "nodejs" && process.env.LOG_LEVEL === "debug") {
     console.log(JSON.stringify({ level: "debug", msg: "instrumentation.register", time: new Date().toISOString(), service: "web" }));
   }
