@@ -124,7 +124,7 @@ export default async function ClaimsPage() {
               <Link href="/account/claims" className={buttonClass("primary", "lg")}>Start a claim <ArrowRight aria-hidden className="size-4" /></Link>
               <StoreBadges size="sm" />
             </div>
-            <p className="mt-4 text-[13px] text-muted">No app? Sign in on the web at covva.com.gh/account — it works on any phone browser.</p>
+            <p className="mt-4 text-[13px] text-muted">No app? Sign in on the web from your account — it works on any phone browser.</p>
           </div>
           <div>
             <h3 className="text-[19px] font-semibold tracking-tight text-ink">Claims questions</h3>

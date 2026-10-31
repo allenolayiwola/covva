@@ -1,4 +1,5 @@
 import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure";
+import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   title: "Cover by the day, week or month",
   description: "Low-cost daily, weekly and monthly cover for okada, trotro and ride-hailing drivers, market traders, artisans and event organisers. Pay by mobile money in three taps; renew in one.",
   alternates: { canonical: "/micro" },
-  openGraph: { title: "Cover by the day, week or month", description: "Pay as you go by mobile money. Renew in one tap.", url: "/micro" },
+  openGraph: { title: "Cover by the day, week or month", description: "Pay as you go by mobile money. Renew in one tap.", url: "/micro", images: [sitePath("/opengraph-image")] },
 };
 
 const AUDIENCE_ICON: Record<AudienceTag, typeof Bike> = { okada: Bike, trotro: Bus, ride_hailing: Car, trader: Store, artisan: Hammer, event: PartyPopper };

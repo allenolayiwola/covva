@@ -6,7 +6,7 @@ import { HelpCard, SideNav, SideNavSkeleton, TopBarRight } from "@/components/pa
 import { Skeleton } from "@/components/partner/ui";
 
 export const metadata: Metadata = {
-  title: { default: "Partner workspace", template: "%s · Partner workspace" },
+  title: "Partner workspace",
   robots: { index: false, follow: false },
 };
 

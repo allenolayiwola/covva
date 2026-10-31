@@ -1,3 +1,4 @@
+import { sitePath } from "@/lib/site-url";
 import { BellRing, FileText, QrCode as QrIcon, Wallet } from "lucide-react";
 import { Eyebrow } from "@im/ui";
 import { Section } from "./section";
@@ -5,7 +6,7 @@ import { PhoneMock } from "./phone-mock";
 import { StoreBadges } from "./store-badges";
 import { QrCode } from "./qr-code";
 
-export const APP_LINK = "https://covva.com.gh/app";
+export const APP_LINK = sitePath("/app");
 
 /** App download section: store badges, a QR code to the app link, and the phone illustration. */
 export function AppDownload({ insurers }: { insurers: string[] }) {
@@ -41,7 +42,7 @@ export function AppDownload({ insurers }: { insurers: string[] }) {
               <QrCode value={APP_LINK} size={88} label={`QR code linking to ${APP_LINK}`} className="rounded-md" />
               <p className="text-[13px] leading-relaxed text-muted">
                 <QrIcon aria-hidden className="mb-1 size-4 text-brand" />
-                Scan with your phone camera to open <span className="font-medium text-ink">covva.com.gh/app</span>
+                Scan with your phone camera to open <span className="font-medium text-ink">{APP_LINK.replace(/^https?:\/\//, "")}</span>
               </p>
             </div>
           </div>

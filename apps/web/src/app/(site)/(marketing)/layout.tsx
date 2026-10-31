@@ -30,7 +30,7 @@ export default async function MarketingLayout({ children }: LayoutProps<"/">) {
           url: siteUrl,
           logo: `${siteUrl}/icon-512.png`,
           email: brand.supportEmail,
-          areaServed: [{ "@type": "Country", name: "Ghana" }, { "@type": "Country", name: "United Kingdom" }, { "@type": "Country", name: "United States" }, { "@type": "Country", name: "Canada" }],
+          areaServed: [{ "@type": "Country", name: "Ghana" }],
           sameAs: [],
           contactPoint: [{ "@type": "ContactPoint", contactType: "customer support", email: brand.supportEmail, availableLanguage: ["en"] }],
           description:
