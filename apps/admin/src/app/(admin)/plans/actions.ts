@@ -1,9 +1,10 @@
 "use server";
 import { z } from "zod";
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { revalidateEverywhere, webCacheNote } from "@/lib/revalidate";
 
-const money = z.coerce.number().min(0, "Must be zero or more").max(10_000_000);
+const money = z.string().trim().min(1, "Enter the agreed fee").transform(Number).pipe(z.number().min(0, "Must be zero or more").max(10_000_000).refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 0.000001, "Use at most two decimal places"));
 const optInt = z.string().optional().transform((v) => (v && v.trim() !== "" ? Number(v) : null)).refine((v) => v === null || (Number.isInteger(v) && v >= 0), "Whole number");
 
 const Plan = z.object({
@@ -26,6 +27,7 @@ const Plan = z.object({
 export async function savePlan(_: ActionState, fd: FormData): Promise<ActionState> {
   const auth = await authorize("commercial");
   if (!auth.ok) return fail(auth.error);
+  if (!await partnerBillingEnabled(auth.supabase)) return fail("Partner platform-fee billing is disabled.");
   const parsed = Plan.safeParse(formObject(fd));
   if (!parsed.success) return zodError(parsed.error);
   const { planId, features, active, description, ...rest } = parsed.data;

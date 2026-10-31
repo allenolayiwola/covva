@@ -1,3 +1,4 @@
+import { partnerBillingEnabled } from "@/lib/partner-billing";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -394,18 +395,20 @@ async function RoutingTab({ supabase, orgId, canAct }: { supabase: Supabase; org
 }
 
 async function SubscriptionTab({ supabase, org, canAct }: { supabase: Supabase; org: OrgRow; canAct: boolean }) {
+  if (!await partnerBillingEnabled(supabase)) return <p>Partner platform-fee billing is disabled. Enable partner_platform_fee in Feature flags after review.</p>;
   const [{ data: subs }, { data: plans }, { data: invoices }] = await Promise.all([
     supabase.from("subscriptions").select("*").eq("org_id", org.id).order("created_at", { ascending: false }),
     supabase.from("plans").select("id, name, audience, monthly_fee, active").eq("audience", org.type).order("sort_order"),
     supabase.from("invoices").select("id, number, total, status, period_start, period_end").eq("org_id", org.id).order("period_start", { ascending: false }).limit(12),
   ]);
-  const live = (subs ?? []).find((s) => ["trialing", "active", "past_due"].includes(s.status));
+  const live = (subs ?? []).find((s) => ["trialing", "active", "past_due"].includes(s.status)) ?? subs?.[0];
   const planName = (pid: string) => (plans ?? []).find((p) => p.id === pid)?.name ?? "Plan";
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       <Panel title={live ? "Current subscription" : "No live subscription"}>
         <ActionForm action={saveSubscription} submitLabel={live ? "Update subscription" : "Create subscription"} readOnly={!canAct}>
           <input type="hidden" name="orgId" value={org.id} />
+          <input type="hidden" name="subscriptionId" value={live?.id ?? ""} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Plan" htmlFor="s-plan">
               <Select id="s-plan" name="planId" defaultValue={live?.plan_id ?? ""} required>
@@ -422,8 +425,8 @@ async function SubscriptionTab({ supabase, org, canAct }: { supabase: Supabase; 
               </Select>
             </Field>
             <Field label="Trial ends" htmlFor="s-trial"><Input id="s-trial" name="trial_ends_on" type="date" defaultValue={live?.trial_ends_on ?? ""} /></Field>
-            <Field label="Period start" htmlFor="s-ps"><Input id="s-ps" name="current_period_start" type="date" defaultValue={live?.current_period_start ?? ""} /></Field>
-            <Field label="Period end" htmlFor="s-pe"><Input id="s-pe" name="current_period_end" type="date" defaultValue={live?.current_period_end ?? ""} /></Field>
+            <Field label="Start date" htmlFor="s-ps"><Input id="s-ps" name="current_period_start" type="date" required defaultValue={live?.current_period_start ?? ""} /></Field>
+            <Field label="Renewal date" htmlFor="s-pe"><Input id="s-pe" name="current_period_end" type="date" required defaultValue={live?.current_period_end ?? ""} /></Field>
             <div className="flex items-end pb-2"><Checkbox name="cancel_at_period_end" defaultChecked={live?.cancel_at_period_end ?? false} label="Cancel at period end" /></div>
           </div>
         </ActionForm>

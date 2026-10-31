@@ -201,3 +201,23 @@ Requirements for the SQL suites (`production_hardening.test.sql`, `cms_schema.te
 with job side effects stubbed, plus the admin rollup action with authorization and database
 clients stubbed. These verify fail-closed cron authentication and that service-role rollups
 only follow successful platform authorization and input validation.
+
+## Partner platform fees
+
+`packages/core/src/partner-billing.test.ts` checks the invoice transition matrix,
+including terminal paid/void states and rejection of legacy overdue transitions.
+`apps/admin/tests/unit/partner-billing.test.mjs` runs the actual billing actions with
+in-memory clients: authorization, fail-closed flags, concurrent updates, configurable
+broker/insurer fees, and failed reads. These are included in `pnpm test`.
+
+`supabase/tests/partner_platform_fee.test.sql` adds 42 transactional pgTAP assertions
+for private partner plan reads, organisation isolation, admin-only writes, the default-off
+`partner_platform_fee` flag, explicit fee configuration, subscription dates, and invoice
+immutability. Run with `supabase test db` against a disposable local Supabase database
+with the migrations applied. Do not use the shared/demo REST database test suite for this.
+
+The billing UI stays behind `partner_platform_fee` until browser review. Collections are
+manual; no partner Paystack transport is introduced. Existing historical migration seed
+prices are unchanged; newly configured plans require explicit amounts. The public payment
+disclosure constant is unchanged, and legal wording needing Themis review is recorded in
+`/tmp/covva-w1/platform-fee.flags.md` for this worktree run.

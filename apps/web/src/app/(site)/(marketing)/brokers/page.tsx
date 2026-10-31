@@ -17,12 +17,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { DemoBadge, Pill, buttonClass } from "@im/ui";
-import { getPlans } from "@/lib/catalog";
 import { isDemoMode } from "@/components/marketing/brand";
 import { PageHero } from "@/components/marketing/page-hero";
 import { CheckList, FeatureCard, Section, SectionHeading } from "@/components/marketing/section";
 import { BrokerQueueMock } from "@/components/marketing/broker-queue-mock";
-import { PlanCards } from "@/components/marketing/plan-cards";
 import { LeadForm } from "@/components/marketing/lead-form";
 
 export const metadata: Metadata = {
@@ -46,8 +44,8 @@ const VALUE = [
 ];
 
 const MODELS = [
-  { icon: Percent, title: "Revenue share", tag: "No fixed fee", body: "Keep your commission; Covva takes an agreed technology share on policies issued through the platform. Best when you are starting out." },
-  { icon: LayoutDashboard, title: "Subscription", tag: "Predictable", body: "A flat monthly workspace fee per firm with no per-policy share. Best for established firms with steady volume." },
+  { icon: Percent, title: "Revenue share", tag: "Agreement", body: "Commission arrangements are set per partner agreement. Partners also pay Covva a platform fee." },
+  { icon: LayoutDashboard, title: "Platform fee", tag: "Agreement", body: "Platform fee: set per partner agreement, in addition to commission. Neither commission nor fees affect rankings." },
 ];
 
 const ONBOARDING = [
@@ -67,8 +65,7 @@ const GATES = [
 ];
 
 export default async function BrokersPage() {
-  const [plans, demo] = await Promise.all([getPlans(), isDemoMode()]);
-  const brokerPlans = plans.filter((p) => p.audience === "broker");
+  const demo = await isDemoMode();
 
   return (
     <>
@@ -124,7 +121,7 @@ export default async function BrokersPage() {
       </Section>
 
       <Section labelledBy="models-title">
-        <SectionHeading id="models-title" eyebrow="Commercial models" title="Revenue share or subscription — your choice" description="You keep your commission either way; our fees are for the technology, and are disclosed to customers." />
+        <SectionHeading id="models-title" eyebrow="Commercial models" title="Commission and platform fees" description="You keep your commission either way; our fees are for the technology, and are disclosed to customers." />
         <div className="grid gap-4 md:grid-cols-2">
           {MODELS.map((m) => (
             <article key={m.title} className="rounded-[20px] border border-line bg-white p-6 sm:p-7">
@@ -141,7 +138,7 @@ export default async function BrokersPage() {
 
       <Section id="plans" tone="mist" labelledBy="plans-title">
         <SectionHeading id="plans-title" eyebrow="Plans" title="Start with a pilot. Grow on evidence." description="Simple workspace plans for broker firms. You keep your commission; our fees are for the technology." />
-        <PlanCards plans={brokerPlans} />
+        <p className="text-muted">Platform fee: set per partner agreement, in addition to commission. Neither commission nor fees affect rankings.</p>
       </Section>
 
       <Section labelledBy="onboarding-title">

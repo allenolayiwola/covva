@@ -14,6 +14,10 @@ test("payment FAQs retain methods and the exact commission and ranking disclosur
   for (const id of targets) {
     const answer = faqs.find((faq) => faq.id === id).a;
     assert.ok(answer.endsWith(expected));
+    assert.match(answer, /Partners pay Covva a platform fee/);
+    assert.match(answer, /neither commission nor fees affect rankings/);
+    assert.match(answer, /Commission is taken via the Paystack split/);
+    assert.match(answer, /Paystack, not Covva, holds customer funds/);
     assert.doesNotMatch(answer, /never hold|paid commission by|Paystack splits/i);
   }
   assert.match(faqs.find((faq) => faq.id === "methods").a, /mobile money or card/);
@@ -87,3 +91,12 @@ for (const methodsExists of [false, true]) {
     assert.deepEqual(records, after);
   });
 }
+
+test("partner marketing states the agreed platform fee without rendering price cards", async () => {
+  for (const page of ["insurers", "brokers"]) {
+    const source = await readFile(new URL(`../../src/app/(site)/(marketing)/${page}/page.tsx`, import.meta.url), "utf8");
+    assert.match(source, /Platform fee: set per partner agreement/);
+    assert.doesNotMatch(source, /PlanCards|getPlans|No fixed fee/);
+    if (page === "insurers") assert.match(source, /Portal \(Level 1\)/);
+  }
+});
