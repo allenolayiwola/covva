@@ -2,6 +2,8 @@ export const READING_MAX_WIDTH = 720;
 export const GRID_MAX_WIDTH = 1100;
 export const RAIL_BREAKPOINT = 840;
 export const isListDetail = (width: number) => width >= RAIL_BREAKPOINT;
+/** Navigation rail and policy list-detail use the same window-width threshold. */
+export const hasRail = (width: number) => width >= RAIL_BREAKPOINT;
 export const isWide = (width: number) => width >= 600;
 export const contentMaxWidth = (kind: 'reading' | 'grid' = 'reading') => kind === 'grid' ? GRID_MAX_WIDTH : READING_MAX_WIDTH;
 export function gridColumns(width: number, minimum = 280, gap = 24) {

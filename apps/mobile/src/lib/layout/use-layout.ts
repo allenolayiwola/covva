@@ -1,6 +1,6 @@
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { contentMaxWidth, gridColumns, isWide, RAIL_BREAKPOINT, type Fold } from './index';
+import { contentMaxWidth, gridColumns, isWide, hasRail, type Fold } from './index';
 
 export function useLayout() {
   const { width, height } = useWindowDimensions();
@@ -9,6 +9,6 @@ export function useLayout() {
   // No posture API is installed. Never infer a hinge from dimensions.
   const fold: Fold | null = null;
   return { width, height, insets, availableWidth, isWide: isWide(width),
-    hasRail: width >= RAIL_BREAKPOINT, contentMaxWidth: contentMaxWidth(),
+    hasRail: hasRail(width), contentMaxWidth: contentMaxWidth(),
     columns: gridColumns(availableWidth - 48), fold, creaseGap: 0 };
 }
