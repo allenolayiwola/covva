@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Logo, Spinner } from "@im/ui";
+import { Logo } from "@im/ui";
+import { AdminSkeleton } from "@/components/shell/loading";
 import { requireStaff } from "@/lib/auth";
 import { ROLE_LABEL } from "@/lib/roles";
 import { SidebarNav, MobileNav, ShellBreadcrumb } from "@/components/shell/Sidebar";
@@ -14,7 +15,7 @@ import { UserMenu } from "@/components/shell/UserMenu";
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<ShellFallback />}>
+    <Suspense fallback={<AdminSkeleton />}>
       <Shell>{children}</Shell>
     </Suspense>
   );
@@ -83,14 +84,6 @@ async function Shell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ShellFallback() {
-  return (
-    <div className="flex min-h-dvh items-center justify-center gap-3 text-sm text-muted">
-      <Spinner className="size-5 text-brand" /> Loading admin console…
     </div>
   );
 }

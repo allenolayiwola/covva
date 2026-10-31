@@ -66,13 +66,14 @@ function WizardInner({ categories, initial, hydrated }: { categories: WizardCate
   const headingRef = React.useRef<HTMLHeadingElement>(null);
   const firstRender = React.useRef(true);
 
+  // Use the captured question index so a concurrent Continue click cannot advance twice.
   // Short pause after a single-choice answer so the selection is visible before moving on.
   React.useEffect(() => {
     if (!autoAdvance) return;
     const t = window.setTimeout(() => {
       setAutoAdvance(false);
       if (step >= total - 1) setDone(true);
-      else setStep((s) => s + 1);
+      else setStep(step + 1);
     }, 220);
     return () => window.clearTimeout(t);
   }, [autoAdvance, step, total]);
