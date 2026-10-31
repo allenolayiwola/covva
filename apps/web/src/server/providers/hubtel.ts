@@ -1,5 +1,8 @@
 import "server-only";
-import { timingSafeEqual } from "node:crypto";
+import { siteUrl } from "@/server/env";
+import { unsupported, type PaymentProvider } from "./payment-provider";
+import { paymentConfig } from "@/server/env";
+import { verifyHubtelWebhook as checkSignature } from "./signatures";
 import { log } from "@/server/log";
 
 /**
@@ -61,6 +64,7 @@ const CHECKOUT = "https://payproxyapi.hubtel.com/items/initiate";
 const STATUS = "https://api-txnstatus.hubtel.com/transactions";
 
 export function hubtelConfig(): HubtelConfig | null {
+  if (paymentConfig().provider !== "hubtel") return null;
   const clientId = process.env.HUBTEL_CLIENT_ID;
   const clientSecret = process.env.HUBTEL_CLIENT_SECRET;
   const merchantAccount = process.env.HUBTEL_MERCHANT_ACCOUNT ?? "";
@@ -143,7 +147,7 @@ export async function hubtelVerify(clientReference: string, merchantAccount?: st
     return {
       ok: true,
       status: normaliseStatus(json.data.status),
-      amount: typeof json.data.amount === "number" ? json.data.amount : undefined,
+      amount: typeof json.data.amount === "number" && Number.isFinite(json.data.amount) ? json.data.amount : undefined,
       transactionId: json.data.transactionId ?? null,
       paymentMethod: json.data.paymentMethod ?? null,
       paidAt: json.data.date ?? null,
@@ -160,10 +164,7 @@ export async function hubtelVerify(clientReference: string, merchantAccount?: st
  * `?secret=` and/or sent as `x-hubtel-secret`) and then re-verify with the status API.
  */
 export function verifyHubtelWebhook(provided: string | null | undefined, secret = process.env.HUBTEL_WEBHOOK_SECRET): boolean {
-  if (!provided || !secret) return false;
-  const a = Buffer.from(provided);
-  const b = Buffer.from(secret);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return checkSignature(provided, secret);
 }
 
 /** Map a Hubtel callback body to our outcome (still re-verified before success is applied). */
@@ -173,3 +174,23 @@ export function parseHubtelCallback(body: unknown): { clientReference: string | 
   const status = b.ResponseCode === "0000" || normaliseStatus(d.Status ?? b.Status) === "succeeded" ? "succeeded" : normaliseStatus(d.Status ?? b.Status) === "unknown" ? "failed" : normaliseStatus(d.Status ?? b.Status);
   return { clientReference: d.ClientReference ?? null, status, amount: typeof d.Amount === "number" ? d.Amount : undefined, transactionId: d.TransactionId ?? null, paymentMethod: d.PaymentMethod ?? null };
 }
+
+/** Hubtel refunds/split provisioning require the merchant operations process. */
+export const hubtelProvider: PaymentProvider = {
+  name: 'hubtel',
+  async initialise(input) {
+    if (input.currency !== 'GHS') throw new Error('Hubtel requires GHS.');
+    const r = await hubtelInitiate({ amount: input.amountMinor / 100, description: input.description, clientReference: input.reference,
+      callbackUrl: `${siteUrl()}/api/webhooks/hubtel?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET ?? '')}`,
+      returnUrl: input.callbackUrl, cancellationUrl: input.callbackUrl, customerEmail: input.email, merchantAccount: input.settlementAccount });
+    if (!r.ok || !r.checkoutUrl) throw new Error('Hubtel checkout could not be started.');
+    return { reference: input.reference, authorizationUrl: r.checkoutUrl };
+  },
+  async verify(reference, account) {
+    const r = await hubtelVerify(reference, account);
+    return { status: r.ok ? r.status : 'unknown', amountMinor: r.amount === undefined ? undefined : Math.round(r.amount * 100), currency: 'GHS', raw: r.raw };
+  },
+  async refund() { return unsupported('automated refunds'); },
+  settlement: ({ subaccount }) => ({ merchantAccount: subaccount }),
+  verifyWebhook: (_raw, signature) => hubtelEnabled() && verifyHubtelWebhook(signature),
+};

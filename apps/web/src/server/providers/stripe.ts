@@ -1,5 +1,7 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { unsupported, type PaymentProvider } from "./payment-provider";
+import { paymentConfig } from "@/server/env";
+import { verifyStripeSignature as checkSignature } from "./signatures";
 import { log } from "@/server/log";
 
 /**
@@ -20,7 +22,7 @@ import { log } from "@/server/log";
  */
 const STRIPE = "https://api.stripe.com/v1";
 
-export const stripeKey = () => process.env.STRIPE_SECRET_KEY || null;
+export const stripeKey = () => paymentConfig().provider === "stripe" ? process.env.STRIPE_SECRET_KEY || null : null;
 export const stripeEnabled = () => !!stripeKey();
 export const stripeSettlementApproved = () => process.env.STRIPE_SETTLEMENT_APPROVED === "true";
 
@@ -68,6 +70,7 @@ export interface StripeCheckoutInput {
  * Stripe automatically for `payment_method_types: card` on a hosted page). Returns the hosted URL.
  */
 export async function stripeCreateCheckoutSession(input: StripeCheckoutInput): Promise<{ ok: boolean; url?: string; sessionId?: string; message?: string }> {
+  if (!stripeSettlementApproved()) throw new Error("Stripe settlement approval is required.");
   const r = await stripe<{ id: string; url: string }>(
     "/checkout/sessions",
     {
@@ -92,14 +95,15 @@ export async function stripeCreateCheckoutSession(input: StripeCheckoutInput): P
 
 /** Stripe-Signature: `t=<ts>,v1=<hmac>`; HMAC-SHA256 of `<ts>.<raw body>` with the webhook secret. */
 export function verifyStripeSignature(rawBody: string, header: string | null, secret = process.env.STRIPE_WEBHOOK_SECRET, toleranceSeconds = 300): boolean {
-  if (!header || !secret) return false;
-  const parts = Object.fromEntries(header.split(",").map((p) => p.trim().split("=") as [string, string]));
-  const t = parts.t;
-  const v1 = parts.v1;
-  if (!t || !v1) return false;
-  if (Math.abs(Date.now() / 1000 - Number(t)) > toleranceSeconds) return false;
-  const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
-  const a = Buffer.from(expected, "hex");
-  const b = Buffer.from(v1, "hex");
-  return a.length === b.length && timingSafeEqual(a, b);
+  return checkSignature(rawBody, header, secret, toleranceSeconds);
 }
+
+/** Stripe settlement remains unimplemented; approval alone cannot enable collection. */
+export const stripeProvider: PaymentProvider = {
+  name: 'stripe',
+  async initialise() { return unsupported('Stripe insurer settlement'); },
+  async verify() { return unsupported('Stripe insurer settlement verification'); },
+  async refund() { return unsupported('Stripe insurer refunds'); },
+  settlement() { return unsupported('Stripe insurer split/subaccounts'); },
+  verifyWebhook: (raw, signature) => stripeEnabled() && verifyStripeSignature(raw, signature),
+};

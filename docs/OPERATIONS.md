@@ -18,8 +18,8 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `NEXT_PUBLIC_ADMIN_URL` | no | yes | Link to the admin portal |
 | `PAYSTACK_SECRET_KEY` | **yes** | prod | Paystack API + webhook signature secret (`sk_live_…` / `sk_test_…`) |
 | `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | no | optional | Only if a client-side Paystack popup is added |
-| `PAYMENTS_SIMULATOR` | no | no | `true` enables the sandbox simulator even in production builds (staging only!). `false` disables it in dev. |
-| `PAYMENTS_SIMULATOR_SECRET` | yes | no | HMAC key for simulator links (defaults to `SUPABASE_SECRET_KEY`) |
+| `PAYMENTS_SIMULATOR` | no | no | Explicit opt-in required in production; live mode always disables simulation. |
+| `PAYMENTS_SIMULATOR_SECRET` | yes | no | Dedicated HMAC key for simulator links; at least 32 characters required outside development. |
 | `RESEND_API_KEY` | **yes** | prod | Email delivery. Unset → emails are logged, not sent |
 | `EMAIL_FROM` | no | prod | e.g. `Covva <no-reply@your-domain>` (verified Resend domain) |
 | `SMS_PROVIDER` | no | prod | `log` (default) \| `arkesel` \| `hubtel` |
@@ -30,6 +30,7 @@ Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
 | `AI_GATEWAY_API_KEY` | **yes** | local | Vercel AI Gateway. On Vercel deployments OIDC is used automatically (a key, if set, wins) |
 | `AI_DEFAULT_MODEL` / `AI_FAST_MODEL` / `AI_VISION_MODEL` | no | no | Gateway model ids; overridden by `platform_settings.ai_models` |
 | `CRON_SECRET` | **yes** | yes | Vercel Cron sends `Authorization: Bearer $CRON_SECRET` |
+| `PAYMENTS_MODE_SECRET` | **yes** | yes | Dedicated shared secret for the web payment-mode endpoint and admin caller. |
 | `REVALIDATE_SECRET` | **yes** | yes | Shared with the admin app for `POST /api/revalidate` |
 | `APPLE_TEAM_ID`, `IOS_BUNDLE_ID` | no | mobile | Universal links (`/.well-known/apple-app-site-association`) |
 | `ANDROID_PACKAGE_NAME`, `ANDROID_SHA256_CERT_FINGERPRINTS` | no | mobile | App links (`/.well-known/assetlinks.json`); comma-separated fingerprints (upload key + Play signing key) |
@@ -102,7 +103,8 @@ cancelled, the application rejected and the request closed (`closed_no_cover`). 
 refunded immediately. Alert on `paystack.refund_failed` (provider refused) and
 `paystack.refund_processing_failed`.
 
-Sandbox: with no `PAYSTACK_SECRET_KEY` and `NODE_ENV !== "production"` (or `PAYMENTS_SIMULATOR=true`),
+Sandbox: simulation requires non-live mode; production requires explicit `PAYMENTS_SIMULATOR` opt-in.
+Outside development, `PAYMENTS_SIMULATOR_SECRET` must have at least 32 characters. With simulation enabled,
 checkout opens `/api/payments/simulate?reference=…&sig=…` — a clearly labelled simulator that runs the
 same `applyPaymentResult` code path. Never enable it on a production domain.
 
