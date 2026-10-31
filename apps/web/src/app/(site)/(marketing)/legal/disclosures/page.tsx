@@ -50,9 +50,9 @@ export default async function DisclosuresPage() {
           body: (
             <ul>
               <li><strong>Customers</strong> pay nothing to use the platform. You pay the premium set by the insurer.</li>
-              <li><strong>Brokers</strong> are paid commission by insurers, within limits set by the NIC. You can ask your broker for the amount of commission on your policy.</li>
+              <li>You can ask your broker for the amount of commission on your policy.</li>
               <li><strong>{brand.name}</strong> is paid technology fees by participating brokers and insurers (subscription and usage fees). Our fees do not depend on which insurer you choose.</li>
-              <li>We never hold your premium. Payments settle directly to the insurer through an authorised payment provider.</li>
+              <li>Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva.</li>
             </ul>
           ),
         },

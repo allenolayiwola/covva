@@ -68,7 +68,7 @@ export default function ChatPanel({ open, onClose, whatsappNumber }: { open: boo
                   Ask me how quotes, payments, claims or renewals work. I can&apos;t recommend a product or quote a price — a licensed broker does that — and I can&apos;t see your account.
                 </p>
                 <p className="mt-2 text-xs text-subtle" data-testid="chat-disclaimer">
-                  Covva provides the technology. We are not an insurer or broker and we never hold your premium. English for now; Twi, Ga and Ewe are coming.
+                  Covva provides the technology. We are not an insurer or broker. Payments are processed by Paystack. Paystack splits each payment, sending the partner&apos;s share directly to the partner and Covva&apos;s commission directly to Covva. English for now; Twi, Ga and Ewe are coming.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SUGGESTIONS.map((s) => (

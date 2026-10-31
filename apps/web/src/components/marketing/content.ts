@@ -13,12 +13,12 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: "what-is",
         q: "What is Covva?",
-        a: "We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker, we do not give insurance advice in our own name, and we never hold your premium.",
+        a: "We are a technology platform that helps you explore, compare and manage insurance in Ghana. Licensed brokers advise you and arrange your cover, and licensed insurers underwrite and issue your policy. We are not an insurer or a broker and we do not give insurance advice in our own name. Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
       },
       {
         id: "cost",
         q: "Does it cost anything to use?",
-        a: "Exploring cover, using Help me choose and requesting quotes are free. You pay the premium the insurer sets. Your broker is paid commission by the insurer, and we show you how that works before you apply.",
+        a: "Exploring cover, using Help me choose and requesting quotes are free. You pay the premium the insurer sets. Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
       },
       {
         id: "how-many",
@@ -49,7 +49,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: "methods",
         q: "How can I pay?",
-        a: "You can pay by mobile money or card through an authorised payment provider. Payment goes directly to the insurer — we never hold your premium.",
+        a: "Payments are processed by Paystack. Paystack splits each payment, sending the partner's share directly to the partner and Covva's commission directly to Covva.",
       },
       {
         id: "paid-active",
