@@ -80,7 +80,11 @@ describe("anonymous visitors", () => {
     assert.equal(typeof row.review_count, "number");
     assert.ok(row.rating_avg === null || row.review_count >= 3, "an average is only published from 3 approved reviews");
     assert.ok(["new", "needs_attention", "fair", "good", "excellent"].includes(row.score_band));
-    const reviews = await pub.rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 5 });
+    expectForbidden(await pub.rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 5 }));
+  });
+
+  test("server review reader preserves the public projection", { skip: !hasServiceKey() && "SUPABASE_SECRET_KEY not set" }, async () => {
+    const reviews = await service().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 5 });
     expectOk(reviews);
     for (const rv of reviews.body) {
       assert.ok(rv.rating >= 1 && rv.rating <= 5);
@@ -195,7 +199,7 @@ describe("insurer", () => {
 
 // ---------------------------------------------------------------------------
 describe("staff", () => {
-  test("reads every review and scorecard, and the analytics facts; a dry-run rollup writes nothing", async () => {
+  test("reads every review and scorecard and analytics facts; cannot run the service-only rollup", async () => {
     const db = asUser(sessions.admin);
     expectOk(await db.get("broker_reviews?select=id,status&limit=5"));
     expectOk(await db.get("broker_scorecards?select=id&limit=5"));
@@ -206,9 +210,14 @@ describe("staff", () => {
     }
     const badGroup = await db.rpc("analytics_facts", { p_from: plusDays(-7), p_to: today(), p_group: "customer" });
     expectRule(badGroup, /Group by/);
+    expectForbidden(await db.rpc("analytics_rollup", { p_from: today(), p_to: today(), p_dry_run: true }));
+  });
+
+  test("service dry-run rollup writes nothing and validates date ranges", { skip: !hasServiceKey() && "SUPABASE_SECRET_KEY not set" }, async () => {
+    const db = asUser(sessions.admin);
     const before = await db.rpc("analytics_facts", { p_from: plusDays(-2), p_to: today(), p_group: "total" });
     expectOk(before);
-    const dry = await db.rpc("analytics_rollup", { p_from: plusDays(-2), p_to: today(), p_dry_run: true });
+    const dry = await service().rpc("analytics_rollup", { p_from: plusDays(-2), p_to: today(), p_dry_run: true });
     expectOk(dry);
     assert.equal(dry.body.dry_run, true);
     assert.equal(dry.body.days, 3);
@@ -216,7 +225,7 @@ describe("staff", () => {
     const afterDry = await db.rpc("analytics_facts", { p_from: plusDays(-2), p_to: today(), p_group: "total" });
     expectOk(afterDry);
     assert.deepEqual(afterDry.body, before.body, "a dry run changes nothing");
-    const reversed = await db.rpc("analytics_rollup", { p_from: today(), p_to: plusDays(-1), p_dry_run: true });
+    const reversed = await service().rpc("analytics_rollup", { p_from: today(), p_to: plusDays(-1), p_dry_run: true });
     expectRule(reversed, /end of the range/);
   });
 });
@@ -255,7 +264,7 @@ describe("rating, moderation and reply round trip (service key)", { skip: !hasSe
     const asBroker = await asUser(sessions.broker).get(`broker_reviews?id=eq.${ids.review}&select=id`);
     expectOk(asBroker);
     assert.deepEqual(asBroker.body, [], "pending reviews are invisible to the broker");
-    const pub = await anon().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 50 });
+    const pub = await service().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 50 });
     expectOk(pub);
     assert.ok(!pub.body.some((r) => r.id === ids.review), "pending reviews are not public");
 
@@ -271,7 +280,7 @@ describe("rating, moderation and reply round trip (service key)", { skip: !hasSe
     expectRule(edit, /cannot be edited/);
 
     // Public: masked reviewer, no customer id.
-    const pubAfter = await anon().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 50 });
+    const pubAfter = await service().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 50 });
     expectOk(pubAfter);
     const shown = pubAfter.body.find((r) => r.id === ids.review);
     assert.ok(shown, "approved reviews are public");
@@ -291,7 +300,7 @@ describe("rating, moderation and reply round trip (service key)", { skip: !hasSe
     // Staff hides with a reason: it leaves the public view and the broker's view.
     const hidden = await staff.update(`broker_reviews?id=eq.${ids.review}`, { status: "hidden", moderation_reason: `${RUN} test cleanup` });
     expectOk(hidden);
-    const pubHidden = await anon().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 50 });
+    const pubHidden = await service().rpc("broker_public_reviews", { p_broker_org_id: ids.broker, p_limit: 50 });
     assert.ok(!pubHidden.body.some((r) => r.id === ids.review));
     const brokerHidden = await adviser.get(`broker_reviews?id=eq.${ids.review}&select=id`);
     assert.deepEqual(brokerHidden.body, []);

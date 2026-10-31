@@ -1,10 +1,11 @@
 # Testing
 
-Four suites, all runnable locally with no extra setup beyond `pnpm install` and a production build:
+Five suites, all runnable locally with no extra setup beyond `pnpm install` and a production build:
 
 | Suite | What it covers | Command | Needs |
 |---|---|---|---|
 | Core unit tests | `@im/core` domain logic: rating models, comparison engine, needs assessment, broker routing, risk-schema validation, status tables, deep links, formatting | `pnpm --filter @im/core test` | nothing |
+| Payment/KYC unit tests | Mode matrix, raw-body signatures, mocked Paystack transport, simulator checkout/callback/issuance handoff, identity stubs, mode endpoint | `pnpm --filter @im/web test` | Node 22+, no network or database |
 | Database rules | Supabase triggers + RLS exercised through PostgREST as customer, broker, insurer, anonymous | `pnpm --filter @im/web test:db` | network access to the demo Supabase project |
 | Browser e2e (web) | Marketing site, customer account, broker + insurer workspace, accessibility smoke, 390×844 mobile run, sign-out | `pnpm --filter @im/web e2e` | production build of `apps/web`, Chromium |
 | Browser e2e (admin) | Staff sign-in (MFA off), KPIs, organisations, category launch gate, settings validation, flag round-trip, audit chain, accessibility smoke | `pnpm --filter @im/admin e2e` | production build of `apps/admin`, Chromium |
@@ -17,7 +18,31 @@ Four suites, all runnable locally with no extra setup beyond `pnpm install` and 
 (`rating`, `comparison`, `needs`, `routing`, `risk`, `status`, `format`, `api`) plus the original `core.test.ts`. They are pure and
 run in under a second.
 
+## Payment/KYC unit tests
+
+`apps/web/tests/unit/*.test.mjs` run under Node's test runner with module mocking and a
+TypeScript loader (using the existing TypeScript dependency). The tests execute real service
+and route code with in-memory persistence and mocked provider fetches. `pnpm test` includes
+this suite. It never loads `.env.local`, calls a live PSP or writes to Supabase. Node 24 may
+report a `namedExports` deprecation warning; that option is retained for the Node 22 CI runner.
+
+These are not database/RLS or browser tests. When remote writes are forbidden, do not run the
+existing database or Playwright suites against the shared project. Run them later against an
+approved disposable environment with test data.
+
 ## Database rule tests
+
+For the policy performance migrations, also run the transactional SQL regression against an **isolated local/test database**:
+
+```bash
+psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/performance_policies.sql
+```
+
+It creates two test users, checks that merged profile policies retain self read/update access, deny access to the other user's
+row and reject ownership reassignment, then rolls back every fixture. It also rejects overlapping permissive policies in `public`.
+Run `supabase db advisors --db-url "$LOCAL_DATABASE_URL" --type performance --level info` after applying the migrations locally;
+expect zero `auth_rls_initplan`, `multiple_permissive_policies`, and public `unindexed_foreign_keys` findings. Unused indexes are
+deliberately retained. This SQL check supplements the Auth/PostgREST and browser suites below; it does not replace them.
 
 `apps/web/tests/db-rules.test.mjs` (plain `node:test`, zero dependencies). It signs each demo account in through the Auth REST API
 (`/auth/v1/token?grant_type=password`) and talks to PostgREST (`/rest/v1/...`) as that user, so the assertions are against the real
@@ -157,3 +182,17 @@ project, the privileged journeys are skipped, and the purge is skipped.
   toggles a feature flag (`ussd_channel`, restored afterwards).
 - No `SUPABASE_SECRET_KEY` locally means the privileged journey, request creation, payments and cron paths are not exercised outside CI.
 - Playwright's own `@playwright/test` package is not in the lockfile; the runner comes from a global install (see above).
+
+## Local production-hardening rules
+
+`supabase/tests/production_hardening.test.sql` is a transactional pgTAP suite for the RPC
+execute grants, partner membership/finance boundaries, public policy verification, and
+CMS schema/RLS protection. With a local Supabase database containing the repo migrations,
+run `supabase test db`. All fixtures (including a CMS test page) roll back. The suite uses
+both JWT claim settings to support local Auth fixtures and Supabase Auth helpers.
+Do not run this suite or the REST database suites against production during hardening work.
+
+`pnpm test` also runs the web unit tests in `apps/web/tests/unit`: the actual cron handler
+with job side effects stubbed, plus the admin rollup action with authorization and database
+clients stubbed. These verify fail-closed cron authentication and that service-role rollups
+only follow successful platform authorization and input validation.
