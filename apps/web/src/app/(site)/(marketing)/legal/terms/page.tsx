@@ -114,7 +114,7 @@ export default async function TermsPage() {
         {
           id: "fees",
           title: "Fees",
-          body: <p>Using the platform as a customer is free. Brokers and insurers pay us technology fees. {PAYMENTS_DISCLOSURE} See our <Link href="/legal/disclosures">disclosures</Link>.</p>,
+          body: <p>Using the platform as a customer is free. {PAYMENTS_DISCLOSURE} See our <Link href="/legal/disclosures">disclosures</Link>.</p>,
         },
         {
           id: "ip",

@@ -51,7 +51,7 @@ export default async function DisclosuresPage() {
           body: (
             <ul>
               <li><strong>Customers</strong> pay nothing to use the platform. You pay the premium set by the insurer.</li>
-              <li><strong>{brand.name}</strong> is paid technology fees by participating brokers and insurers (subscription and usage fees). Our fees do not depend on which insurer you choose.</li>
+              <li><strong>{brand.name}</strong> earns a commission per policy sold, and nothing else. Commission does not affect which insurer you see or how results are ranked.</li>
               <li>{PAYMENTS_DISCLOSURE}</li>
             </ul>
           ),
