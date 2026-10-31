@@ -201,10 +201,10 @@ export function HomeHeroCarousel({ slides, className }: { slides: HeroCarouselSl
                 </p>
                 <Headline
                   id={i === 0 ? "hero-title" : undefined}
-                  className="mt-4 font-display text-[36px] leading-[1.04] [font-weight:600] tracking-[-0.03em] text-white min-[380px]:text-[38px] sm:text-[52px] lg:mt-5 lg:text-[clamp(52px,4.3vw,80px)]"
+                  className="mt-4 font-display text-[36px] leading-[1.04] tracking-[-0.03em] text-white min-[380px]:text-[38px] sm:text-[52px] lg:mt-5 lg:text-[clamp(52px,4.3vw,80px)]"
                 >
                   {s.headline}{" "}
-                  <span className="block pt-1 font-accent text-[1.06em] font-normal italic leading-[1.02] tracking-[-0.01em] text-mint [font-synthesis:none]">{s.accent}</span>
+                  <span className="block pt-1 text-[1.06em] leading-[1.02] tracking-[-0.01em] text-mint">{s.accent}</span>
                 </Headline>
                 <p aria-hidden={hide} className="mt-5 max-w-[34rem] text-[16px] leading-relaxed text-white sm:text-[18px] lg:mt-6 lg:text-[19px]">
                   {s.subline}

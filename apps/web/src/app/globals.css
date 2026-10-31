@@ -32,10 +32,10 @@
     text-decoration-color: currentColor;
   }
 
-  /* Type: Plus Jakarta Sans throughout; headings SemiBold (600), body Regular (400). */
-  h1, h2 {
+  /* Brand type: Outfit Light headings; Inter body and UI. */
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-weight: 600 !important;
+    font-weight: 300 !important;
     letter-spacing: -0.015em;
   }
   h3, h4 {

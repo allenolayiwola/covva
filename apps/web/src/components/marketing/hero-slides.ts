@@ -29,7 +29,7 @@ export interface HeroSlide {
   topic: string;
   eyebrow: string;
   headline: string;
-  /** Italic serif accent line under the headline. */
+  /** Second line of the Outfit Light headline. */
   accent: string;
   subline: string;
   /** Small italic caption, bottom right on desktop (decorative). */
