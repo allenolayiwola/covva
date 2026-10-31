@@ -54,6 +54,16 @@ export async function submitRenewalLead(_prev: LeadState, formData: FormData): P
 }
 
 async function saveLead(formData: FormData, schema: typeof LeadSchema): Promise<LeadState> {
+  // Spam guard 1: honeypot field that real people never see or fill.
+  if (String(formData.get("company_website") ?? "").trim() !== "") {
+    return { status: "success" };
+  }
+  // Spam guard 2: forms submitted implausibly fast (< 2.5s after render) are bots.
+  const startedAt = Number(formData.get("started_at"));
+  if (Number.isFinite(startedAt) && startedAt > 0 && Date.now() - startedAt < 2500) {
+    return { status: "success" };
+  }
+
   const raw = Object.fromEntries(
     ["kind", "name", "email", "phone", "organization", "category_slug", "message", "source_page", "utm", "consent", "tag", "expires_on"].map((k) => [
       k,
@@ -68,16 +78,6 @@ async function saveLead(formData: FormData, schema: typeof LeadSchema): Promise<
       if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
     }
     return { status: "error", message: "Please check the highlighted fields.", fieldErrors, values: echo(raw) };
-  }
-
-  // Spam guard 1: honeypot field that real people never see or fill.
-  if (String(formData.get("company_website") ?? "").trim() !== "") {
-    return { status: "success" };
-  }
-  // Spam guard 2: forms submitted implausibly fast (< 2.5s after render) are bots.
-  const startedAt = Number(formData.get("started_at"));
-  if (Number.isFinite(startedAt) && startedAt > 0 && Date.now() - startedAt < 2500) {
-    return { status: "success" };
   }
 
   const v = parsed.data;

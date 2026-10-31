@@ -24,6 +24,8 @@ const KIND_LABELS: Record<Kind, string> = {
 const INITIAL: LeadState = { status: "idle" };
 
 export interface LeadFormProps {
+  /** Client validation schema; server validation remains authoritative. */
+  schema?: typeof LeadSchema;
   /** Fixed enquiry type. Omit to let the person choose. */
   kind?: Kind;
   kindOptions?: Kind[];
@@ -55,6 +57,7 @@ export function LeadForm(props: LeadFormProps) {
 }
 
 function LeadFormInstance({
+  schema = LeadSchema,
   kind,
   kindOptions = ["customer", "broker", "insurer", "enterprise", "press", "other"],
   defaultKind,
@@ -132,7 +135,7 @@ function LeadFormInstance({
   return (
     <form action={formAction} onSubmit={(event) => {
       const raw = Object.fromEntries(new FormData(event.currentTarget));
-      const parsed = LeadSchema.safeParse(raw);
+      const parsed = schema.safeParse(raw);
       if (!parsed.success) {
         event.preventDefault();
         const fieldErrors: NonNullable<LeadState["fieldErrors"]> = {};
