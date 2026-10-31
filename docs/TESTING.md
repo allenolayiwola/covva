@@ -19,6 +19,18 @@ run in under a second.
 
 ## Database rule tests
 
+For the policy performance migrations, also run the transactional SQL regression against an **isolated local/test database**:
+
+```bash
+psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/performance_policies.sql
+```
+
+It creates two test users, checks that merged profile policies retain self read/update access, deny access to the other user's
+row and reject ownership reassignment, then rolls back every fixture. It also rejects overlapping permissive policies in `public`.
+Run `supabase db advisors --db-url "$LOCAL_DATABASE_URL" --type performance --level info` after applying the migrations locally;
+expect zero `auth_rls_initplan`, `multiple_permissive_policies`, and public `unindexed_foreign_keys` findings. Unused indexes are
+deliberately retained. This SQL check supplements the Auth/PostgREST and browser suites below; it does not replace them.
+
 `apps/web/tests/db-rules.test.mjs` (plain `node:test`, zero dependencies). It signs each demo account in through the Auth REST API
 (`/auth/v1/token?grant_type=password`) and talks to PostgREST (`/rest/v1/...`) as that user, so the assertions are against the real
 RLS policies and triggers in `supabase/migrations/`:
