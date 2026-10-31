@@ -28,7 +28,7 @@ export default async function SupportPage() {
         <Container className="relative py-14 sm:py-20">
           <div className="mx-auto max-w-3xl">
             <Eyebrow className="text-center">Help centre</Eyebrow>
-            <h1 id="support-title" className="mt-4 text-balance text-center text-[36px] font-bold leading-[1.08] tracking-[-0.035em] text-ink sm:text-[50px]">
+            <h1 id="support-title" className="mt-4 text-balance text-center text-[38px] leading-[1.06] md:text-[60px] text-ink">
               How can we help?
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-center text-[17px] leading-relaxed text-muted">

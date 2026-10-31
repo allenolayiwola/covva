@@ -27,7 +27,7 @@ export default async function GetStartedPage({ searchParams }: PageProps<"/get-s
         </Suspense>
         <header className="mx-auto max-w-2xl text-center">
           <Eyebrow>Help me choose</Eyebrow>
-          <h1 className="mt-4 text-balance text-[34px] font-bold leading-[1.08] tracking-[-0.035em] text-ink sm:text-[46px]">
+          <h1 className="mt-4 text-balance text-[38px] leading-[1.06] md:text-[60px] text-ink">
             What cover do I actually need?
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-muted">

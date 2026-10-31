@@ -57,7 +57,7 @@ export default async function ExplorePage() {
               <section key={seg} aria-labelledby={`seg-${seg}`}>
                 <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h2 id={`seg-${seg}`} className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">{label.title}</h2>
+                    <h2 id={`seg-${seg}`} className="text-[30px] leading-[1.12] md:text-[42px] text-ink">{label.title}</h2>
                     {label.description && <p className="mt-1 text-[15px] text-muted">{label.description}</p>}
                   </div>
                   {seg !== "personal" && (

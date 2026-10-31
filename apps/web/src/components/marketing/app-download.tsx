@@ -14,7 +14,7 @@ export function AppDownload({ insurers }: { insurers: string[] }) {
       <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div>
           <Eyebrow className="mb-3">The Covva app</Eyebrow>
-          <h2 id="app-title" className="text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-ink sm:text-[40px]">
+          <h2 id="app-title" className="text-balance text-[30px] leading-[1.12] md:text-[42px] text-ink">
             Your policies, claims and renewals — in your pocket.
           </h2>
           <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-muted">

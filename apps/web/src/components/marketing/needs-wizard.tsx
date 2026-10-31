@@ -276,7 +276,7 @@ function Results({
     <div className="grid gap-10 motion-safe:animate-fade-up lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
       <div>
         <Pill tone="ok">Your suggestions</Pill>
-        <h2 ref={headingRef} tabIndex={-1} className="mt-4 text-balance text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink focus:outline-none sm:text-[38px]">
+        <h2 ref={headingRef} tabIndex={-1} className="mt-4 text-balance text-[30px] leading-[1.12] md:text-[42px] text-ink focus:outline-none">
           Here’s the cover worth considering
         </h2>
         <p className="mt-3 text-[16px] leading-relaxed text-muted">

@@ -79,7 +79,7 @@ export default async function TrustPage() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Licensing status</Eyebrow>
-            <h2 id="licensing-title" className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">Our regulatory position</h2>
+            <h2 id="licensing-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Our regulatory position</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-ink-2">
               {brand.name} is a technology platform — not an insurer and not a broker. We operate as a technology provider in partnership with licensed brokers and insurers. Our regulatory classification is being confirmed with the National Insurance Commission (NIC).
             </p>
@@ -127,7 +127,7 @@ export default async function TrustPage() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Data protection</Eyebrow>
-            <h2 id="data-title" className="text-[30px] font-bold leading-tight tracking-[-0.025em] text-ink sm:text-[38px]">Your data, handled with care</h2>
+            <h2 id="data-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Your data, handled with care</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-muted">
               We process personal data in line with the {REGULATION.act843}, and we intend to register with the {REGULATION.dpc.name} as required.
             </p>
