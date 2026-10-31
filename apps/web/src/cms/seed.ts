@@ -22,6 +22,8 @@ import { cmsConfigured, cmsDisabledReason } from "./env";
 import { ARTICLES } from "../components/marketing/articles";
 import { FAQ_GROUPS, HOME_FAQ_IDS, PAYMENT_METHODS, TESTIMONIALS } from "../components/marketing/content";
 
+import { HOME_HERO } from "../components/marketing/home-hero-content";
+
 const PAYMENT_FAQ_IDS = new Set(["what-is", "cost", "methods"]);
 
 const CLAIMS_FAQ_IDS = ["how-claim", "who-decides", "declined"];
@@ -155,6 +157,16 @@ async function main() {
     } else tally("partners", false);
     pOrder += 10;
   }
+
+  // Home hero: create only. Never replace an editor's page or remove legacy content.
+  const { totalDocs: heroPages } = await payload.count({ collection: "pages", where: { slug: { equals: "home-hero" } } });
+  if (heroPages === 0) {
+    await payload.create({ collection: "pages", draft: false, data: {
+      title: "Home hero", slug: "home-hero", layout: [HOME_HERO],
+      seo: { noIndex: true }, _status: "published",
+    } });
+  }
+  tally("home-hero", heroPages === 0);
 
   console.log("CMS seed complete:");
   for (const [k, v] of Object.entries(summary)) console.log(`  ${k.padEnd(13)} created ${v.created}, already present ${v.existing}`);

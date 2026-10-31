@@ -11,25 +11,13 @@ async function noHorizontalOverflow(page) {
 test("home on a phone: hero, menu button, no horizontal scroll", async ({ page }) => {
   const errors = watchConsole(page);
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Protect what matters. Wherever you are.");
-  await expect(page.getByRole("link", { name: "Help me choose" }).first()).toBeVisible();
-  // Hero on a phone: slide controls and Pause under the header, the copy in the first screen, the picker below it.
-  await expect(page.getByRole("button", { name: "Pause slideshow" })).toBeInViewport();
-  await expect(page.getByRole("list", { name: "Choose a slide" }).getByRole("button")).toHaveCount(4);
-  const subline = page.locator("[data-hero-copy='family'] p").last();
-  await expect(subline).toBeInViewport();
-  const card = page.getByRole("form", { name: "What would you like to insure?" });
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Compare real quotes. Pay by MoMo. Keep it all in one place.");
+  const card = page.getByRole("form", { name: "What do you want to cover?" });
   await expect(card.getByRole("radio")).toHaveCount(6);
-  await expect(card.getByRole("button", { name: /Compare quotes/ })).toBeVisible();
-  // Once the cookie choice is made, the copy ends above the floating chat/WhatsApp launchers.
-  const consent = page.getByRole("region", { name: "Cookie consent" });
-  if (await consent.isVisible()) await consent.getByRole("button", { name: "Essential only" }).click();
-  await expect(consent).toBeHidden();
-  const sub = await subline.boundingBox();
-  for (const launcher of await page.locator("[data-chat-launcher], [data-whatsapp]").all()) {
-    const box = await launcher.boundingBox();
-    if (box) expect(sub.y + sub.height, "hero copy clears the floating launchers").toBeLessThanOrEqual(box.y);
+  for (const label of ["Motor", "Home", "Health", "Travel", "Life & funeral", "Business"]) {
+    await expect(card.getByText(label, { exact: true })).toBeInViewport();
   }
+  await expect(card.getByRole("button", { name: "Continue" })).toBeInViewport();
   await structuralChecks(page);
   await noHorizontalOverflow(page);
   // The desktop primary nav is hidden; a menu control is offered instead.
