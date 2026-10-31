@@ -2,9 +2,12 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radii } from '@im/tokens';
+import { useLayout } from '../lib/layout/use-layout';
+import { contentMaxWidth } from '../lib/layout';
 
-export function Screen({ title, children }: { title: string; children: ReactNode }) {
-  return <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.page}><Text accessibilityRole="header" style={styles.title}>{title}</Text>{children}</ScrollView></KeyboardAvoidingView></SafeAreaView>;
+export function Screen({ title, children, grid = false }: { title: string; children: ReactNode; grid?: boolean }) {
+  const layout = useLayout();
+  return <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.page, layout.isWide && { maxWidth: contentMaxWidth(grid ? 'grid' : 'reading') }]}><Text accessibilityRole="header" style={styles.title}>{title}</Text>{children}</ScrollView></KeyboardAvoidingView></SafeAreaView>;
 }
 export function Copy({ children }: { children: ReactNode }) { return <Text style={styles.copy}>{children}</Text>; }
 export function Card({ children }: { children: ReactNode }) { return <View style={styles.card}>{children}</View>; }

@@ -1,1 +1,1 @@
-module.exports = { preset: 'jest-expo', testMatch: ['**/__tests__/**/*.test.ts'], clearMocks: true };
+module.exports = { preset: 'jest-expo', testMatch: ['**/__tests__/**/*.test.[jt]s'], clearMocks: true };
