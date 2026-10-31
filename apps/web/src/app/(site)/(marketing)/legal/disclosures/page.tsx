@@ -51,7 +51,7 @@ export default async function DisclosuresPage() {
           body: (
             <ul>
               <li><strong>Customers</strong> pay nothing to use the platform. You pay the premium set by the insurer.</li>
-              <li><strong>{brand.name}</strong> earns a commission per policy sold, and nothing else. Commission does not affect which insurer you see or how results are ranked.</li>
+              <li><strong>{brand.name}</strong> earns a commission per policy sold. Commission does not affect which insurer you see or how results are ranked.</li>
               <li>{PAYMENTS_DISCLOSURE}</li>
               <li>Partners pay Covva a platform fee in addition to commission; neither commission nor fees affect rankings. Commission is taken via the Paystack split. Paystack, not Covva, holds customer funds.</li>
             </ul>
