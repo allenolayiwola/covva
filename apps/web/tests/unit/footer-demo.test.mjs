@@ -27,6 +27,8 @@ for (const demo of [true, false]) {
       'next/link': ({ children, ...props }) => React.createElement('a', props, children),
       '@im/ui': ui,
       '@im/core': { ROLE_STATEMENTS: { platform: 'Technology platform', payment: 'Payment disclosure' } },
+      './payments-disclosure': { PAYMENTS_DISCLOSURE: 'Payment disclosure' },
+      './trust-copy': { TRUST_STATEMENT: 'Trust statement' },
       './brand': { getBrand: async () => ({ name: 'Covva', tagline: 'Insurance', supportEmail: 'help@example.test' }), getCurrentYear: async () => 2026, isDemoMode: async () => demo },
       './content': { REGULATION: { nic: { url: 'https://example.test' } } },
       './store-badges': { StoreBadges: () => null },

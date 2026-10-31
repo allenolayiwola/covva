@@ -2,11 +2,13 @@ import { PAYMENTS_DISCLOSURE } from "@/components/marketing/payments-disclosure"
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Building2, CreditCard, ExternalLink, FileWarning, Landmark, Layers, LockKeyhole, Scale, UserRoundCheck } from "lucide-react";
-import { DemoBadge, DisclosureBlock, Eyebrow, Notice } from "@im/ui";
+import { Container, DemoBadge, DisclosureBlock, Eyebrow, Notice } from "@im/ui";
 import { ROLE_STATEMENTS, buildDisclosure } from "@im/core";
 import { getPartnerDirectory } from "@/lib/catalog";
 import { displayOrgName, getBrand, isDemoMode } from "@/components/marketing/brand";
-import { PageHero } from "@/components/marketing/page-hero";
+import { TrustBar } from "@/components/marketing/trust-bar";
+import { PaymentSplit } from "@/components/marketing/payment-split";
+import { TRUST_STATEMENT } from "@/components/marketing/trust-copy";
 import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/components/marketing/section";
 import { REGULATION } from "@/components/marketing/content";
 import { textLinkClass } from "@/components/marketing/ui-classes";
@@ -39,24 +41,34 @@ export default async function TrustPage() {
 
   return (
     <>
-      <PageHero
-        breadcrumb={[{ label: "Regulation & protection" }]}
-        eyebrow="Regulation & customer protection"
-        title={<>Trust is built on <span className="text-brand">clear answers.</span></>}
-        lede="Who is responsible for what, how we are regulated, how we keep comparisons fair, how we protect your data — and what to do if something goes wrong."
-      >
-        <nav aria-label="On this page" className="mt-8 flex flex-wrap gap-2 text-sm">
-          {[
-            ["#roles", "Who does what"],
-            ["#licensing", "Licensing"],
-            ["#integrity", "Comparison integrity"],
-            ["#data", "Data protection"],
-            ["#complaints", "Complaints"],
-          ].map(([href, label]) => (
-            <a key={href} href={href} className="rounded-full border border-line bg-white px-4 py-2 font-medium text-ink-2 hover:border-brand hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">{label}</a>
-          ))}
-        </nav>
-      </PageHero>
+      <section aria-labelledby="trust-title" className="bg-mist pb-14 pt-[72px]">
+        <Container>
+          <Eyebrow>Trust</Eyebrow>
+          <h1 id="trust-title" className="mb-4 mt-3 max-w-[900px] text-h1 text-ink [text-wrap:wrap]">How Covva works, and who does what.</h1>
+          <p className="max-w-[760px] text-[18px] leading-[1.55] text-muted">{TRUST_STATEMENT}</p>
+        </Container>
+      </section>
+      <TrustBar />
+      <Section id="payments" labelledBy="payments-title" className="pt-6!">
+        <h2 id="payments-title" className="mb-6 text-h2 text-ink">Where your money goes</h2>
+        <PaymentSplit />
+        <p className="mt-6 max-w-[1000px] text-sm leading-relaxed text-muted">{PAYMENTS_DISCLOSURE}</p>
+      </Section>
+      <Section tone="mist" labelledBy="sellers-title">
+        <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h2 id="sellers-title" className="text-h2 text-ink">Who sells your policy</h2>
+            <p className="mt-4 text-muted">Policies are sold by insurers and brokers licensed by the National Insurance Commission (NIC). You see the partner’s name and licence number before you buy.</p>
+            <a href={REGULATION.nic.url} target="_blank" rel="noreferrer" className={`${textLinkClass} mt-3`}>Check a licence at nic.gov.gh <ExternalLink aria-hidden className="size-4" /><span className="sr-only">(opens in a new tab)</span></a>
+          </div>
+          <div className="rounded-card border border-line bg-white p-6">
+            <h3 className="text-[20px] leading-[1.25] text-ink md:text-[24px]">If something goes wrong</h3>
+            <p className="mt-3 text-sm leading-relaxed text-muted">Raise a complaint with us and your partner first. If it is not resolved, you can contact the NIC Complaints Bureau.</p>
+            <p className="mt-4 rounded-2xl bg-[#FFF0D6] px-[18px] py-3.5 text-sm text-[#5E4615]">Covva does not hold an NIC licence and is not an insurer or broker.</p>
+            <Link href="#complaints" className={`${textLinkClass} mt-3`}>Complaints & escalation <ArrowRight aria-hidden className="size-4" /></Link>
+          </div>
+        </div>
+      </Section>
 
       <Section id="roles" labelledBy="roles-title">
         <SectionHeading id="roles-title" eyebrow="Who does what" title="Four parties, clearly separated" description="Policies are provided by licensed insurers and arranged by licensed brokers. Covva provides the technology that connects them to you." />
@@ -64,10 +76,10 @@ export default async function TrustPage() {
           <FeatureCard icon={<Layers />} title={brand.name}>{ROLE_STATEMENTS.platform}</FeatureCard>
           <FeatureCard icon={<UserRoundCheck />} title="Your broker of record">{ROLE_STATEMENTS.broker}</FeatureCard>
           <FeatureCard icon={<Building2 />} title="The insurer">{ROLE_STATEMENTS.insurer}</FeatureCard>
-          <FeatureCard icon={<CreditCard />} title="Payment provider">{ROLE_STATEMENTS.payment}</FeatureCard>
+          <FeatureCard icon={<CreditCard />} title="Payment provider">{PAYMENTS_DISCLOSURE}</FeatureCard>
         </div>
         <div className="mt-10 rounded-[20px] border border-line bg-white p-6 shadow-card sm:p-8">
-          <h3 className="text-[20px] leading-[1.25] text-ink">The mandatory disclosure</h3>
+          <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">The mandatory disclosure</h3>
           <p className="mt-1.5 text-[15px] text-muted">
             Before any advice or application — and on every quote, checkout and policy screen — you see a statement like this, built from the actual broker and insurer for your request:
           </p>
@@ -80,7 +92,7 @@ export default async function TrustPage() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Licensing status</Eyebrow>
-            <h2 id="licensing-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Our regulatory position</h2>
+            <h2 id="licensing-title" className="text-h2 text-ink">Our regulatory position</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-ink-2">
               {brand.name} is a technology platform — not an insurer and not a broker. We operate as a technology provider in partnership with licensed brokers and insurers. Our regulatory classification is being confirmed with the National Insurance Commission (NIC).
             </p>
@@ -92,7 +104,7 @@ export default async function TrustPage() {
             <div className="rounded-card border border-line bg-white p-6">
               <div className="flex items-center gap-3">
                 <IconTile><Landmark /></IconTile>
-                <h3 className="text-[20px] leading-[1.25] text-ink">Check a licence yourself</h3>
+                <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">Check a licence yourself</h3>
               </div>
               <p className="mt-3 text-[15px] leading-relaxed text-muted">
                 Every participating broker and insurer is listed with its NIC licence number. You can verify licensed entities with the regulator.
@@ -112,12 +124,12 @@ export default async function TrustPage() {
       </Section>
 
       <Section id="integrity" labelledBy="integrity-title">
-        <SectionHeading id="integrity-title" eyebrow="Comparison integrity" title="Rules we hold ourselves to" description="Our systems enforce these rules; they are reviewed by our comparison integrity committee." />
+        <SectionHeading id="integrity-title" eyebrow="Comparison integrity" title="Rules we hold ourselves to" description="Our systems enforce these rules. Ranking rules are published on this page and applied the same way to every partner." />
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {INTEGRITY.map((r) => (
             <li key={r.title} className="rounded-card border border-line bg-white p-6">
               <IconTile size="sm"><Scale /></IconTile>
-              <h3 className="mt-4 text-[20px] leading-[1.25] text-ink">{r.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{r.title}</h3>
               <p className="mt-1.5 text-[14.5px] leading-relaxed text-muted">{r.body}</p>
             </li>
           ))}
@@ -128,7 +140,7 @@ export default async function TrustPage() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Data protection</Eyebrow>
-            <h2 id="data-title" className="text-[30px] leading-[1.12] md:text-[42px] text-ink">Your data, handled with care</h2>
+            <h2 id="data-title" className="text-h2 text-ink">Your data, handled with care</h2>
             <p className="mt-5 text-[17px] leading-relaxed text-muted">
               We process personal data in line with the {REGULATION.act843}, and we intend to register with the {REGULATION.dpc.name} as required.
             </p>
@@ -146,7 +158,7 @@ export default async function TrustPage() {
           <div className="rounded-card border border-line bg-white p-6">
             <div className="flex items-center gap-3">
               <IconTile><LockKeyhole /></IconTile>
-              <h3 className="text-[20px] leading-[1.25] text-ink">Our commitments</h3>
+              <h3 className="text-[20px] leading-[1.25] md:text-[24px] text-ink">Our commitments</h3>
             </div>
             <CheckList
               className="mt-5"
@@ -172,7 +184,7 @@ export default async function TrustPage() {
           ].map((s) => (
             <li key={s.step} className="relative rounded-card border border-line bg-white p-6">
               <span className="grid size-9 place-items-center rounded-full bg-brand text-sm font-bold text-white">{s.step}</span>
-              <h3 className="mt-4 text-[20px] leading-[1.25] text-ink">{s.title}</h3>
+              <h3 className="mt-4 text-[20px] leading-[1.25] md:text-[24px] text-ink">{s.title}</h3>
               <p className="mt-1.5 text-[14.5px] leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}

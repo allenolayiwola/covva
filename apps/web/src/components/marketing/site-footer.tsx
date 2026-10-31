@@ -1,3 +1,5 @@
+import { PAYMENTS_DISCLOSURE } from "./payments-disclosure";
+import { TRUST_STATEMENT } from "./trust-copy";
 import Link from "next/link";
 import { ExternalLink, Mail } from "lucide-react";
 import { Container, DemoBadge, Logo } from "@im/ui";
@@ -71,6 +73,7 @@ export async function SiteFooter() {
               <Logo height={36} label={brand.name} />
             </Link>
             <p className="mt-4 text-[15px] font-medium text-ink-2">{brand.tagline}</p>
+            <p className="mt-3 text-sm leading-relaxed text-muted">{TRUST_STATEMENT}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">{ROLE_STATEMENTS.platform}</p>
             <a href={`mailto:${brand.supportEmail}`} className="mt-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded text-sm font-medium text-brand hover:underline">
               <Mail aria-hidden className="size-4" />
@@ -127,7 +130,7 @@ export async function SiteFooter() {
           </p>
           <p>
             <span className="font-semibold text-ink">Your data. </span>
-            Personal data is processed under the {REGULATION.act843}. {ROLE_STATEMENTS.payment}
+            Personal data is processed under the {REGULATION.act843}. {PAYMENTS_DISCLOSURE}
           </p>
         </div>
 
