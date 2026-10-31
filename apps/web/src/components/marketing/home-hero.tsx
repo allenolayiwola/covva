@@ -17,7 +17,7 @@ export async function HomeHero() {
       <Container className="grid items-center gap-14 pb-6 pt-16 md:min-h-[640px] md:grid-cols-[1.05fr_1fr] md:py-16">
         <div className="min-w-0">
           <p className="inline-block border-b-[3px] border-[#D9B36A] pb-1.5 text-[13px] font-medium uppercase tracking-[.14em] text-brand">{hero.eyebrow}</p>
-          <h1 id="home-hero-title" className="mb-[18px] mt-3.5 whitespace-pre-line font-display text-[38px] font-light leading-[1.06] tracking-[-.02em] text-ink md:text-[48px] wide:text-[60px]">{hero.title}</h1>
+          <h1 id="home-hero-title" className="mb-[18px] mt-3.5 whitespace-pre-line [text-wrap:wrap] font-display text-[38px] font-light leading-[1.06] tracking-[-.03em] text-ink md:text-[48px] md:tracking-[-.02em] wide:text-[60px]">{hero.title}</h1>
           <p className="max-w-[520px] text-base leading-[1.55] text-muted md:text-lg">{hero.lede}</p>
           <form action="/quote" method="get" aria-labelledby="hero-quote-title" className="mt-7 rounded-3xl border border-line bg-white p-[22px] shadow-float">
             <fieldset>

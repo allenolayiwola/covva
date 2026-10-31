@@ -41,7 +41,7 @@
 
   /* Site container: content never wider than 1440px; `wide:` variant = ≥1440px side padding step. */
   --container-site: 1440px;
-  --breakpoint-wide: 1440px;
+  --breakpoint-wide: 90rem; /* rem so it sorts after xl (80rem); px breakpoints sort before rem ones */
 
   /* Minimum text size is 13px (brand/a11y rule): Tailwind's text-xs is lifted from 12px to 13px. */
   --text-xs: 0.8125rem;
