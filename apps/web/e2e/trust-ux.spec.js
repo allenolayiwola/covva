@@ -57,5 +57,7 @@ test('legal documents show the review notice', async ({ page }) => {
   for (const slug of ['terms', 'privacy', 'cookies', 'complaints', 'disclosures']) {
     await page.goto(`/legal/${slug}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('This document is under legal review.', { exact: true })).toBeVisible();
+    await expect(page.locator('main')).not.toContainText('[');
+    await expect(page.locator('main')).toContainText('To be confirmed before launch');
   }
 });

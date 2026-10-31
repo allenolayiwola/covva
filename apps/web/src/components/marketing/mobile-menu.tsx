@@ -62,7 +62,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
         aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
         onClick={() => setOpen((o) => !o)}
         data-header-fg
-        className="grid size-10 place-items-center rounded-[10px] text-ink transition-colors hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="grid size-11 place-items-center rounded-[10px] text-ink transition-colors hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
       </button>
