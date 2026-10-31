@@ -136,7 +136,7 @@ export default function HowItWorksPage() {
                   <IconTile><s.icon /></IconTile>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <h3 className="font-semibold text-ink">
+                      <h3 className="text-[20px] leading-[1.25] text-ink">
                         <span className="mr-2 text-sm tabular-nums text-subtle">{i + 1}.</span>
                         {s.title}
                       </h3>

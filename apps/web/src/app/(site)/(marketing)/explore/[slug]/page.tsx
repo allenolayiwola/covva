@@ -380,7 +380,7 @@ function CompareCard({ icon, title, children, className }: { icon: React.ReactNo
     <div className={`rounded-card border border-line bg-white p-6 ${className ?? ""}`}>
       <div className="flex items-center gap-3">
         <IconTile size="sm">{icon}</IconTile>
-        <h3 className="font-semibold text-ink">{title}</h3>
+        <h3 className="text-[20px] leading-[1.25] text-ink">{title}</h3>
       </div>
       <div className="mt-4 text-[14.5px] leading-relaxed text-muted">{children}</div>
     </div>

@@ -40,7 +40,7 @@ export default async function ContactPage() {
               <div key={c.title} className="flex gap-4 rounded-card border border-line bg-white p-5">
                 <IconTile size="sm"><c.icon /></IconTile>
                 <div>
-                  <h3 className="font-semibold text-ink">{c.title}</h3>
+                  <h3 className="text-[20px] leading-[1.25] text-ink">{c.title}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted">{c.body}</p>
                 </div>
               </div>
