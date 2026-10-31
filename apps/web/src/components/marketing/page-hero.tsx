@@ -24,7 +24,7 @@ export function PageHero({
   children?: React.ReactNode;
 }) {
   return (
-    <section className={cn("relative overflow-x-clip overflow-y-hidden border-b border-line bg-gradient-to-b from-mist to-white", className)}>
+    <section className={cn("relative overflow-x-clip overflow-y-clip border-b border-line bg-gradient-to-b from-mist to-white", className)}>
       <div aria-hidden className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-mint-2 opacity-70 blur-3xl" />
       <Container className="relative py-14 sm:py-20">
         {breadcrumb && breadcrumb.length > 0 && (

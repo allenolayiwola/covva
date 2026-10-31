@@ -121,7 +121,7 @@ export const en = {
 
   // Quote widget
   "quoteWidget.title": "Get an instant quote",
-  "quoteWidget.subtitle": "One question at a time. No sign-in needed to start.",
+  "quoteWidget.subtitle": "Start in minutes — sign in with your phone to see quotes.",
   "quoteWidget.category": "What do you want to insure?",
   "quoteWidget.reg": "Vehicle registration",
   "quoteWidget.regHint": "e.g. GX 1234-24. We use it to pre-fill the vehicle details.",
