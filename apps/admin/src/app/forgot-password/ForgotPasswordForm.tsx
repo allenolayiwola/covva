@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button, Field, Input, Notice } from "@im/ui";
 import { createClient } from "@/lib/supabase/client";
+import { adminPasswordResetUrl } from "@/lib/site-url";
 
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
@@ -13,7 +14,7 @@ export function ForgotPasswordForm() {
     const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
     try {
       await createClient().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: adminPasswordResetUrl(),
       });
     } finally {
       // Identical result for unknown accounts, provider errors and successful requests.

@@ -4,7 +4,8 @@ for (const status of [200, 400]) {
   test(`password request has a generic response (${status})`, async ({ page }) => {
     await page.route('**/auth/v1/recover*', async route => {
       const url = new URL(route.request().url());
-      expect(url.searchParams.get('redirect_to')).toBe(`${new URL(page.url()).origin}/reset-password`);
+      const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+      expect(url.searchParams.get('redirect_to')).toBe(new URL('/reset-password', adminUrl).toString());
       expect(route.request().postDataJSON().email).toBe('staff@example.test');
       await route.fulfill({ status, contentType: 'application/json', body: status === 200 ? '{}' : '{"message":"Account not found"}' });
     });
