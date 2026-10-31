@@ -3,7 +3,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { ShieldCheck, ShieldX } from "lucide-react";
 import { Notice } from "@im/ui";
-import { SubmitButton } from "@/components/ui/forms";
+import { FieldErrors, SubmitButton } from "@/components/ui/forms";
 import type { ActionState } from "@/lib/action-state";
 
 export function VerifyChain({ action, disabled }: { action: (p: ActionState, fd: FormData) => Promise<ActionState>; disabled: boolean }) {
@@ -12,6 +12,7 @@ export function VerifyChain({ action, disabled }: { action: (p: ActionState, fd:
   return (
     <div className="space-y-3">
       <form action={formAction} className="flex flex-wrap items-center gap-2">
+        <FieldErrors state={state} />
         <label className="text-sm text-muted">
           Check up to{" "}
           <select name="limit" defaultValue="10000" className="h-9 rounded-md border border-line bg-white px-2 text-sm">

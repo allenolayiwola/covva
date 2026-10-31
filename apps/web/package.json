@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "NODE_OPTIONS=--max-old-space-size=4096 next typegen && NODE_OPTIONS=--max-old-space-size=4096 tsc --noEmit",
+    "test": "node --test tests/unit/*.test.mjs",
     "test:db": "node tests/_lib/global-setup.mjs && node --test tests/*.test.mjs",
     "test:purge": "node tests/purge-e2e-data.mjs",
     "e2e": "playwright test",

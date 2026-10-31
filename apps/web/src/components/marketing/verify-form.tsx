@@ -73,8 +73,8 @@ export function VerifyForm({ insurers, className }: { insurers: VerifyInsurer[];
               ))}
             </Select>
           </Field>
-          <Field label="Policy number" htmlFor={id("num")} hint={isCode(policyNumber) ? "Verification code recognised — the insurer is read from the code." : undefined} error={state.kind === "error" ? state.error : undefined}>
-            <Input id={id("num")} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} autoComplete="off" placeholder="Policy number or 10-character code" maxLength={60} aria-invalid={state.kind === "error"} />
+          <Field label="Policy number" htmlFor={id("num")} hint={isCode(policyNumber) ? "Verification code recognised — the insurer is read from the code." : "Use your policy number or 10-character wallet code."} error={state.kind === "error" ? state.error : undefined}>
+            <Input id={id("num")} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} autoComplete="off" placeholder="Number or code" maxLength={60} aria-invalid={state.kind === "error"} />
           </Field>
         </div>
         <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

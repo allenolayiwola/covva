@@ -58,7 +58,9 @@ const LeadSchema = z
         .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter the date your current policy expires.")
         .optional(),
     ),
-    consent: z.literal("on", { error: "Please confirm we may contact you about this enquiry." }),
+    // A refinement keeps consent mandatory while allowing cross-field contact errors
+    // to be reported in the same response when the checkbox is unchecked.
+    consent: z.string().optional().refine((value) => value === "on", "Please confirm we may contact you about this enquiry."),
   })
   .superRefine((v, ctx) => {
     if (!v.email && !v.phone) ctx.addIssue({ code: "custom", path: ["email"], message: "Please give an email address or a phone number." });

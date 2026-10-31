@@ -79,6 +79,9 @@ function LeadFormInstance({
   const uid = React.useId();
   const id = (f: string) => `${uid}-${f}`;
   const err = state.fieldErrors ?? {};
+  const errorId = (field: string) => `${id(field)}-error`;
+  const fieldError = (field: keyof NonNullable<LeadState["fieldErrors"]>) => err[field] ? <span id={errorId(field)}>{err[field]}</span> : undefined;
+  const describedBy = (field: keyof NonNullable<LeadState["fieldErrors"]>) => err[field] ? errorId(field) : undefined;
   const val = state.values ?? {};
   const [selectedKind, setSelectedKind] = React.useState<Kind>(kind ?? defaultKind ?? kindOptions[0] ?? "customer");
   const effectiveKind = kind ?? selectedKind;
@@ -128,7 +131,12 @@ function LeadFormInstance({
       {state.status === "error" && state.message && (
         <div ref={statusRef} tabIndex={-1} className="mb-6 focus:outline-none">
           <Notice tone="danger">
-            <span role="alert">{state.message}</span>
+            <div role="alert">
+              <p>{state.message}</p>
+              {Object.keys(err).length > 0 && <ul className="mt-2 list-disc pl-5">
+                {Object.entries(err).map(([field, message]) => <li key={field}><a className="underline" href={`#${id(field === "organization" ? "org" : field === "category_slug" ? "topic" : field)}`}>{message}</a></li>)}
+              </ul>}
+            </div>
           </Notice>
         </div>
       )}
@@ -146,37 +154,37 @@ function LeadFormInstance({
 
       <div className="grid gap-5 sm:grid-cols-2">
         {!kind && (
-          <Field label="What is this about?" htmlFor={id("kind")} error={err.kind} className="sm:col-span-2">
-            <Select id={id("kind")} name="kind" value={selectedKind} onChange={(e) => setSelectedKind(e.target.value as Kind)}>
+          <Field label="What is this about?" htmlFor={id("kind")} error={fieldError("kind")} className="sm:col-span-2">
+            <Select id={id("kind")} name="kind" aria-invalid={!!err.kind} aria-describedby={describedBy("kind")} value={selectedKind} onChange={(e) => setSelectedKind(e.target.value as Kind)}>
               {kindOptions.map((k) => (
                 <option key={k} value={k}>{KIND_LABELS[k]}</option>
               ))}
             </Select>
           </Field>
         )}
-        <Field label="Your name" htmlFor={id("name")} error={err.name}>
-          <Input id={id("name")} name="name" autoComplete="name" required defaultValue={val.name} aria-invalid={!!err.name} />
+        <Field label="Your name" htmlFor={id("name")} error={fieldError("name")}>
+          <Input id={id("name")} name="name" aria-describedby={describedBy("name")} autoComplete="name" required defaultValue={val.name} aria-invalid={!!err.name} />
         </Field>
         {orgMode !== "hidden" ? (
           <Field
             label={<>{organizationLabel}{orgMode === "optional" && <span className="font-normal text-subtle"> (optional)</span>}</>}
             htmlFor={id("org")}
-            error={err.organization}
+            error={fieldError("organization")}
           >
-            <Input id={id("org")} name="organization" autoComplete="organization" required={orgMode === "required"} defaultValue={val.organization} aria-invalid={!!err.organization} />
+            <Input id={id("org")} name="organization" aria-describedby={describedBy("organization")} autoComplete="organization" required={orgMode === "required"} defaultValue={val.organization} aria-invalid={!!err.organization} />
           </Field>
         ) : (
           <div className="hidden sm:block" />
         )}
-        <Field label="Email" htmlFor={id("email")} error={err.email} hint="We’ll reply here. Or leave a phone number.">
-          <Input id={id("email")} name="email" type="email" autoComplete="email" inputMode="email" defaultValue={val.email} aria-invalid={!!err.email} />
+        <Field label="Email" htmlFor={id("email")} error={fieldError("email")} hint="We’ll reply here. Or leave a phone number.">
+          <Input id={id("email")} name="email" aria-describedby={describedBy("email")} type="email" autoComplete="email" inputMode="email" defaultValue={val.email} aria-invalid={!!err.email} />
         </Field>
-        <Field label={<>Phone <span className="font-normal text-subtle">(optional)</span></>} htmlFor={id("phone")} error={err.phone}>
-          <Input id={id("phone")} name="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="024 123 4567" defaultValue={val.phone} aria-invalid={!!err.phone} />
+        <Field label={<>Phone <span className="font-normal text-subtle">(optional)</span></>} htmlFor={id("phone")} error={fieldError("phone")}>
+          <Input id={id("phone")} name="phone" aria-describedby={describedBy("phone")} type="tel" autoComplete="tel" inputMode="tel" placeholder="024 123 4567" defaultValue={val.phone} aria-invalid={!!err.phone} />
         </Field>
         {topics && topics.length > 0 && (
-          <Field label={topicLabel ?? "Topic"} htmlFor={id("topic")} error={err.category_slug} className="sm:col-span-2">
-            <Select ref={topicRef} id={id("topic")} name="category_slug" defaultValue={val.category_slug ?? defaultTopic ?? ""}>
+          <Field label={topicLabel ?? "Topic"} htmlFor={id("topic")} error={fieldError("category_slug")} className="sm:col-span-2">
+            <Select ref={topicRef} id={id("topic")} name="category_slug" aria-invalid={!!err.category_slug} aria-describedby={describedBy("category_slug")} defaultValue={val.category_slug ?? defaultTopic ?? ""}>
               <option value="">Choose one (optional)</option>
               {topics.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -184,12 +192,14 @@ function LeadFormInstance({
             </Select>
           </Field>
         )}
-        <Field label={messageLabel} htmlFor={id("message")} error={err.message} className="sm:col-span-2">
-          <Textarea id={id("message")} name="message" rows={5} placeholder={messagePlaceholder} defaultValue={val.message} aria-invalid={!!err.message} />
+        <Field label={messageLabel} htmlFor={id("message")} error={fieldError("message")} className="sm:col-span-2">
+          <Textarea id={id("message")} name="message" aria-describedby={describedBy("message")} rows={5} placeholder={messagePlaceholder} defaultValue={val.message} aria-invalid={!!err.message} />
         </Field>
         <div className="sm:col-span-2">
           <Checkbox
+            id={id("consent")}
             name="consent"
+            aria-describedby={describedBy("consent")}
             required
             defaultChecked={val.consent === "on"}
             aria-invalid={!!err.consent}
@@ -200,7 +210,7 @@ function LeadFormInstance({
               </>
             }
           />
-          {err.consent && <p className="mt-1.5 text-xs text-danger">{err.consent}</p>}
+          {err.consent && <p id={errorId("consent")} className="mt-1.5 text-xs text-danger">{err.consent}</p>}
         </div>
       </div>
 
