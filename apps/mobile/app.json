@@ -28,6 +28,12 @@
       "expo-secure-store",
       "./plugins/with-adaptive-orientation"
     ],
-    "orientation": "default"
+    "orientation": "default",
+    "extra": {
+      "eas": {
+        "projectId": "b4854e6b-d2a5-42cc-9c17-319f98876c94"
+      }
+    },
+    "owner": "nella-interactive"
   }
 }
