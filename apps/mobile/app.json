@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Covva",
+    "slug": "covva",
+    "scheme": "covva",
+    "version": "0.1.0",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.covva.app"
+    },
+    "android": {
+      "package": "com.covva.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
+  }
+}
