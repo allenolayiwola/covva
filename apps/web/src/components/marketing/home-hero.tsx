@@ -39,7 +39,7 @@ export async function HomeHero() {
               <span className="text-sm text-muted">Sign in with your phone to see quotes.</span>
             </div>
           </form>
-          <p className="mt-3.5 text-[13px] leading-[1.55] text-muted">A quote request is not cover. You are covered only when an insurer accepts and issues your policy.</p>
+          <p className="mt-3.5 text-[13px] leading-[1.55] text-muted wide:max-w-none wide:whitespace-nowrap">A quote request is not cover. You are covered only when an insurer accepts and issues your policy.</p>
         </div>
         <figure className="relative min-w-0">
           <picture>
