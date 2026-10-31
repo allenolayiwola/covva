@@ -34,7 +34,7 @@ export default async function OpengraphImage() {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: 26, color: "#486068" }}>
           <span>Insurance made clearer. Human help built in.</span>
-          <span style={{ fontSize: 20, color: "#6F858C" }}>covva.com.gh</span>
+          <span style={{ fontSize: 20, color: "#486068" }}>covva.com.gh</span>
         </div>
       </div>
     ),
