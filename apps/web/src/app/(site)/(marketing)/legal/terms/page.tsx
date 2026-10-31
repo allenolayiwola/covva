@@ -27,7 +27,7 @@ export default async function TermsPage() {
           body: (
             <>
               <p>
-                {n} (“we”, “us”) is the brand name of a technology platform operated by To be confirmed before launch, a company registered in Ghana under registration number To be confirmed before launch, with its registered office at To be confirmed before launch.
+                {n} (“we”, “us”) is the brand name of a technology platform whose operating company, Ghanaian company registration number and registered office address are to be confirmed before launch.
               </p>
               <p>
                 We provide technology that helps you explore, compare and manage insurance. <strong>We are not an insurer and not an insurance broker.</strong> We do not give insurance advice in our own name, we do not underwrite risks, we do not decide claims and we never hold your premium.
@@ -152,7 +152,7 @@ export default async function TermsPage() {
               <p>
                 If you are unhappy, please follow our <Link href="/legal/complaints">complaints procedure</Link>. These terms are governed by the laws of the Republic of Ghana and the courts of Ghana have jurisdiction.
               </p>
-              <p>Contact: <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a> · To be confirmed before launch.</p>
+              <p>Contact: <a href={`mailto:${brand.supportEmail}`}>{brand.supportEmail}</a> · Additional contact details are to be confirmed before launch.</p>
             </>
           ),
         },
