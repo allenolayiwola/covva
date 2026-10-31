@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Container, buttonClass } from "@im/ui";
 import type { PageBlockView, PartnerView } from "@/server/cms";
 import { CtaBand } from "./cta-band";
@@ -53,15 +53,13 @@ export function CmsPageBlocks({ blocks, partners }: { blocks: PageBlockView[]; p
             return <CtaBand key={b.id} title={b.title} body={b.body ?? undefined} primary={b.primary} secondary={b.secondary} />;
           case "partnerStrip": {
             const shown = (partners ?? []).filter((p) => b.types.includes(p.type));
+            if (!shown.length) return null;
             return (
               <section key={b.id} aria-labelledby={`block-${b.id}`} className="border-y border-line bg-white">
                 <Container className="py-8 sm:py-10">
                   <h2 id={`block-${b.id}`} className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-brand">
-                    <BadgeCheck aria-hidden className="size-4" />
-                    {/* Always the licensed-partners statement, whatever the editor typed as a heading. */}
-                    Licensed partners only
+                    Partners
                   </h2>
-                  {b.heading && b.heading !== "Licensed partners only" && <p className="mt-2 text-[15px] text-muted">{b.heading}</p>}
                   {shown.length > 0 ? (
                     <PartnerLogos partners={shown} className="mt-4" />
                   ) : (

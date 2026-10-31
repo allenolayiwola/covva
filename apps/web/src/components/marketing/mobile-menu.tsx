@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { ArrowRight, ChevronDown, Menu, UserRound, X } from "lucide-react";
 import { buttonClass, cn } from "@im/ui";
 import { T, useT } from "@/lib/i18n/client";
@@ -25,14 +26,24 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
+      if (e.key === "Tab") {
+        const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>("a,button") ?? []).filter((el) => el.getClientRects().length > 0);
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+      }
     };
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const wide = window.matchMedia("(min-width: 768px)");
+    const onResize = () => { if (wide.matches) close(); };
+    wide.addEventListener("change", onResize);
     document.addEventListener("keydown", onKey);
     panelRef.current?.querySelector<HTMLElement>("a,button")?.focus();
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
+      wide.removeEventListener("change", onResize);
     };
   }, [open, close]);
 
@@ -56,12 +67,18 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
         {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
       </button>
 
-      <div
+      {open && createPortal(<div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("header.mobileNav")}
         id={id}
         ref={panelRef}
         hidden={!open}
-        className="fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-line bg-white motion-safe:animate-fade-up"
+        className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-white"
       >
+        <div className="sticky top-0 z-10 flex justify-end border-b border-line bg-white px-4 py-3">
+          <button type="button" onClick={() => close()} aria-label={t("header.closeMenu")} className="grid size-11 place-items-center rounded-lg text-ink"><X aria-hidden className="size-5" /></button>
+        </div>
         <nav aria-label={t("header.mobileNav")} className="px-4 pb-10 pt-2">
           <ul className="divide-y divide-line">
             {PRIMARY_NAV.map((entry) =>
@@ -119,7 +136,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
             )}
           </div>
         </nav>
-      </div>
+      </div>, document.body)}
     </div>
   );
 }
