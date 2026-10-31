@@ -29,3 +29,43 @@ test('home and route metadata emit absolute OG images on the configured site', t
     assert(!JSON.stringify(metadata).includes('covva.com.gh'));
   }
 });
+
+const { default: robots } = await import('../../src/app/robots.ts');
+const { rootMetadata } = await import('../../src/lib/root-metadata.ts');
+
+for (const [vercelEnv, nodeEnv, production] of [
+  ['preview', 'production', false],
+  ['development', 'production', false],
+  ['production', 'production', true],
+  ['production', 'development', true],
+  [undefined, 'production', true],
+  [undefined, 'development', false],
+  [undefined, 'test', false],
+  [undefined, undefined, false],
+]) {
+  test(`indexing with VERCEL_ENV=${vercelEnv}, NODE_ENV=${nodeEnv}`, t => {
+    const env = { ...process.env, NEXT_PUBLIC_SITE_URL: 'https://configured.example.test' };
+    delete env.VERCEL_ENV;
+    delete env.NODE_ENV;
+    if (vercelEnv !== undefined) env.VERCEL_ENV = vercelEnv;
+    if (nodeEnv !== undefined) env.NODE_ENV = nodeEnv;
+    t.mock.property(process, 'env', env);
+
+    if (production) {
+      assert.equal(rootMetadata().robots, undefined);
+      assert.deepEqual(robots(), {
+        rules: [{
+          userAgent: '*',
+          allow: '/',
+          disallow: ['/account', '/partner$', '/partner/', '/api/', '/sign-in', '/sign-up'],
+        }],
+        sitemap: 'https://configured.example.test/sitemap.xml',
+        host: 'https://configured.example.test',
+      });
+    } else {
+      assert.deepEqual(rootMetadata().robots, { index: false, follow: false });
+      assert.deepEqual(robots(), { rules: [{ userAgent: '*', disallow: '/' }] });
+      assert.equal(robots().sitemap, undefined);
+    }
+  });
+}
