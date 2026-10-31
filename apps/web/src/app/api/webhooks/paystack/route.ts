@@ -1,5 +1,7 @@
+import { paymentProvider } from "@/server/providers/payment";
+import { paymentConfig } from "@/server/env";
 import { randomUUID } from "node:crypto";
-import { applyPaymentResult, applyRefundFailed, verifyPaystackSignature } from "@/server/payments";
+import { applyPaymentResult, applyRefundFailed } from "@/server/payments";
 import { handlePaystackSubscriptionEvent } from "@/server/subscriptions";
 import { log } from "@/server/log";
 
@@ -30,9 +32,10 @@ interface PaystackEvent {
  * through `applyPaymentResult`, which never applies a success twice.
  */
 export async function POST(req: Request) {
+  if (paymentConfig().provider !== "paystack") return Response.json({ ok: false }, { status: 401 });
   const requestId = randomUUID();
   const raw = await req.text();
-  if (!verifyPaystackSignature(raw, req.headers.get("x-paystack-signature"))) {
+  if (!paymentProvider().verifyWebhook(raw, req.headers.get("x-paystack-signature"))) {
     log.warn("paystack.webhook_bad_signature", { requestId });
     return Response.json({ ok: false, error: { code: "unauthorised", message: "Invalid signature" } }, { status: 401 });
   }
@@ -60,17 +63,17 @@ export async function POST(req: Request) {
             channel: evt.data.channel ?? null,
             subaccountCode: evt.data.subaccount?.subaccount_code ?? null,
             event: evt as unknown,
-            source: "webhook",
+            source: "webhook", provider: "paystack",
           });
           // Unknown reference: a Paystack-managed sponsor subscription charge we did not initiate.
           if (r.status === null) await handlePaystackSubscriptionEvent(evt);
           break;
         }
         case "charge.failed":
-          await applyPaymentResult(ref, { status: "failed", failureReason: evt.data.gateway_response ?? "Declined", event: evt as unknown, source: "webhook" });
+          await applyPaymentResult(ref, { status: "failed", failureReason: evt.data.gateway_response ?? "Declined", event: evt as unknown, source: "webhook", provider: "paystack" });
           break;
         case "refund.processed":
-          await applyPaymentResult(ref, { status: "refunded", paidAt: evt.data.paid_at ?? null, event: evt as unknown, source: "webhook" });
+          await applyPaymentResult(ref, { status: "refunded", paidAt: evt.data.paid_at ?? null, event: evt as unknown, source: "webhook", provider: "paystack" });
           break;
         case "refund.failed":
           await applyRefundFailed(ref, evt as unknown);

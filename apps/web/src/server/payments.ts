@@ -1,12 +1,15 @@
 import "server-only";
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { simulatorProvider } from "@/server/providers/simulator";
+import { paystack } from "@/server/providers/paystack";
+import { verifyPaystackSignature as checkPaystackSignature } from "@/server/providers/signatures";
+import { randomBytes } from "node:crypto";
 import { formatDate, formatMoney, instalmentAmount, parseDisplayCurrency, roundHalfUp, type FxQuote, type SubscriptionCadence } from "@im/core";
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError, ruleMessage } from "@/server/requests";
 import { notify, notifyOrg } from "@/server/notify";
 import { log } from "@/server/log";
-import { applePayEnabled, diasporaPsp, paystackKey, simulatorEnabled, simulatorSignature, siteUrl } from "@/server/env";
+import { applePayEnabled, diasporaPsp, paystackKey, simulatorEnabled, siteUrl } from "@/server/env";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 import { persistPaymentSplits, splitForPayment } from "@/server/commercial";
 import { recordPaymentLedger, recordRefundLedger } from "@/server/ledger";
@@ -33,7 +36,7 @@ export interface InitiatePaymentResult {
   /** Provider instructions for direct mobile-money prompts (e.g. "Approve the prompt on your phone"). */
   displayText?: string | null;
   /** Which provider took the payment: paystack | hubtel | simulator | bank_transfer. */
-  provider?: PaymentProvider;
+  provider?: PaymentProviderName;
   /** Bank transfer: where to send the money and the reference to quote. Null for other channels. */
   bankTransfer?: BankTransferInstructions | null;
   /**
@@ -47,8 +50,8 @@ export interface InitiatePaymentResult {
   sponsorSubscription?: { cadence: SubscriptionCadence; chargeAmount: number; quotedTotal: number } | null;
 }
 
-export type PaymentProvider = "paystack" | "hubtel" | "simulator" | "bank_transfer";
-export type Psp = "paystack_intl" | "stripe" | PaymentProvider;
+export type PaymentProviderName = "paystack" | "hubtel" | "simulator" | "bank_transfer";
+export type Psp = "paystack_intl" | "stripe" | PaymentProviderName;
 
 export interface BankTransferInstructions {
   bank: string;
@@ -65,18 +68,17 @@ export interface BankTransferInstructions {
 
 /**
  * Which hosted provider an insurer's payments go through: `organizations.settings.payment_provider`
- * wins, then `PAYMENT_PROVIDER` (default paystack). Hubtel is only used when its credentials are set.
+ * is subordinate to the explicit deployment provider gate; unset credentials select the simulator.
  */
 export function paymentProviderFor(insurerSettings: Json | null | undefined): "paystack" | "hubtel" {
-  const org = (asObject(insurerSettings).payment_provider as string | undefined)?.toLowerCase();
-  const wanted = org === "paystack" || org === "hubtel" ? org : (process.env.PAYMENT_PROVIDER ?? "paystack").toLowerCase();
-  return wanted === "hubtel" && hubtelEnabled() ? "hubtel" : "paystack";
+  // The deployment gate wins; an insurer setting cannot activate another provider's credentials.
+  void insurerSettings;
+  return hubtelEnabled() ? "hubtel" : "paystack";
 }
 
 type Svc = ReturnType<typeof createServiceClient>;
 type PaymentRow = Row<"payments">;
 
-const PAYSTACK = "https://api.paystack.co";
 const PAYMENT_DOCS_NEXT_STEP = "Payment received. Your cover starts once the insurer confirms acceptance and issues documents.";
 
 async function currentUserId(): Promise<string | null> {
@@ -93,16 +95,6 @@ function newReference() {
   return `IMP-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
 
-async function paystack<T>(path: string, init: { method: "GET" | "POST"; body?: unknown }): Promise<{ ok: boolean; status: number; json: { status?: boolean; message?: string; data?: T } }> {
-  const res = await fetch(`${PAYSTACK}${path}`, {
-    method: init.method,
-    headers: { Authorization: `Bearer ${paystackKey()}`, "Content-Type": "application/json" },
-    body: init.body ? JSON.stringify(init.body) : undefined,
-    signal: AbortSignal.timeout(15_000),
-  });
-  const json = (await res.json().catch(() => ({}))) as { status?: boolean; message?: string; data?: T };
-  return { ok: res.ok && json.status !== false, status: res.status, json };
-}
 
 function toChannel(c: string | null | undefined): Enum<"payment_channel"> | null {
   switch (c) {
@@ -255,7 +247,7 @@ export async function initiatePayment(args: {
 
   const key = paystackKey();
   const insurerSettings = asObject(insurer.settings);
-  let provider: PaymentProvider;
+  let provider: PaymentProviderName;
   let bankTransfer: BankTransferInstructions | null = null;
   const hubtelMerchant = typeof insurerSettings.hubtel_merchant_account === "string" ? insurerSettings.hubtel_merchant_account : process.env.HUBTEL_MERCHANT_ACCOUNT ?? null;
   if (args.channel === "bank_transfer") {
@@ -354,7 +346,7 @@ export async function initiatePayment(args: {
   const metadata = { payment_id: payment.id, application_id: app.id, request_id: request.id, quote_id: quote.id, request_reference: request.reference, display_currency: displayCurrency, display_amount: fx.displayAmount, psp, ...(instalmentId ? { instalment_id: instalmentId } : {}) };
 
   if (provider === "simulator") {
-    authorizationUrl = `${siteUrl()}/api/payments/simulate?reference=${encodeURIComponent(reference)}&sig=${simulatorSignature(reference)}`;
+    authorizationUrl = (await simulatorProvider.initialise({ reference, amountMinor: Math.round(amount * 100), currency: "GHS", email, callbackUrl, description: "Premium payment", settlementAccount: "SIMULATED" })).authorizationUrl;
   } else if (provider === "bank_transfer") {
     displayText = bankTransfer?.instructions ?? null;
   } else if (provider === "hubtel") {
@@ -423,7 +415,7 @@ export async function initiatePayment(args: {
     .from("payments")
     .update({ authorization_url: authorizationUrl, status: status === "succeeded" ? "processing" : status })
     .eq("id", payment.id)
-    .neq("status", "succeeded");
+    .in("status", ["pending", "processing"]);
 
   if (request.status === "quotes_ready") {
     await svc
@@ -534,7 +526,7 @@ export async function chargeStoredMethod(args: {
   const amount = roundHalfUp(Number(sub.ghs_amount));
   if (!(amount > 0)) throw new BusinessRuleError("Nothing to collect.");
 
-  let provider: PaymentProvider;
+  let provider: PaymentProviderName;
   if (args.method && args.method.psp.startsWith("paystack") && paystackKey()) {
     if (!insurer.paystack_subaccount_code) throw new BusinessRuleError(`${insurer.name}'s payment route isn't set up.`);
     provider = "paystack";
@@ -648,7 +640,7 @@ export async function initiatePolicyCollection(args: {
   description: string;
   /** Sponsor abroad: currency to DISPLAY the amount in (GBP, USD, EUR, CAD). The charge and the settlement stay the GHS amount. */
   displayCurrency?: string | null;
-}): Promise<{ paymentId: string; reference: string; status: Enum<"payment_status">; authorizationUrl: string | null; displayText: string | null; provider: PaymentProvider }> {
+}): Promise<{ paymentId: string; reference: string; status: Enum<"payment_status">; authorizationUrl: string | null; displayText: string | null; provider: PaymentProviderName }> {
   const svc = createServiceClient();
   const amount = roundHalfUp(args.amount);
   const displayCurrency = parseDisplayCurrency(args.displayCurrency) ?? "GHS";
@@ -659,7 +651,7 @@ export async function initiatePolicyCollection(args: {
   const { data: existing } = await svc.from("payments").select("id, provider, provider_reference, status, authorization_url").eq("idempotency_key", args.idempotencyKey).maybeSingle();
   if (existing?.status === "succeeded") throw new BusinessRuleError("This has already been paid.", "conflict");
   if (existing && (existing.status === "pending" || existing.status === "processing") && existing.authorization_url && args.channel !== "mobile_money") {
-    return { paymentId: existing.id, reference: existing.provider_reference ?? "", status: existing.status, authorizationUrl: existing.authorization_url, displayText: null, provider: existing.provider as PaymentProvider };
+    return { paymentId: existing.id, reference: existing.provider_reference ?? "", status: existing.status, authorizationUrl: existing.authorization_url, displayText: null, provider: existing.provider as PaymentProviderName };
   }
   const [{ data: insurer }, { data: quote }, { data: request }] = await Promise.all([
     svc.from("organizations").select("id, name, type, status, paystack_subaccount_code, paystack_split_code, settings").eq("id", policy.insurer_org_id).single(),
@@ -671,7 +663,7 @@ export async function initiatePolicyCollection(args: {
 
   const insurerSettings = asObject(insurer.settings);
   const hubtelMerchant = typeof insurerSettings.hubtel_merchant_account === "string" ? insurerSettings.hubtel_merchant_account : process.env.HUBTEL_MERCHANT_ACCOUNT ?? null;
-  let provider: PaymentProvider;
+  let provider: PaymentProviderName;
   if (paymentProviderFor(insurer.settings) === "hubtel" && hubtelMerchant) provider = "hubtel";
   else if (paystackKey() && insurer.paystack_subaccount_code) provider = "paystack";
   else if (simulatorEnabled()) provider = "simulator";
@@ -731,7 +723,7 @@ export async function initiatePolicyCollection(args: {
   let status: Enum<"payment_status"> = "pending";
   const metadata = { payment_id: paymentId, policy_id: policy.id, request_reference: request.reference, display_currency: displayCurrency, display_amount: fx ? fx.displayAmount : amount, ...args.tags };
   if (provider === "simulator") {
-    authorizationUrl = `${siteUrl()}/api/payments/simulate?reference=${encodeURIComponent(reference)}&sig=${simulatorSignature(reference)}`;
+    authorizationUrl = (await simulatorProvider.initialise({ reference, amountMinor: Math.round(amount * 100), currency: "GHS", email, callbackUrl, description: "Premium payment", settlementAccount: "SIMULATED" })).authorizationUrl;
     displayText = args.channel === "mobile_money" ? "Sandbox: open the link to approve the mobile money payment." : null;
   } else if (provider === "hubtel") {
     const res = await hubtelInitiate({
@@ -899,6 +891,7 @@ export interface PaymentOutcome {
   failureReason?: string | null;
   event?: unknown;
   source: "webhook" | "verify" | "simulator" | "admin";
+  provider?: "paystack" | "hubtel" | "stripe";
 }
 
 async function markFailed(svc: Svc, payment: PaymentRow, reason: string, event: Json, notifyCustomer = true, status: Enum<"payment_status"> = "failed") {
@@ -941,12 +934,17 @@ async function markFailed(svc: Svc, payment: PaymentRow, reason: string, event: 
  * Never activates cover — the policy is created as `pending_issuance`.
  */
 export async function applyPaymentResult(reference: string, outcome: PaymentOutcome): Promise<{ status: Enum<"payment_status"> | null; policyId?: string | null }> {
+  if (outcome.source === "simulator" && !simulatorEnabled()) throw new BusinessRuleError("The payment simulator is disabled.");
   const svc = createServiceClient();
   const { data: payment } = await svc.from("payments").select("*").eq("provider_reference", reference).maybeSingle();
   if (!payment) {
     log.warn("payment.unknown_reference", { reference, source: outcome.source });
     return { status: null };
   }
+  if (outcome.provider && payment.provider !== outcome.provider) return { status: null };
+  if (outcome.source === "simulator" && payment.provider !== "simulator") throw new BusinessRuleError("Not a simulator payment.");
+  // A replay must not mutate a terminal payment, even if the repeated payload is malformed.
+  if (outcome.status === "succeeded" && ["succeeded", "refunded", "reversed"].includes(payment.status)) return { status: payment.status, policyId: payment.policy_id };
   const event = (outcome.event ?? null) as Json;
 
   // Sponsor subscription collections keep the policy in force; they have no application to move along.
@@ -1011,9 +1009,9 @@ export async function applyPaymentResult(reference: string, outcome: PaymentOutc
       raw_event: { ...asObject(payment.raw_event), last_event: event, confirmed_by: outcome.source } as Json,
     })
     .eq("id", payment.id)
-    .neq("status", "succeeded")
+    .in("status", ["pending", "processing", "failed", "abandoned"])
     .select("id");
-  if (!claimed?.length) return { status: "succeeded", policyId: payment.policy_id };
+  if (!claimed?.length) return { status: payment.status, policyId: payment.policy_id };
 
   // Diaspora: keep the reusable card authorisation (token reference only) when the payer asked for it.
   const savedMethodId = await savePaymentMethodFromOutcome(svc, payment, event);
@@ -1159,7 +1157,7 @@ export async function verifyPayment(reference: string): Promise<{ status: Enum<"
   if (payment.provider === "hubtel") {
     const h = await hubtelVerify(reference, payment.settlement_subaccount);
     if (!h.ok) return { status: payment.status };
-    if (h.status === "succeeded") {
+    if (h.status === "succeeded" && h.amount !== undefined && Number.isFinite(h.amount)) {
       const r = await applyPaymentResult(reference, { status: "succeeded", amountMinor: h.amount !== undefined ? Math.round(h.amount * 100) : undefined, paidAt: h.paidAt, channel: hubtelChannel(h.paymentMethod), event: { source: "verify", data: h.raw }, source: "verify" });
       return { status: r.status ?? "succeeded" };
     }
@@ -1270,7 +1268,8 @@ export async function refundPayment(paymentId: string, reason: string): Promise<
   const note = reason.trim().slice(0, 500);
   let refund: Record<string, unknown>;
   let result: RefundResult["refund"];
-  if (payment.provider === "paystack" && paystackKey()) {
+  if (payment.provider === "paystack") {
+    if (!paystackKey()) throw new BusinessRuleError("Paystack is not selected or not configured; the refund was not processed.");
     const res = await paystack<{ id?: number; status?: string; amount?: number; transaction?: unknown }>("/refund", {
       method: "POST",
       body: { transaction: payment.provider_reference, currency: payment.currency, merchant_note: note, customer_note: "Your premium is being refunded because the insurer could not accept the application." },
@@ -1285,10 +1284,13 @@ export async function refundPayment(paymentId: string, reason: string): Promise<
     // No refund API we can drive: the insurer (or Hubtel merchant) returns the money and ops records it.
     refund = { status: "requested", manual: true, provider: payment.provider, requested_at: new Date().toISOString(), reason: note };
     result = "requested";
-  } else {
-    // Simulator / no provider key: nothing was really charged, so the refund is immediate.
+  } else if (payment.provider === "simulator") {
+    await simulatorProvider.refund(payment.provider_reference ?? "", Math.round(Number(payment.amount) * 100));
+    // Only recorded simulator payments can complete without a provider refund.
     refund = { status: "processed", provider: payment.provider, requested_at: new Date().toISOString(), processed_at: new Date().toISOString(), reason: note };
     result = "processed";
+  } else {
+    throw new BusinessRuleError("This payment provider does not support automated refunds.");
   }
   const { error } = await svc
     .from("payments")
@@ -1312,7 +1314,7 @@ export async function refundPayment(paymentId: string, reason: string): Promise<
 export async function applyRefundFailed(reference: string, event: unknown): Promise<void> {
   const svc = createServiceClient();
   const { data: payment } = await svc.from("payments").select("*").eq("provider_reference", reference).maybeSingle();
-  if (!payment || payment.status !== "refunded") return;
+  if (!payment || payment.provider !== "paystack" || payment.status !== "refunded") return;
   const refund = { ...asObject(asObject(payment.raw_event).refund as Json), status: "failed", failed_at: new Date().toISOString() };
   await svc.from("payments").update({ status: "succeeded", failure_reason: "Refund failed at the payment provider — refund manually", raw_event: { ...asObject(payment.raw_event), refund, last_event: event as Json } as Json }).eq("id", payment.id);
   log.error("paystack.refund_processing_failed", { paymentId: payment.id, reference });
@@ -1334,9 +1336,5 @@ export async function applyRefundFailed(reference: string, event: unknown): Prom
 // ---------------------------------------------------------------------------
 /** Paystack signs the raw body with HMAC-SHA512 using the secret key (hex in x-paystack-signature). */
 export function verifyPaystackSignature(rawBody: string, signature: string | null, secret = paystackKey()): boolean {
-  if (!signature || !secret) return false;
-  const expected = createHmac("sha512", secret).update(rawBody).digest("hex");
-  const a = Buffer.from(expected, "hex");
-  const b = Buffer.from(signature.trim(), "hex");
-  return a.length === b.length && timingSafeEqual(a, b);
+  return checkPaystackSignature(rawBody, signature, secret);
 }

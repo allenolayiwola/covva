@@ -1,10 +1,11 @@
 # Testing
 
-Four suites, all runnable locally with no extra setup beyond `pnpm install` and a production build:
+Five suites, all runnable locally with no extra setup beyond `pnpm install` and a production build:
 
 | Suite | What it covers | Command | Needs |
 |---|---|---|---|
 | Core unit tests | `@im/core` domain logic: rating models, comparison engine, needs assessment, broker routing, risk-schema validation, status tables, deep links, formatting | `pnpm --filter @im/core test` | nothing |
+| Payment/KYC unit tests | Mode matrix, raw-body signatures, mocked Paystack transport, simulator checkout/callback/issuance handoff, identity stubs, mode endpoint | `pnpm --filter @im/web test` | Node 22+, no network or database |
 | Database rules | Supabase triggers + RLS exercised through PostgREST as customer, broker, insurer, anonymous | `pnpm --filter @im/web test:db` | network access to the demo Supabase project |
 | Browser e2e (web) | Marketing site, customer account, broker + insurer workspace, accessibility smoke, 390×844 mobile run, sign-out | `pnpm --filter @im/web e2e` | production build of `apps/web`, Chromium |
 | Browser e2e (admin) | Staff sign-in (MFA off), KPIs, organisations, category launch gate, settings validation, flag round-trip, audit chain, accessibility smoke | `pnpm --filter @im/admin e2e` | production build of `apps/admin`, Chromium |
@@ -16,6 +17,18 @@ Four suites, all runnable locally with no extra setup beyond `pnpm install` and 
 `packages/core/src/*.test.ts`, Node's built-in runner (`node --test` with type stripping, no framework). One file per module, named after it (`household.ts` ↔ `household.test.ts`; CI checks the pairing)
 (`rating`, `comparison`, `needs`, `routing`, `risk`, `status`, `format`, `api`) plus the original `core.test.ts`. They are pure and
 run in under a second.
+
+## Payment/KYC unit tests
+
+`apps/web/tests/unit/*.test.mjs` run under Node's test runner with module mocking and a
+TypeScript loader (using the existing TypeScript dependency). The tests execute real service
+and route code with in-memory persistence and mocked provider fetches. `pnpm test` includes
+this suite. It never loads `.env.local`, calls a live PSP or writes to Supabase. Node 24 may
+report a `namedExports` deprecation warning; that option is retained for the Node 22 CI runner.
+
+These are not database/RLS or browser tests. When remote writes are forbidden, do not run the
+existing database or Playwright suites against the shared project. Run them later against an
+approved disposable environment with test data.
 
 ## Database rule tests
 

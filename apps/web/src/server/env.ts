@@ -1,14 +1,14 @@
 import "server-only";
+import { paymentConfiguration } from "@im/core";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Server-side environment helpers. Read at call time (not module load) so runtime env is used. */
 export { siteUrl } from "@/lib/site-url";
 
-/** Sandbox payment simulator: never in production unless explicitly enabled for a staging deploy. */
-export const simulatorEnabled = () =>
-  process.env.PAYMENTS_SIMULATOR === "true" || (process.env.NODE_ENV !== "production" && process.env.PAYMENTS_SIMULATOR !== "false");
-
-export const paystackKey = () => process.env.PAYSTACK_SECRET_KEY || null;
+/** No-key deployments retain the simulator; explicit live mode always disables its endpoints. */
+export const paymentConfig = () => paymentConfiguration(process.env);
+export const simulatorEnabled = () => paymentConfig().provider === "simulator" && process.env.PAYMENTS_MODE !== "live" && process.env.PAYMENTS_SIMULATOR !== "false";
+export const paystackKey = () => paymentConfig().provider === "paystack" ? process.env.PAYSTACK_SECRET_KEY || null : null;
 
 function simulatorSecret() {
   return process.env.PAYMENTS_SIMULATOR_SECRET ?? process.env.SUPABASE_SECRET_KEY ?? "dev-simulator-secret";
