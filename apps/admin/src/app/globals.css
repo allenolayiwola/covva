@@ -46,7 +46,7 @@
   --color-rail-muted: #a3c9c2;
   --color-highlight: #e9c46a;
 
-  /* Status pills (approved / awaiting / suspended). Each pair is >= 5:1. */
+  /* Status pills (approved / awaiting / suspended / in progress). Each pair is >= 5:1. */
   --color-status-ok: #16683f;
   --color-status-ok-bg: #e3f3ea;
   --color-status-ok-dot: #1f8a55;
@@ -59,6 +59,9 @@
   --color-status-danger: #b42318;
   --color-status-danger-bg: #fee4e2;
   --color-status-danger-dot: #d92d20;
+  --color-status-info: #1d4f91;
+  --color-status-info-bg: #e6eef9;
+  --color-status-info-dot: #3b74c4;
 }
 
 @layer base {

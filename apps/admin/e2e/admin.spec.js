@@ -110,6 +110,33 @@ test.describe("admin portal", () => {
     }
   });
 
+  test("requests and claims: counts act as filters and rows open a summary drawer", async ({ page }) => {
+    for (const { path, heading, countLabel, filter, filterUrl, linkName } of [
+      { path: "/requests", heading: "Requests", countLabel: "Request counts", filter: "Open", filterUrl: /status=open/, linkName: "Open full request" },
+      { path: "/claims", heading: "Claims", countLabel: "Claim counts", filter: "Open", filterUrl: /open=1/, linkName: "Open full claim" },
+    ]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+      const counts = page.getByRole("list", { name: countLabel });
+      await expect(counts).toBeVisible();
+      await counts.getByRole("link", { name: new RegExp(`\\b${filter}$`) }).click();
+      await expect(page).toHaveURL(filterUrl);
+
+      const row = page.locator("main table tbody a").first();
+      if (await row.count()) {
+        const reference = (await row.textContent())?.trim() ?? "";
+        await row.click();
+        await expect(page).toHaveURL(/[?&]id=[0-9a-f-]{36}/);
+        const drawer = page.getByRole("dialog", { name: reference });
+        await expect(drawer).toBeVisible();
+        await expect(drawer.getByRole("link", { name: linkName })).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(page).not.toHaveURL(/[?&]id=/);
+        await expect(page).toHaveURL(filterUrl);
+      }
+    }
+  });
+
   test("organisations list and detail tabs", async ({ page }) => {
     await page.goto("/organisations");
     await expect(page.getByRole("heading", { level: 1, name: "Organisations" })).toBeVisible();
@@ -117,7 +144,13 @@ test.describe("admin portal", () => {
     await expect(table.getByRole("link", { name: "Demo Broker", exact: true })).toBeVisible();
     await expect(table.getByRole("link", { name: /Coastline General/ })).toBeVisible();
 
+    // A row click opens the summary drawer; the full record is one link further.
     await table.getByRole("link", { name: "Demo Broker", exact: true }).click();
+    await expect(page).toHaveURL(/[?&]id=[0-9a-f-]{36}/);
+    const drawer = page.getByRole("dialog", { name: "Demo Broker" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("NIC licence", { exact: true })).toBeVisible();
+    await drawer.getByRole("link", { name: "Open full record" }).click();
     await page.waitForURL(/\/organisations\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Demo Broker");
     const tabs = page.getByRole("navigation", { name: "Tabs" });
