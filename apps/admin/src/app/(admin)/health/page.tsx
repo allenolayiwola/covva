@@ -22,10 +22,11 @@ export default function HealthPage() {
 const ENV: { name: string; required: boolean; purpose: string }[] = [
   { name: "NEXT_PUBLIC_SUPABASE_URL", required: true, purpose: "Supabase project URL" },
   { name: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", required: true, purpose: "Supabase publishable key (RLS client)" },
-  { name: "NEXT_PUBLIC_SITE_URL", required: true, purpose: "Public web app URL (cache revalidation, invite links)" },
+  { name: "NEXT_PUBLIC_SITE_URL", required: true, purpose: "Marketing site URL (covva-site): cache revalidation, bundle links" },
+  { name: "NEXT_PUBLIC_APP_URL", required: true, purpose: "App URL (covva-app): invite links, payment and USSD calls, cache revalidation. Falls back to NEXT_PUBLIC_SITE_URL" },
   { name: "NEXT_PUBLIC_ADMIN_URL", required: false, purpose: "This admin app's URL" },
   { name: "SUPABASE_SECRET_KEY", required: false, purpose: "Service key: user invitations, broker-change disclosures, AI usage records, notes" },
-  { name: "REVALIDATE_SECRET", required: false, purpose: "Shared secret for POST {site}/api/revalidate" },
+  { name: "REVALIDATE_SECRET", required: false, purpose: "Shared secret for POST {site,app}/api/revalidate and app payment calls" },
   { name: "AI_GATEWAY_API_KEY", required: false, purpose: "Vercel AI Gateway (admin insights); OIDC works on Vercel" },
   { name: "ADMIN_MFA_REQUIRED", required: false, purpose: "Defaults to true. Set to \"false\" only for local demos" },
 ];

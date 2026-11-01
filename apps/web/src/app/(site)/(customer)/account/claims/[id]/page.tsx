@@ -34,6 +34,7 @@ import { PARTY_LABEL } from "../../_lib/labels";
 import { attachClaimEvidence, attachClaimVideo, fulfilInfoRequestWithFile } from "../actions";
 import { ClaimMessageComposer, InfoRequestReply } from "./thread";
 import { WithdrawClaimForm } from "./withdraw-form";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Claim" };
 
@@ -358,7 +359,7 @@ async function ClaimDetail({ params, searchParams }: Pick<PageProps<"/account/cl
                   ))}
                 </ul>
               )}
-              <Link href="/claims/network" className="mt-3 block text-sm font-medium text-brand hover:underline">See the full partner network</Link>
+              <Link href={sitePath("/claims/network")} className="mt-3 block text-sm font-medium text-brand hover:underline">See the full partner network</Link>
             </Card>
           )}
 

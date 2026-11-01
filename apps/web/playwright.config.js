@@ -1,4 +1,4 @@
-// Playwright configuration for the web app (marketing + customer + partner workspace).
+// Playwright configuration for the app (covva-app: quote flow, customer account, partner workspace).
 // Written in JavaScript on purpose: the app's tsconfig includes every *.ts file, so a TS config
 // importing `playwright/test` (not an app dependency) would be pulled into `next build` / `tsc`.
 // Run:  pnpm --filter @im/web e2e        (needs a production build: `pnpm --filter @im/web build`)
@@ -10,7 +10,7 @@ import { defineConfig } from "playwright/test";
 
 // Playwright transpiles these files to CommonJS, so __dirname is available (import.meta is not).
 const here = __dirname;
-const PORT = Number(process.env.E2E_WEB_PORT ?? 3100);
+const PORT = Number(process.env.E2E_WEB_PORT ?? 3102);
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 const CI = !!process.env.CI;
 

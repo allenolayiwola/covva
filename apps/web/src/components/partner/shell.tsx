@@ -6,6 +6,7 @@ import { getPartnerContext, type PartnerContext } from "@/app/(site)/(partner)/p
 import { markNotificationsRead, signOut, switchOrg } from "@/app/(site)/(partner)/partner/(workspace)/actions";
 import { NavLinks, OrgSwitcher, type NavItem } from "./nav";
 import { Skeleton } from "./ui";
+import { sitePath } from "@/lib/site-url";
 
 export function brokerNav(): NavItem[] {
   return [
@@ -88,7 +89,7 @@ export function SideNavSkeleton() {
 export async function HelpCard() {
   const ctx = await getPartnerContext();
   const { data: org } = await ctx.supabase.from("organizations").select("name, contact_email, contact_phone").eq("id", ctx.orgId).maybeSingle();
-  const href = org?.contact_email ? `mailto:${org.contact_email}` : "/support";
+  const href = org?.contact_email ? `mailto:${org.contact_email}` : sitePath("/support");
   return (
     <div className="rounded-card border border-line bg-white p-4">
       <p className="font-semibold text-ink">{org?.name ?? ctx.orgName}</p>

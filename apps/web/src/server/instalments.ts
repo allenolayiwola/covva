@@ -20,7 +20,7 @@ import { log } from "@/server/log";
 import { recordPaymentLedger } from "@/server/ledger";
 import { resolvePaymentMethod } from "@/server/payment-methods";
 import { chargeStoredMethod, initiatePayment, initiatePolicyCollection, refundPayment, type InitiatePaymentResult, type PaymentOutcome } from "@/server/payments";
-import { simulatorEnabled, siteUrl } from "@/server/env";
+import { simulatorEnabled, appUrl } from "@/server/env";
 import { planDb, type InstalmentRow, type InstalmentScheduleRow, type PlanDb } from "@/server/plan-db";
 
 /**
@@ -239,7 +239,7 @@ async function collect(svc: Svc, schedule: InstalmentScheduleRow, rows: Instalme
   const { data: policy } = await svc.from("policies").select("id, request_id, quote_id, customer_id, insurer_org_id, broker_org_id, internal_reference").eq("id", schedule.policy_id).maybeSingle();
   if (!policy?.insurer_org_id) throw new BusinessRuleError("Policy not found.", "not_found");
   const description = `Instalment ${rows.map((r) => r.seq).join(", ")} of ${schedule.instalment_count} · ${policy.internal_reference}`;
-  const callbackUrl = args.callbackUrl ?? `${siteUrl()}/account/payments/instalments`;
+  const callbackUrl = args.callbackUrl ?? `${appUrl()}/account/payments/instalments`;
 
   // 1. A saved card (sponsor / card plans) — charged without the payer present.
   const wantsCard = args.channel === "card" || (!args.channel && schedule.channel === "card");
@@ -283,7 +283,7 @@ async function collect(svc: Svc, schedule: InstalmentScheduleRow, rows: Instalme
     userId: schedule.payer_user_id,
     kind: "instalment.due",
     title: `Instalment due: ${formatMoney(amount, "GHS")}`,
-    body: `Pay instalment ${rows.map((r) => r.seq).join(", ")} of ${schedule.instalment_count} for policy ${policy.internal_reference} by mobile money: ${siteUrl()}/account/payments/instalments?pay=${rows[0]!.id}`,
+    body: `Pay instalment ${rows.map((r) => r.seq).join(", ")} of ${schedule.instalment_count} for policy ${policy.internal_reference} by mobile money: ${appUrl()}/account/payments/instalments?pay=${rows[0]!.id}`,
     link: `/account/payments/instalments?pay=${rows[0]!.id}`,
     data: { schedule_id: schedule.id, instalment_id: rows[0]!.id, policy_id: policy.id },
     channels: ["in_app", "push", "whatsapp", "sms"],

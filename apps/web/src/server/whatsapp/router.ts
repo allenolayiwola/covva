@@ -4,7 +4,7 @@ import type { Json } from "@im/db";
 import { log, mask } from "@/server/log";
 import { notify, notifyOrg } from "@/server/notify";
 import { afterOfferAccepted, rerouteIfRoundClosed } from "@/server/routing";
-import { siteUrl } from "@/server/api-auth";
+import { appUrl, siteUrl } from "@/server/api-auth";
 import { redactPII } from "@/server/ai/guardrails";
 import { answerWhatsApp } from "./assistant";
 import { performHandoff } from "./handoff";
@@ -31,6 +31,7 @@ export interface RouteResult {
 }
 
 const site = () => siteUrl();
+const appOrigin = () => appUrl();
 
 export async function routeInbound(svc: Svc, m: WaInboundMessage): Promise<RouteResult> {
   const contact = await ensureContact(svc, m.phone, { displayName: m.profileName });
@@ -143,7 +144,7 @@ export async function routeInbound(svc: Svc, m: WaInboundMessage): Promise<Route
     conversation,
     history,
     userText: m.text ?? "",
-    context: [`Useful links: quotes ${site()}/get-started, help centre ${site()}/support, sign in ${site()}/account.`],
+    context: [`Useful links: quotes ${site()}/get-started, help centre ${site()}/support, sign in ${appOrigin()}/account.`],
   });
   const verdictHandoff = ai.handoff ? handoffReason(intent.intent, ai.handoff.reason) : null;
   await sendText(svc, contact, ai.reply, { conversationId: conversation.id, sender: "bot" });
@@ -194,7 +195,7 @@ async function pingAssignee(svc: Svc, contact: WaContact, conversation: WaConver
 /** Canned replies with the right link for the common journeys. Null when the intent is not a journey. */
 async function journeyReply(svc: Svc, contact: WaContact, conversation: WaConversation, intent: WaIntent): Promise<string | null> {
   const uid = contact.user_id;
-  const base = site();
+  const base = appOrigin();
   const human = "Type \"human\" for our support team or \"broker\" for your broker.";
   switch (intent) {
     case "greeting":
@@ -207,7 +208,7 @@ async function journeyReply(svc: Svc, contact: WaContact, conversation: WaConver
           return `Your quotes for ${open.reference} are ready to compare: ${base}/account/requests/${open.id}\nQuotes come from participating licensed insurers; your broker of record advises you on them. Prices are only ever shown in the app, never here.`;
         }
       }
-      return `Getting quotes is free. Start here and a licensed broker will arrange your cover: ${base}/get-started\nQuotes come from participating insurers; I can't quote prices in this chat. ${human}`;
+      return `Getting quotes is free. Start here and a licensed broker will arrange your cover: ${site()}/get-started\nQuotes come from participating insurers; I can't quote prices in this chat. ${human}`;
     }
     case "renew": {
       if (uid) {
@@ -281,16 +282,16 @@ async function acceptOffer(svc: Svc, contact: WaContact, token: string): Promise
   const { data, error } = await svc.rpc("accept_order_offer", { p_token: token });
   if (error) {
     log.info("whatsapp.offer_accept_rejected", { code: error.code, message: error.message, contact: contact.id });
-    return { ok: false, reply: error.code === "P0001" && error.message ? `${error.message}. Open your Offers page in the partner workspace: ${site()}/partner/offers` : `We couldn't accept that offer. Open your Offers page: ${site()}/partner/offers` };
+    return { ok: false, reply: error.code === "P0001" && error.message ? `${error.message}. Open your Offers page in the partner workspace: ${appOrigin()}/partner/offers` : `We couldn't accept that offer. Open your Offers page: ${appOrigin()}/partner/offers` };
   }
   const accepted = data?.[0];
-  if (!accepted) return { ok: false, reply: `That offer is no longer open. See your current offers: ${site()}/partner/offers` };
+  if (!accepted) return { ok: false, reply: `That offer is no longer open. See your current offers: ${appOrigin()}/partner/offers` };
   try {
     await afterOfferAccepted(svc, { request_id: accepted.request_id, broker_org_id: accepted.broker_org_id, reference: accepted.reference, customer_id: accepted.customer_id });
   } catch {
     /* best effort; follow-ups are retried by cron */
   }
-  return { ok: true, reply: `Accepted. Your organisation is now broker of record for ${accepted.reference}. Open it in the workspace: ${site()}/partner/requests/${accepted.request_id}` };
+  return { ok: true, reply: `Accepted. Your organisation is now broker of record for ${accepted.reference}. Open it in the workspace: ${appOrigin()}/partner/requests/${accepted.request_id}` };
 }
 
 async function declineOffer(svc: Svc, token: string): Promise<{ ok: boolean; reply: string }> {

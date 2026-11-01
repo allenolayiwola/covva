@@ -12,6 +12,7 @@ import { listMicroPolicies } from "@/server/micro";
 import { account } from "../_lib/data";
 import { renewMicroNow } from "./actions";
 import { AutoRenewToggle } from "./auto-renew-toggle";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Micro cover" };
 
@@ -31,9 +32,9 @@ async function MicroAccount({ searchParams }: Pick<PageProps<"/account/micro">, 
   return (
     <div>
       <Breadcrumbs items={[{ label: "Micro cover" }]} />
-      <PageHeader title="Micro cover" description="Your daily, weekly and monthly cover. Each window is paid to the insurer by mobile money or card." actions={<Link href="/micro" className={buttonClass("primary", "sm")}>Buy cover</Link>} />
+      <PageHeader title="Micro cover" description="Your daily, weekly and monthly cover. Each window is paid to the insurer by mobile money or card." actions={<Link href={sitePath("/micro")} className={buttonClass("primary", "sm")}>Buy cover</Link>} />
       {policies.length === 0 ? (
-        <EmptyState icon={<Timer aria-hidden className="size-6" />} title="No micro cover yet" body="Cover by the day, week or month for drivers, traders, artisans and event organisers." action={<Link href="/micro" className={buttonClass("primary", "sm")}>See products</Link>} />
+        <EmptyState icon={<Timer aria-hidden className="size-6" />} title="No micro cover yet" body="Cover by the day, week or month for drivers, traders, artisans and event organisers." action={<Link href={sitePath("/micro")} className={buttonClass("primary", "sm")}>See products</Link>} />
       ) : (
         <ul className="space-y-4">
           {policies.map((p) => {

@@ -14,6 +14,7 @@ env:
   NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://krmnyqaweawkpygjmdry.supabase.co' }}
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_31vynddS7Uu45RJAYp0MUQ_OaBkDx22' }}
   NEXT_PUBLIC_SITE_URL: http://localhost:3100
+  NEXT_PUBLIC_APP_URL: http://localhost:3102
   NEXT_PUBLIC_ADMIN_URL: http://localhost:3101
   # Demo accounts used by the db-rules and browser suites (defaults live in the test helpers).
   E2E_PASSWORD: ${{ secrets.E2E_PASSWORD || 'Demo-UtEjEEuvXJWZJm' }}
@@ -50,6 +51,7 @@ jobs:
         with:
           path: |
             apps/web/.next/cache
+            apps/site/.next/cache
             apps/admin/.next/cache
           key: next-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/**/src/**', 'packages/**/src/**') }}
           restore-keys: |
@@ -62,10 +64,10 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: pnpm --filter @im/web test:db
 
-      - name: Build web and admin
+      - name: Build site, app and admin
         env:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-        run: pnpm turbo run build --filter=@im/web --filter=@im/admin
+        run: pnpm turbo run build --filter=@im/site --filter=@im/web --filter=@im/admin
 
       # The Playwright runner ships inside the `playwright` package (playwright/test). It is not a workspace
       # dependency (adding it needs a lockfile update), so install it globally and expose it through NODE_PATH.
@@ -85,7 +87,13 @@ jobs:
       - name: Install Chromium
         run: playwright install --with-deps chromium
 
-      - name: Browser e2e — web (marketing, customer, partner, a11y, mobile)
+      - name: Browser e2e — site (marketing pages)
+        env:
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: pnpm --filter @im/site e2e
+
+      - name: Browser e2e — app (quote flow, customer, partner, a11y, mobile)
+        if: ${{ always() && steps.pw-install.outcome == 'success' }}
         env:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: pnpm --filter @im/web e2e
@@ -104,6 +112,17 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: pnpm --filter @im/web test:purge
+
+      - name: Upload Playwright report (site)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-site
+          path: |
+            apps/site/e2e/.report
+            apps/site/e2e/.results
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload Playwright report (web)
         if: always()

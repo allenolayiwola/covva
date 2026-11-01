@@ -5,6 +5,7 @@ import { Card, DemoBadge } from "@im/ui";
 import { ROLE_STATEMENTS, issuanceLabel } from "@im/core";
 import { getSetting } from "@/lib/catalog";
 import { createPublicClient } from "@/lib/supabase/server";
+import { sitePath } from "@/lib/site-url";
 
 /**
  * Transparency block (Addendum 2 G / Addendum 4 roadmap): on every quote/request and policy the
@@ -172,7 +173,7 @@ export async function TransactionParties(props: TransactionPartiesProps) {
             .
           </dd>
           <dd className="text-xs text-muted">
-            <Link href="/legal/complaints" className="hover:underline">Our complaints procedure</Link> · {ROLE_STATEMENTS.platform}
+            <Link href={sitePath("/legal/complaints")} className="hover:underline">Our complaints procedure</Link> · {ROLE_STATEMENTS.platform}
           </dd>
         </div>
       </dl>

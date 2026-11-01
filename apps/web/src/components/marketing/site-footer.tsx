@@ -11,51 +11,52 @@ import { PaymentBadges } from "./payment-badges";
 import { PRODUCT_LINES } from "./products-content";
 import type { MessageKey } from "@im/core";
 import { T } from "@/lib/i18n/client";
+import { sitePath } from "@/lib/site-url";
 
 /** Footer columns. `label` is the English text; `k` its catalogue key (translated client-side). */
 const COLUMNS: { title: string; titleKey: MessageKey; links: { href: string; label: string; k: MessageKey }[] }[] = [
   {
     title: "Get started", titleKey: "footer.col.getStarted",
     links: [
-      { href: "/get-started", label: "Help me choose", k: "nav.helpChoose" },
-      { href: "/diaspora", label: "Diaspora", k: "nav.diaspora" },
-      { href: "/business", label: "Business", k: "nav.business" },
-      { href: "/claims", label: "Claims", k: "nav.claims" },
-      { href: "/verify", label: "Verify a policy", k: "footer.verifyPolicy" },
-      { href: "/learn", label: "Learn", k: "nav.learn" },
+      { href: sitePath("/get-started"), label: "Help me choose", k: "nav.helpChoose" },
+      { href: sitePath("/diaspora"), label: "Diaspora", k: "nav.diaspora" },
+      { href: sitePath("/business"), label: "Business", k: "nav.business" },
+      { href: sitePath("/claims"), label: "Claims", k: "nav.claims" },
+      { href: sitePath("/verify"), label: "Verify a policy", k: "footer.verifyPolicy" },
+      { href: sitePath("/learn"), label: "Learn", k: "nav.learn" },
       { href: "/account", label: "My account", k: "header.myAccount" },
     ],
   },
   {
     title: "Partners", titleKey: "footer.col.partners",
     links: [
-      { href: "/insurers", label: "For insurers", k: "nav.insurers.label" },
-      { href: "/brokers", label: "For brokers", k: "nav.brokers.label" },
-      { href: "/partners/embedded", label: "Embedded partners", k: "nav.embedded.label" },
-      { href: "/partners", label: "Partner directory", k: "nav.directory.label" },
-      { href: "/waitlist", label: "Launch partners", k: "footer.launchPartners" },
+      { href: sitePath("/insurers"), label: "For insurers", k: "nav.insurers.label" },
+      { href: sitePath("/brokers"), label: "For brokers", k: "nav.brokers.label" },
+      { href: sitePath("/partners/embedded"), label: "Embedded partners", k: "nav.embedded.label" },
+      { href: sitePath("/partners"), label: "Partner directory", k: "nav.directory.label" },
+      { href: sitePath("/waitlist"), label: "Launch partners", k: "footer.launchPartners" },
     ],
   },
   {
     title: "Company", titleKey: "footer.col.company",
     links: [
-      { href: "/about", label: "About us", k: "footer.aboutUs" },
-      { href: "/trust", label: "Regulation & protection", k: "nav.trust" },
-      { href: "/how-it-works", label: "How it works", k: "nav.howItWorks" },
-      { href: "/referrals", label: "Refer a friend", k: "nav.referrals" },
-      { href: "/press", label: "Press & media kit", k: "nav.press" },
-      { href: "/support", label: "Help centre", k: "nav.helpCentre" },
-      { href: "/contact", label: "Contact", k: "nav.contact" },
+      { href: sitePath("/about"), label: "About us", k: "footer.aboutUs" },
+      { href: sitePath("/trust"), label: "Regulation & protection", k: "nav.trust" },
+      { href: sitePath("/how-it-works"), label: "How it works", k: "nav.howItWorks" },
+      { href: sitePath("/referrals"), label: "Refer a friend", k: "nav.referrals" },
+      { href: sitePath("/press"), label: "Press & media kit", k: "nav.press" },
+      { href: sitePath("/support"), label: "Help centre", k: "nav.helpCentre" },
+      { href: sitePath("/contact"), label: "Contact", k: "nav.contact" },
     ],
   },
   {
     title: "Legal", titleKey: "footer.col.legal",
     links: [
-      { href: "/legal/terms", label: "Terms of use", k: "footer.terms" },
-      { href: "/legal/privacy", label: "Privacy notice", k: "footer.privacy" },
-      { href: "/legal/complaints", label: "Complaints procedure", k: "footer.complaints" },
-      { href: "/legal/disclosures", label: "Disclosures", k: "footer.disclosures" },
-      { href: "/legal/cookies", label: "Cookies", k: "footer.cookies" },
+      { href: sitePath("/legal/terms"), label: "Terms of use", k: "footer.terms" },
+      { href: sitePath("/legal/privacy"), label: "Privacy notice", k: "footer.privacy" },
+      { href: sitePath("/legal/complaints"), label: "Complaints procedure", k: "footer.complaints" },
+      { href: sitePath("/legal/disclosures"), label: "Disclosures", k: "footer.disclosures" },
+      { href: sitePath("/legal/cookies"), label: "Cookies", k: "footer.cookies" },
     ],
   },
 ];
@@ -92,11 +93,11 @@ export async function SiteFooter() {
               <ul className="mt-2 text-sm">
                 {PRODUCT_LINES.map((p) => (
                   <li key={p.slug}>
-                    <Link href={`/insurance/${p.slug}`} className="inline-flex min-h-11 min-w-11 items-center rounded text-muted hover:text-brand">{p.short}</Link>
+                    <Link href={sitePath(`/insurance/${p.slug}`)} className="inline-flex min-h-11 min-w-11 items-center rounded text-muted hover:text-brand">{p.short}</Link>
                   </li>
                 ))}
                 <li>
-                  <Link href="/explore" className="inline-flex min-h-11 min-w-11 items-center rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
+                  <Link href={sitePath("/explore")} className="inline-flex min-h-11 min-w-11 items-center rounded font-medium text-brand hover:underline"><T k="footer.allCover" /></Link>
                 </li>
               </ul>
             </div>
@@ -140,7 +141,7 @@ export async function SiteFooter() {
             {brand.workingName ? <T k="footer.workingName" /> : ""}<T k="footer.platformLine" />
           </p>
           <p className="text-sm">
-            <Link href="/legal/cookies" className="inline-flex min-h-11 min-w-11 items-center rounded hover:text-brand"><T k="footer.cookiesConsent" /></Link>
+            <Link href={sitePath("/legal/cookies")} className="inline-flex min-h-11 min-w-11 items-center rounded hover:text-brand"><T k="footer.cookiesConsent" /></Link>
           </p>
         </div>
       </Container>

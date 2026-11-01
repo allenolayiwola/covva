@@ -26,7 +26,7 @@ import { quoteVersion } from "@/server/catalogue";
 import { recordPaymentLedger } from "@/server/ledger";
 import { resolvePaymentMethod } from "@/server/payment-methods";
 import { chargeStoredMethod, initiatePayment, initiatePolicyCollection, type InitiatePaymentResult, type PaymentOutcome } from "@/server/payments";
-import { siteUrl, simulatorEnabled } from "@/server/env";
+import { appUrl, simulatorEnabled } from "@/server/env";
 import { planDb, type MicroSessionRow, type VersionPlanColumns } from "@/server/plan-db";
 
 /**
@@ -228,7 +228,7 @@ export async function buyMicroCover(
     channel: payment,
     momo: opts.momo ? { phone: opts.momo.phone, provider: opts.momo.network } : undefined,
     userId: customerId,
-    callbackUrl: opts.callbackUrl ?? `${siteUrl()}/account/micro`,
+    callbackUrl: opts.callbackUrl ?? `${appUrl()}/account/micro`,
     saveMethod: payment === "card" && !!opts.autoRenew,
     plan: { micro: { period, channel, autoRenew: !!opts.autoRenew } },
   });
@@ -320,10 +320,10 @@ export async function renewMicro(
     if (opts.channel === "card") throw new BusinessRuleError("Save a card first: pay once by card and tick “keep my card”.");
   }
   if (opts.automatic && !opts.momo) {
-    await notify({ userId: policy.customer_id, kind: "micro.renew_link", title: `Renew ${loaded.product.name}: ${formatMoney(amount, "GHS")}`, body: `Your cover ends ${fmtWhen(session.starts_at)}. Renew for 1 ${PERIOD_LABEL[period].noun} by mobile money: ${siteUrl()}/account/micro?renew=${policy.id}`, link: `/account/micro?renew=${policy.id}`, data: { policy_id: policy.id, session_id: session.id }, channels: ["in_app", "push", "whatsapp", "sms"] });
+    await notify({ userId: policy.customer_id, kind: "micro.renew_link", title: `Renew ${loaded.product.name}: ${formatMoney(amount, "GHS")}`, body: `Your cover ends ${fmtWhen(session.starts_at)}. Renew for 1 ${PERIOD_LABEL[period].noun} by mobile money: ${appUrl()}/account/micro?renew=${policy.id}`, link: `/account/micro?renew=${policy.id}`, data: { policy_id: policy.id, session_id: session.id }, channels: ["in_app", "push", "whatsapp", "sms"] });
     return { sessionId: session.id, startsAt: session.starts_at, endsAt: session.ends_at, amount, paymentId: null, status: "link_sent", authorizationUrl: null, displayText: "We sent a payment link." };
   }
-  const r = await initiatePolicyCollection({ policyId: policy.id, payerUserId: policy.customer_id, amount, tags, idempotencyKey: key, channel: opts.momo ? "mobile_money" : "link", momo: opts.momo ? { phone: opts.momo.phone, provider: opts.momo.network } : null, callbackUrl: `${siteUrl()}/account/micro`, description });
+  const r = await initiatePolicyCollection({ policyId: policy.id, payerUserId: policy.customer_id, amount, tags, idempotencyKey: key, channel: opts.momo ? "mobile_money" : "link", momo: opts.momo ? { phone: opts.momo.phone, provider: opts.momo.network } : null, callbackUrl: `${appUrl()}/account/micro`, description });
   await db.from("micro_sessions").update({ payment_id: r.paymentId }).eq("id", session.id).eq("status", "pending");
   return { sessionId: session.id, startsAt: session.starts_at, endsAt: session.ends_at, amount, paymentId: r.paymentId, status: r.status, authorizationUrl: r.authorizationUrl, displayText: r.displayText };
 }

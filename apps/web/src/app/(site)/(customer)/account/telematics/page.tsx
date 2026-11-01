@@ -9,6 +9,7 @@ import { ListSkeleton } from "@/components/customer/skeletons";
 import { telematicsOverview } from "@/server/telematics";
 import { account, requestTime } from "../_lib/data";
 import { EnrolForm, WithdrawForm } from "./forms";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Driving score" };
 
@@ -50,7 +51,7 @@ async function Telematics() {
       {data.policies.length === 0 && (
         <Notice tone="info" icon={<Car className="size-4" aria-hidden />}>
           Driving scoring works with motor policies arranged through Covva. You don&apos;t have one yet.{" "}
-          <Link href="/get-started?category=motor" className="font-semibold underline">Get a motor quote</Link>
+          <Link href={sitePath("/get-started?category=motor")} className="font-semibold underline">Get a motor quote</Link>
         </Notice>
       )}
 

@@ -11,6 +11,7 @@ import { CategoryIcon } from "@/components/customer/category-icon";
 import { PageSkeleton } from "@/components/customer/skeletons";
 import { firstName } from "@/components/customer/utils";
 import { CATEGORY_COLS, ORG_COLS, POLICY_SELECT, account, coverLabel, policyTitle, type CategoryLite, type OrgLite, type PolicyWithRefs } from "./_lib/data";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Overview" };
 
@@ -112,8 +113,8 @@ async function Overview({ searchParams }: Pick<PageProps<"/account">, "searchPar
           body="Answer a few questions and we'll suggest the cover that fits your life — or explore categories and request quotes from participating insurers. A named broker helps you all the way."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <Link href="/get-started" className={buttonClass("primary")}>Help me choose</Link>
-              <Link href="/explore" className={buttonClass("secondary")}>
+              <Link href={sitePath("/get-started")} className={buttonClass("primary")}>Help me choose</Link>
+              <Link href={sitePath("/explore")} className={buttonClass("secondary")}>
                 <Compass aria-hidden className="size-4" /> Explore cover
               </Link>
               <Link href="/account/policies/new" className={buttonClass("ghost")}>Add a policy you already have</Link>

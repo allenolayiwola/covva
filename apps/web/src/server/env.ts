@@ -3,7 +3,7 @@ import { paymentConfiguration, paymentSimulatorEnabled, validateSimulatorSecret 
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 
 /** Server-side environment helpers. Read at call time (not module load) so runtime env is used. */
-export { siteUrl } from "@/lib/site-url";
+export { appUrl, siteUrl } from "@/lib/site-url";
 
 /** Shared startup and runtime configuration validation. */
 export const paymentConfig = () => paymentConfiguration(process.env);

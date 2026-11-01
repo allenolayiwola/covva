@@ -1,7 +1,7 @@
 import { test, expect } from 'playwright/test';
 import { ACCOUNTS, PASSWORD } from './support/env.js';
 
-test.describe('public error and sign-in polish', () => {
+test.describe('sign-in polish', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
   for (const [path, context] of [['/account', 'Sign in to view your account'], ['/partner/register', 'Sign in to register as a partner']]) {
     test(`sign-in preserves ${path} and explains why`, async ({ page }) => {
@@ -26,31 +26,6 @@ test.describe('public error and sign-in polish', () => {
   test('external next is rejected', async ({ page }) => {
     await page.goto('/sign-in?method=password&next=https%3A%2F%2Fevil.example', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('input[name="next"]')).toHaveValue('/account');
-  });
-  test('contact failure describes each invalid field and focuses a summary', async ({ page }) => {
-    await page.goto('/contact', { waitUntil: 'domcontentloaded' });
-    // Wait for the real anti-bot minimum fill duration without submitting a valid lead.
-    await page.waitForFunction(() => {
-      const started = Number(document.querySelector('input[name="started_at"]')?.value);
-      return started > 0 && Date.now() - started >= 2500;
-    });
-    await page.getByRole('button', { name: 'Send message', exact: true }).click();
-    await expect(page.getByText('Please check the highlighted fields.')).toBeVisible();
-    for (const name of ['name', 'email', 'consent']) {
-      const field = page.locator(`[name="${name}"]`);
-      await expect(field).toHaveAttribute('aria-invalid', 'true');
-      const describedBy = await field.getAttribute('aria-describedby');
-      expect(describedBy).toBeTruthy();
-      await expect(page.locator(`[id="${describedBy}"]`)).toBeVisible();
-    }
-    await expect(page.getByRole('alert').getByRole('link')).toHaveCount(3);
-  });
-  test('unknown cover is a real 404 with recovery links', async ({ page, request }) => {
-    expect((await request.head('/cover/zzz')).status()).toBe(404);
-    expect((await page.goto('/cover/zzz', { waitUntil: 'domcontentloaded' })).status()).toBe(404);
-    await expect(page.getByRole('link', { name: 'Back to home', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Explore cover', exact: true })).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: 'Help centre', exact: true })).toBeVisible();
   });
 });
 
@@ -91,15 +66,10 @@ for (const destination of ['/account', '/partner/register']) {
   });
 }
 
-test('verify placeholder fits a phone-width input', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/verify', { waitUntil: 'domcontentloaded' });
-  const input = page.getByLabel('Policy number', { exact: true });
-  await expect(input).toHaveAttribute('placeholder', 'Number or code');
-  expect(await input.evaluate((element) => {
-    const style = getComputedStyle(element);
-    const context = document.createElement('canvas').getContext('2d');
-    context.font = style.font;
-    return context.measureText(element.placeholder).width <= element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-  })).toBe(true);
+test('marketing paths on the app forward to the marketing site', async ({ request }) => {
+  const res = await request.get('/insurance/motor?ref=ABC123', { maxRedirects: 0 });
+  expect(res.status()).toBe(308);
+  const location = new URL(res.headers()['location']);
+  expect(location.origin).toBe(new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100').origin);
+  expect(location.pathname + location.search).toBe('/insurance/motor?ref=ABC123');
 });

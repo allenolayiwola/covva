@@ -3,7 +3,8 @@ import { test } from "playwright/test";
 import { STATE } from "./support/env.js";
 import { a11ySmoke } from "./support/a11y.js";
 
-const PUBLIC = ["/", "/quote", "/quote?category=motor", "/explore", "/explore/motor", "/how-it-works", "/get-started", "/support", "/contact", "/brokers", "/insurers", "/trust", "/sign-in", "/sign-up", "/this-page-does-not-exist"];
+// Marketing pages are covered in apps/site/e2e/a11y.spec.js.
+const PUBLIC = ["/quote", "/quote?category=motor", "/sign-in", "/sign-up", "/this-page-does-not-exist"];
 const CUSTOMER = ["/account", "/account/policies", "/account/requests", "/account/requests/new", "/account/claims", "/account/messages", "/account/documents", "/account/profile"];
 const BROKER = ["/partner", "/partner/requests", "/partner/quotes", "/partner/customers", "/partner/policies", "/partner/service", "/partner/settings"];
 const INSURER = ["/partner/submissions", "/partner/issuance", "/partner/claims", "/partner/products"];

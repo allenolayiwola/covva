@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { sitePath } from "@/lib/site-url";
 import { MessageSquareText, Send, UserRound, X } from "lucide-react";
 import { Button, cn } from "@im/ui";
 
@@ -23,7 +24,7 @@ export default function ChatPanel({ open, onClose, whatsappNumber }: { open: boo
   const endRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const digits = (whatsappNumber ?? "").replace(/\D/g, "");
-  const humanHref = digits ? `https://wa.me/${digits}?text=${encodeURIComponent("Hello Covva, I'd like to talk to a person about insurance.")}` : "/contact?topic=customer";
+  const humanHref = digits ? `https://wa.me/${digits}?text=${encodeURIComponent("Hello Covva, I'd like to talk to a person about insurance.")}` : sitePath("/contact?topic=customer");
 
   React.useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });

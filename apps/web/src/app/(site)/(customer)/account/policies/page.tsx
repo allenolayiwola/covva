@@ -10,6 +10,7 @@ import { POLICY_SELECT, account, coverLabel, policyTitle, type PolicyWithRefs } 
 import type { Translator } from "@im/core";
 import { T } from "@/lib/i18n/client";
 import { getT } from "@/lib/i18n/server";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "My policies" };
 
@@ -48,7 +49,7 @@ async function Wallet() {
         body={t("wallet.emptyBody")}
         action={
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/explore" className={buttonClass("primary")}>{t("wallet.explore")}</Link>
+            <Link href={sitePath("/explore")} className={buttonClass("primary")}>{t("wallet.explore")}</Link>
             <Link href="/account/policies/new" className={buttonClass("secondary")}>{t("wallet.addPolicy")}</Link>
           </div>
         }

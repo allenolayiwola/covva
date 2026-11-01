@@ -9,7 +9,7 @@ import type { Database, Enum } from "@im/db";
 import { createClient as createCookieClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError } from "@/server/requests";
 import { log } from "@/server/log";
-import { siteUrl } from "@/lib/site-url";
+import { appUrl, siteUrl } from "@/lib/site-url";
 
 /**
  * API v1 plumbing: authentication (Supabase bearer token, cookie session or
@@ -198,7 +198,7 @@ export function clientKind(req: Request): ClientKind {
   return parseClientKind(req.headers.get(CLIENT_HEADER));
 }
 
-export { siteUrl };
+export { appUrl, siteUrl };
 
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
@@ -363,7 +363,7 @@ export async function assertClientAllowed(auth: UserAuth, client: ClientKind): P
   const types = await membershipTypes(auth);
   if (!isClientBlocked(types, client)) return;
   const access = workspaceAccess(types.includes("insurer") ? "insurer" : "platform", client);
-  throw new ApiError("forbidden", accessMessage(access, siteUrl()) ?? "This account can't use the mobile app.", { reason: access.reason, portalUrl: `${siteUrl()}/partner` });
+  throw new ApiError("forbidden", accessMessage(access, appUrl()) ?? "This account can't use the mobile app.", { reason: access.reason, portalUrl: `${appUrl()}/partner` });
 }
 
 // ---------------------------------------------------------------------------

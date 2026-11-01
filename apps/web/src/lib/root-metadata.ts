@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { siteUrl } from "./site-url";
+import { appUrl } from "./site-url";
 import { isProductionDeployment } from "./deployment";
 
 export function rootMetadata(): Metadata {
   return {
     robots: isProductionDeployment() ? undefined : { index: false, follow: false },
-    metadataBase: new URL(siteUrl()),
+    metadataBase: new URL(appUrl()),
     title: {
       default: "Covva — Find cover. Understand it. Move forward.",
       template: "%s | Covva",
@@ -17,7 +17,7 @@ export function rootMetadata(): Metadata {
       type: "website",
       siteName: "Covva",
       locale: "en_GH",
-      images: [`${siteUrl()}/opengraph-image`],
+      images: [`${appUrl()}/opengraph-image`],
     },
     twitter: { card: "summary_large_image" },
     formatDetection: { telephone: false },

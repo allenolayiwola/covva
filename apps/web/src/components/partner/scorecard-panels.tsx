@@ -7,6 +7,7 @@ import { ActionForm } from "@/components/partner/action-form";
 import { Textarea } from "@im/ui";
 import type { BrokerReview, ScorecardView } from "@/server/scorecards";
 import type { FormAction } from "@/components/partner/action-form";
+import { sitePath } from "@/lib/site-url";
 
 /** Scorecard panels shared by the broker's own page, the insurer's broker list and the admin console. */
 export const BAND_TONE: Record<string, "ok" | "wait" | "danger" | "neutral"> = { excellent: "ok", good: "ok", fair: "wait", needs_attention: "danger", new: "neutral" };
@@ -107,7 +108,7 @@ export function ReviewList({ reviews, names, replyAction, canReply }: { reviews:
 
 export function ExplainerLink({ className }: { className?: string }) {
   return (
-    <Link href="/partners/how-we-score" target="_blank" className={cn("text-sm font-medium text-brand hover:underline", className)}>
+    <Link href={sitePath("/partners/how-we-score")} target="_blank" className={cn("text-sm font-medium text-brand hover:underline", className)}>
       How the score is calculated
     </Link>
   );

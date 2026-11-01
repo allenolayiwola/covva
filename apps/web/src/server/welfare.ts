@@ -20,7 +20,7 @@ import {
 } from "@im/core";
 import type { Enum, Json, Row } from "@im/db";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { siteUrl } from "@/lib/site-url";
+import { appUrl } from "@/lib/site-url";
 import { BusinessRuleError, createRequest, ruleMessage } from "@/server/requests";
 import { createClaim, type ClaimEvidenceFile } from "@/server/claims";
 import { initiatePolicyCollection, type PaymentOutcome } from "@/server/payments";
@@ -174,7 +174,7 @@ export async function welfareGroupDetail(ctx: WelfareCtx, groupId: string): Prom
     policy: policy ?? null,
     request: request ?? null,
     claims: claims ?? [],
-    joinUrl: isAdmin && group.invite_enabled ? `${siteUrl()}${welfareJoinPath(group.invite_token)}` : null,
+    joinUrl: isAdmin && group.invite_enabled ? `${appUrl()}${welfareJoinPath(group.invite_token)}` : null,
   };
 }
 
@@ -394,7 +394,7 @@ export async function inviteWelfareSponsor(ctx: WelfareCtx, memberId: string, in
     .select("*")
     .single();
   if (error || !data) fail(error, "We couldn't invite the sponsor.");
-  const inviteUrl = `${siteUrl()}${welfareSponsorPath(data.invite_token)}`;
+  const inviteUrl = `${appUrl()}${welfareSponsorPath(data.invite_token)}`;
   // Best-effort e-mail to the sponsor (notify fan-out needs a user; sponsors abroad may not have one yet).
   if (data.sponsor_email) {
     try {
@@ -547,7 +547,7 @@ export async function payWelfareContributions(args: PayContributionsArgs): Promi
     idempotencyKey: key,
     channel: args.channel,
     momo: args.momo ?? null,
-    callbackUrl: args.callbackUrl ?? `${siteUrl()}/account/groups/${groupId}?tab=contributions`,
+    callbackUrl: args.callbackUrl ?? `${appUrl()}/account/groups/${groupId}?tab=contributions`,
     description: description.slice(0, 120),
     displayCurrency: args.displayCurrency ?? null,
   });
@@ -698,7 +698,7 @@ async function remindContribution(svc: Svc, c: WelfareContribution, kind: "befor
     // No account yet: a plain SMS to the member's phone (opt-out through the group admin).
     try {
       const { sendSms, normaliseGhanaPhone } = await import("@/server/notify");
-      await sendSms(normaliseGhanaPhone(member.phone), `Covva: ${group.name} contribution of ${amount} ${kind === "after" ? "was" : "is"} due ${due}. Sign in at ${siteUrl()} with this number to pay; it goes straight to the insurer.`);
+      await sendSms(normaliseGhanaPhone(member.phone), `Covva: ${group.name} contribution of ${amount} ${kind === "after" ? "was" : "is"} due ${due}. Sign in at ${appUrl()} with this number to pay; it goes straight to the insurer.`);
       return 1;
     } catch (err) {
       log.warn("welfare.reminder_sms_failed", { contributionId: c.id, err });

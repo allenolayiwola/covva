@@ -1,5 +1,5 @@
 import "server-only";
-import { siteUrl } from "@/server/env";
+import { appUrl } from "@/server/env";
 import { unsupported, type PaymentProvider } from "./payment-provider";
 import { paymentConfig } from "@/server/env";
 import { verifyHubtelWebhook as checkSignature } from "./signatures";
@@ -181,7 +181,7 @@ export const hubtelProvider: PaymentProvider = {
   async initialise(input) {
     if (input.currency !== 'GHS') throw new Error('Hubtel requires GHS.');
     const r = await hubtelInitiate({ amount: input.amountMinor / 100, description: input.description, clientReference: input.reference,
-      callbackUrl: `${siteUrl()}/api/webhooks/hubtel?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET ?? '')}`,
+      callbackUrl: `${appUrl()}/api/webhooks/hubtel?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET ?? '')}`,
       returnUrl: input.callbackUrl, cancellationUrl: input.callbackUrl, customerEmail: input.email, merchantAccount: input.settlementAccount });
     if (!r.ok || !r.checkoutUrl) throw new Error('Hubtel checkout could not be started.');
     return { reference: input.reference, authorizationUrl: r.checkoutUrl };

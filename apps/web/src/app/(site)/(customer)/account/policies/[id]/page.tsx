@@ -21,6 +21,7 @@ import { isPropertyCategory } from "@/server/property";
 import { InstalmentBlock } from "@/components/customer/instalment-block";
 import { PolicyChangesSection } from "@/components/customer/policy-changes";
 import { PolicyExplainerSection } from "@/components/customer/policy-explainer-section";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Policy" };
 
@@ -421,7 +422,7 @@ async function PolicyDetail({ params, searchParams }: Pick<PageProps<"/account/p
                   </p>
                   <p className="mt-2 font-mono text-xs text-subtle">Code {policy.verification_code}{policy.sticker_number ? ` · Sticker ${policy.sticker_number}` : ""}</p>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                    <Link href={`/verify?q=${encodeURIComponent(policy.verification_code!)}`} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline"><QrIcon aria-hidden className="size-4" /> Verify this policy</Link>
+                    <Link href={sitePath(`/verify?q=${encodeURIComponent(policy.verification_code!)}`)} className="inline-flex items-center gap-1 font-semibold text-brand hover:underline"><QrIcon aria-hidden className="size-4" /> Verify this policy</Link>
                     {sticker && urls[sticker.storage_path] && <a href={urls[sticker.storage_path]} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">Download sticker (PDF)</a>}
                   </div>
                 </div>

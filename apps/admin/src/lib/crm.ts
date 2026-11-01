@@ -4,6 +4,7 @@ import { requireStaff, resolveStaff, type Staff } from "@/lib/auth";
 import { can } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { profileMap, type Supabase } from "@/lib/query";
+import { appOrigin } from "@/lib/public-urls";
 
 export type CrmAccount = Row<"crm_accounts">;
 export type CrmNote = Row<"crm_notes">;
@@ -95,8 +96,9 @@ export function adminUrl(path: string): string {
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+/** Absolute URL of an app page (partner registration status and similar live in covva-app). */
 export function siteUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const base = appOrigin();
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { currencyForCountry, isSponsorCountry, timezoneForCountry } from "@im/core";
 import { createClient } from "@/lib/supabase/server";
 import { normaliseGhanaPhone, safeNext, type ActionState } from "@/components/customer/utils";
-import { siteUrl } from "@/lib/site-url";
+import { appUrl } from "@/lib/site-url";
 
 async function siteOrigin() {
   const h = await headers();
@@ -13,7 +13,7 @@ async function siteOrigin() {
   if (origin && /^https?:\/\//.test(origin)) return origin;
   const host = h.get("x-forwarded-host") ?? h.get("host");
   if (host) return `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
-  return siteUrl();
+  return appUrl();
 }
 
 function authMessage(err: { message?: string; code?: string; status?: number } | null, fallback: string) {
