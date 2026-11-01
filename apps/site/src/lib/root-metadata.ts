@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { siteUrl } from "./site-url";
-import { isProductionDeployment } from "./deployment";
+import { isIndexable } from "./deployment";
 
 export function rootMetadata(): Metadata {
   return {
-    robots: isProductionDeployment() ? undefined : { index: false, follow: false },
+    robots: isIndexable() ? undefined : { index: false, follow: false },
     metadataBase: new URL(siteUrl()),
     title: {
       default: "Covva — Find cover. Understand it. Move forward.",

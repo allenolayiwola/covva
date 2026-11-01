@@ -59,7 +59,7 @@ On separate `.vercel.app` hostnames the site cannot see whether someone is signe
 | Variable | Needed for |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Catalogue, partner directory, leads (public reads and RLS inserts) |
-| `NEXT_PUBLIC_SITE_URL` | This site's canonical URL (sitemap, Open Graph, robots) |
+| `NEXT_PUBLIC_SITE_URL` | This site's canonical URL (sitemap, Open Graph, robots). While it is a `*.vercel.app` hostname the site asks search engines not to index it; it becomes indexable once this is set to `covva.com.gh` and the site is redeployed |
 | `NEXT_PUBLIC_APP_URL` | Where app paths are forwarded |
 | `SUPABASE_SECRET_KEY` | The service-partner network join form (writes the application and notifies platform staff) |
 | `REVALIDATE_SECRET` | Lets the admin refresh this site's caches |
