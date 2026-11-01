@@ -345,23 +345,36 @@ the insurer receives**; foreign-currency figures are a display only.
 
 ## 4. Scheduled jobs (Vercel Cron, `apps/web/vercel.json`)
 
+All 26 jobs, in `vercel.json` order. Code: `apps/web/src/server/cron.ts` (`CRON_JOBS`); route: `/api/cron/[job]`.
+
 | Job | Schedule (UTC) | What it does |
 |---|---|---|
 | `/api/cron/renewal-reminders` | daily 07:00 | Active policies ending within `platform_settings.renewal_reminder_days` → notify customer + broker once per threshold; records `policies.renewal_reminders_sent` |
-| `/api/cron/sla-monitor` | every 15 min | Requests past `due_at` in `submitted / adviser_action / insurer_response / policy_documents` → `sla_breached_at`, internal timeline event, notify broker supervisors |
+| `/api/cron/sla-monitor` | every 15 min | Requests past `due_at` in `submitted / adviser_action / insurer_response / policy_documents` → `sla_breached_at`, internal timeline event, notify broker supervisors. Also escalates `sla_timers` (level 1 at due → insurer contacts; level 2 at due + 50% → Covva ops; level 3 at 2× due → customer notified to choose refund or re-route) and closes delegated review windows that have passed (`issuance_jobs.review_window` → `issued`) |
 | `/api/cron/quote-expiry` | hourly :05 | `ready_to_accept` quotes past `valid_until` → `expired`; notify the customer when their top-ranked quote expired |
-| `/api/cron/policy-lifecycle` | daily 00:15 | Active policies past `cover_end` → `expired`; notify customer |
+| `/api/cron/policy-lifecycle` | daily 00:15 | Active policies past `cover_end` → `expired`; notify customer. Also runs the underinsurance nudges (motor / home / business property: flags `policies.underinsurance_flag` once and notifies; clears it when fixed). See "Bank transfer, Hubtel, lookups and WhatsApp" |
 | `/api/cron/usage-metering` | daily 01:30 | One `policy_active` usage event per active policy per month for the broker org (idempotent) |
 | `/api/cron/complaint-sla` | daily 08:00 | Open complaints past `due_at` → timeline note, notify owner org + platform compliance (once) |
 | `/api/cron/webhook-retry` | every 10 min | Re-sends partner webhook deliveries whose `next_attempt_at` has passed (backoff 1m, 5m, 30m, 2h, 12h; max 5 attempts). See `docs/WEBHOOKS.md` |
-| `/api/cron/sla-monitor` (extended) | every 15 min | Also escalates `sla_timers` (level 1 at due → insurer contacts; level 2 at due + 50% → Covva ops; level 3 at 2× due → customer notified to choose refund or re-route) and closes delegated review windows that have passed (`issuance_jobs.review_window` → `issued`) |
-| `/api/cron/issuance-retry` | every 30 min | Re-runs `startIssuance` for `issuance_jobs` left `queued` or `failed` (adapter outage, missing number block) whose policy is still `pending_issuance`; the admin "Retry" action re-queues a job for this run |
+| `/api/cron/offer-expiry` | every 5 min | Routing engine: expires broker offers past their deadline and re-routes the request (next round, or an ops hold after the last round) |
+| `/api/cron/price-schedule` | hourly :10 | Promotes platform-approved product versions whose `scheduled_effective_from` has passed to the product's current version (`public.activate_scheduled_versions`). Existing quotes and policies keep their `product_version_id` |
 | `/api/cron/settlement-statements` | monthly, 1st 02:00 | Drafts a settlement statement per broker/insurer for the previous month from the ledger (idempotent; issued statements untouched). See "Settlement and splits" |
+| `/api/cron/licence-status` | daily 02:30 | NIC licence tracking: flags organisations whose licence expires within 30 days; suspends active brokers/insurers whose licence has lapsed (`suspended_reason = licence_lapsed`) and notifies their admins and platform staff (`public.refresh_licence_status`) |
+| `/api/cron/onboarding-notifications` | every 10 min | Email/push delivery for notifications the onboarding RPCs wrote directly: partner application approved / needs changes / rejected, appointment decided, licence expiring / lapsed (up to 200 per run) |
+| `/api/cron/issuance-retry` | every 30 min | Re-runs `startIssuance` for `issuance_jobs` left `queued` or `failed` (adapter outage, missing number block) whose policy is still `pending_issuance`; the admin "Retry" action re-queues a job for this run |
+| `/api/cron/crm-reminders` | daily 06:00 | Partnerships CRM: reminds assignees of tasks due today or overdue (in-app + email, once per task; `reminder_sent_at` is claimed first so a retry never double-sends). Links go to the admin console |
+| `/api/cron/fx-rates` | hourly :20 | Diaspora: refreshes indicative FX rates from the provider in `platform_settings.fx` / `FX_PROVIDER` (`manual` = no-op). See "Diaspora payments" |
+| `/api/cron/sponsor-collections` | daily 03:00 | Diaspora: charges due sponsor subscriptions on the stored card (GHS to the insurer; retries 1d / 3d / 7d). See "Diaspora payments" |
+| `/api/cron/referral-rewards` | daily 04:00 | Referrals: credits rewards and partner revenue share once the holding period has passed (append-only `reward_ledger`) |
 | `/api/cron/instalment-collections` | daily 06:30 and 18:30 | Collects due instalments (MoMo prompt / saved card / pay link), retries day 0, +2, +5, then moves schedules to grace → lapsed per the insurer's plan. See "Instalments and micro cover" |
 | `/api/cron/micro-renewals` | hourly :40 | Marks ended micro windows expired; auto-renews micro policies with `auto_renew` before the window ends (saved card charged, else a pay link by WhatsApp/SMS) |
+| `/api/cron/business-invoices` | monthly, 1st 05:00 | SME: builds last month's consolidated business statements (one payment per insurer line) and marks overdue ones |
+| `/api/cron/accounting-exports` | monthly, 2nd 04:00 | Builds last month's CSV exports: insurer statements, commission reports, platform revenue and the tax report |
 | `/api/cron/scorecard-refresh` | daily 01:40 | Recomputes every broker's 30- and 90-day scorecard (`broker_scorecard_inputs` → `@im/core` `computeScorecard` → `broker_scorecards`); feeds the public summary and the routing factor. See `docs/SCORECARDS_ANALYTICS.md` |
 | `/api/cron/analytics-rollup` | daily 01:50 | Rebuilds `analytics.daily_facts` for yesterday and today (`analytics_rollup`, idempotent per day; backfill and dry run from admin → Analytics) |
+| `/api/cron/welfare-reminders` | daily 07:30 | Welfare groups: contribution reminders 3 days before and 3 days after the due date, to members and their sponsors abroad |
 | `/api/cron/privacy-retention` | daily 03:50 | Act 843: deletes expired data-export files and closes their requests, then applies the retention rules per data class (`public.run_privacy_retention`, logged in `privacy_retention_runs`). Dry run until `platform_settings.privacy_retention.mode = "enforce"`; `?dry_run=1` forces one. See `docs/PRIVACY_REQUESTS.md` |
+| `/api/cron/telematics-scoring` | monthly, 1st 02:20 | Telematics: last month's final driving score per enrolment, plus a provisional one for this month (upsert on enrolment + period, so a re-run is a no-op). Trips are stored as summaries; no GPS points are kept |
 
 Each run writes `platform_settings['cron_last_run:<job>'] = { at, ok, ms, result }` (visible in admin
 system health). Sub-daily schedules need a Vercel Pro plan. Manual run:
