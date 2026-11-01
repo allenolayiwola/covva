@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { accessMessage, parseActiveWorkspace, workspaceAccess, type ApiKeyScope, type ClientKind } from "@im/core";
 import type { Database, Enum } from "@im/db";
-import { ApiError, forbidden, hasScopes, notFound, siteUrl, type ApiKeyAuth, type UserAuth } from "@/server/api-auth";
+import { ApiError, forbidden, hasScopes, notFound, appUrl, type ApiKeyAuth, type UserAuth } from "@/server/api-auth";
 
 /**
  * Broker workspace on mobile (Addendum 4 §2): shared plumbing for `/api/v1/partner/*` endpoints
@@ -79,7 +79,7 @@ export async function resolvePartnerOrg(
   const type = org.type as PartnerKind;
   const access = workspaceAccess(type, client);
   if (!access.allowed) {
-    throw new ApiError("forbidden", accessMessage(access, siteUrl()) ?? "That workspace isn't available on this client.", { reason: access.reason, portalUrl: `${siteUrl()}/partner` });
+    throw new ApiError("forbidden", accessMessage(access, appUrl()) ?? "That workspace isn't available on this client.", { reason: access.reason, portalUrl: `${appUrl()}/partner` });
   }
   if (opts.kinds && !opts.kinds.includes(type)) throw forbidden(`This endpoint is for ${opts.kinds.join(" or ")} organisations.`);
   const isSupervisor = chosen!.is_supervisor || ["owner", "admin", "supervisor"].includes(chosen!.role);

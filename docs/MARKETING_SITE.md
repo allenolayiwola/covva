@@ -1,7 +1,7 @@
 # Marketing site — analytics, experiments, performance and content
 
 Status: 28 October 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
-Everything here lives under `apps/web/src/components/marketing/` and `apps/web/src/app/(site)/(marketing)/`; nothing touches the
+Everything here lives under `apps/site/src/components/marketing/` and `apps/site/src/app/(site)/(marketing)/` (the marketing site, covva-site; see `docs/APPS.md`); nothing touches the
 customer app, partner workspace, API or database.
 
 ## 1. Consent model (Act 843)

@@ -8,6 +8,7 @@ import { getProfile } from "@/lib/auth";
 import { microProductForBuy } from "@/server/micro";
 import { UUID_RE, account } from "../../_lib/data";
 import { MicroBuyForm } from "./buy-form";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Buy micro cover" };
 
@@ -29,11 +30,11 @@ async function Buy({ searchParams }: Pick<PageProps<"/account/micro/buy">, "sear
       <Breadcrumbs items={[{ label: "Micro cover", href: "/account/micro" }, { label: "Buy" }]} />
       {!product || !product.prices.length ? (
         <Notice tone="wait" title="This cover isn't on sale right now">
-          <Link href="/micro" className="font-semibold underline">See the micro products on sale</Link>
+          <Link href={sitePath("/micro")} className="font-semibold underline">See the micro products on sale</Link>
         </Notice>
       ) : (
         <>
-          <PageHeader title={product.productName} description={`From ${product.insurerName}. Short cover, paid as you go.`} actions={<Link href="/micro" className={buttonClass("ghost", "sm")}>Other products</Link>} />
+          <PageHeader title={product.productName} description={`From ${product.insurerName}. Short cover, paid as you go.`} actions={<Link href={sitePath("/micro")} className={buttonClass("ghost", "sm")}>Other products</Link>} />
           {product.keyExclusion && <p className="mb-5 text-sm text-muted">Not covered: {product.keyExclusion}</p>}
           <MicroBuyForm versionId={product.versionId} prices={product.prices} insurer={product.insurerName} defaultPhone={profile?.phone ?? ""} />
         </>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo, buttonClass } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "No partner access", robots: { index: false, follow: false } };
 
@@ -36,7 +37,7 @@ export default function NoAccessPage() {
             Brokers and insurers are onboarded by our partnerships team after NIC licence verification. {ROLE_STATEMENTS.platform}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/brokers" className={buttonClass("primary", "md")}>Partner with us</Link>
+            <Link href={sitePath("/brokers")} className={buttonClass("primary", "md")}>Partner with us</Link>
             <Link href="/account" className={buttonClass("secondary", "md")}>Go to my customer account</Link>
           </div>
         </div>

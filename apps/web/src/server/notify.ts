@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { log, mask } from "@/server/log";
 import { whatsAppLive } from "@/server/providers/whatsapp";
 import { sendNotificationWhatsApp } from "@/server/whatsapp/sender";
-import { siteUrl } from "@/lib/site-url";
+import { appUrl } from "@/lib/site-url";
 
 /**
  * Notification fan-out (owner: Backend stream): in-app row + email + SMS + push
@@ -104,7 +104,7 @@ export async function notifyOrg(orgId: string, input: Omit<NotifyInput, "userId"
  * no account. Degrades to a log line when `RESEND_API_KEY` is unset.
  */
 export async function sendInviteEmail(input: { to: string; orgName: string; role: string; token: string; invitedBy?: string | null; expiresAt?: string | null }): Promise<void> {
-  const link = `${siteUrl()}/invite/${encodeURIComponent(input.token)}`;
+  const link = `${appUrl()}/invite/${encodeURIComponent(input.token)}`;
   const role = input.role.replace(/_/g, " ");
   const title = `You're invited to join ${input.orgName} on Covva`;
   const body = [
@@ -256,7 +256,7 @@ function escapeHtml(s: string) {
 
 function absoluteLink(link: string | null) {
   if (!link) return null;
-  return /^https?:\/\//.test(link) ? link : `${siteUrl()}${link.startsWith("/") ? "" : "/"}${link}`;
+  return /^https?:\/\//.test(link) ? link : `${appUrl()}${link.startsWith("/") ? "" : "/"}${link}`;
 }
 
 export function emailHtml(n: Pick<Inserted, "title" | "body" | "link">, name?: string | null): string {
@@ -267,7 +267,7 @@ export function emailHtml(n: Pick<Inserted, "title" | "body" | "link">, name?: s
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F7F3;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #DCE3E1;border-radius:16px;overflow:hidden">
 <tr><td style="background:#00796E;padding:20px 24px;color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.2px">
-<img src="${siteUrl()}/brand/horizontal-reverse-light.png" height="36" alt="Covva" style="display:block;height:36px;border:0"></td></tr>
+<img src="${appUrl()}/brand/horizontal-reverse-light.png" height="36" alt="Covva" style="display:block;height:36px;border:0"></td></tr>
 <tr><td style="padding:28px 24px 8px">
 ${name ? `<p style="margin:0 0 12px;font-size:15px">Hello ${escapeHtml(name)},</p>` : ""}
 <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#15343E">${escapeHtml(n.title)}</h1>

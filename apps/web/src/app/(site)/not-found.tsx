@@ -3,17 +3,18 @@ import Link from "next/link";
 import { Container, Eyebrow, buttonClass } from "@im/ui";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Page not found", robots: { index: false } };
 
 const CATEGORIES = [
-  { href: "/insurance/motor", label: "Motor" },
-  { href: "/insurance/home", label: "Home & contents" },
-  { href: "/insurance/health", label: "Health" },
-  { href: "/insurance/travel", label: "Travel" },
-  { href: "/insurance/life-funeral", label: "Life & funeral" },
-  { href: "/insurance/business", label: "Business" },
-  { href: "/insurance/micro", label: "Micro-insurance" },
+  { href: sitePath("/insurance/motor"), label: "Motor" },
+  { href: sitePath("/insurance/home"), label: "Home & contents" },
+  { href: sitePath("/insurance/health"), label: "Health" },
+  { href: sitePath("/insurance/travel"), label: "Travel" },
+  { href: sitePath("/insurance/life-funeral"), label: "Life & funeral" },
+  { href: sitePath("/insurance/business"), label: "Business" },
+  { href: sitePath("/insurance/micro"), label: "Micro-insurance" },
 ] as const;
 
 /** Root 404: rendered outside any route group, so it brings its own header and footer. */
@@ -30,8 +31,8 @@ export default function NotFound() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href="/quote" className={buttonClass("primary", "lg")}>Get quotes</Link>
               <Link href="/" className={buttonClass("secondary", "lg")}>Back to home</Link>
-              <Link href="/explore" className={buttonClass("secondary", "lg")}>Explore cover</Link>
-              <Link href="/support" className={buttonClass("secondary", "lg")}>Help centre</Link>
+              <Link href={sitePath("/explore")} className={buttonClass("secondary", "lg")}>Explore cover</Link>
+              <Link href={sitePath("/support")} className={buttonClass("secondary", "lg")}>Help centre</Link>
             </div>
           </div>
           <nav aria-label="Insurance categories" className="mx-auto mt-12 max-w-3xl">

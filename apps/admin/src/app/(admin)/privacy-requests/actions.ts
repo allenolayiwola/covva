@@ -8,6 +8,7 @@ import type { Supabase } from "@/lib/query";
 import { notifyUsers } from "@/server/notify";
 import { emailHtml, emailText, sendEmail } from "@/server/email";
 import { generateExportFile, removeStorageObjects } from "@/server/privacy";
+import { appOrigin } from "@/lib/public-urls";
 
 /**
  * Act 843 privacy-request actions. Every write is a SECURITY DEFINER RPC called with the STAFF session, so the
@@ -15,7 +16,7 @@ import { generateExportFile, removeStorageObjects } from "@/server/privacy";
  * with the staff member as actor. The service client is used only for Storage and for reading a customer's data
  * into their export.
  */
-const webBase = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const webBase = () => appOrigin();
 const Id = z.object({ requestId: z.string().uuid() });
 
 async function loadRequest(supabase: Supabase, id: string) {

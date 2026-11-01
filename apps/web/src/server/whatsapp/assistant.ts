@@ -14,6 +14,7 @@ import { z } from "zod";
 import { FAQ_SYSTEM_PROMPT, POLICY_STATUS, formatDate, type WaHandoffReason } from "@im/core";
 import { ARTICLES } from "@/components/marketing/articles";
 import { FAQ_GROUPS } from "@/components/marketing/content";
+import { sitePath } from "@/lib/site-url";
 import { getModels, requireAiFeature, aiFlagOn } from "@/server/ai/config";
 import { AI_LABEL, redactPII } from "@/server/ai/guardrails";
 import { logAiUsage } from "@/server/ai/usage";
@@ -78,7 +79,7 @@ export function searchFaq(query: string, limit = 4): { id: string; question: str
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ d }) => ({ id: d.id, question: d.question, answer: d.answer, source: d.source, url: d.source === "learn" ? `/learn/${d.id.slice(6)}` : `/support#${d.id.slice(4)}` }));
+    .map(({ d }) => ({ id: d.id, question: d.question, answer: d.answer, source: d.source, url: sitePath(d.source === "learn" ? `/learn/${d.id.slice(6)}` : `/support#${d.id.slice(4)}`) }));
 }
 
 function faqTool() {

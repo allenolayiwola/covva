@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
+import { publicAppUrl } from "@/lib/public-urls";
 
 const Reconcile = z.object({
   paymentId: z.string().uuid(),
@@ -57,9 +58,9 @@ export async function setReconciled(_: ActionState, fd: FormData): Promise<Actio
 }
 
 async function confirmBankTransferOnWeb(paymentId: string, actorId: string, note: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  const site = publicAppUrl();
   const secret = process.env.REVALIDATE_SECRET;
-  if (!site || !secret) return { ok: false, error: "Cannot confirm a bank transfer: NEXT_PUBLIC_SITE_URL / REVALIDATE_SECRET are not set on the admin app." };
+  if (!site || !secret) return { ok: false, error: "Cannot confirm a bank transfer: NEXT_PUBLIC_APP_URL / REVALIDATE_SECRET are not set on the admin app." };
   try {
     const res = await fetch(new URL("/api/payments/confirm-transfer", site), {
       method: "POST",

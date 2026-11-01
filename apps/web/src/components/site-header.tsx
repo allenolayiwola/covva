@@ -7,6 +7,7 @@ import { HeaderNav, HeaderNavFallback } from "@/components/marketing/header-nav"
 import { MobileMenu } from "@/components/marketing/mobile-menu";
 import { LocaleNotice, LocaleSwitcher } from "@/components/locale-switcher";
 import { T } from "@/lib/i18n/client";
+import { sitePath } from "@/lib/site-url";
 
 /**
  * Shared top bar from the mockups (logo · Explore cover · How it works · Support · language · My account).
@@ -42,7 +43,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           <LocaleSwitcher />
           {right ?? (
             <>
-              <Link href="/brokers" data-header-fg className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium whitespace-nowrap text-muted hover:text-brand lg:inline-block">
+              <Link href={sitePath("/brokers")} data-header-fg className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium whitespace-nowrap text-muted hover:text-brand lg:inline-block">
                 <T k="header.forPartners" />
               </Link>
               <span className="hidden sm:block">

@@ -17,7 +17,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { log } from "@/server/log";
 import { notify, notifyOrg } from "@/server/notify";
 import { emitEvent } from "@/server/webhooks";
-import { siteUrl } from "@/lib/site-url";
+import { appUrl } from "@/lib/site-url";
 
 /**
  * Routing engine integration (Addendum 2 D/E). Loads the facts the pure engine needs
@@ -32,7 +32,7 @@ type Svc = ReturnType<typeof createServiceClient>;
 
 const OPEN_STATUSES: Enum<"request_status">[] = ["submitted", "awaiting_customer_info", "adviser_action", "insurer_response", "quotes_ready"];
 
-export const acceptLink = (token: string) => `${siteUrl()}/partner/offers/accept/${encodeURIComponent(token)}`;
+export const acceptLink = (token: string) => `${appUrl()}/partner/offers/accept/${encodeURIComponent(token)}`;
 export const acceptDeepLink = (token: string) => `covva://offers/accept/${encodeURIComponent(token)}`;
 
 async function setting<T>(svc: Svc, key: string, fallback: T): Promise<T> {

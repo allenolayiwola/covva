@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
 import { authorize } from "@/lib/actions";
+import { publicAppUrl } from "@/lib/public-urls";
 
 const Hop = z.object({
   sessionId: z.string().regex(/^[A-Za-z0-9-]{8,64}$/),
@@ -20,8 +21,8 @@ export async function simulateHop(input: { sessionId: string; phoneNumber: strin
   if (!auth.ok) return { ok: false, error: auth.error };
   const parsed = Hop.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const site = process.env.NEXT_PUBLIC_SITE_URL;
-  if (!site) return { ok: false, error: "NEXT_PUBLIC_SITE_URL is not set for the admin app." };
+  const site = publicAppUrl();
+  if (!site) return { ok: false, error: "NEXT_PUBLIC_APP_URL is not set for the admin app." };
   const secret = process.env.USSD_SHARED_SECRET;
   try {
     const res = await fetch(new URL("/api/ussd/simulator", site), {

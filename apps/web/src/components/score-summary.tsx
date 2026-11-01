@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import { RESPONSE_BAND_LABEL, type ResponseBand, type ScoreBand } from "@im/core";
 import { cn } from "@im/ui";
+import { sitePath } from "@/lib/site-url";
 
 /**
  * Public broker score summary (broker picker, partner directory, request tracker). Shows only
@@ -14,7 +15,7 @@ export interface ScoreSummaryData {
   scoreBand: ScoreBand;
 }
 
-export const EXPLAINER_HREF = "/partners/how-we-score";
+export const EXPLAINER_HREF = sitePath("/partners/how-we-score");
 
 export function Stars({ value, size = "size-4", className }: { value: number; size?: string; className?: string }) {
   const rounded = Math.round(value * 2) / 2;

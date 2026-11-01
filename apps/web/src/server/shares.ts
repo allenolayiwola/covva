@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { UserClient } from "@/server/api-auth";
 import { emailHtml, sendEmail } from "@/server/notify";
 import { BusinessRuleError } from "@/server/requests";
-import { siteUrl } from "@/server/env";
+import { appUrl } from "@/server/env";
 
 /**
  * Save & share a comparison (Phase 1 "fast quoting"). A share is a random token that opens a
@@ -25,7 +25,7 @@ export interface ShareResult {
   emailSent?: boolean;
 }
 
-export const shareUrl = (token: string) => `${siteUrl()}/q/${token}`;
+export const shareUrl = (token: string) => `${appUrl()}/q/${token}`;
 
 type SharedRequest = Pick<Row<"requests">, "id" | "customer_id" | "risk_data" | "title"> & { category: { slug: string; name: string } | null };
 

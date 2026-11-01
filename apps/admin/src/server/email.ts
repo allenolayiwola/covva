@@ -15,7 +15,8 @@ export interface EmailMessage {
 
 export type EmailResult = { ok: true; provider: "resend" | "log"; id?: string } | { ok: false; provider: "resend"; status?: number; error?: string };
 
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
+/** Notification links and the logo point at the app (covva-app), where signed-in pages live. */
+const siteUrl = () => (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_ENV === "production" ? "https://app.covva.com.gh" : "http://localhost:3102")).replace(/\/$/, "");
 
 export function maskEmail(value: string | null | undefined): string | null {
   if (!value || !value.includes("@")) return value ? "***" : null;

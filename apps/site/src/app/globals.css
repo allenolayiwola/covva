@@ -1,0 +1,256 @@
+@import "tailwindcss";
+@import "@im/tokens/theme.css";
+
+/* Scan shared component sources so their classes are generated */
+@source "../../../../packages/ui/src";
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-white text-ink font-sans;
+  }
+  ::selection {
+    @apply bg-mint text-brand-deep;
+  }
+  :focus-visible {
+    outline-color: var(--color-brand);
+  }
+  /*
+   * Links inside running text are told apart by an underline, not by colour alone (WCAG 1.4.1 / axe
+   * link-in-text-block). Button-styled links (they carry a bg- class) and nav lists are left alone.
+   */
+  :where(p, dd, dt, figcaption, blockquote, small, legend, label) > a:where(:not([class*="bg-"]):not([role="button"])) {
+    text-decoration-line: underline;
+    text-decoration-thickness: from-font;
+    text-underline-offset: 0.16em;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+  :where(p, dd, dt, figcaption, blockquote, small, legend, label) > a:where(:not([class*="bg-"]):not([role="button"])):hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* Brand type: Outfit Light headings on the marketing site only (wrapper in (marketing)/layout.tsx); the account and
+     partner apps keep Inter headings at their own weights. Inter is the body and UI face everywhere. */
+  [data-marketing] :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--font-display);
+    font-weight: 300 !important;
+    letter-spacing: -0.02em;
+  }
+  [data-marketing] :is(h3, h4) {
+    letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+  /* Icons: 1.75px rounded strokes on a 24 grid (lucide). */
+  svg.lucide {
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+/* Type scale (desktop / phone), per the final mocks: h1 60/38 @1.06, h2 42/30 @1.12, h3 24/20 @1.25, h4 28/22; body 18/16/14. */
+@utility text-h1 {
+  font-size: 38px;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 60px; }
+}
+@utility text-h2 {
+  font-size: 30px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 42px; }
+}
+@utility text-h3 {
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  @media (width >= 64rem) { font-size: 24px; }
+}
+@utility text-h4 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  @media (width >= 64rem) { font-size: 28px; }
+}
+@utility text-lead {
+  font-size: 16px;
+  line-height: 1.6;
+  @media (width >= 64rem) { font-size: 18px; }
+}
+
+/*
+ * Floating launchers (both bottom-right: "Chat with us" in the corner, WhatsApp just left of it) stay clear of the
+ * cookie bar (a bottom-left pill on desktop, a full-width bar on phones) and of the sticky Back/Continue bar on flow
+ * pages. Order matters: later rules override earlier ones for the same element.
+ */
+@media (width < 40rem) {
+  body:has([data-consent-banner]) [data-whatsapp],
+  body:has([data-consent-banner]) [data-chat-launcher] {
+    bottom: 7.5rem;
+  }
+}
+body:has([data-sticky-bar]) [data-consent-banner],
+body:has([data-sticky-bar]) [data-whatsapp],
+body:has([data-sticky-bar]) [data-chat-launcher] {
+  bottom: 5.25rem;
+}
+@media (width < 40rem) {
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp],
+  body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
+    bottom: 12.5rem;
+  }
+}
+
+/*
+ * Account area: the "Ask about my cover" launcher sits above the phone tab bar and moves up again over a sticky
+ * Back/Continue bar. While someone is typing in a form on a phone it gets out of the way entirely, so it can never
+ * sit on top of the field they are filling in.
+ */
+body:has([data-sticky-bar]) [data-assistant-launcher],
+body:has([data-sticky-bar]) [data-assistant-panel] {
+  bottom: calc(9.75rem + env(safe-area-inset-bottom));
+}
+@media (width >= 64rem) {
+  body:has([data-sticky-bar]) [data-assistant-launcher],
+  body:has([data-sticky-bar]) [data-assistant-panel] {
+    bottom: 5.25rem;
+  }
+}
+@media (width < 64rem) {
+  body:has(#main :focus-within) [data-assistant-launcher] {
+    display: none;
+  }
+}
+
+/*
+ * Home hero (components/marketing/home-hero*.tsx). Phones: slide controls under the header, copy at the bottom of
+ * the first screen (clear of the floating WhatsApp/chat launchers), the picker below. Desktop: copy, controls
+ * and picker in the left column over the dark gradient, caption bottom-right beside the picker; the bottom
+ * 6rem stays empty so the fixed launchers in both bottom corners never cover hero content.
+ */
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "controls" "copy" "card";
+}
+@media (width >= 64rem) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 640px) minmax(0, 1fr);
+    grid-template-areas: "copy ." "controls ." "card caption";
+    align-content: center;
+    column-gap: 3rem;
+    padding-bottom: 6rem;
+  }
+}
+
+/* Each photo: the portrait crop on portrait screens (same media query as the <source>), focus from hero-slides.ts. */
+.hero-photo img {
+  object-position: var(--hero-focus-wide, 50% 50%);
+}
+.hero-photo {
+  transform-origin: var(--hero-focus-wide, 50% 50%);
+}
+@media (max-aspect-ratio: 2/3) {
+  .hero-photo img {
+    object-position: var(--hero-focus-tall, 50% 50%);
+  }
+  .hero-photo {
+    transform-origin: var(--hero-focus-tall, 50% 50%);
+  }
+}
+
+/* Ken Burns: a slow zoom on the image in view, capped at 1.05 so the photo never softens. */
+@keyframes hero-kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+.hero-kenburns {
+  animation: hero-kenburns 9.4s ease-out both;
+  will-change: transform;
+}
+@keyframes hero-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.hero-progress {
+  animation-name: hero-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-kenburns {
+    animation: none;
+  }
+}
+
+/*
+ * Legibility scrims: neutral black (no brand tint) so the photo keeps its natural colours. White text still
+ * meets 4.5:1 over the brightest pixel under it. On phones the copy sits in the bottom half and the picker
+ * below the photo on neutral-950; on desktop the copy sits in the left column, whose right edge is
+ * max(720px, 50%) (640px column + container padding, centred above 1440px). Top band: header links and logo.
+ */
+.hero-scrim {
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 0.6) 0, rgb(0 0 0 / 0.35) 7rem, rgb(0 0 0 / 0) 14rem),
+    linear-gradient(180deg, rgb(10 10 10 / 0) 34%, rgb(10 10 10 / 0.72) 54%, rgb(10 10 10 / 0.85) 70%, rgb(10 10 10) 100%);
+}
+@media (width >= 64rem) {
+  .hero-scrim {
+    --hero-text-edge: max(720px, 50%);
+    background:
+      linear-gradient(180deg, rgb(0 0 0 / 0.6) 0, rgb(0 0 0 / 0.35) 72px, rgb(0 0 0 / 0) 200px),
+      linear-gradient(0deg, rgb(0 0 0 / 0.5) 0, rgb(0 0 0 / 0) 200px),
+      linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.72) 0,
+        rgb(0 0 0 / 0.62) calc(var(--hero-text-edge) + 24px),
+        rgb(0 0 0 / 0.3) calc(var(--hero-text-edge) + 170px),
+        rgb(0 0 0 / 0.08) calc(var(--hero-text-edge) + 330px),
+        rgb(0 0 0 / 0) calc(var(--hero-text-edge) + 470px)
+      );
+  }
+}
+
+/*
+ * Transparent header over the hero photo while the page is at the top. Before hydration the hero's presence
+ * decides (`:has`); after, the hero sets data-hero-active on <html> while mounted (Cache Components keeps hidden
+ * routes mounted, so `:has` alone would leak onto other pages) and data-hero-scrolled past 80px. Opening a header
+ * menu (any top-level [data-header-fg] trigger) brings the solid header back.
+ */
+:is(html:not([data-hero-seen]):has([data-hero-overlay]), html[data-hero-active]):not([data-hero-scrolled]) [data-site-header]:not(:has([data-header-fg][aria-expanded="true"])) {
+  background-color: transparent;
+  border-color: transparent;
+  backdrop-filter: none;
+
+  & [data-header-fg] {
+    color: #fff;
+  }
+  & [data-header-fg]:hover {
+    color: var(--color-mint);
+    background-color: rgb(255 255 255 / 0.1);
+  }
+  & :focus-visible {
+    --tw-ring-color: #fff;
+    --tw-ring-offset-color: transparent;
+  }
+  & [data-logo="default"] {
+    display: none;
+  }
+  & [data-logo="reverse"] {
+    display: inline-flex;
+  }
+}

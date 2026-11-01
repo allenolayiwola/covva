@@ -9,7 +9,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { BusinessRuleError, ruleMessage } from "@/server/requests";
 import { notify, notifyOrg } from "@/server/notify";
 import { log } from "@/server/log";
-import { applePayEnabled, diasporaPsp, paystackKey, simulatorEnabled, siteUrl } from "@/server/env";
+import { applePayEnabled, diasporaPsp, paystackKey, simulatorEnabled, appUrl } from "@/server/env";
 import { emitEvent, emitRequestStatus } from "@/server/webhooks";
 import { persistPaymentSplits, splitForPayment } from "@/server/commercial";
 import { recordPaymentLedger, recordRefundLedger } from "@/server/ledger";
@@ -273,7 +273,7 @@ export async function initiatePayment(args: {
   const { data: profile } = await svc.from("profiles").select("email, phone").eq("id", callerId).maybeSingle();
   const email = profile?.email ?? `customer-${callerId.slice(0, 8)}@payments.covva.com.gh`;
   const reference = newReference();
-  const callbackUrl = args.callbackUrl ?? `${siteUrl()}/account/requests/${request.id}/confirmation`;
+  const callbackUrl = args.callbackUrl ?? `${appUrl()}/account/requests/${request.id}/confirmation`;
   const init = {
     callback_url: callbackUrl,
     channel: args.channel,
@@ -354,7 +354,7 @@ export async function initiatePayment(args: {
       amount,
       description: `Premium for ${request.reference} (${insurer.name})`,
       clientReference: reference,
-      callbackUrl: `${siteUrl()}/api/webhooks/hubtel${process.env.HUBTEL_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET)}` : ""}`,
+      callbackUrl: `${appUrl()}/api/webhooks/hubtel${process.env.HUBTEL_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET)}` : ""}`,
       returnUrl: callbackUrl,
       cancellationUrl: callbackUrl,
       customerPhone: args.momo?.phone ?? profile?.phone ?? null,
@@ -679,7 +679,7 @@ export async function initiatePolicyCollection(args: {
   const { data: profile } = await svc.from("profiles").select("email, phone").eq("id", args.payerUserId).maybeSingle();
   const email = profile?.email ?? `customer-${args.payerUserId.slice(0, 8)}@payments.covva.com.gh`;
   const settlement = provider === "simulator" ? "SIMULATED" : provider === "hubtel" ? hubtelMerchant : insurer.paystack_subaccount_code;
-  const callbackUrl = args.callbackUrl ?? `${siteUrl()}/account/policies/${policy.id}`;
+  const callbackUrl = args.callbackUrl ?? `${appUrl()}/account/policies/${policy.id}`;
   const channel: Enum<"payment_channel"> = args.channel === "card" ? "card" : "mobile_money";
   const row = {
     application_id: null,
@@ -730,7 +730,7 @@ export async function initiatePolicyCollection(args: {
       amount,
       description: args.description.slice(0, 120),
       clientReference: reference,
-      callbackUrl: `${siteUrl()}/api/webhooks/hubtel${process.env.HUBTEL_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET)}` : ""}`,
+      callbackUrl: `${appUrl()}/api/webhooks/hubtel${process.env.HUBTEL_WEBHOOK_SECRET ? `?secret=${encodeURIComponent(process.env.HUBTEL_WEBHOOK_SECRET)}` : ""}`,
       returnUrl: callbackUrl,
       cancellationUrl: callbackUrl,
       customerPhone: args.momo?.phone ?? profile?.phone ?? null,

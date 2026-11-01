@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/partner/ui";
 import { getApplicant, parseType, registerPath, registrationOpen, toInput, type Application } from "./_lib";
 import { ApplicationDocumentsUpload } from "./documents-upload";
 import { recordDocuments, removeDocument, saveCommercial, saveCompany, saveContacts, saveIntegration, saveLicence, saveSettlement, signAgreement, submitApplication } from "./actions";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Register" };
 
@@ -119,7 +120,7 @@ function Closed({ type }: { type: PartnerApplicationType }) {
       <PageHeader eyebrow="Covva partners" title={type === "insurer" ? "Insurer registration" : "Broker registration"} />
       <Notice tone="info" title="Self-service registration is not open right now">
         <p>Registrations are currently handled by our partnerships team while our NIC approval is finalised. Request a call and we will onboard you in person.</p>
-        <Link href={type === "insurer" ? "/insurers#contact" : "/brokers#contact"} className={cn(buttonClass("primary", "sm"), "mt-3")}>
+        <Link href={sitePath(type === "insurer" ? "/insurers#contact" : "/brokers#contact")} className={cn(buttonClass("primary", "sm"), "mt-3")}>
           Request a call
         </Link>
       </Notice>

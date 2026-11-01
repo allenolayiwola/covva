@@ -41,11 +41,11 @@ export interface PartyNotificationResult {
   beneficiary: { userId: string | null; phone: string | null; delivered: "in_app" | "sms" | "whatsapp" | "skipped"; reason?: string };
 }
 
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
+const appUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
 
 function absolute(link: string | undefined) {
   if (!link) return "";
-  return /^https?:\/\//.test(link) ? link : `${siteUrl()}${link.startsWith("/") ? "" : "/"}${link}`;
+  return /^https?:\/\//.test(link) ? link : `${appUrl()}${link.startsWith("/") ? "" : "/"}${link}`;
 }
 
 async function tagRole(svc: ReturnType<typeof createServiceClient>, userId: string, kind: string, role: "sponsor" | "beneficiary" | "customer", marker: string) {

@@ -8,6 +8,7 @@ import { CategoryIcon } from "@/components/customer/category-icon";
 import { ListSkeleton } from "@/components/customer/skeletons";
 import { REQUEST_SELECT, account, type RequestWithRefs } from "../_lib/data";
 import { REQUEST_TYPE_LABEL } from "../_lib/labels";
+import { sitePath } from "@/lib/site-url";
 
 export const metadata: Metadata = { title: "Requests" };
 
@@ -47,7 +48,7 @@ async function RequestList() {
         action={
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/account/requests/new" className={buttonClass("primary")}>Get a quote</Link>
-            <Link href="/get-started" className={buttonClass("secondary")}>Help me choose</Link>
+            <Link href={sitePath("/get-started")} className={buttonClass("secondary")}>Help me choose</Link>
           </div>
         }
       />

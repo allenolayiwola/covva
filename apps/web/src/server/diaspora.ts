@@ -33,7 +33,7 @@ export type Beneficiary = Row<"beneficiaries">;
 export type Sponsorship = Row<"sponsorships">;
 export type BeneficiaryConsent = Row<"beneficiary_consents">;
 
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
+const appUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_ENV === "production" ? "https://covva.com.gh" : "http://localhost:3000")).replace(/\/$/, "");
 
 /** Columns safe to send to the sponsor's UI/API (the Ghana Card is masked). */
 export const BENEFICIARY_COLS = "id, sponsor_user_id, household_id, full_name, relationship, phone, email, date_of_birth, ghana_card_number, address, region, linked_user_id, consent_status, consent_channel, consent_sent_at, consent_granted_at, consent_expires_at, notes, created_at, updated_at";
@@ -188,7 +188,7 @@ export function verifyConsentLinkToken(token: string | null | undefined): { bene
 }
 
 export function consentLinkUrl(token: string): string {
-  return `${siteUrl()}/consent/${encodeURIComponent(token)}`;
+  return `${appUrl()}/consent/${encodeURIComponent(token)}`;
 }
 
 export interface SendConsentResult {

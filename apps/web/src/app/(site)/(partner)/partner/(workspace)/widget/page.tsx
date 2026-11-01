@@ -7,7 +7,7 @@ import { getDistributorContext, widgetCode } from "../../_lib/distribution";
 import { ActionForm } from "@/components/partner/action-form";
 import { CopyField } from "@/components/referrals/copy-field";
 import { PageSkeleton, Section } from "@/components/partner/ui";
-import { siteUrl } from "@/server/api-auth";
+import { appUrl } from "@/server/api-auth";
 import { createWidgetCode, saveWidgetSettings } from "./actions";
 import { WidgetSettingsForm } from "./widget-form";
 
@@ -30,7 +30,7 @@ async function Widget() {
   const code = widgetCode(links);
   const canEdit = can(ctx, ROLES.orgAdmin);
   const category = partner.allowed_categories[0] ?? "motor";
-  const base = siteUrl();
+  const base = appUrl();
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted">

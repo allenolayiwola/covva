@@ -6,6 +6,7 @@ import { authorize, dbMessage, done, fail, formObject, zodError, type ActionStat
 import { createServiceClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/server/notify";
 import { sendTemplate, sendText } from "@/server/whatsapp";
+import { publicAppUrl } from "@/lib/public-urls";
 
 /**
  * Support console actions. Authorisation re-runs in every action (`whatsapp` perm:
@@ -64,7 +65,7 @@ export async function assignToBroker(_: ActionState, fd: FormData): Promise<Acti
   if (error) return fail(dbMessage(error));
   await loaded.svc.from("wa_handoffs").insert({ conversation_id: loaded.conv.id, reason: parsed.data.reason, to_party: "broker", org_id: org.id, request_id: loaded.conv.request_id, note: parsed.data.note || `Assigned by ${auth.staff.name ?? auth.staff.email ?? "staff"}` });
   const { data: members } = await loaded.svc.from("memberships").select("user_id").eq("org_id", org.id).eq("active", true).in("role", ["owner", "admin", "supervisor", "adviser"]);
-  const web = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const web = publicAppUrl() ?? "";
   await notifyUsers(
     (members ?? []).map((m) => ({
       userId: m.user_id,

@@ -1,20 +1,24 @@
 # Operations
 
-Runbook for the `web` (marketing, customer app, partner workspace, `/api/*`) and `admin`
-Vercel projects on Supabase project `krmnyqaweawkpygjmdry` (eu-west-2).
+Runbook for the `site` (marketing, Vercel project covva-site), `web` (customer app, partner workspace, quote flow,
+`/api/*`, crons; Vercel project covva-app) and `admin` Vercel projects on Supabase project `krmnyqaweawkpygjmdry`
+(eu-west-2). How the apps fit together, and the variables each one needs: `docs/APPS.md`.
 
 ---
 
 ## 1. Environment variables
 
-### `web` project
+### `web` project (covva-app)
+
+The marketing site (covva-site) needs only a subset of these; see `docs/APPS.md` § Environment variables.
 
 | Variable | Secret | Required | Purpose |
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | no | yes | Supabase URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | no | yes | Publishable (anon) key |
 | `SUPABASE_SECRET_KEY` | **yes** | yes | Service key for webhooks, cron, notifications, payments, API keys, AI usage logs. Never expose. |
-| `NEXT_PUBLIC_SITE_URL` | no | yes | Absolute links in emails/SMS, payment callbacks, simulator links |
+| `NEXT_PUBLIC_SITE_URL` | no | yes | The marketing site (covva-site): Learn, help-centre, verify and referral links; marketing redirects |
+| `NEXT_PUBLIC_APP_URL` | no | yes | This app (covva-app): links in emails/SMS, invites, payment callbacks, simulator links |
 | `NEXT_PUBLIC_ADMIN_URL` | no | yes | Link to the admin portal |
 | `PAYSTACK_SECRET_KEY` | **yes** | prod | Paystack API + webhook signature secret (`sk_live_…` / `sk_test_…`) |
 | `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | no | optional | Only if a client-side Paystack popup is added |

@@ -2,13 +2,14 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { ROLE_STATEMENTS } from "@im/core";
 import { SiteHeader } from "@/components/site-header";
+import { sitePath } from "@/lib/site-url";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-mist/60">
       <SiteHeader
         right={
-          <Link href="/support" className="text-sm font-medium text-brand hover:underline">
+          <Link href={sitePath("/support")} className="text-sm font-medium text-brand hover:underline">
             Need help?
           </Link>
         }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Cookie, X } from "lucide-react";
 import { Checkbox, buttonClass, cn } from "@im/ui";
 import { CONSENT_COOKIE, GA4_ID, PIXELS_CONFIGURED, applyConsent, choiceFromConsent, readConsent, subscribeConsent, writeConsent, type ConsentChoice } from "./analytics";
+import { sitePath } from "@/lib/site-url";
 
 export { CONSENT_COOKIE };
 
@@ -73,7 +74,7 @@ export function ConsentBanner() {
             )}
           </fieldset>
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
-            Processed under Ghana’s Data Protection Act, 2012 (Act 843). <Link href="/legal/cookies" className="font-medium text-brand underline-offset-2 hover:underline">Cookie notice</Link>
+            Processed under Ghana’s Data Protection Act, 2012 (Act 843). <Link href={sitePath("/legal/cookies")} className="font-medium text-brand underline-offset-2 hover:underline">Cookie notice</Link>
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" onClick={() => choose(choiceFromConsent({ analytics, marketing: PIXELS_CONFIGURED && marketing }))} className={buttonClass("primary", "sm")}>Save choices</button>
@@ -84,7 +85,7 @@ export function ConsentBanner() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <span aria-hidden className="hidden size-8 shrink-0 place-items-center rounded-full bg-mint text-brand-deep sm:grid"><Cookie className="size-4" /></span>
           <p className="min-w-0 flex-1 text-[13px] leading-snug text-ink-2">
-            Optional cookies need consent. <Link href="/legal/cookies" className="font-medium text-brand underline-offset-2 hover:underline">Notice</Link>
+            Optional cookies need consent. <Link href={sitePath("/legal/cookies")} className="font-medium text-brand underline-offset-2 hover:underline">Notice</Link>
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
             <button type="button" onClick={() => choose("essential")} aria-label="Reject — Essential only" className={buttonClass("outline", "sm", "flex-1 px-3 sm:flex-none")}>Reject</button>

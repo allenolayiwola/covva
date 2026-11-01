@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { findProductLine } from "@/components/marketing/products-content";
-import { ARTICLES } from "@/components/marketing/articles";
+import { siteUrl } from "@/lib/site-url";
 import { createServerClient } from "@supabase/ssr";
 import { REFERRAL_COOKIE, attributionWindowDays, decodeReferralCookie, encodeReferralCookie, frameAncestors, parseReferralParam, type ReferralSource } from "@im/core";
 
@@ -9,6 +8,24 @@ import { REFERRAL_COOKIE, attributionWindowDays, decodeReferralCookie, encodeRef
  * Real authorisation happens in Server Components/Actions/Route Handlers and RLS.
  */
 const PROTECTED = ["/account", "/partner", "/onboarding"];
+
+/**
+ * Marketing pages live on the marketing site (covva-site, docs/APPS.md). Old links and indexed URLs that reach
+ * the app are sent there permanently, keeping the path and query.
+ */
+const MARKETING = [
+  "/about", "/brokers", "/bundles", "/business", "/claims", "/contact", "/cover", "/diaspora", "/explore", "/get-started",
+  "/how-it-works", "/insurance", "/insurers", "/learn", "/legal", "/micro", "/partners", "/press", "/referrals", "/support",
+  "/trust", "/verify", "/waitlist",
+];
+const isMarketing = (path: string) => MARKETING.some((p) => path === p || path.startsWith(`${p}/`)) || path === "/sitemap.xml";
+
+/** Absolute URL on the marketing site, or null when the site URL points back at this app (misconfigured env). */
+function onSite(request: NextRequest, path: string): URL | null {
+  const site = siteUrl();
+  if (site === request.nextUrl.origin) return null;
+  return new URL(path + request.nextUrl.search, `${site}/`);
+}
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -29,9 +46,8 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const path = request.nextUrl.pathname;
 
-  // API v1 uses bearer tokens (mobile) — never redirect API calls. The CMS admin and its REST API
-  // (/cms, /cms-api) use Payload's own auth cookie: pass them through untouched.
-  if (path.startsWith("/api/") || path === "/cms" || path.startsWith("/cms/") || path.startsWith("/cms-api/")) return response;
+  // API v1 uses bearer tokens (mobile) — never redirect API calls.
+  if (path.startsWith("/api/")) return response;
 
   // Embedded widget: frame-ancestors from the partner's allowed domains (global X-Frame-Options skips /embed).
   if (path === "/embed" || path.startsWith("/embed/")) {
@@ -41,25 +57,34 @@ export async function proxy(request: NextRequest) {
 
   captureReferral(request, response);
 
-  // Unknown product and Learn slugs answer with a real 404 (the page alone can only stream a soft one).
-  const cover = /^\/cover\/([^/]+)\/?$/.exec(path);
-  if ((cover && !findProductLine(cover[1]!)) || learnSlugMissing(path)) {
+  // Marketing paths → the marketing site (308). The site captures ?ref itself.
+  if (isMarketing(path)) {
+    const target = onSite(request, path);
+    if (target) return withCookies(NextResponse.redirect(target, 308), response);
+  }
+
+  // The app has no home page: signed-in people go to their account, everyone else to the site home.
+  if (path === "/") {
+    const target = data?.claims ? null : onSite(request, "/");
+    if (target) return withCookies(NextResponse.redirect(target, 307), response);
     const url = request.nextUrl.clone();
-    url.pathname = NOT_FOUND_PATH;
-    const notFound = NextResponse.rewrite(url, { status: 404 });
-    response.cookies.getAll().forEach((c) => notFound.cookies.set(c));
-    return notFound;
+    url.pathname = data?.claims ? "/account" : "/sign-in";
+    return withCookies(NextResponse.redirect(url, 307), response);
   }
 
   if (!data?.claims && PROTECTED.some((p) => path === p || path.startsWith(`${p}/`))) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     url.search = `?next=${encodeURIComponent(path + request.nextUrl.search)}`;
-    const redirect = NextResponse.redirect(url);
-    response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-    return redirect;
+    return withCookies(NextResponse.redirect(url), response);
   }
   return response;
+}
+
+/** Carry refreshed session and referral cookies over to a redirect. */
+function withCookies(redirect: NextResponse, response: NextResponse): NextResponse {
+  response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+  return redirect;
 }
 
 /**
@@ -83,24 +108,6 @@ function captureReferral(request: NextRequest, response: NextResponse) {
     path: "/",
     maxAge: attributionWindowDays * 86_400,
   });
-}
-
-/**
- * `/learn/<slug>` is partially prerendered: its shell streams before the page can call `notFound()`, so an
- * unknown slug would otherwise answer 200 (a "soft 404"). The slug is checked here against the articles in code,
- * and a missing one is rewritten to a route that renders the not-found page with a 404 status.
- */
-const NOT_FOUND_PATH = "/__not-found";
-function learnSlugMissing(path: string): boolean {
-  const m = /^\/learn\/([^/]+)\/?$/.exec(path);
-  if (!m) return /^\/learn\/[^/]+\/./.test(path); // nothing lives below /learn/<slug>
-  let slug: string;
-  try {
-    slug = decodeURIComponent(m[1]!);
-  } catch {
-    return true;
-  }
-  return !ARTICLES.some((a) => a.slug === slug);
 }
 
 /** Allowed embedding origins for a partner code (public RPC), cached per instance for 5 minutes. */

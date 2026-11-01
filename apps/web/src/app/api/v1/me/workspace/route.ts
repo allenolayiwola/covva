@@ -1,5 +1,5 @@
 import { SetActiveWorkspaceInput, accessMessage, workspaceAccess } from "@im/core";
-import { check, forbidden, parseJson, siteUrl, withApi } from "@/server/api-auth";
+import { check, forbidden, parseJson, appUrl, withApi } from "@/server/api-auth";
 import { buildWorkspaces } from "@/server/workspaces";
 
 /**
@@ -20,7 +20,7 @@ export const POST = withApi(
     if (!chosen) throw forbidden("You don't belong to that workspace.");
     if (!chosen.allowed) {
       const access = workspaceAccess(chosen.type, client);
-      throw forbidden(accessMessage(access, siteUrl()) ?? "That workspace isn't available on this client.");
+      throw forbidden(accessMessage(access, appUrl()) ?? "That workspace isn't available on this client.");
     }
     const activeWorkspace = chosen.type === "customer" ? { type: "customer" as const } : { type: chosen.type, orgId: chosen.orgId! };
     const res = await auth.supabase.from("profiles").update({ active_workspace: activeWorkspace, last_seen_platform: client }).eq("id", auth.userId);

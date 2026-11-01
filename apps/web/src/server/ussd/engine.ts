@@ -31,7 +31,7 @@ import { translatorFor } from "@/lib/i18n/server";
 import { log, mask } from "@/server/log";
 import { notifyOrg, sendSms } from "@/server/notify";
 import { quoteVersion } from "@/server/catalogue";
-import { siteUrl } from "@/server/env";
+import { appUrl, siteUrl } from "@/server/env";
 import { fromTable, type UssdSessionRow } from "@/server/phase3-tables";
 import type { UssdRequest } from "./types";
 
@@ -360,6 +360,7 @@ async function perform(svc: Svc, action: UssdAction, route: UssdRoute, c: ActCtx
   const p = route.params;
   const policy = p.policyIndex != null ? c.state.policies[p.policyIndex] : undefined;
   const site = siteUrl();
+  const app = appUrl();
 
   switch (action) {
     case "end.notFound":
@@ -467,7 +468,7 @@ async function perform(svc: Svc, action: UssdAction, route: UssdRoute, c: ActCtx
         await sendSms(c.msisdn, tr("sms.callback", { ref }));
         return end("ussd.callback.done", { ref });
       }
-      await sendSms(c.msisdn, tr("sms.renew", { policy: policy.ref, link: `${site}/account/policies/${policy.id}/renew?utm_source=ussd` }));
+      await sendSms(c.msisdn, tr("sms.renew", { policy: policy.ref, link: `${app}/account/policies/${policy.id}/renew?utm_source=ussd` }));
       return end("ussd.sms.sent");
     }
 
@@ -485,7 +486,7 @@ async function perform(svc: Svc, action: UssdAction, route: UssdRoute, c: ActCtx
       } catch (err) {
         log.warn("ussd.instalment_pay_failed", { err });
       }
-      await sendSms(c.msisdn, tr("sms.pay", { amount: ussdMoney(inst.amount), policy: inst.label, link: `${site}/account/payments/instalments?pay=${inst.id}` }));
+      await sendSms(c.msisdn, tr("sms.pay", { amount: ussdMoney(inst.amount), policy: inst.label, link: `${app}/account/payments/instalments?pay=${inst.id}` }));
       return end("ussd.pay.linkSent", { amount: ussdMoney(inst.amount) });
     }
   }

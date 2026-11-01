@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+// The app (covva-app): sign-in, account, partner workspace, quote flow, embeds, APIs and crons. See docs/APPS.md.
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   poweredByHeader: false,

@@ -7,6 +7,7 @@ import { ArrowRight, ChevronDown, Menu, UserRound, X } from "lucide-react";
 import { buttonClass, cn } from "@im/ui";
 import { T, useT } from "@/lib/i18n/client";
 import { PRIMARY_NAV, SECONDARY_NAV, isGroup, navText } from "./nav-links";
+import { sitePath } from "@/lib/site-url";
 
 /** Small, dependency-free mobile menu (< md). Groups expand inline; closes on Escape and on navigation. */
 export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
@@ -125,7 +126,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
             ))}
           </ul>
           <div className="mt-8 grid gap-3">
-            <Link href="/get-started" onClick={() => close(false)} className={buttonClass("primary", "lg", "w-full")}>
+            <Link href={sitePath("/get-started")} onClick={() => close(false)} className={buttonClass("primary", "lg", "w-full")}>
               <T k="header.getQuote" />
             </Link>
             {showAccount && (

@@ -4,6 +4,7 @@ import type { Enum } from "@im/db";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ROLES_BY_ORG_TYPE } from "@/lib/org-meta";
+import { appOrigin } from "@/lib/public-urls";
 
 const roleEnum = z.enum(["owner", "admin", "supervisor", "adviser", "underwriter", "claims_officer", "finance", "viewer", "platform_admin", "platform_ops", "compliance", "support"]);
 
@@ -46,7 +47,7 @@ export async function inviteUser(_: ActionState, fd: FormData): Promise<ActionSt
       "Inviting users needs SUPABASE_SECRET_KEY configured on the admin app (Supabase auth admin API). Until then, ask the person to sign up on the main site and add them to an organisation by email.",
     );
   }
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const site = appOrigin();
   const { data, error } = await svc.auth.admin.inviteUserByEmail(email, {
     data: { full_name },
     redirectTo: new URL("/auth/callback", site).toString(),
