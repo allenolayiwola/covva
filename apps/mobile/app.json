@@ -4,6 +4,7 @@
     "slug": "covva",
     "scheme": "covva",
     "version": "0.1.0",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.covva.app",
@@ -19,14 +20,66 @@
           "UIInterfaceOrientationLandscapeRight"
         ],
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "associatedDomains": [
+        "applinks:insurance-marketplace-tau.vercel.app",
+        "applinks:app.covva.com.gh",
+        "webcredentials:insurance-marketplace-tau.vercel.app",
+        "webcredentials:app.covva.com.gh"
+      ]
     },
     "android": {
-      "package": "com.covva.app"
+      "package": "com.covva.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "insurance-marketplace-tau.vercel.app",
+              "pathPrefix": "/account"
+            },
+            {
+              "scheme": "https",
+              "host": "insurance-marketplace-tau.vercel.app",
+              "pathPrefix": "/auth/callback"
+            },
+            {
+              "scheme": "https",
+              "host": "app.covva.com.gh",
+              "pathPrefix": "/account"
+            },
+            {
+              "scheme": "https",
+              "host": "app.covva.com.gh",
+              "pathPrefix": "/auth/callback"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
       "./plugins/with-adaptive-orientation"
     ],
     "orientation": "default",
