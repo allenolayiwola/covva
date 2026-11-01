@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@im/ui";
+import type { StatusMeta, Tone } from "@im/core";
 
 /*
  * Shared admin page pieces ("Ledger" layout, "Brand rail" colours): page header, summary counts, status pills,
@@ -88,14 +89,25 @@ function StatBody({ stat }: { stat: Stat }) {
   );
 }
 
-export type StatusTone = "ok" | "wait" | "off" | "danger";
+export type StatusTone = "ok" | "wait" | "off" | "danger" | "info";
 
 const STATUS_CLASS: Record<StatusTone, { pill: string; dot: string }> = {
   ok: { pill: "bg-status-ok-bg text-status-ok", dot: "bg-status-ok-dot" },
   wait: { pill: "bg-status-wait-bg text-status-wait", dot: "bg-status-wait-dot" },
   off: { pill: "bg-status-off-bg text-status-off", dot: "bg-status-off-dot" },
   danger: { pill: "bg-status-danger-bg text-status-danger", dot: "bg-status-danger-dot" },
+  info: { pill: "bg-status-info-bg text-status-info", dot: "bg-status-info-dot" },
 };
+
+/** Maps the shared @im/core status tones onto the admin pill tones ("neutral" reads as off). */
+export function adminTone(tone: Tone): StatusTone {
+  return tone === "neutral" ? "off" : tone;
+}
+
+/** Status pill straight from a @im/core status record (REQUEST_STATUS, CLAIM_STATUS…). */
+export function MetaPill({ meta, fallback }: { meta: StatusMeta | undefined; fallback?: string }) {
+  return <StatusPill tone={meta ? adminTone(meta.tone) : "off"}>{meta?.label ?? fallback ?? "Unknown"}</StatusPill>;
+}
 
 /** Squared status pill with a leading dot (approved / awaiting review / suspended …). */
 export function StatusPill({ tone, children, className }: { tone: StatusTone; children: React.ReactNode; className?: string }) {
@@ -158,5 +170,38 @@ export function Td({ children, className, ...props }: React.TdHTMLAttributes<HTM
     <td className={cn("border-t border-line px-4 py-3 align-middle text-ink-2 [tr:first-child>&]:border-t-0", className)} {...props}>
       {children}
     </td>
+  );
+}
+
+/**
+ * Primary link of a table row that opens the row's drawer. It stretches over the whole row (the <tr> needs
+ * `relative`), so a click anywhere on the row opens it; `id` lets the drawer hand focus back on close.
+ */
+export function RowLink({ id, href, current, children, className }: { id: string; href: string; current?: boolean; children: React.ReactNode; className?: string }) {
+  return (
+    <Link
+      id={id}
+      href={href}
+      scroll={false}
+      prefetch={false}
+      aria-current={current ? "true" : undefined}
+      className={cn(
+        "font-semibold text-ink after:absolute after:inset-0 after:content-[''] hover:text-brand focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-brand",
+        className,
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/** Small heading + list block used inside drawers ("Recent activity", "Status history"). */
+export function DrawerSection({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+  const id = `ds-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  return (
+    <section aria-labelledby={id} className={className}>
+      <h3 id={id} className="mb-2 text-xs font-semibold text-muted">{title}</h3>
+      {children}
+    </section>
   );
 }
