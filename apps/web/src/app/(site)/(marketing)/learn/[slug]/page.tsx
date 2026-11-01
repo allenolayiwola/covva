@@ -1,15 +1,19 @@
 import { sitePath } from "@/lib/site-url";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ARTICLES } from "@/components/marketing/articles";
-import { ArticleBody, ArticleSkeleton, moreGuides } from "@/components/marketing/article-page";
+import { ArticleBody, moreGuides } from "@/components/marketing/article-page";
 import { getArticle, getArticles } from "@/server/cms";
 
 /**
  * Learn article (English). Content comes from the CMS when it has published articles, otherwise
  * from the typed list; the typed slugs are prerendered, CMS-only slugs render on first request.
+ * No Suspense fallback: a skeleton in the static shell painted with the footer on screen, then the
+ * swap to real content pushed the footer down (layout shift). `instant = false` lets the segment
+ * block on the (cached) CMS read instead, as /learn/[slug]/[lang] does.
  */
+export const instant = false;
+
 export function generateStaticParams() {
   return ARTICLES.map((a) => ({ slug: a.slug }));
 }
@@ -29,15 +33,7 @@ export async function generateMetadata({ params }: PageProps<"/learn/[slug]">): 
   };
 }
 
-export default function ArticlePage({ params }: PageProps<"/learn/[slug]">) {
-  return (
-    <Suspense fallback={<ArticleSkeleton />}>
-      <ArticleContent params={params} />
-    </Suspense>
-  );
-}
-
-async function ArticleContent({ params }: Pick<PageProps<"/learn/[slug]">, "params">) {
+export default async function ArticlePage({ params }: PageProps<"/learn/[slug]">) {
   const { slug } = await params;
   const [a, all] = await Promise.all([getArticle(slug), getArticles()]);
   if (!a) notFound();
