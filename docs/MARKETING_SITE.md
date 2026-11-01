@@ -1,6 +1,6 @@
 # Marketing site — analytics, experiments, performance and content
 
-Status: 28 October 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
+Status: 1 November 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
 Everything here lives under `apps/site/src/components/marketing/` and `apps/site/src/app/(site)/(marketing)/` (the marketing site, covva-site; see `docs/APPS.md`); nothing touches the
 customer app, partner workspace, API or database.
 
@@ -73,7 +73,7 @@ Rules of the road:
 - Exposure is reported once per page view per experiment via `experiment_exposure`; analyse by that event's `variant` param
   in GA4 (Explore → funnel from `experiment_exposure` to `quote_start` / `generate_lead`).
 - Registered today: `home_hero_headline` (off): it switches the hero lede (slide 1's subline), not the `<h1>`, so the LCP
-  element stays static server HTML. Switch it on by setting `NEXT_PUBLIC_EXPERIMENTS=home_hero_headline` on the web project in Vercel and redeploying.
+  element stays static server HTML. Switch it on by setting `NEXT_PUBLIC_EXPERIMENTS=home_hero_headline` on the covva-site project in Vercel and redeploying.
 
 ## 4. Lighthouse (production build, mobile emulation)
 
@@ -99,8 +99,8 @@ Timing and the picker's preselection rules are pure functions in `packages/core/
 
 ## 6. Content
 
-Marketing copy, Learn articles, FAQs and testimonials live in code (`apps/web/src/components/marketing/content.ts`,
-`articles.ts`) and are read through `apps/web/src/server/content.ts`. Payload CMS was built and then removed in
+Marketing copy, Learn articles, FAQs and testimonials live in code (`apps/site/src/components/marketing/content.ts`,
+`articles.ts`) and are read through `apps/site/src/server/content.ts`. Payload CMS was built and then removed in
 November 2026; a content change is a code change.
 
 ## 7. Still waiting on assets

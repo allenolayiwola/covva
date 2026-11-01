@@ -69,3 +69,23 @@ for (const [vercelEnv, nodeEnv, production] of [
     }
   });
 }
+
+for (const [configured, origin, indexable] of [
+  ['https://covva-site.vercel.app', 'https://covva-site.vercel.app', false],
+  ['covva-site-git-main-team.vercel.app', 'https://covva-site-git-main-team.vercel.app', false],
+  ['https://covva.com.gh', 'https://covva.com.gh', true],
+  ['https://www.covva.com.gh', 'https://www.covva.com.gh', true],
+  ['https://notvercel.app', 'https://notvercel.app', true],
+]) {
+  test(`production indexing on ${configured}`, t => {
+    t.mock.property(process, 'env', { ...process.env, VERCEL_ENV: 'production', NEXT_PUBLIC_SITE_URL: configured });
+    if (indexable) {
+      assert.equal(rootMetadata().robots, undefined);
+      assert.equal(robots().rules[0].allow, '/');
+      assert.equal(robots().sitemap, `${origin}/sitemap.xml`);
+    } else {
+      assert.deepEqual(rootMetadata().robots, { index: false, follow: false });
+      assert.deepEqual(robots(), { rules: [{ userAgent: '*', disallow: '/' }] });
+    }
+  });
+}
