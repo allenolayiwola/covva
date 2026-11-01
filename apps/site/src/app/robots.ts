@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
-import { isProductionDeployment } from "@/lib/deployment";
+import { isIndexable } from "@/lib/deployment";
 import { siteUrl } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
-  if (!isProductionDeployment()) {
+  if (!isIndexable()) {
     return { rules: [{ userAgent: "*", disallow: "/" }] };
   }
 
