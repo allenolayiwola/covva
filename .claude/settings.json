@@ -16,6 +16,13 @@
       "mcp__supabase"
     ],
     "ask": [
+      "Bash(bunx supabase branches delete*)",
+      "Bash(bunx supabase db reset*)",
+      "Bash(bunx supabase functions delete*)",
+      "Bash(bunx supabase projects delete*)",
+      "Bash(bunx supabase secrets unset*)",
+      "Bash(bunx supabase stop --no-backup*)",
+      "Bash(bunx supabase storage rm*)",
       "Bash(npx supabase branches delete*)",
       "Bash(npx supabase db reset*)",
       "Bash(npx supabase functions delete*)",
@@ -23,6 +30,13 @@
       "Bash(npx supabase secrets unset*)",
       "Bash(npx supabase stop --no-backup*)",
       "Bash(npx supabase storage rm*)",
+      "Bash(pnpm dlx supabase branches delete*)",
+      "Bash(pnpm dlx supabase db reset*)",
+      "Bash(pnpm dlx supabase functions delete*)",
+      "Bash(pnpm dlx supabase projects delete*)",
+      "Bash(pnpm dlx supabase secrets unset*)",
+      "Bash(pnpm dlx supabase stop --no-backup*)",
+      "Bash(pnpm dlx supabase storage rm*)",
       "Bash(supabase branches delete*)",
       "Bash(supabase db reset*)",
       "Bash(supabase functions delete*)",
@@ -42,7 +56,8 @@
       "mcp__supabase__delete_feedback",
       "mcp__supabase__merge_branch",
       "mcp__supabase__pause_project",
-      "mcp__supabase__reset_branch"
+      "mcp__supabase__reset_branch",
+      "mcp__supabase__restore_project"
     ]
   },
   "hooks": {
