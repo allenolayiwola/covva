@@ -21,7 +21,7 @@ function subscribe(cb: () => void) {
 }
 
 /**
- * The reader's chosen Learn language: the `covva_lang` cookie when it names a CMS locale, else
+ * The reader's chosen Learn language: the `covva_lang` cookie when it names a supported locale, else
  * English. "en" during SSR and hydration, so prerendered pages render English byte-for-byte and
  * switch after hydration (and whenever the cookie changes).
  */
@@ -30,8 +30,8 @@ export function useLearnLang(): CmsLocale {
 }
 
 /**
- * Language switcher for the Learn hub. It lists only languages that have published content in the
- * CMS (`available`, computed on the server) and renders nothing while English is the only one — no
+ * Language switcher for the Learn hub. It lists only languages that have translated articles
+ * (`available`, computed on the server) and renders nothing while English is the only one — no
  * "coming soon" promises. The choice is kept in the `covva_lang` cookie, shared with the site-wide
  * header switcher. On the hub the article cards (`LearnArticleLink`) follow the cookie, so choosing
  * a language makes every card open the translation route. On an article page it also navigates:

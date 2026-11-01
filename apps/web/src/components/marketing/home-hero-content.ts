@@ -1,4 +1,4 @@
-/** Shared by the additive Payload seed and the no-CMS fallback. */
+/** Approved home hero copy. */
 export const HOME_HERO = {
   blockType: "hero" as const,
   eyebrow: "Insurance in Ghana · GH₵",

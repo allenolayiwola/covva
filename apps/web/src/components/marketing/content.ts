@@ -197,9 +197,9 @@ export const REGULATION = {
 /**
  * Testimonials are ILLUSTRATIVE until real, consented customer reviews exist. Names are neutral
  * placeholders and every block that renders them must show the "Illustrative" label.
- * Replace via the CMS once genuine reviews are collected — never present these as real.
+ * Replace here once genuine, consented reviews are collected — never present these as real.
  */
-export interface Testimonial { id: string; quote: string; name: string; context: string; /** True unless a real, consented review (CMS). */ illustrative: boolean }
+export interface Testimonial { id: string; quote: string; name: string; context: string; /** True unless a real, consented review. */ illustrative: boolean }
 export const TESTIMONIALS: Testimonial[] = [
   { id: "t1", quote: "I compared three motor quotes on my phone during lunch and paid with MoMo. The certificate was in my wallet the same afternoon.", name: "Driver, Accra", context: "Motor · comprehensive", illustrative: true },
   { id: "t2", quote: "My daughter in London pays for my funeral plan and we both get the renewal message. No more surprises.", name: "Parent, Kumasi", context: "Life & funeral · diaspora-paid", illustrative: true },

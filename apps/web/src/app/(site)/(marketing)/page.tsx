@@ -36,7 +36,7 @@ import { RenewalReminderForm } from "@/components/marketing/renewal-reminder-for
 import { Reveal } from "@/components/marketing/reveal";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { KEY_BENEFITS, STATS } from "@/components/marketing/content";
-import { getFaqsFor, getTestimonials } from "@/server/cms";
+import { getFaqsFor, getTestimonials } from "@/server/content";
 import { PRODUCT_LINES } from "@/components/marketing/products-content";
 import { getFromPrices, monthlyFrom } from "@/components/marketing/pricing";
 import { textLinkClass } from "@/components/marketing/ui-classes";
@@ -54,7 +54,7 @@ const STEPS = [
 const BENEFIT_ICONS = { instant: Zap, instalments: CreditCard, reminders: BellRing, claims: FileText, wallet: QrCode } as const;
 
 export default async function HomePage() {
-  // CMS FAQs fall back to typed content. Customer stories remain off until verified.
+  // Customer stories remain off until verified.
   const [categories, directory, demo, brand, prices, faqs, testimonials] = await Promise.all([
     getCategories(),
     getPartnerDirectory(),

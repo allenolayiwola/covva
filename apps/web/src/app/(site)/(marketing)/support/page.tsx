@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Mail, Phone, UserRoundCheck } from "lucide-react";
 import { Container, Eyebrow } from "@im/ui";
 import { getBrand } from "@/components/marketing/brand";
-import { getFaqGroups } from "@/server/cms";
+import { getFaqGroups } from "@/server/content";
 import { FaqSearch } from "@/components/marketing/faq-search";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { IconTile, Section, SectionHeading } from "@/components/marketing/section";

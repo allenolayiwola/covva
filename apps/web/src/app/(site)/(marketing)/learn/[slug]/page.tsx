@@ -3,17 +3,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ARTICLES } from "@/components/marketing/articles";
 import { ArticleBody, moreGuides } from "@/components/marketing/article-page";
-import { getArticle, getArticles } from "@/server/cms";
+import { getArticle, getArticles } from "@/server/content";
 
 /**
- * Learn article (English). Content comes from the CMS when it has published articles, otherwise
- * from the typed list; the typed slugs are prerendered, CMS-only slugs render on first request.
- * No Suspense fallback: a skeleton in the static shell painted with the footer on screen, then the
- * swap to real content pushed the footer down (layout shift). `instant = false` lets the segment
- * block on the (cached) CMS read instead, as /learn/[slug]/[lang] does.
+ * Learn article. Every slug is prerendered from the articles in code; unknown slugs get a real 404 from the
+ * proxy. No Suspense fallback: a skeleton in the static shell painted with the footer on screen, then the swap
+ * to real content pushed the footer down (layout shift).
  */
-export const instant = false;
-
 export function generateStaticParams() {
   return ARTICLES.map((a) => ({ slug: a.slug }));
 }
@@ -27,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/learn/[slug]">): 
   return {
     title,
     description,
-    alternates: { canonical: `/learn/${a.slug}`, languages: Object.fromEntries(a.availableLocales.filter((l) => l !== "en").map((l) => [l, `/learn/${a.slug}/${l}`])) },
+    alternates: { canonical: `/learn/${a.slug}` },
     robots: a.seo.noIndex ? { index: false, follow: false } : undefined,
     openGraph: { type: "article", title, description, url: `/learn/${a.slug}`, publishedTime: a.published, modifiedTime: a.updated ?? a.published, images: [a.coverImage?.url ?? sitePath("/opengraph-image")] },
   };

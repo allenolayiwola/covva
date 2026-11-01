@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Clock, Languages } from "lucide-react";
 import { Container, Notice, Pill } from "@im/ui";
 import { localeDef, type CmsLocale } from "@im/core";
-import type { ArticleView } from "@/server/cms";
+import type { ArticleView } from "@/server/content";
 import { LanguageSwitcher } from "./language-switcher";
 import { JsonLd } from "./json-ld";
 import { CtaBand } from "./cta-band";

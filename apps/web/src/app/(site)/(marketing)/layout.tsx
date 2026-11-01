@@ -9,7 +9,6 @@ import { ConsentBanner } from "@/components/marketing/consent-banner";
 import { SmartAppBanner } from "@/components/marketing/smart-app-banner";
 import { siteUrl as resolveSiteUrl } from "@/lib/site-url";
 import { AnalyticsClicks } from "@/components/marketing/analytics-clicks";
-import { PreviewBanner } from "@/components/marketing/preview-banner";
 
 const siteUrl = resolveSiteUrl();
 const iosAppId = process.env.NEXT_PUBLIC_IOS_APP_ID;
@@ -38,7 +37,6 @@ export default async function MarketingLayout({ children }: LayoutProps<"/">) {
         }}
       />
       <SmartAppBanner />
-      <PreviewBanner />
       <div data-marketing className="contents">
         <SiteHeader />
         <main id="main" tabIndex={-1} className="focus:outline-none">

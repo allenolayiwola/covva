@@ -4,8 +4,8 @@ import type { Testimonial } from "./content";
 
 /**
  * Testimonials block. Until real, consented reviews exist every card is labelled "Illustrative"
- * and uses neutral placeholder attributions — never fake named reviews presented as real. A CMS
- * testimonial loses the label only when it is marked genuine with consent on file (docs/CMS.md).
+ * and uses neutral placeholder attributions — never fake named reviews presented as real. A testimonial
+ * loses the label only when it is marked genuine (illustrative: false) with written consent on file.
  */
 export function Testimonials({ items }: { items: Pick<Testimonial, "id" | "quote" | "name" | "context" | "illustrative">[] }) {
   return (

@@ -471,7 +471,6 @@ export const CRON_JOBS: Record<string, CronJob> = {
   // this month); upserts on (enrolment, period) so a re-run is a no-op. Trips stay summaries; no GPS is stored.
   "telematics-scoring": async (svc) => (await import("@/server/telematics")).telematicsScoring(svc),
   // Marketing CMS: every 15 minutes — Payload's job queue (scheduled publish / unpublish). No-op when the CMS is off.
-  "cms-jobs": async () => (await import("@/server/cms-jobs")).runCmsJobs(),
 };
 
 export async function runCron(job: string, opts: CronOptions = {}) {
