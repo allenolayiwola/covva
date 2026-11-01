@@ -7,7 +7,7 @@ import { Section } from "@/components/marketing/section";
 import { LanguageSwitcher } from "@/components/marketing/language-switcher";
 import { LearnArticleLink } from "@/components/marketing/learn-article-link";
 import { JsonLd } from "@/components/marketing/json-ld";
-import { getArticleLocales, getArticles } from "@/server/cms";
+import { getArticleLocales, getArticles } from "@/server/content";
 import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
@@ -17,7 +17,6 @@ export const metadata: Metadata = {
 };
 
 export default async function LearnPage() {
-  // CMS articles when any are published, otherwise the typed list (docs/CMS.md).
   const [ARTICLES, locales] = await Promise.all([getArticles(), getArticleLocales()]);
   const topics = [...new Set(ARTICLES.map((a) => a.topic))];
   return (

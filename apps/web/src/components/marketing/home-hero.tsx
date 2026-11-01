@@ -1,14 +1,12 @@
 import { getImageProps } from "next/image";
 import { ArrowRight, Banknote, ShieldCheck, Smartphone } from "lucide-react";
 import { Container, buttonClass } from "@im/ui";
-import { getPage } from "@/server/cms";
 import { HOME_HERO } from "./home-hero-content";
 import { HERO_CATEGORIES } from "./hero-categories";
 
 /** Static Hero A. Native radios and a GET form remain usable without hydration. */
-export async function HomeHero() {
-  const page = await getPage("home-hero");
-  const hero = page?.blocks.find((block) => block.type === "hero") ?? HOME_HERO;
+export function HomeHero() {
+  const hero = HOME_HERO;
   const common = { alt: "A family beside their car outside their home in Ghana. AI-generated placeholder.", width: 2400, height: 1200, sizes: "(max-width: 767px) calc(100vw - 40px), (max-width: 1439px) 45vw, 597px", loading: "eager" as const, fetchPriority: "high" as const };
   const { props: desktop } = getImageProps({ ...common, src: "/images/home-hero/desktop.webp" });
   const { props: mobile } = getImageProps({ ...common, src: "/images/home-hero/mobile.webp", width: 1080, height: 1350 });

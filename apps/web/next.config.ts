@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withPayload } from "@payloadcms/next/withPayload";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -53,5 +52,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Payload CMS (docs/CMS.md): admin at /cms, REST at /cms-api; marks server-only packages external.
-export default withPayload(nextConfig, { devBundleServerPackages: false });
+export default nextConfig;

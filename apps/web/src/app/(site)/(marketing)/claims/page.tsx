@@ -9,7 +9,7 @@ import { CheckList, FeatureCard, IconTile, Section, SectionHeading } from "@/com
 import { FaqList } from "@/components/marketing/faq-list";
 import { JsonLd, faqJsonLd } from "@/components/marketing/json-ld";
 import { StoreBadges } from "@/components/marketing/store-badges";
-import { getFaqsFor } from "@/server/cms";
+import { getFaqsFor } from "@/server/content";
 import { textLinkClass } from "@/components/marketing/ui-classes";
 
 export const metadata: Metadata = {

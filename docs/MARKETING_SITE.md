@@ -1,4 +1,4 @@
-# Marketing site — analytics, experiments, performance and CMS
+# Marketing site — analytics, experiments, performance and content
 
 Status: 28 October 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
 Everything here lives under `apps/web/src/components/marketing/` and `apps/web/src/app/(site)/(marketing)/`; nothing touches the
@@ -97,13 +97,11 @@ Timing and the picker's preselection rules are pure functions in `packages/core/
 - Contrast: the neutral black scrims keep every hero text run at ≥ 4.5:1 against the brightest pixel under it on all four slides
   (checked from 360px to 2560px wide); recheck when a photo changes.
 
-## 6. Headless CMS — Payload (built)
+## 6. Content
 
-Payload 3 runs inside the web app: admin at `/cms`, content in the Supabase Postgres schema `cms`, read through the
-Local API by `apps/web/src/server/cms.ts` with `'use cache'` + tags and on-publish `revalidateTag`. Pages, Learn
-articles, FAQs, testimonials and partner logos are editable; the typed files (`content.ts`, `articles.ts`) remain the
-fallback and the seed, so a deployment without the CMS env renders exactly as before. Everything about it — the
-version decision, env vars, `cms:migrate` / `cms:seed`, edge protection, preview, translations — is in `docs/CMS.md`.
+Marketing copy, Learn articles, FAQs and testimonials live in code (`apps/web/src/components/marketing/content.ts`,
+`articles.ts`) and are read through `apps/web/src/server/content.ts`. Payload CMS was built and then removed in
+November 2026; a content change is a code change.
 
 ## 7. Still waiting on assets
 
