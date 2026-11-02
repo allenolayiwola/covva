@@ -32,7 +32,7 @@ export default function MarketingNotFound() {
           ))}
         </ul>
         <div className="mt-10 text-center">
-          <Link href="/" className={buttonClass("primary", "lg")}>Back to home</Link>
+          <a href={sitePath("/")} className={buttonClass("primary", "lg")}>Back to home</a>
         </div>
       </Container>
     </div>

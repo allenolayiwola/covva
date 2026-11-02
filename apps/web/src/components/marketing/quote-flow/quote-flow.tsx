@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Lock, Mail, Pencil, Smartphone } from "lucide-re
 import { CATEGORY_AVAILABILITY, ROLE_STATEMENTS, formatGHS, riskSchemaToZod } from "@im/core";
 import { Container, Notice, Pill, Spinner, buttonClass, cn } from "@im/ui";
 import { createClient } from "@/lib/supabase/client";
+import { sitePath } from "@/lib/site-url";
 import { submitQuoteRequest } from "@/app/(site)/(public)/quote/actions";
 import { track } from "../analytics";
 import { CategoryIcon } from "../category-icon";
@@ -146,7 +147,9 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
    */
   const back = () => {
     if (index <= 0) {
-      router.push("/");
+      // The app has no home page: leave for the site home with a full navigation (a client RSC fetch of "/"
+      // would follow the cross-origin redirect and fail CORS).
+      window.location.assign(sitePath("/"));
       return;
     }
     if (((history.state as { quoteDepth?: number } | null)?.quoteDepth ?? 0) > 0) {

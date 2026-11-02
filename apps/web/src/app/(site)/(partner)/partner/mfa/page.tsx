@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { sitePath } from "@/lib/site-url";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -7,7 +7,7 @@ import { ShieldCheck } from "lucide-react";
 import { Logo, Spinner } from "@im/ui";
 import { ROLE_STATEMENTS } from "@im/core";
 import { cookies } from "next/headers";
-import { getAssuranceLevel, getMemberships, getUser, partnerMfaRequired } from "@/lib/auth";
+import { getAssuranceLevel, getMemberships, getUser, mfaRequiredFor, partnerMemberships, partnerMfaRequired } from "@/lib/auth";
 import { ORG_COOKIE } from "../_lib/context";
 import { MfaFlow } from "./MfaFlow";
 
@@ -23,7 +23,7 @@ export default function PartnerMfaPage({ searchParams }: PageProps<"/partner/mfa
     <div className="flex min-h-dvh flex-col bg-mist/60">
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4 sm:px-6">
-          <Link href="/" aria-label="Home"><Logo /></Link>
+          <a href={sitePath("/")} aria-label="Home"><Logo /></a>
           <span className="text-[15px] text-muted">Partner workspace</span>
         </div>
       </header>
@@ -62,14 +62,19 @@ async function Gate({ searchParams }: Pick<PageProps<"/partner/mfa">, "searchPar
   const user = await getUser();
   if (!user) redirect(`/sign-in?next=${encodeURIComponent(`/partner/mfa?next=${next}`)}`);
 
-  // Local demo / e2e escape hatch (`PARTNER_MFA_REQUIRED=false`): nothing to verify.
+  const [memberships, jar] = await Promise.all([getMemberships(), cookies()]);
+  const manage = params.manage === "1";
+  // Platform switch off (`PARTNER_MFA_REQUIRED=false`, local demos and e2e): nothing to verify or enrol.
   if (!partnerMfaRequired()) redirect(next);
+  // Nothing to verify when the workspace gate (`requirePartner`) would not ask for it — e.g. every one of the
+  // user's partner organisations has turned `require_mfa` off. `?manage=1` still lets them enrol voluntarily
+  // from Security settings.
+  if (!manage && !mfaRequiredFor(partnerMemberships(memberships))) redirect(next);
   // `?manage=1` lets an already verified user re-enrol a new authenticator from Security settings.
-  if ((await getAssuranceLevel()) === "aal2" && params.manage !== "1") redirect(next);
+  if ((await getAssuranceLevel()) === "aal2" && !manage) redirect(next);
 
   // The organisation the enrolment is recorded against in its activity log (the active workspace, else the first).
-  const [memberships, jar] = await Promise.all([getMemberships(), cookies()]);
   const wanted = jar.get(ORG_COOKIE)?.value;
   const orgId = (memberships.find((m) => m.org_id === wanted) ?? memberships[0])?.org_id ?? null;
-  return <MfaFlow next={next} email={user.email ?? ""} forceEnrol={params.manage === "1"} orgId={orgId} />;
+  return <MfaFlow next={next} email={user.email ?? ""} forceEnrol={manage} orgId={orgId} />;
 }

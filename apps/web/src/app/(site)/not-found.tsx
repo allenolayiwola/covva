@@ -30,7 +30,7 @@ export default function NotFound() {
             <p className="mt-4 text-[17px] leading-relaxed text-muted">It may have moved, or the link may be incomplete. Start a quote, or pick a type of cover below.</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href="/quote" className={buttonClass("primary", "lg")}>Get quotes</Link>
-              <Link href="/" className={buttonClass("secondary", "lg")}>Back to home</Link>
+              <a href={sitePath("/")} className={buttonClass("secondary", "lg")}>Back to home</a>
               <Link href={sitePath("/explore")} className={buttonClass("secondary", "lg")}>Explore cover</Link>
               <Link href={sitePath("/support")} className={buttonClass("secondary", "lg")}>Help centre</Link>
             </div>

@@ -1,5 +1,5 @@
 import { test, expect } from 'playwright/test';
-import { ACCOUNTS, PASSWORD } from './support/env.js';
+import { ACCOUNTS, PASSWORD, siteOrigin } from './support/env.js';
 
 test.describe('sign-in polish', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -35,8 +35,11 @@ test('quote vehicle value is an example, starts empty and is required', async ({
   // Advance through the optional registration and standard catalogue questions.
   await expect(page.locator('#q-registration_number, #q-vehicle_value')).toBeVisible();
   if (await page.locator('#q-registration_number').isVisible()) await next.click();
-  if (await page.getByRole('radio', { name: 'Comprehensive', exact: true }).count()) {
-    await page.getByRole('radio', { name: 'Comprehensive', exact: true }).check();
+  const comprehensive = page.getByRole('radio', { name: 'Comprehensive', exact: true });
+  if (await comprehensive.count()) {
+    // Choice cards are visually hidden radios inside a full-card <label>: tap the card, as people do.
+    await page.locator('label').filter({ has: comprehensive }).click();
+    await expect(comprehensive).toBeChecked();
     await next.click();
   }
   if (await page.getByLabel('Vehicle make', { exact: true }).count()) {
@@ -66,10 +69,12 @@ for (const destination of ['/account', '/partner/register']) {
   });
 }
 
-test('marketing paths on the app forward to the marketing site', async ({ request }) => {
+test('marketing paths on the app forward to the marketing site', async ({ page, request, baseURL }) => {
+  const site = await siteOrigin(page);
+  expect(site).not.toBe(new URL(baseURL).origin);
   const res = await request.get('/insurance/motor?ref=ABC123', { maxRedirects: 0 });
   expect(res.status()).toBe(308);
   const location = new URL(res.headers()['location']);
-  expect(location.origin).toBe(new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3100').origin);
+  expect(location.origin).toBe(site);
   expect(location.pathname + location.search).toBe('/insurance/motor?ref=ABC123');
 });

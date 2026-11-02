@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { sitePath } from "@/lib/site-url";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Building2, Mail } from "lucide-react";
@@ -42,7 +43,7 @@ async function Body({ params }: Pick<PageProps<"/invite/[token]">, "params">) {
       <>
         <h1 className="text-[28px] font-bold tracking-tight text-ink">Invitation not found</h1>
         <p className="mt-2 text-[15px] text-muted">This link is not valid. Ask the person who invited you to send a new invitation.</p>
-        <Link href="/" className={buttonClass("secondary", "md", "mt-6")}>Go to the homepage</Link>
+        <a href={sitePath("/")} className={buttonClass("secondary", "md", "mt-6")}>Go to the homepage</a>
       </>
     );
   }

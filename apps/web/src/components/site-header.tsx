@@ -19,8 +19,10 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
   return (
     <header data-site-header className="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur transition-[background-color,border-color] duration-300 supports-[backdrop-filter]:bg-white/80 motion-reduce:transition-none">
       <div className={`${containerClass} flex h-16 items-center justify-between gap-4 lg:h-[72px]`}>
-        <Link
-          href="/"
+        {/* The app has no home page (docs/APPS.md): the brand goes to the site home as a plain anchor, never a
+            prefetched <Link>, whose RSC request would follow the proxy's cross-origin redirect and fail CORS. */}
+        <a
+          href={sitePath("/")}
           className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           aria-label={`${brand.name} home`}
         >
@@ -31,7 +33,7 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           <span data-logo="reverse" className="hidden">
             <Logo reverse height={40} label={brand.name} className="[&_img]:h-8 [&_img]:w-auto sm:[&_img]:h-10" />
           </span>
-        </Link>
+        </a>
 
         <nav aria-label="Primary" className="hidden md:block">
           <Suspense fallback={<HeaderNavFallback />}>

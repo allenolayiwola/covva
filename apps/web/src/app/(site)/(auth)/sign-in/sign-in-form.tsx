@@ -14,8 +14,13 @@ type Mode = "phone" | "link" | "password";
  * Sign-in (mockup 11): a code to your phone (+233) or a link to your email. A password remains available
  * behind "Use a password instead" for accounts that have one.
  */
+const noop = () => () => {};
+
 export function SignInForm({ next, defaultMode = "phone" }: { next: string; defaultMode?: Mode }) {
   const [mode, setMode] = React.useState<Mode>(defaultMode);
+  // The method switches only work once React has hydrated (they are client state). Until then they render
+  // disabled, so an early tap on a slow connection is visibly not-yet-ready instead of silently ignored.
+  const hydrated = React.useSyncExternalStore(noop, () => true, () => false);
   const tabs: { key: Mode; label: string; icon: React.ReactNode }[] = [
     { key: "phone", label: "Phone code", icon: <Smartphone aria-hidden className="size-4" /> },
     { key: "link", label: "Email link", icon: <Mail aria-hidden className="size-4" /> },
@@ -31,6 +36,7 @@ export function SignInForm({ next, defaultMode = "phone" }: { next: string; defa
               role="tab"
               type="button"
               aria-selected={mode === t.key}
+              disabled={!hydrated}
               onClick={() => setMode(t.key)}
               className={cn(
                 "inline-flex min-w-0 min-h-11 items-center justify-center gap-1.5 rounded-full px-2 text-sm whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand",
@@ -50,9 +56,9 @@ export function SignInForm({ next, defaultMode = "phone" }: { next: string; defa
       </div>
       <p className="mt-6 text-center text-sm text-muted">
         {mode === "password" ? (
-          <button type="button" onClick={() => setMode("phone")} className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"><Smartphone aria-hidden className="size-4" /> Use a phone code or email link instead</button>
+          <button type="button" disabled={!hydrated} onClick={() => setMode("phone")} className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"><Smartphone aria-hidden className="size-4" /> Use a phone code or email link instead</button>
         ) : (
-          <button type="button" onClick={() => setMode("password")} className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"><KeyRound aria-hidden className="size-4" /> Use a password instead</button>
+          <button type="button" disabled={!hydrated} onClick={() => setMode("password")} className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"><KeyRound aria-hidden className="size-4" /> Use a password instead</button>
         )}
       </p>
     </div>

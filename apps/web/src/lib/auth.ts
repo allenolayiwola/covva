@@ -4,22 +4,24 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import type { Enum, Row } from "@im/db";
 import { createClient } from "@/lib/supabase/server";
+import { mfaRequiredFor } from "@/lib/partner-mfa";
 
 export type Membership = Pick<Row<"memberships">, "id" | "org_id" | "role" | "team" | "title" | "is_supervisor"> & {
   org: Pick<Row<"organizations">, "id" | "name" | "slug" | "type" | "status" | "nic_licence_number" | "logo_url" | "settings" | "require_mfa">;
 };
 
 /**
- * MFA (TOTP, Supabase Auth AAL2) is required for broker and insurer users in the partner workspace
- * (Addendum 4). Defaults to on in production and off elsewhere so local demos and the Playwright
- * suite (which sets `PARTNER_MFA_REQUIRED=false` explicitly) can use password-only demo accounts.
+ * MFA (TOTP, Supabase Auth AAL2) for broker and insurer users in the partner workspace (Addendum 4):
+ * `partnerMfaRequired()` is the platform switch, `mfaRequiredFor()` adds the per-organisation `require_mfa`.
  * Customers are never gated.
  */
-export function partnerMfaRequired(): boolean {
-  const raw = process.env.PARTNER_MFA_REQUIRED?.trim().toLowerCase();
-  if (raw === "true" || raw === "1") return true;
-  if (raw === "false" || raw === "0") return false;
-  return process.env.NODE_ENV === "production";
+export { mfaRequiredFor, partnerMfaRequired } from "@/lib/partner-mfa";
+
+type PartnerKind = Extract<Enum<"org_type">, "broker" | "insurer" | "distributor">;
+
+/** The memberships that open the partner workspace (one org type when `kind` is given). */
+export function partnerMemberships(memberships: Membership[], kind?: PartnerKind): Membership[] {
+  return memberships.filter((m) => (kind ? m.org.type === kind : m.org.type === "broker" || m.org.type === "insurer" || m.org.type === "distributor"));
 }
 
 /** Current auth user (verified with Supabase Auth), deduped per request. */
@@ -77,12 +79,11 @@ export async function requireUser(next?: string) {
  * `require_mfa` on, the session must be AAL2 — otherwise the user is sent to `/partner/mfa` to
  * enrol or verify a TOTP factor and comes back to `next`.
  */
-export async function requirePartner(kind?: Extract<Enum<"org_type">, "broker" | "insurer" | "distributor">, next = "/partner") {
+export async function requirePartner(kind?: PartnerKind, next = "/partner") {
   await requireUser(next);
-  const memberships = await getMemberships();
-  const partner = memberships.filter((m) => (kind ? m.org.type === kind : m.org.type === "broker" || m.org.type === "insurer" || m.org.type === "distributor"));
+  const partner = partnerMemberships(await getMemberships(), kind);
   if (!partner.length) redirect("/partner/no-access");
-  if (partnerMfaRequired() && partner.some((m) => m.org.require_mfa !== false)) {
+  if (mfaRequiredFor(partner)) {
     const aal = await getAssuranceLevel();
     if (aal !== "aal2") redirect(`/partner/mfa?next=${encodeURIComponent(next)}`);
   }

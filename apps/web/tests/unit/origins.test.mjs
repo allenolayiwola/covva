@@ -33,3 +33,16 @@ test('local development falls back to the documented ports', t => {
 test('the app is never indexed', () => {
   assert.deepEqual(robots(), { rules: [{ userAgent: '*', disallow: '/' }] });
 });
+
+test('app code never client-navigates to "/" (its RSC request would follow the cross-origin redirect and fail CORS)', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const root = new URL('../../src/', import.meta.url);
+  const offenders = [];
+  for (const entry of await readdir(root, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue;
+    const file = `${entry.parentPath ?? entry.path}/${entry.name}`;
+    const source = await readFile(file, 'utf8');
+    if (/href=(?:"\/"|\{\s*["'`]\/["'`]\s*\})|\b(?:push|replace|prefetch)\(\s*["'`]\/["'`]\s*[,)]/.test(source)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, [], 'link to the site home with sitePath("/") as a plain <a> instead');
+});

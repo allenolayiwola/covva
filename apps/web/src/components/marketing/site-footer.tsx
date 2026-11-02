@@ -70,9 +70,9 @@ export async function SiteFooter() {
       <Container className="py-14 sm:py-16">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
           <div className="max-w-sm">
-            <Link href="/" className="inline-flex min-h-11 min-w-11 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+            <a href={sitePath("/")} className="inline-flex min-h-11 min-w-11 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
               <Logo height={36} label={brand.name} />
-            </Link>
+            </a>
             <p className="mt-4 text-[15px] font-medium text-ink-2">{brand.tagline}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">{TRUST_STATEMENT}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">{ROLE_STATEMENTS.platform}</p>
