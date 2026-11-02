@@ -122,7 +122,7 @@ export function HomeHeroSlideshow({ slides, media }: { slides: readonly HomeHero
               <div className="flex flex-wrap gap-2">
                 {HOME_HERO_CHIPS.map(({ line, label }) => (
                   <label key={line} className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line px-4 text-[15px] font-medium text-ink transition-colors hover:border-ink/40 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand">
-                    <input type="radio" name="type" value={line} checked={selected === line} onChange={() => setChoice(line)} className="sr-only" />
+                    <input type="radio" name="type" value={line} checked={selected === line} onChange={() => setChoice(line)} onClick={() => setChoice(line)} className="sr-only" />
                     {label}
                   </label>
                 ))}
@@ -170,7 +170,8 @@ export function HomeHeroSlideshow({ slides, media }: { slides: readonly HomeHero
       {/* Phones: the scene as a band under the quote card. Tablet and up: the right 60% of the hero, showing the painted
           half of each illustration whatever the hero height; its left edge blends into the cream. */}
       <figure className="relative h-[380px] sm:h-[480px] md:absolute md:inset-y-0 md:left-[40%] md:right-0 md:h-auto wide:left-[42%]">
-        {slides.map((s, i) => (i === 0 || mediaReady) && (
+        {/* Slide 1 always; a slide the visitor picks at once; the rest after the page has loaded. */}
+        {slides.map((s, i) => (i === 0 || i === active || mediaReady) && (
           <picture key={s.id}>
             <source media="(max-width: 767px)" srcSet={media[i]!.mobile.srcSet} sizes={media[i]!.mobile.sizes} />
             {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes from getImageProps */}
