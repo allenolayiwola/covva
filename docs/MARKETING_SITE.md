@@ -85,7 +85,8 @@ Home page, 1 November 2026 (Lighthouse 12, default simulated mobile throttling).
 | covva-site.vercel.app | 3 | 2.9 s (2.0–3.0 s) | 1.08 s | 93–99 | hero `<h1>` |
 | covva-site.vercel.app, desktop preset | 1 | 0.53 s | — | 100 | hero photo |
 
-- On phones the LCP element is the headline, not the photo: the photo sits below the quote form and is a 33 KB WebP.
+- Measured with the previous static hero (one photo). On phones the LCP element is the headline, not the photo: the
+  photo sat below the quote form and was a 33 KB WebP.
   In the real trace the headline paints at first paint (observed LCP = FCP). The simulated LCP is higher because
   Lighthouse counts the fonts and scripts that load before that paint as blocking it, which is very pessimistic on
   localhost. A lighter phone photo does not move LCP.
@@ -99,20 +100,31 @@ Home page, 1 November 2026 (Lighthouse 12, default simulated mobile throttling).
 
 ## 5. Home hero
 
-The live home page renders `home-hero.tsx` (`HomeHero`, mounted in `app/(site)/(marketing)/page.tsx`): a static
-server-rendered hero with the `<h1>`, the lede, a plain GET form to `/quote` (cover chips are native radios, so it works
-without hydration) and one art-directed `<picture>`.
+`home-hero.tsx` (server: builds each slide's responsive image sources) + `home-hero-slideshow.tsx` (client: rotation,
+controls, cover picker) + `home-hero-content.ts` (badge, chips, and `HOME_HERO_SLIDES`: headline, lede, suggested cover,
+image, alt text). Timing and the picker's preselection rules are the pure functions in `packages/core/src/hero-carousel.ts`.
 
-- Images: `public/images/home-hero/desktop.webp` (2400×1200) and `mobile.webp` (1080×1350, served at 750w on phones),
-  through `next/image` at the default quality. `loading="eager"` and `fetchPriority="high"`: on desktop the photo is the
-  LCP element. On phones it sits below the form. See `public/images/home-hero/README.md` for provenance.
-- The images are AI-generated placeholders and carry the visible credit **Image: AI-generated**. Replace them with
-  commissioned photography of real customers before launch by swapping the two files (same sizes).
-- The quote-intent copy (eyebrow, title, lede) is in `home-hero-content.ts`; the cover chips are in `hero-categories.ts`.
+- Seven slides: welcome, motor, home, health, travel, business, life. Each has an illustrated scene on the right of a cream
+  (#F6E9D5) hero, its own headline and lede, and preselects its cover in the quote card until the visitor picks one.
+  Slides cross-fade every 7 s (`HERO_SLIDE_MS`, fade `HERO_FADE_MS`).
+- Rotation pauses on hover, keyboard focus inside the hero, a hidden tab and the Pause button (WCAG 2.2.2).
+  `prefers-reduced-motion: reduce` = no autoplay and instant swaps. The slide dots jump to a slide.
+- Slide 1 is server-rendered; its headline is the page's only `<h1>` (later headlines and ledes are `aria-hidden`, and
+  rotations are not announced). Headlines share one grid cell, so the tallest sets the height and nothing shifts.
+  The other scenes mount after the page's `load` event, so they never compete with the first paint.
+- The quote card is a plain GET form to `/quote?type=` with native radios. The button reads "Start my motor quote" and
+  follows the chosen cover through CSS (`.hero-cta` rules in `globals.css`), so it also works without JavaScript.
+- The headline is Outfit SemiBold (600), the one heavy headline on the site (`.hero-title` in `globals.css`). Outfit is
+  loaded as a variable font for this.
+- Layout: on tablet and up the scene fills the right 60% of the hero (from 42% on wide screens) and its left edge blends
+  into the cream. On phones the copy and card come first and the scene follows as a band (a crop around the scene).
+- Images: `public/images/home-hero/{slide}.webp` (3840×2160) and `{slide}-mobile.webp` (1200×1364), served by
+  `next/image` at quality 85 with sizes up to 3840w. They are AI-generated illustrations with the visible credit
+  **Image: AI-generated**; see that folder's README for provenance and how to replace one.
+- Copy rules: Covva compares and connects; licensed brokers arrange cover; licensed insurers issue it.
 
-**Unused:** the earlier four-slide carousel (`home-hero-carousel.tsx`, `hero-slides.ts`, the JPEGs in `src/assets/hero/`
-and the timing helpers in `packages/core/src/hero-carousel.ts`) is no longer rendered anywhere. It can be removed, or
-brought back by mounting it in place of `HomeHero`.
+**Unused:** the earlier four-slide photo carousel (`home-hero-carousel.tsx`, `hero-slides.ts` and the JPEGs in
+`src/assets/hero/`) is no longer rendered. The new slideshow reuses its timing helpers in `packages/core`.
 
 ## 6. Content
 
