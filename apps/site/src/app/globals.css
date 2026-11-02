@@ -42,9 +42,9 @@
   [data-marketing] :is(h3, h4) {
     letter-spacing: -0.01em;
   }
-  /* Home hero headline: the one heavy Outfit headline on the site (home-hero.tsx). */
+  /* Home hero headline: the one heavy (Bold 700) Outfit headline on the site (home-hero-slideshow.tsx). */
   [data-marketing] .hero-title {
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     letter-spacing: -0.035em;
     text-wrap: wrap;
   }

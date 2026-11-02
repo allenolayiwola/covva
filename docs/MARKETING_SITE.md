@@ -114,7 +114,7 @@ image, alt text). Timing and the picker's preselection rules are the pure functi
   The other scenes mount after the page's `load` event, so they never compete with the first paint.
 - The quote card is a plain GET form to `/quote?type=` with native radios. The button reads "Start my motor quote" and
   follows the chosen cover through CSS (`.hero-cta` rules in `globals.css`), so it also works without JavaScript.
-- The headline is Outfit SemiBold (600), the one heavy headline on the site (`.hero-title` in `globals.css`). Outfit is
+- The headline is Outfit Bold (700), the one heavy headline on the site (`.hero-title` in `globals.css`). Outfit is
   loaded as a variable font for this.
 - Layout: on tablet and up the scene fills the right 60% of the hero (from 42% on wide screens) and its left edge blends
   into the cream. On phones the copy and card come first and the scene follows as a band (a crop around the scene).
