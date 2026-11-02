@@ -38,6 +38,10 @@ test.describe("pre-launch gate on", () => {
     // Only those visible fields (hidden inputs and the off-screen honeypot aside).
     await expect(form.locator("input:visible:not([name=company_website]), select:visible, textarea:visible")).toHaveCount(3);
     await expect(form.locator("input[name=company_website]")).toHaveCount(1); // the spam honeypot is still there
+    // One column at desktop width: email sits below the name, and both fit inside the form.
+    const [nameBox, emailBox, formBox] = await Promise.all([form.getByLabel("Your name").boundingBox(), form.getByLabel("Email", { exact: true }).boundingBox(), form.boundingBox()]);
+    expect(emailBox.y).toBeGreaterThan(nameBox.y + nameBox.height);
+    expect(nameBox.x + nameBox.width).toBeLessThanOrEqual(formBox.x + formBox.width);
     await expect(page.locator("img:not([alt='Covva'])")).toHaveCount(0);
     const text = await page.locator("body").innerText();
     for (const detail of [/MoMo/i, /broker/i, /insurer/i, /premium/i, /commission/i, /Paystack/i, /launch partner/i, /diaspora/i, /GBP|USD|EUR|CAD/, /motor|travel|health|funeral/i]) {

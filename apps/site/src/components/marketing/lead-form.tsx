@@ -180,7 +180,7 @@ function LeadFormInstance({
 
       <div className={cn("grid gap-5", !compact && "sm:grid-cols-2")}>
         {!kind && (
-          <Field label="What is this about?" htmlFor={id("kind")} error={fieldError("kind")} className="sm:col-span-2">
+          <Field label="What is this about?" htmlFor={id("kind")} error={fieldError("kind")} className={compact ? undefined : "sm:col-span-2"}>
             <Select id={id("kind")} name="kind" aria-invalid={!!err.kind} aria-describedby={describedBy("kind")} value={selectedKind} onChange={(e) => setSelectedKind(e.target.value as Kind)}>
               {kindOptions.map((k) => (
                 <option key={k} value={k}>{KIND_LABELS[k]}</option>
@@ -221,7 +221,7 @@ function LeadFormInstance({
         {!compact && <Field label={messageLabel} htmlFor={id("message")} error={fieldError("message")} className="sm:col-span-2">
           <Textarea id={id("message")} name="message" aria-describedby={describedBy("message")} rows={5} placeholder={messagePlaceholder} defaultValue={val.message} aria-invalid={!!err.message} />
         </Field>}
-        <div className="sm:col-span-2">
+        <div className={compact ? undefined : "sm:col-span-2"}>
           <Checkbox
             id={id("consent")}
             name="consent"
