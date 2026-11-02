@@ -134,7 +134,7 @@ November 2026; a content change is a code change.
 
 ## 7. Still waiting on assets
 
-- Commissioned photography of real Ghanaian customers for the home hero (today: AI-generated illustrations) and the custom
-  "how it works" illustrations (the current ones are inline SVG placeholders).
+- The custom "how it works" illustrations (the current ones are inline SVG placeholders). The home hero's illustrations
+  are final (§5).
 - Store listing ids (`NEXT_PUBLIC_IOS_APP_ID`, `NEXT_PUBLIC_ANDROID_PACKAGE`, store URLs) and the WhatsApp business number.
 - GA4 property and, if paid social is planned, the Meta and TikTok pixel ids.

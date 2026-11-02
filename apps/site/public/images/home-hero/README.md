@@ -16,8 +16,8 @@ One scene per hero slide (`src/components/marketing/home-hero-content.ts`, `HOME
   are crops around the scene.
 - Source: AI-generated illustrations (GPT Image 2.5 via Higgsfield, 4K, 1–2 November 2026), generated for Covva from
   the owner's reference mock-up. Not real customers. The visible credit **Image: AI-generated** must remain.
-- To replace a scene, keep the same file names, sizes and composition (scene on the right, cream on the left).
-  Replace with commissioned illustration or photography before public launch, subject to owner approval.
+- These illustrations are the intended hero art (the owner chose this cartoon style on 1 November 2026). To change a
+  scene, keep the same file names, sizes and composition (scene on the right, cream on the left).
 
 The six SVGs in `../category-icons/` are Mural's supplied category icons, with their gold accent strokes changed to teal
 (#00796E) to respect the locked gold-only-on-eyebrow rule.
