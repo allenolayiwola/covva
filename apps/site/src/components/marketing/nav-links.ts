@@ -32,7 +32,7 @@ export const PARTNERS_NAV: NavLink[] = [
 export const PRIMARY_NAV: NavEntry[] = [
   { labelKey: "nav.insurance", label: "Insurance", items: INSURANCE_NAV },
   { href: "/diaspora", label: "Diaspora", labelKey: "nav.diaspora" },
-  { href: "/business", label: "Business", labelKey: "nav.business" },
+  { href: "/business", label: "Business", labelKey: "nav.business", from: "lg" },
   { href: "/claims", label: "Claims", labelKey: "nav.claims", from: "lg" },
   { href: "/verify", label: "Verify", labelKey: "nav.verify", from: "xl" },
   { labelKey: "nav.partners", label: "Partners", items: PARTNERS_NAV },

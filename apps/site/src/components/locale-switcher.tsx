@@ -80,8 +80,8 @@ export function LocaleSwitcher({ className }: { className?: string }) {
       >
         <Languages aria-hidden className="size-4" />
         <span className="sr-only">{t("locale.current", { name: current.native })}</span>
-        <span aria-hidden className="hidden xl:inline">{current.native}</span>
-        <span aria-hidden className="uppercase xl:hidden">{current.code === "gaa" ? "GA" : current.code}</span>
+        <span aria-hidden className="hidden wide:inline">{current.native}</span>
+        <span aria-hidden className="uppercase wide:hidden">{current.code === "gaa" ? "GA" : current.code}</span>
         <ChevronDown aria-hidden className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
       </button>
       {open && (

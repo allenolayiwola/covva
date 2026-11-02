@@ -45,7 +45,10 @@ test.describe("marketing site", () => {
     await expect(page.getByRole("heading", { level: 2, name: "Protect your family back home." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: /Are you an insurer or broker/ })).toBeVisible();
     // Testimonials are placeholders until real reviews exist and must say so.
-    expect(await page.getByText("Illustrative", { exact: true }).count()).toBeGreaterThanOrEqual(3);
+    // While home social proof is off (trust-copy.ts, HOME_SOCIAL_PROOF_ENABLED) the section is not rendered at all.
+    const illustrative = await page.getByText("Illustrative", { exact: true }).count();
+    if ((await page.locator("#stats-title").count()) > 0) expect(illustrative).toBeGreaterThanOrEqual(3);
+    else expect(illustrative).toBe(0);
     // Platform never presents itself as an insurer or broker.
     await expect(page.getByText(/not an insurer or broker/i).first()).toBeVisible();
   });
