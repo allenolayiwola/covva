@@ -146,12 +146,13 @@ The variables are read on every request, but Vercel only applies changed variabl
 after changing them. While the gate is on, for a gated host:
 
 - Every page, including app paths (`/quote`, `/account`, `/sign-in`…), shows the waitlist at the visited address.
-  The waitlist uses the same lead form as `/waitlist` (`leads` table, `waitlist` / `launch_partner` tags,
-  honeypot and minimum fill time). `?ref=` is still captured.
+  It is a deliberately minimal teaser (logo, one headline, one line, the sign-up, legal links) that gives nothing
+  away about the product or business model. The sign-up is the lead form in compact mode (name, email, consent;
+  `leads` table, `waitlist` tag, same honeypot and minimum fill time). `?ref=` is still captured.
 - Still reachable: `/legal/*`, `/api/*`, static files and images, Open Graph images and the web manifest.
 - Every response carries `X-Robots-Tag: noindex, nofollow`; `robots.txt` lists no sitemap and `/sitemap.xml` is 404.
   `/coming-soon` itself is always `noindex`.
-- No site navigation, analytics or cookie banner on the waitlist page.
+- No site navigation, images, analytics or cookie banner on the waitlist page.
 
 e2e: `e2e/site-gate.spec.js` runs against a second server on the same build with the gate on
 (`e2e/support/start-gated.mjs`, port 3104).
