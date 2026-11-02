@@ -28,12 +28,12 @@ test.describe("marketing site", () => {
   test("home renders the hero, quote card and product tiles", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Compare real quotes. Pay by MoMo. Keep it all in one place.");
-    const card = page.getByRole("form", { name: "What do you want to cover?" });
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Insurance you actually understand.");
+    const card = page.getByRole("form", { name: "What would you like to cover?" });
     await expect(card.getByRole("radio")).toHaveCount(6);
     await expect(card.getByRole("radio", { name: "Motor", exact: true })).toBeChecked();
-    await expect(card.getByRole("radio", { name: "Life & funeral" })).toBeAttached();
-    await expect(card.getByRole("button", { name: "Continue" })).toBeVisible();
+    await expect(card.getByRole("radio", { name: "Life", exact: true })).toBeAttached();
+    await expect(card.getByRole("button", { name: "Start my motor quote" })).toBeVisible();
     await expect(page.getByText("Image: AI-generated")).toBeVisible();
     await expect(page.getByText("A quote request is not cover. You are covered only when an insurer accepts and issues your policy.")).toBeVisible();
     await expect(page.locator("[data-site-header]")).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
@@ -54,11 +54,12 @@ test.describe("marketing site", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await stubApp(page);
     await page.goto("/");
-    const card = page.getByRole("form", { name: "What do you want to cover?" });
+    const card = page.getByRole("form", { name: "What would you like to cover?" });
     await card.getByText("Travel", { exact: true }).click();
     await expect(card.getByRole("radio", { name: "Travel" })).toBeChecked();
     await expect(page.locator("section[aria-labelledby='home-hero-title'] img").last()).toHaveCSS("animation-name", "none");
-    await card.getByRole("button", { name: "Continue" }).click();
+    await expect(card.getByRole("button", { name: "Start my travel quote" })).toBeVisible();
+    await card.getByRole("button", { name: "Start my travel quote" }).click();
     await page.waitForURL((url) => url.origin === APP_ORIGIN && url.pathname === "/quote" && url.searchParams.get("type") === "travel");
   });
 
@@ -67,16 +68,16 @@ test.describe("marketing site", () => {
     await stubApp(context);
     const page = await context.newPage();
     await page.goto(test.info().project.use.baseURL ?? "http://localhost:3100");
-    const card = page.getByRole("form", { name: "What do you want to cover?" });
-    await card.getByText("Life & funeral", { exact: true }).click();
-    await card.getByRole("button", { name: "Continue" }).click();
+    const card = page.getByRole("form", { name: "What would you like to cover?" });
+    await card.getByText("Life", { exact: true }).click();
+    await card.getByRole("button", { name: "Start my life quote" }).click();
     await page.waitForURL((url) => url.origin === APP_ORIGIN && url.pathname === "/quote" && url.searchParams.get("type") === "life-funeral");
     await context.close();
   });
 
   test("home quote card submits to /quote, which the site forwards to the app with the answers", async ({ page, request }) => {
     await page.goto("/");
-    const card = page.getByRole("form", { name: "What do you want to cover?" });
+    const card = page.getByRole("form", { name: "What would you like to cover?" });
     await expect(card).toHaveAttribute("action", "/quote");
     const res = await request.get("/quote?type=health&ref=ABC123", { maxRedirects: 0 });
     expect(res.status()).toBe(307);
@@ -182,7 +183,7 @@ test.describe("marketing site", () => {
 
   test("retired hero experiment cannot override the approved copy", async ({ page }) => {
     await page.goto("/?exp=home_hero_headline:instant");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Compare real quotes. Pay by MoMo. Keep it all in one place.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Insurance you actually understand.");
   });
 
   test("header navigation exposes the Insurance and Partners menus to the keyboard", async ({ page }) => {
@@ -340,9 +341,9 @@ test.describe("site-wide language switcher (Phase 3 i18n)", () => {
     await context.clearCookies();
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GH");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Compare real quotes. Pay by MoMo. Keep it all in one place.");
-    await expect(page.getByRole("form", { name: "What do you want to cover?" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Insurance you actually understand.");
+    await expect(page.getByRole("form", { name: "What would you like to cover?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Start my motor quote" })).toBeVisible();
     await expect(page.getByRole("link", { name: "For partners" })).toBeVisible();
     await expect(page.getByRole("contentinfo")).toContainText("Technology platform. Not an insurer or broker.");
     await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Diaspora" })).toBeVisible();
@@ -360,7 +361,7 @@ test.describe("site-wide language switcher (Phase 3 i18n)", () => {
     const cookies = await context.cookies();
     expect(cookies.find((c) => c.name === "covva_lang")?.value).toBe("tw");
     // Nothing is machine-translated: the page stays in English.
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Compare real quotes. Pay by MoMo. Keep it all in one place.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Insurance you actually understand.");
 
     // The choice survives a reload (cookie → <html lang> script, notice after hydration).
     await page.reload();

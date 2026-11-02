@@ -77,25 +77,54 @@ Rules of the road:
 
 ## 4. Lighthouse (production build, mobile emulation)
 
-<!-- LIGHTHOUSE -->
+Home page, 1 November 2026 (Lighthouse 12, default simulated mobile throttling).
 
-## 5. Home hero carousel
+| Where | Runs | Median LCP | Median FCP | Performance | LCP element |
+|---|---|---|---|---|---|
+| Local production build (`next start`) | 10 | 3.3 s | 1.07 s | 89–92 | hero `<h1>` |
+| covva-site.vercel.app | 3 | 2.9 s (2.0–3.0 s) | 1.08 s | 93–99 | hero `<h1>` |
+| covva-site.vercel.app, desktop preset | 1 | 0.53 s | — | 100 | hero photo |
 
-`home-hero.tsx` (server: slide 1's `<h1>`, the art-directed `<picture>`s, the accent font) + `home-hero-carousel.tsx`
-(client: rotation, controls, cover picker) + `hero-slides.ts` (copy, suggested cover, images, focus points, provenance).
-Timing and the picker's preselection rules are pure functions in `packages/core/src/hero-carousel.ts`.
+- Measured with the previous static hero (one photo). On phones the LCP element is the headline, not the photo: the
+  photo sat below the quote form and was a 33 KB WebP.
+  In the real trace the headline paints at first paint (observed LCP = FCP). The simulated LCP is higher because
+  Lighthouse counts the fonts and scripts that load before that paint as blocking it, which is very pessimistic on
+  localhost. A lighter phone photo does not move LCP.
+- Tried and dropped (10 runs each, same build otherwise):
+  - Preloading only Inter's basic Latin file (not latin-ext): LCP 3.31 s → 3.21 s, but FCP 1.07 s → 1.52 s, because the
+    cedi sign (₵) lives in latin-ext and that file then loads late.
+  - Normal priority for the photo on phones, with a high-priority preload limited to `(min-width: 768px)`: LCP 3.31 s →
+    3.31 s, FCP 1.07 s → 1.52 s.
+- What is left to cut is script: about 150 KB of client JavaScript loads before the headline paints in the simulated
+  model. Reducing that is the next lever if LCP needs to fall further.
 
-- Four slides (family, motor claims, home, on your phone) cross-fade every 7 s with a Ken Burns zoom capped at 1.05.
-  Rotation pauses on hover, on keyboard focus inside the hero and in hidden tabs; the Pause/Play button covers WCAG 2.2.2.
-  `prefers-reduced-motion: reduce` = no autoplay, no zoom, instant swaps (Play opts back in to rotation only).
-- One `<h1>` (slide 1) stays in the accessibility tree; later slides swap the visible copy without a live region.
-- The picker follows the slide's suggested cover until the visitor picks one; it is a plain GET form to `/quote?category=`.
-- The header is transparent with the reverse logo while the home page is at the top (`data-hero-*` rules in `globals.css`).
-- Images: 3840px landscape JPEGs plus portrait crops for phones in `src/assets/hero/`, served by `next/image` at quality 85
-  (`images.qualities` allows 75 and 85; `deviceSizes` adds 2560). Today they are AI-generated illustrations owned by Covva,
-  with no visible credit; replace each with commissioned photography by swapping its two imports in `hero-slides.ts`.
-- Contrast: the neutral black scrims keep every hero text run at ≥ 4.5:1 against the brightest pixel under it on all four slides
-  (checked from 360px to 2560px wide); recheck when a photo changes.
+## 5. Home hero
+
+`home-hero.tsx` (server: builds each slide's responsive image sources) + `home-hero-slideshow.tsx` (client: rotation,
+controls, cover picker) + `home-hero-content.ts` (badge, chips, and `HOME_HERO_SLIDES`: headline, lede, suggested cover,
+image, alt text). Timing and the picker's preselection rules are the pure functions in `packages/core/src/hero-carousel.ts`.
+
+- Seven slides: welcome, motor, home, health, travel, business, life. Each has an illustrated scene on the right of a cream
+  (#F6E9D5) hero, its own headline and lede, and preselects its cover in the quote card until the visitor picks one.
+  Slides cross-fade every 7 s (`HERO_SLIDE_MS`, fade `HERO_FADE_MS`).
+- Rotation pauses on hover, keyboard focus inside the hero, a hidden tab and the Pause button (WCAG 2.2.2).
+  `prefers-reduced-motion: reduce` = no autoplay and instant swaps. The slide dots jump to a slide.
+- Slide 1 is server-rendered; its headline is the page's only `<h1>` (later headlines and ledes are `aria-hidden`, and
+  rotations are not announced). Headlines share one grid cell, so the tallest sets the height and nothing shifts.
+  The other scenes mount after the page's `load` event, so they never compete with the first paint.
+- The quote card is a plain GET form to `/quote?type=` with native radios. The button reads "Start my motor quote" and
+  follows the chosen cover through CSS (`.hero-cta` rules in `globals.css`), so it also works without JavaScript.
+- The headline is Outfit Bold (700), the one heavy headline on the site (`.hero-title` in `globals.css`). Outfit is
+  loaded as a variable font for this.
+- Layout: on tablet and up the scene fills the right 60% of the hero (from 42% on wide screens) and its left edge blends
+  into the cream. On phones the copy and card come first and the scene follows as a band (a crop around the scene).
+- Images: `public/images/home-hero/{slide}.webp` (3840×2160) and `{slide}-mobile.webp` (1200×1364), served by
+  `next/image` at quality 85 with sizes up to 3840w. They are AI-generated illustrations with the visible credit
+  **Image: AI-generated**; see that folder's README for provenance and how to replace one.
+- Copy rules: Covva compares and connects; licensed brokers arrange cover; licensed insurers issue it.
+
+**Unused:** the earlier four-slide photo carousel (`home-hero-carousel.tsx`, `hero-slides.ts` and the JPEGs in
+`src/assets/hero/`) is no longer rendered. The new slideshow reuses its timing helpers in `packages/core`.
 
 ## 6. Content
 
