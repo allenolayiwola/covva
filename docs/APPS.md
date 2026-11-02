@@ -65,6 +65,7 @@ On separate `.vercel.app` hostnames the site cannot see whether someone is signe
 | `NEXT_PUBLIC_APP_URL` | Where app paths are forwarded |
 | `SUPABASE_SECRET_KEY` | The service-partner network join form (writes the application and notifies platform staff) |
 | `REVALIDATE_SECRET` | Lets the admin refresh this site's caches |
+| Optional: `SITE_GATE`, `SITE_GATE_HOSTS`, `SITE_GATE_BYPASS_TOKEN` | Pre-launch waitlist gate (`docs/MARKETING_SITE.md` §6). Unset = no gate |
 | `AI_GATEWAY_API_KEY` (or Vercel OIDC), optional `AI_DEFAULT_MODEL` / `AI_FAST_MODEL` | Help chat |
 | Optional: `NEXT_PUBLIC_WHATSAPP_NUMBER`, `NEXT_PUBLIC_GA4_ID`, `NEXT_PUBLIC_META_PIXEL_ID`, `NEXT_PUBLIC_TIKTOK_PIXEL_ID`, `NEXT_PUBLIC_EXPERIMENTS`, `NEXT_PUBLIC_APP_STORE_URL`, `NEXT_PUBLIC_PLAY_STORE_URL`, `NEXT_PUBLIC_IOS_APP_ID`, `NEXT_PUBLIC_ANDROID_PACKAGE`, `HOME_PARTNER_STRIP_ENABLED`, `LOG_LEVEL` | Same meaning as before the split |
 | Optional, for the join-form notification: `RESEND_API_KEY`, `EMAIL_FROM`, `SMS_PROVIDER`, `SMS_API_KEY`, `SMS_SENDER_ID` | Email/SMS to platform staff; unset means logged only |
