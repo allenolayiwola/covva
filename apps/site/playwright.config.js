@@ -12,6 +12,7 @@ const here = __dirname;
 const PORT = Number(process.env.E2E_SITE_PORT ?? 3100);
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 const CI = !!process.env.CI;
+const GATED_PORT = Number(process.env.E2E_GATED_PORT ?? 3104);
 const APP_ORIGIN = new URL(process.env.E2E_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3102").origin;
 
 export default defineConfig({
@@ -63,6 +64,17 @@ export default defineConfig({
           cwd: here,
           reuseExistingServer: true,
           timeout: 30_000,
+          stdout: "ignore",
+          stderr: "pipe",
+        },
+        {
+          // The same build with the pre-launch gate on, for e2e/site-gate.spec.js (e2e/support/start-gated.mjs).
+          command: "node e2e/support/start-gated.mjs",
+          url: `http://localhost:${GATED_PORT}/robots.txt`,
+          cwd: here,
+          env: { E2E_MAIN_URL: baseURL, E2E_GATED_PORT: String(GATED_PORT) },
+          reuseExistingServer: true,
+          timeout: process.env.E2E_BUILD ? 660_000 : 180_000,
           stdout: "ignore",
           stderr: "pipe",
         },

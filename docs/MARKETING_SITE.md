@@ -130,13 +130,39 @@ image, alt text). Timing and the picker's preselection rules are the pure functi
 The earlier four-slide photo carousel (dark full-bleed photos under a transparent header) was removed in November
 2026. Its timing helpers moved from `packages/core` into the site (`apps/site/src/lib/hero-slideshow.ts`).
 
-## 6. Content
+## 6. Pre-launch gate (waitlist)
+
+Before launch, the real domain can show only a waitlist. Code: `apps/site/src/lib/site-gate.ts` (unit-tested in
+`tests/unit/site-gate.test.mjs`), applied in `apps/site/src/proxy.ts`; the page is `/coming-soon`
+(`src/app/(site)/(gate)/`). It is off unless switched on, so local, dev and preview builds behave as normal.
+
+| Variable (covva-site, server-only) | Value | Effect |
+|---|---|---|
+| `SITE_GATE` | `waitlist` | Turns the gate on. Anything else, or unset, turns it off |
+| `SITE_GATE_HOSTS` | `covva.com.gh,www.covva.com.gh` | Gate only these hostnames, so `covva-site.vercel.app` stays browsable for the team. Unset = gate every hostname |
+| `SITE_GATE_BYPASS_TOKEN` | a random secret, 16+ characters | Team preview: `https://covva.com.gh/?preview=<secret>` sets an httpOnly cookie for 30 days (it holds a hash, not the secret) and reloads the page without the secret in the address bar. `?preview=off` clears it. Unset or too short = no bypass |
+
+The variables are read on every request, but Vercel only applies changed variables to new deployments: redeploy
+after changing them. While the gate is on, for a gated host:
+
+- Every page, including app paths (`/quote`, `/account`, `/sign-in`…), shows the waitlist at the visited address.
+  The waitlist uses the same lead form as `/waitlist` (`leads` table, `waitlist` / `launch_partner` tags,
+  honeypot and minimum fill time). `?ref=` is still captured.
+- Still reachable: `/legal/*`, `/api/*`, static files and images, Open Graph images and the web manifest.
+- Every response carries `X-Robots-Tag: noindex, nofollow`; `robots.txt` lists no sitemap and `/sitemap.xml` is 404.
+  `/coming-soon` itself is always `noindex`.
+- No site navigation, analytics or cookie banner on the waitlist page.
+
+e2e: `e2e/site-gate.spec.js` runs against a second server on the same build with the gate on
+(`e2e/support/start-gated.mjs`, port 3104).
+
+## 7. Content
 
 Marketing copy, Learn articles, FAQs and testimonials live in code (`apps/site/src/components/marketing/content.ts`,
 `articles.ts`) and are read through `apps/site/src/server/content.ts`. Payload CMS was built and then removed in
 November 2026; a content change is a code change.
 
-## 7. Still waiting on assets
+## 8. Still waiting on assets
 
 - Store listing ids (`NEXT_PUBLIC_IOS_APP_ID`, `NEXT_PUBLIC_ANDROID_PACKAGE`, store URLs) and the WhatsApp business number.
 - GA4 property and, if paid social is planned, the Meta and TikTok pixel ids.
