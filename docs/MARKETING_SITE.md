@@ -15,6 +15,10 @@ One first-party cookie, `covva_consent` (180 days), with three values. Nothing n
 | `all` | GA4 + Meta pixel + TikTok pixel | "Accept all" (only offered when a pixel id is configured) or "Choose for me" → both ticked |
 
 - Banner: `consent-banner.tsx`. "Choose for me" shows the two categories as checkboxes; strictly necessary is always on.
+- Reject and Accept work before the page has hydrated and without JavaScript: they are a form posting to
+  `/api/consent` (`app/api/consent/route.ts`, rules in `lib/consent-post.ts`), which sets the same cookie and returns
+  the visitor to the page with `#consent-saved`. Only same-origin posts count (a cross-site form gets 403), and `all`
+  is stored only when a pixel is configured. "Settings" needs JavaScript, so it is disabled until hydration.
 - The cookie notice (`/legal/cookies`) lists every cookie, adapts its copy to what is configured, and has a
   **Change your cookie choices** control (`consent-settings.tsx`) that forgets the choice and brings the banner back.
 - Builds with no pixel ids keep the "no advertising pixels" promise automatically: the banner, the notice and the vendor

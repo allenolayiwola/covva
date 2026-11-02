@@ -10,8 +10,12 @@ import { PRIMARY_NAV, SECONDARY_NAV, isGroup, navText } from "./nav-links";
 import { AppLink } from "@/components/app-link";
 
 /** Small, dependency-free mobile menu (< md). Groups expand inline; closes on Escape and on navigation. */
+const noopSubscribe = () => () => {};
+
 export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
   const [open, setOpen] = React.useState(false);
+  // The menu needs JavaScript: keep the button disabled until hydration so an early tap is not silently lost.
+  const hydrated = React.useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [expanded, setExpanded] = React.useState<string | null>("Insurance");
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLDivElement>(null);
@@ -62,6 +66,7 @@ export function MobileMenu({ showAccount = true }: { showAccount?: boolean }) {
         aria-controls={id}
         aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
         onClick={() => setOpen((o) => !o)}
+        disabled={!hydrated}
         className="grid size-11 place-items-center rounded-[10px] text-ink transition-colors hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
