@@ -37,7 +37,8 @@ export async function SiteHeader({ right }: { right?: React.ReactNode }) {
           <LocaleSwitcher />
           {right ?? (
             <>
-              <Link href="/brokers" className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium whitespace-nowrap text-muted hover:text-brand lg:inline-block">
+              {/* Wide screens only: below 1440px the header has no room for it (the Partners menu covers it). */}
+              <Link href="/brokers" className="hidden min-h-11 content-center rounded-full px-3 py-2 text-[15px] font-medium whitespace-nowrap text-muted hover:text-brand wide:inline-block">
                 <T k="header.forPartners" />
               </Link>
               <span className="hidden sm:block">
