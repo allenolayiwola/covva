@@ -76,7 +76,6 @@ export function LocaleSwitcher({ className }: { className?: string }) {
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen((o) => !o)}
-        data-header-fg
         className="inline-flex h-11 min-w-11 items-center gap-1.5 rounded-md px-2 text-[14.5px] font-medium text-ink-2 transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <Languages aria-hidden className="size-4" />

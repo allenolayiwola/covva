@@ -41,7 +41,7 @@ test.describe("marketing site", () => {
     const tiles = page.locator("a[href^='/insurance/']");
     expect(await tiles.count()).toBeGreaterThanOrEqual(7);
     await expect(page.getByRole("link", { name: /^Motor/ }).first()).toBeVisible();
-    await expect(page.getByText("Licensed partners only").first()).toBeVisible();
+    await expect(page.getByText("NIC-licensed partners only").first()).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Protect your family back home." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: /Are you an insurer or broker/ })).toBeVisible();
     // Testimonials are placeholders until real reviews exist and must say so.
