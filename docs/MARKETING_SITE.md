@@ -102,7 +102,7 @@ Home page, 1 November 2026 (Lighthouse 12, default simulated mobile throttling).
 
 `home-hero.tsx` (server: builds each slide's responsive image sources) + `home-hero-slideshow.tsx` (client: rotation,
 controls, cover picker) + `home-hero-content.ts` (badge, chips, and `HOME_HERO_SLIDES`: headline, lede, suggested cover,
-image, alt text). Timing and the picker's preselection rules are the pure functions in `packages/core/src/hero-carousel.ts`.
+image, alt text). Timing and the picker's preselection rules are the pure functions in `apps/site/src/lib/hero-slideshow.ts`.
 
 - Seven slides: welcome, motor, home, health, travel, business, life. Each has an illustrated scene on the right of a cream
   (#F6E9D5) hero, its own headline and lede, and preselects its cover in the quote card until the visitor picks one.
@@ -124,7 +124,7 @@ image, alt text). Timing and the picker's preselection rules are the pure functi
 - Copy rules: Covva compares and connects; licensed brokers arrange cover; licensed insurers issue it.
 
 The earlier four-slide photo carousel (dark full-bleed photos under a transparent header) was removed in November
-2026; only its timing helpers in `packages/core/src/hero-carousel.ts` remain, used by this slideshow.
+2026. Its timing helpers moved from `packages/core` into the site (`apps/site/src/lib/hero-slideshow.ts`).
 
 ## 6. Content
 

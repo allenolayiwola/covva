@@ -1,6 +1,6 @@
 /**
- * Home hero carousel rules (marketing site). Pure functions so the timing and the category picker's
- * preselection can be unit-tested without a browser.
+ * Home hero slideshow rules (components/marketing/home-hero-slideshow.tsx). Pure functions so the timing and the
+ * cover picker's preselection can be unit-tested without a browser (tests/unit/hero-slideshow.test.mjs).
  *
  * - Slides advance every HERO_SLIDE_MS and cross-fade over HERO_FADE_MS.
  * - Autoplay runs only when nothing asks it to stop: the visitor pressed Pause, prefers reduced motion,

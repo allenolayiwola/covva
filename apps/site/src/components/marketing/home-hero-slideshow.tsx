@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
-import { HERO_FADE_MS, HERO_SLIDE_MS, heroPickerCategory, heroShouldAutoplay, heroSlideIndex } from "@im/core";
+import { HERO_FADE_MS, HERO_SLIDE_MS, heroPickerCategory, heroShouldAutoplay, heroSlideIndex } from "@/lib/hero-slideshow";
 import { buttonClass, cn, containerClass } from "@im/ui";
 import { HOME_HERO, HOME_HERO_CHIPS, type HeroLine, type HomeHeroSlide } from "./home-hero-content";
 
