@@ -41,11 +41,14 @@ test.describe("marketing site", () => {
     const tiles = page.locator("a[href^='/insurance/']");
     expect(await tiles.count()).toBeGreaterThanOrEqual(7);
     await expect(page.getByRole("link", { name: /^Motor/ }).first()).toBeVisible();
-    await expect(page.getByText("Licensed partners only").first()).toBeVisible();
+    await expect(page.getByText("NIC-licensed partners", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Protect your family back home." })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: /Are you an insurer or broker/ })).toBeVisible();
     // Testimonials are placeholders until real reviews exist and must say so.
-    expect(await page.getByText("Illustrative", { exact: true }).count()).toBeGreaterThanOrEqual(3);
+    // While home social proof is off (trust-copy.ts, HOME_SOCIAL_PROOF_ENABLED) the section is not rendered at all.
+    const illustrative = await page.getByText("Illustrative", { exact: true }).count();
+    if ((await page.locator("#stats-title").count()) > 0) expect(illustrative).toBeGreaterThanOrEqual(3);
+    else expect(illustrative).toBe(0);
     // Platform never presents itself as an insurer or broker.
     await expect(page.getByText(/not an insurer or broker/i).first()).toBeVisible();
   });
@@ -105,7 +108,8 @@ test.describe("marketing site", () => {
     await expect(page.getByText("Indicative").first()).toBeVisible();
     await expect(page.getByRole("form", { name: /Motor quotes/ })).toBeVisible();
     const ld = await page.locator("script[type='application/ld+json']").allTextContents();
-    expect(ld.filter((t) => t.includes('"Product"'))).toHaveLength(1);
+    // Insurance products are described as a schema.org Service (one per product page).
+    expect(ld.filter((t) => t.includes('"@type":"Service"'))).toHaveLength(1);
   });
 
   test("unknown product line renders the not-found page (noindex)", async ({ page }) => {
@@ -307,7 +311,9 @@ test.describe("marketing site", () => {
     // Validation: nothing filled in.
     await form.getByRole("button", { name: "Send message" }).click();
     await expect(form.getByRole("alert")).toContainText("Please check the highlighted fields");
-    await expect(form.getByText("Please tell us your name.")).toBeVisible();
+    // The message shows twice: as a link in the error summary and under the field.
+    await expect(form.getByRole("link", { name: "Please tell us your name." })).toBeVisible();
+    await expect(form.locator('[id$="-name-error"]')).toHaveText("Please tell us your name.");
 
     await form.getByLabel("What is this about?").selectOption("customer");
     await form.getByLabel("Your name").fill(`${TAG} Tester`);
@@ -394,8 +400,7 @@ test.describe("micro cover page (Phase 3)", () => {
     const buy = page.getByRole("link", { name: "Buy cover" });
     if ((await buy.count()) > 0) await expect(buy.first()).toHaveAttribute("href", /\/account\/micro\/buy\?version=/);
     else await expect(page.getByText(/Micro cover is coming soon/)).toBeVisible();
-    const api = await page.request.get("/api/v1/micro/products?audience=okada");
-    expect(api.ok()).toBe(true);
-    expect(Array.isArray((await api.json()).data.items)).toBe(true);
+    // The micro products API (/api/v1/micro/products) belongs to the app (covva-app) since the split; the site
+    // does not serve it, so its check belongs in the app's tests (apps/web), not here.
   });
 });

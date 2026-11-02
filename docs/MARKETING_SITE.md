@@ -123,8 +123,8 @@ image, alt text). Timing and the picker's preselection rules are the pure functi
   **Image: AI-generated**; see that folder's README for provenance and how to replace one.
 - Copy rules: Covva compares and connects; licensed brokers arrange cover; licensed insurers issue it.
 
-**Unused:** the earlier four-slide photo carousel (`home-hero-carousel.tsx`, `hero-slides.ts` and the JPEGs in
-`src/assets/hero/`) is no longer rendered. The new slideshow reuses its timing helpers in `packages/core`.
+The earlier four-slide photo carousel (dark full-bleed photos under a transparent header) was removed in November
+2026; only its timing helpers in `packages/core/src/hero-carousel.ts` remain, used by this slideshow.
 
 ## 6. Content
 

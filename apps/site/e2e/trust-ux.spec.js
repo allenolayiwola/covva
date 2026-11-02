@@ -1,6 +1,6 @@
 import { test, expect } from 'playwright/test';
 
-for (const width of [360, 390, 1280]) {
+for (const width of [360, 390, 768, 1024, 1280]) {
   test(`trust and phone controls at ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });

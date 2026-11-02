@@ -4,15 +4,14 @@ import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
 import { HERO_FADE_MS, HERO_SLIDE_MS, heroPickerCategory, heroShouldAutoplay, heroSlideIndex } from "@im/core";
 import { buttonClass, cn, containerClass } from "@im/ui";
-import { HOME_HERO, HOME_HERO_CHIPS, type HomeHeroSlide } from "./home-hero-content";
-import type { HeroLine } from "./hero-categories";
+import { HOME_HERO, HOME_HERO_CHIPS, type HeroLine, type HomeHeroSlide } from "./home-hero-content";
 
 export interface SlideMedia {
   desktop: React.ImgHTMLAttributes<HTMLImageElement>;
   mobile: { srcSet?: string; sizes?: string };
 }
 
-const LINES = HOME_HERO_CHIPS.map((c) => c.line) as HeroLine[];
+const LINES: HeroLine[] = HOME_HERO_CHIPS.map((c) => c.line);
 const CREAM = "#F6E9D5";
 const noop = () => () => {};
 

@@ -4,8 +4,9 @@
 export const TAG = "E2E-PLAYWRIGHT";
 
 /**
- * Origin of the app (covva-app). The site forwards app paths (/quote, /account, /sign-in…) there; tests that
- * follow such a link stub the app with page.route, so the app does not need to be running.
+ * Origin of the app (covva-app). The site forwards app paths (/quote, /account, /sign-in…) there with a 307.
+ * The app does not need to be running: playwright.config.js starts e2e/support/app-stub.mjs on this origin, which
+ * answers the redirect target (page.route cannot intercept it). stubApp below covers direct requests to the app.
  */
 export const APP_ORIGIN = new URL(process.env.E2E_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3102").origin;
 

@@ -1,5 +1,3 @@
-import type { HeroLine } from "./hero-categories";
-
 /** Approved home hero copy shared by every slide. */
 export const HOME_HERO = {
   badge: "Made for everyday life in Ghana",
@@ -15,7 +13,10 @@ export const HOME_HERO_CHIPS = [
   { line: "home", label: "Home", cta: "home" },
   { line: "business", label: "Business", cta: "business" },
   { line: "life-funeral", label: "Life", cta: "life" },
-] as const satisfies readonly { line: HeroLine; label: string; cta: string }[];
+] as const;
+
+/** A cover line the hero can preselect; /quote maps it to a catalogue category. */
+export type HeroLine = (typeof HOME_HERO_CHIPS)[number]["line"];
 
 export interface HomeHeroSlide {
   id: string;

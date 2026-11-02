@@ -76,13 +76,12 @@ export function LocaleSwitcher({ className }: { className?: string }) {
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen((o) => !o)}
-        data-header-fg
         className="inline-flex h-11 min-w-11 items-center gap-1.5 rounded-md px-2 text-[14.5px] font-medium text-ink-2 transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
         <Languages aria-hidden className="size-4" />
         <span className="sr-only">{t("locale.current", { name: current.native })}</span>
-        <span aria-hidden className="hidden xl:inline">{current.native}</span>
-        <span aria-hidden className="uppercase xl:hidden">{current.code === "gaa" ? "GA" : current.code}</span>
+        <span aria-hidden className="hidden wide:inline">{current.native}</span>
+        <span aria-hidden className="uppercase wide:hidden">{current.code === "gaa" ? "GA" : current.code}</span>
         <ChevronDown aria-hidden className={cn("size-3.5 transition-transform motion-reduce:transition-none", open && "rotate-180")} />
       </button>
       {open && (
