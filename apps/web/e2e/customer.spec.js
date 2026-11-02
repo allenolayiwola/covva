@@ -107,8 +107,10 @@ test.describe("customer account", () => {
       await expect(page).toHaveURL(/\/account\/requests\/new/);
     } else {
       expect(outcome).toBe("created");
-      await expect(page.getByRole("heading", { level: 1 })).toContainText(TAG);
-      await expect(page.getByText(/REQ-\d+/)).toBeVisible();
+      // The request page headlines its status; the request title (make · model · year) and reference sit under it.
+      await expect(page.getByRole("heading", { level: 1, name: "We’re on it." })).toBeVisible();
+      await expect(page.getByText("Request sent", { exact: true })).toBeVisible();
+      await expect(page.getByText(new RegExp(`${TAG} Corolla 2020 · REQ-\\d+`))).toBeVisible();
     }
   });
 

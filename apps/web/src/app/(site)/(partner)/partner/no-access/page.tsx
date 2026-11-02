@@ -15,7 +15,7 @@ export default function NoAccessPage() {
     <div className="min-h-dvh bg-mist/50">
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4 sm:px-6">
-          <Link href="/" aria-label="Home"><Logo /></Link>
+          <a href={sitePath("/")} aria-label="Home"><Logo /></a>
           <span className="text-[15px] text-muted">Partner workspace</span>
         </div>
       </header>

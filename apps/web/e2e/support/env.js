@@ -14,6 +14,24 @@ export const ACCOUNTS = {
   claims: process.env.E2E_CLAIMS_EMAIL ?? "claims@coastline.example",
 };
 
+/**
+ * The marketing site's origin as the app under test knows it. A local run uses the app's own build env (or the
+ * documented dev port). Against a deployed app (`E2E_BASE_URL`) set `E2E_SITE_URL`; when it is unset, specs
+ * read it from the app (see `siteOrigin`).
+ */
+export const SITE_URL = process.env.E2E_SITE_URL ?? (process.env.E2E_BASE_URL ? undefined : process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3100");
+
+/**
+ * Origin of the marketing site: `SITE_URL`, else the target of the app header's brand link (the app has no
+ * home page, so its brand links to the site home).
+ */
+export async function siteOrigin(page) {
+  if (SITE_URL) return new URL(SITE_URL).origin;
+  await page.goto("/sign-in", { waitUntil: "domcontentloaded" });
+  const href = await page.locator("header[data-site-header] a").first().getAttribute("href");
+  return new URL(href).origin; // throws on a relative link: the brand must point at the site, not the app
+}
+
 /** Every row the browser tests create carries this prefix so it can be purged. */
 export const TAG = "E2E-PLAYWRIGHT";
 

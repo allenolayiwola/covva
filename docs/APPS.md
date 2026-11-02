@@ -36,8 +36,10 @@ mobile and partners, USSD, AI, cron), the mobile deep-link files under `/.well-k
   Learn and help-centre links, referral landing links and the embed's "continue" link go to the site.
 - **App → site.** App pages link to marketing pages with absolute site URLs. Marketing paths that reach the app
   (old links, indexed URLs) get a permanent redirect (308) to the same path on the site; the app's `/` sends
-  signed-in people to `/account` and everyone else to the site home. The app's `robots.txt` disallows
-  everything.
+  signed-in people to `/account` and everyone else to the site home. App pages never `<Link>` or
+  `router.push` to `/` (the client's RSC request would follow that cross-origin redirect and fail CORS):
+  brand and "back to home" links are plain anchors to `sitePath("/")`, enforced by `tests/unit/origins.test.mjs`.
+  The app's `robots.txt` disallows everything.
 - **Site → app.** Site pages keep relative links to app paths (`/quote`, `/account/…`, `/sign-in`,
   `/partner/register`…), rendered as plain anchors (`components/app-link.tsx`). The site's proxy forwards those
   paths to the app (307) and appends the visitor's referral (`ref`, `src`, `lead`) from the site's `covva_ref`

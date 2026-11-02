@@ -2,7 +2,8 @@ import { test, expect } from "playwright/test";
 import { STATE } from "./support/env.js";
 
 // Addendum 4: partner security — session/device page and the MFA gate.
-// The e2e server runs with PARTNER_MFA_REQUIRED=false, so /partner/mfa must simply forward to `next`.
+// The e2e server runs with PARTNER_MFA_REQUIRED=false, and the demo partner organisations have `require_mfa`
+// off (what a deployed app with the platform switch on checks), so /partner/mfa must simply forward to `next`.
 test.describe("partner security", () => {
   test.use({ storageState: STATE.broker });
 
