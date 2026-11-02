@@ -42,6 +42,27 @@
   [data-marketing] :is(h3, h4) {
     letter-spacing: -0.01em;
   }
+  /* Home hero headline: the one heavy Outfit headline on the site (home-hero.tsx). */
+  [data-marketing] .hero-title {
+    font-weight: 600 !important;
+    letter-spacing: -0.035em;
+    text-wrap: wrap;
+  }
+  /* Home hero CTA: "Start my motor quote" follows the chosen cover chip without JavaScript. */
+  .hero-quote .hero-cta {
+    display: none;
+  }
+  .hero-quote:has(input[value="motor"]:checked) .hero-cta[data-line="motor"],
+  .hero-quote:has(input[value="travel"]:checked) .hero-cta[data-line="travel"],
+  .hero-quote:has(input[value="health"]:checked) .hero-cta[data-line="health"],
+  .hero-quote:has(input[value="home"]:checked) .hero-cta[data-line="home"],
+  .hero-quote:has(input[value="business"]:checked) .hero-cta[data-line="business"],
+  .hero-quote:has(input[value="life-funeral"]:checked) .hero-cta[data-line="life-funeral"] {
+    display: inline;
+  }
+  .hero-quote:has(input:checked) .hero-cta-default {
+    display: none;
+  }
   h1, h2, h3, h4 {
     text-wrap: balance;
   }

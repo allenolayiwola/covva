@@ -4,7 +4,8 @@ import "../globals.css";
 import { rootMetadata } from "@/lib/root-metadata";
 import { HTML_LANG_SCRIPT } from "@/lib/i18n/html-lang";
 
-const outfit = Outfit({ subsets: ["latin"], weight: "300", display: "swap", variable: "--font-outfit" });
+// Variable Outfit: Light (300) for headings, SemiBold (600) for the home hero headline.
+const outfit = Outfit({ subsets: ["latin"], display: "swap", variable: "--font-outfit" });
 // Inter supplies body/UI text and the extended Latin letters used in Ghanaian languages.
 const inter = Inter({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-inter" });
 
