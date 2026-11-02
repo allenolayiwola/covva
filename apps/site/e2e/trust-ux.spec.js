@@ -47,3 +47,42 @@ test('legal documents show the review notice', async ({ page }) => {
     await expect(page.locator('main')).toContainText(/to be confirmed before launch/i);
   }
 });
+
+// The bar's Reject/Accept are a real form (POST /api/consent), so a choice made before hydration still counts.
+test('consent Reject works before the page has hydrated', async ({ page, context }) => {
+  await context.clearCookies();
+  // Block the app's JavaScript bundles so the page never hydrates (a very slow phone, frozen at first paint).
+  await page.route('**/_next/static/chunks/**', (route) => route.abort());
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const banner = page.getByRole('region', { name: 'Cookie consent' });
+  await expect(banner).toBeVisible();
+  await expect(banner.getByRole('button', { name: /^Settings/ })).toBeDisabled();
+  await banner.getByRole('button', { name: /^Reject/ }).click();
+  await expect(page).toHaveURL(/\/#consent-saved$/);
+  await expect(banner).toHaveCount(0);
+  const cookie = (await context.cookies()).find((c) => c.name === 'covva_consent');
+  expect(cookie?.value).toBe('essential');
+});
+
+test('consent Reject works without JavaScript', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(test.info().project.use.baseURL ?? 'http://localhost:3100');
+  const banner = page.locator('[data-consent-banner]');
+  await expect(banner).toBeVisible();
+  await banner.getByRole('button', { name: /^Reject/ }).click();
+  await expect(page).toHaveURL(/\/#consent-saved$/);
+  await expect(banner).toBeHidden();
+  expect((await context.cookies()).find((c) => c.name === 'covva_consent')?.value).toBe('essential');
+  await context.close();
+});
+
+test('consent cannot be set by a post from another site', async ({ request }) => {
+  const res = await request.post('/api/consent', {
+    form: { choice: 'all' },
+    headers: { origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' },
+    maxRedirects: 0,
+  });
+  expect(res.status()).toBe(403);
+  expect(res.headers()['set-cookie']).toBeUndefined();
+});

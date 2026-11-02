@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Cookie, X } from "lucide-react";
 import { Checkbox, buttonClass, cn } from "@im/ui";
 import { CONSENT_COOKIE, GA4_ID, PIXELS_CONFIGURED, applyConsent, choiceFromConsent, readConsent, subscribeConsent, writeConsent, type ConsentChoice } from "./analytics";
+import { CONSENT_SAVED_HASH } from "@/lib/consent-post";
 
 export { CONSENT_COOKIE };
 
@@ -19,21 +20,38 @@ const HIDE_IF_CHOSEN = `if(/(?:^|;\\s*)covva_consent=(all|analytics|essential)(?
  * of the first screen). Nothing non-essential loads until the visitor chooses: GA4 (NEXT_PUBLIC_GA4_ID) only
  * after analytics consent; the Meta/TikTok pixels only after marketing consent. "Choose" opens the two
  * categories. The choice is a first-party cookie (`covva_consent`, 180 days). The bar is part of the server
- * HTML (paints with the page, works without JavaScript); HIDE_IF_CHOSEN hides it for returning visitors.
+ * HTML (paints with the page); HIDE_IF_CHOSEN hides it for returning visitors.
+ *
+ * Reject and Accept are a real form posting to /api/consent, so a tap before the page has hydrated (slow
+ * phones) or without JavaScript still records the choice: the route sets the same cookie and returns the visitor
+ * to the page with #consent-saved, where HIDE_IF_CHOSEN (or, without JavaScript, the :target rule in
+ * globals.css) hides the bar. Once hydrated, the form is handled here without a reload. Settings needs
+ * JavaScript, so it stays disabled until hydration rather than silently doing nothing.
  */
+const noopSubscribe = () => () => {};
 export function ConsentBanner() {
   const consent = React.useSyncExternalStore(subscribeConsent, readConsent, () => "" as const);
   const [manage, setManage] = React.useState(false);
   const [analytics, setAnalytics] = React.useState(true);
   const [marketing, setMarketing] = React.useState(false);
+  const hydrated = React.useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   React.useEffect(() => {
     if (consent) applyConsent(consent);
   }, [consent]);
+  // Drop the no-JavaScript marker so a later "Change your cookie choices" can show the bar again on this URL.
+  React.useEffect(() => {
+    if (window.location.hash === `#${CONSENT_SAVED_HASH}`) history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, []);
   if (consent !== "") return null;
 
   const choose = (choice: ConsentChoice) => writeConsent(choice);
-  const acceptAll = () => choose(PIXELS_CONFIGURED ? "all" : "analytics");
+  const acceptChoice: ConsentChoice = PIXELS_CONFIGURED ? "all" : "analytics";
+  const onQuickChoice = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const value = ((e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null)?.value;
+    if (value === "essential" || value === "analytics" || value === "all") choose(value);
+  };
 
   return (
     <div
@@ -47,6 +65,7 @@ export function ConsentBanner() {
       )}
     >
       <script dangerouslySetInnerHTML={{ __html: HIDE_IF_CHOSEN }} />
+      <span id={CONSENT_SAVED_HASH} hidden />
 
       {manage ? (
         <>
@@ -86,11 +105,11 @@ export function ConsentBanner() {
           <p className="min-w-0 flex-1 text-[13px] leading-snug text-ink-2">
             Optional cookies need consent. <Link href="/legal/cookies" className="font-medium text-brand underline-offset-2 hover:underline">Notice</Link>
           </p>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button type="button" onClick={() => choose("essential")} aria-label="Reject — Essential only" className={buttonClass("outline", "sm", "flex-1 px-3 sm:flex-none")}>Reject</button>
-            <button type="button" onClick={() => setManage(true)} aria-label="Settings — Choose for me" className={buttonClass("outline", "sm", "flex-1 px-3 sm:flex-none")}>Settings</button>
-            <button type="button" onClick={acceptAll} className={buttonClass("primary", "sm", "flex-1 px-3.5 sm:flex-none")}>Accept</button>
-          </div>
+          <form method="post" action="/api/consent" onSubmit={onQuickChoice} className="flex shrink-0 items-center gap-1.5">
+            <button type="submit" name="choice" value="essential" aria-label="Reject — Essential only" className={buttonClass("outline", "sm", "flex-1 px-3 sm:flex-none")}>Reject</button>
+            <button type="button" onClick={() => setManage(true)} disabled={!hydrated} aria-label="Settings — Choose for me" className={buttonClass("outline", "sm", "flex-1 px-3 sm:flex-none")}>Settings</button>
+            <button type="submit" name="choice" value={acceptChoice} className={buttonClass("primary", "sm", "flex-1 px-3.5 sm:flex-none")}>Accept</button>
+          </form>
         </div>
       )}
     </div>

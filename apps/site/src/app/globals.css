@@ -156,3 +156,8 @@ body:has([data-sticky-bar]) [data-assistant-panel] {
     display: none;
   }
 }
+
+/* Without JavaScript, /api/consent returns the visitor with #consent-saved: hide the bar on that page view. */
+[data-consent-banner]:has(#consent-saved:target) {
+  display: none;
+}
