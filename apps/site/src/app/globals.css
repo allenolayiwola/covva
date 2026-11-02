@@ -118,9 +118,13 @@
  * cookie bar (a bottom-left pill on desktop, a full-width bar on phones) and of the sticky Back/Continue bar on flow
  * pages. Order matters: later rules override earlier ones for the same element.
  */
+/* After a choice made without JavaScript, POST /api/consent redirects back to #cookie-consent: hide the bar. */
+[data-consent-banner]:target {
+  display: none;
+}
 @media (width < 40rem) {
-  body:has([data-consent-banner]) [data-whatsapp],
-  body:has([data-consent-banner]) [data-chat-launcher] {
+  body:has([data-consent-banner]:not(:target)) [data-whatsapp],
+  body:has([data-consent-banner]:not(:target)) [data-chat-launcher] {
     bottom: 7.5rem;
   }
 }
@@ -130,8 +134,8 @@ body:has([data-sticky-bar]) [data-chat-launcher] {
   bottom: 5.25rem;
 }
 @media (width < 40rem) {
-  body:has([data-sticky-bar]):has([data-consent-banner]) [data-whatsapp],
-  body:has([data-sticky-bar]):has([data-consent-banner]) [data-chat-launcher] {
+  body:has([data-sticky-bar]):has([data-consent-banner]:not(:target)) [data-whatsapp],
+  body:has([data-sticky-bar]):has([data-consent-banner]:not(:target)) [data-chat-launcher] {
     bottom: 12.5rem;
   }
 }

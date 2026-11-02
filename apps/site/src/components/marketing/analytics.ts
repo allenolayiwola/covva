@@ -16,7 +16,9 @@
 
 export const CONSENT_COOKIE = "covva_consent";
 export const CONSENT_EVENT = "covva:consent";
-const CONSENT_MAX_AGE = 60 * 60 * 24 * 180;
+export const CONSENT_MAX_AGE = 60 * 60 * 24 * 180;
+/** Id of the cookie bar. POST /api/consent redirects back to `#cookie-consent` so CSS can hide the bar without JavaScript. */
+export const CONSENT_ANCHOR = "cookie-consent";
 
 export const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID || "";
 export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "";

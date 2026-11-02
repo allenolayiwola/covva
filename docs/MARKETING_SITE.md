@@ -1,6 +1,6 @@
 # Marketing site — analytics, experiments, performance and content
 
-Status: 1 November 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
+Status: 2 November 2026. Companion to the "Marketing site (Addendum 5)" section of `docs/ROADMAP.md`.
 Everything here lives under `apps/site/src/components/marketing/` and `apps/site/src/app/(site)/(marketing)/` (the marketing site, covva-site; see `docs/APPS.md`); nothing touches the
 customer app, partner workspace, API or database.
 
@@ -15,6 +15,14 @@ One first-party cookie, `covva_consent` (180 days), with three values. Nothing n
 | `all` | GA4 + Meta pixel + TikTok pixel | "Accept all" (only offered when a pixel id is configured) or "Choose for me" → both ticked |
 
 - Banner: `consent-banner.tsx`. "Choose for me" shows the two categories as checkboxes; strictly necessary is always on.
+- The bar is server-rendered (paints with the page). **Reject** and **Accept** work before React hydrates and without
+  JavaScript: they are submit buttons in a plain `<form method="post" action="/api/consent">`. The route
+  (`app/api/consent/route.ts`) sets the same cookie (180 days, `Path=/`, `SameSite=Lax`, `Secure` on https, readable by the
+  page), stores `all` as `analytics` when no pixel id is configured, refuses cross-site posts (403), and 303-redirects back
+  to the referring page on this site with `#cookie-consent`; the `:target` rule in `globals.css` hides the bar there. Once
+  hydrated, the buttons write the cookie in the browser instead (no reload) and the fragment is removed. **Settings** (and
+  so "Save choices") needs JavaScript. Without JavaScript the bar shows again on the next page (nothing can read the cookie
+  to hide it), but nothing non-essential loads either way.
 - The cookie notice (`/legal/cookies`) lists every cookie, adapts its copy to what is configured, and has a
   **Change your cookie choices** control (`consent-settings.tsx`) that forgets the choice and brings the banner back.
 - Builds with no pixel ids keep the "no advertising pixels" promise automatically: the banner, the notice and the vendor
