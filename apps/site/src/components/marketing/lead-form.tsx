@@ -43,6 +43,10 @@ export interface LeadFormProps {
   className?: string;
   /** Campaign tag stored with the lead (see lead-tags.ts). */
   tag?: LeadTag;
+  /** Name, email and consent only (no organisation, phone, topic or message), stacked in one column. */
+  compact?: boolean;
+  /** Label of the consent checkbox (default: contact about this enquiry). */
+  consentLabel?: string;
 }
 
 /**
@@ -73,6 +77,8 @@ function LeadFormInstance({
   successBody = "Someone from our team will reply within two working days. If your enquiry is about an existing policy or claim, your broker is the fastest route.",
   className,
   tag,
+  compact = false,
+  consentLabel = "You may contact me about this enquiry.",
   onReset,
 }: LeadFormProps & { onReset: () => void }) {
   const [serverState, formAction, pending] = useActionState(submitLead, INITIAL);
@@ -91,7 +97,7 @@ function LeadFormInstance({
   const val = state.values ?? {};
   const [selectedKind, setSelectedKind] = React.useState<Kind>(kind ?? defaultKind ?? kindOptions[0] ?? "customer");
   const effectiveKind = kind ?? selectedKind;
-  const orgMode = organization === "hidden" ? "hidden" : ["broker", "insurer", "enterprise"].includes(effectiveKind) ? "required" : organization;
+  const orgMode = compact || organization === "hidden" ? "hidden" : ["broker", "insurer", "enterprise"].includes(effectiveKind) ? "required" : organization;
   const successRef = React.useRef<HTMLDivElement>(null);
   const statusRef = React.useRef<HTMLDivElement>(null);
 
@@ -121,13 +127,15 @@ function LeadFormInstance({
         </span>
         <p className="mt-5 text-xl font-semibold tracking-tight text-ink">{successTitle}</p>
         <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-muted">{successBody}</p>
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-6 rounded text-sm font-semibold text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          Send another message
-        </button>
+        {!compact && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="mt-6 rounded text-sm font-semibold text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            Send another message
+          </button>
+        )}
       </div>
     );
   }
@@ -170,9 +178,9 @@ function LeadFormInstance({
       {kind && <input type="hidden" name="kind" value={kind} />}
       {tag && <input type="hidden" name="tag" value={tag} />}
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className={cn("grid gap-5", !compact && "sm:grid-cols-2")}>
         {!kind && (
-          <Field label="What is this about?" htmlFor={id("kind")} error={fieldError("kind")} className="sm:col-span-2">
+          <Field label="What is this about?" htmlFor={id("kind")} error={fieldError("kind")} className={compact ? undefined : "sm:col-span-2"}>
             <Select id={id("kind")} name="kind" aria-invalid={!!err.kind} aria-describedby={describedBy("kind")} value={selectedKind} onChange={(e) => setSelectedKind(e.target.value as Kind)}>
               {kindOptions.map((k) => (
                 <option key={k} value={k}>{KIND_LABELS[k]}</option>
@@ -192,15 +200,15 @@ function LeadFormInstance({
             <Input id={id("org")} name="organization" aria-describedby={describedBy("organization")} autoComplete="organization" required={orgMode === "required"} defaultValue={val.organization} aria-invalid={!!err.organization} />
           </Field>
         ) : (
-          <div className="hidden sm:block" />
+          !compact && <div className="hidden sm:block" />
         )}
-        <Field label="Email" htmlFor={id("email")} error={fieldError("email")} hint="We’ll reply here.">
+        <Field label="Email" htmlFor={id("email")} error={fieldError("email")} hint={compact ? undefined : "We’ll reply here."}>
           <Input id={id("email")} name="email" aria-describedby={describedBy("email")} type="email" required autoComplete="email" inputMode="email" defaultValue={val.email} aria-invalid={!!err.email} />
         </Field>
-        <Field label={<>Phone <span className="font-normal text-subtle">(optional)</span></>} htmlFor={id("phone")} error={fieldError("phone")}>
+        {!compact && <Field label={<>Phone <span className="font-normal text-subtle">(optional)</span></>} htmlFor={id("phone")} error={fieldError("phone")}>
           <Input id={id("phone")} name="phone" aria-describedby={describedBy("phone")} type="tel" autoComplete="tel" inputMode="tel" placeholder="024 123 4567" defaultValue={val.phone} aria-invalid={!!err.phone} />
-        </Field>
-        {topics && topics.length > 0 && (
+        </Field>}
+        {!compact && topics && topics.length > 0 && (
           <Field label={topicLabel ?? "Topic"} htmlFor={id("topic")} error={fieldError("category_slug")} className="sm:col-span-2">
             <Select ref={topicRef} id={id("topic")} name="category_slug" aria-invalid={!!err.category_slug} aria-describedby={describedBy("category_slug")} defaultValue={val.category_slug ?? defaultTopic ?? ""}>
               <option value="">Choose one (optional)</option>
@@ -210,10 +218,10 @@ function LeadFormInstance({
             </Select>
           </Field>
         )}
-        <Field label={messageLabel} htmlFor={id("message")} error={fieldError("message")} className="sm:col-span-2">
+        {!compact && <Field label={messageLabel} htmlFor={id("message")} error={fieldError("message")} className="sm:col-span-2">
           <Textarea id={id("message")} name="message" aria-describedby={describedBy("message")} rows={5} placeholder={messagePlaceholder} defaultValue={val.message} aria-invalid={!!err.message} />
-        </Field>
-        <div className="sm:col-span-2">
+        </Field>}
+        <div className={compact ? undefined : "sm:col-span-2"}>
           <Checkbox
             id={id("consent")}
             name="consent"
@@ -223,7 +231,7 @@ function LeadFormInstance({
             aria-invalid={!!err.consent}
             label={
               <>
-                You may contact me about this enquiry. I have read the{" "}
+                {consentLabel} I have read the{" "}
                 <Link href="/legal/privacy" className="font-medium text-brand underline-offset-2 hover:underline">privacy notice</Link>.
               </>
             }
@@ -232,8 +240,8 @@ function LeadFormInstance({
         </div>
       </div>
 
-      <div className="mt-7 flex flex-col-reverse items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs leading-relaxed text-subtle">Please don’t include medical details, ID numbers or card details.</p>
+      <div className={cn("mt-7 flex flex-col-reverse items-stretch gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
+        {!compact && <p className="text-xs leading-relaxed text-subtle">Please don’t include medical details, ID numbers or card details.</p>}
         <Button type="submit" size="lg" loading={pending}>
           {pending ? "Sending…" : submitLabel}
         </Button>

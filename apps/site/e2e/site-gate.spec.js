@@ -8,7 +8,7 @@ const PORT = Number(process.env.E2E_GATED_PORT ?? 3104);
 const GATED = process.env.E2E_GATED_URL ?? `http://localhost:${PORT}`;
 const UNGATED_HOST = `http://127.0.0.1:${PORT}`;
 const TOKEN = process.env.E2E_GATE_TOKEN ?? "e2e-preview-token-0123456789";
-const WAITLIST_H1 = /Smarter insurance\s+is almost here/;
+const WAITLIST_H1 = /Smarter insurance\s+is coming/;
 
 test.skip(!!process.env.E2E_BASE_URL && !process.env.E2E_GATED_URL, "needs the gated server (set E2E_GATED_URL)");
 
@@ -24,7 +24,29 @@ test.describe("pre-launch gate on", () => {
     }
     await expect(page.getByRole("button", { name: "Insurance" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Join the waitlist" })).toBeVisible();
-    await expect(page.getByText("Covva is not an insurer or a broker")).toBeVisible();
+  });
+
+  test("the teaser gives nothing away: one form with name, email and consent only", async ({ page }) => {
+    await page.goto(GATED);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(WAITLIST_H1);
+    await expect(page.getByRole("heading")).toHaveCount(1);
+    await expect(page.locator("form")).toHaveCount(1);
+    const form = page.locator("#join form");
+    await expect(form.getByLabel("Your name")).toBeVisible();
+    await expect(form.getByLabel("Email", { exact: true })).toBeVisible();
+    await expect(form.getByRole("checkbox")).toBeVisible();
+    // Only those visible fields (hidden inputs and the off-screen honeypot aside).
+    await expect(form.locator("input:visible:not([name=company_website]), select:visible, textarea:visible")).toHaveCount(3);
+    await expect(form.locator("input[name=company_website]")).toHaveCount(1); // the spam honeypot is still there
+    // One column at desktop width: email sits below the name, and both fit inside the form.
+    const [nameBox, emailBox, formBox] = await Promise.all([form.getByLabel("Your name").boundingBox(), form.getByLabel("Email", { exact: true }).boundingBox(), form.boundingBox()]);
+    expect(emailBox.y).toBeGreaterThan(nameBox.y + nameBox.height);
+    expect(nameBox.x + nameBox.width).toBeLessThanOrEqual(formBox.x + formBox.width);
+    await expect(page.locator("img:not([alt='Covva'])")).toHaveCount(0);
+    const text = await page.locator("body").innerText();
+    for (const detail of [/MoMo/i, /broker/i, /insurer/i, /premium/i, /commission/i, /Paystack/i, /launch partner/i, /diaspora/i, /GBP|USD|EUR|CAD/, /motor|travel|health|funeral/i]) {
+      expect(text, String(detail)).not.toMatch(detail);
+    }
   });
 
   test("links into the app land on the waitlist instead of the app", async ({ page }) => {
@@ -38,7 +60,7 @@ test.describe("pre-launch gate on", () => {
 
   test("legal pages stay reachable from the waitlist footer", async ({ page }) => {
     await page.goto(GATED);
-    for (const [name, path] of [["Privacy notice", "/legal/privacy"], ["Terms of use", "/legal/terms"], ["Cookies", "/legal/cookies"]]) {
+    for (const [name, path] of [["Privacy", "/legal/privacy"], ["Terms", "/legal/terms"], ["Cookies", "/legal/cookies"]]) {
       await page.getByRole("navigation", { name: "Legal" }).getByRole("link", { name }).click();
       await expect(page).toHaveURL(`${GATED}${path}`);
       await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(WAITLIST_H1);
@@ -85,11 +107,10 @@ test.describe("pre-launch gate on", () => {
     const form = page.locator("#join");
     await page.waitForTimeout(2_700); // bot guard: minimum fill time (lead form, same as the renewal reminder test)
     await form.getByLabel("Your name").fill(`${TAG} Waitlist gate`);
-    await form.getByLabel("Email").fill("e2e-waitlist@example.com");
-    await form.getByLabel("What would you insure first?").selectOption({ index: 1 });
+    await form.getByLabel("Email", { exact: true }).fill("e2e-waitlist@example.com");
     await form.getByRole("checkbox").check();
     await form.getByRole("button", { name: "Join the waitlist" }).click();
-    await expect(form.getByText("You’re on the waitlist.")).toBeVisible();
+    await expect(form.getByText("You’re on the list.")).toBeVisible();
   });
 
   for (const width of [360, 768, 1280]) {
