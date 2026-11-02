@@ -104,6 +104,7 @@ export default async function HomePage() {
             </Reveal>
           ))}
         </ol>
+        <p className="mt-3 text-right text-[12px] text-muted">Illustrations: AI-generated</p>
       </Section>
 
       {/* Product tiles ----------------------------------------------------------- */}
