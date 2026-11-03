@@ -295,6 +295,13 @@ test.describe("marketing site", () => {
     expect(robots.status()).toBe(200);
     const txt = await robots.text();
     expect(txt).toMatch(/User-Agent: \*/i);
+    // Before launch (a *.vercel.app canonical URL, lib/deployment.ts isIndexable) the whole site is disallowed.
+    // Local and launched builds serve the full rules.
+    if (/^Disallow: \/\s*$/m.test(txt)) {
+      expect(txt).not.toMatch(/^Allow:/m);
+      expect(txt).not.toMatch(/Sitemap:/i);
+      return;
+    }
     expect(txt).toContain("Disallow: /account");
     expect(txt).toContain("Disallow: /partner/");
     expect(txt).toContain("Disallow: /api/");

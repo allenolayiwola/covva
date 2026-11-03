@@ -52,7 +52,8 @@ test('legal documents show the review notice', async ({ page }) => {
 test('consent Reject works before the page has hydrated', async ({ page, context }) => {
   await context.clearCookies();
   // Block the app's JavaScript bundles so the page never hydrates (a very slow phone, frozen at first paint).
-  await page.route('**/_next/static/chunks/**', (route) => route.abort());
+  // Every script under /_next/static (Vercel serves them from /_next/static/immutable/chunks/, local builds from /_next/static/chunks/).
+  await page.route(/\/_next\/static\/.+\.js(\?.*)?$/, (route) => route.abort());
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const banner = page.getByRole('region', { name: 'Cookie consent' });
   await expect(banner).toBeVisible();
