@@ -68,7 +68,9 @@ function route(request: NextRequest, gate: GateDecision): NextResponse {
   if ((cover && !findProductLine(cover[1]!)) || learnSlugMissing(path)) {
     const url = request.nextUrl.clone();
     url.pathname = NOT_FOUND_PATH;
-    const notFound = NextResponse.rewrite(url, { status: 404 });
+    // No status override: the catch-all route answers 404 itself. On Vercel a rewrite that forces 404 is served
+    // Next's default /404 page instead of the branded one.
+    const notFound = NextResponse.rewrite(url);
     response.cookies.getAll().forEach((c) => notFound.cookies.set(c));
     return notFound;
   }
