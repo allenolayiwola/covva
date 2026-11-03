@@ -84,7 +84,7 @@ export default async function HomePage() {
       <TrustBar tone="mist" />
 
       {/* How it works ------------------------------------------------------------ */}
-      <Section labelledBy="how-title">
+      <Section belowFold labelledBy="how-title">
         <SectionHeading
           id="how-title"
           eyebrow="How it works"
@@ -108,7 +108,7 @@ export default async function HomePage() {
       </Section>
 
       {/* Product tiles ----------------------------------------------------------- */}
-      <Section tone="mist" labelledBy="cover-title" className="pt-4! sm:pt-6!">
+      <Section belowFold tone="mist" labelledBy="cover-title" className="pt-4! sm:pt-6!">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <h2 id="cover-title" className="text-h3 text-ink">Cover for what matters to you</h2>
           <p className="text-sm text-muted">“From” prices are indicative monthly figures from approved products; your quote may differ.</p>
@@ -153,7 +153,7 @@ export default async function HomePage() {
       </Section>
 
       {/* Key benefits ------------------------------------------------------------ */}
-      <Section labelledBy="benefits-title">
+      <Section belowFold labelledBy="benefits-title">
         <SectionHeading id="benefits-title" eyebrow="Why Covva" title="Built for how people here actually live, work and pay." />
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {KEY_BENEFITS.map((b, i) => {
@@ -170,7 +170,7 @@ export default async function HomePage() {
       </Section>
 
       {/* Diaspora ------------------------------------------------------------------ */}
-      <Section tone="brand" labelledBy="diaspora-title" className="overflow-hidden">
+      <Section belowFold tone="brand" labelledBy="diaspora-title" className="overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-white/60" />
         <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
           <div>
@@ -202,7 +202,7 @@ export default async function HomePage() {
       </Section>
 
       {/* Price comparison teaser ------------------------------------------------- */}
-      <Section labelledBy="compare-title">
+      <Section belowFold labelledBy="compare-title">
         <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Compare the cover, not just the price</Eyebrow>
@@ -229,7 +229,7 @@ export default async function HomePage() {
       <AppDownload insurers={heroInsurers.map((i) => i.name)} />
 
       {/* Stats + testimonials ------------------------------------------------------ */}
-      {HOME_SOCIAL_PROOF_ENABLED && <Section labelledBy="stats-title">
+      {HOME_SOCIAL_PROOF_ENABLED && <Section belowFold labelledBy="stats-title">
         <SectionHeading
           id="stats-title"
           eyebrow="Covva in numbers"
@@ -245,7 +245,7 @@ export default async function HomePage() {
       <PartnerCtaStrip />
 
       {/* Renewal reminder + roles -------------------------------------------------- */}
-      <Section id="renewal-reminder" tone="mist" labelledBy="roles-title">
+      <Section belowFold id="renewal-reminder" tone="mist" labelledBy="roles-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
           <div>
             <SectionHeading
@@ -274,7 +274,7 @@ export default async function HomePage() {
       </Section>
 
       {/* FAQ ---------------------------------------------------------------------- */}
-      <Section labelledBy="faq-title">
+      <Section belowFold labelledBy="faq-title">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
           <div>
             <Eyebrow className="mb-3">Questions</Eyebrow>

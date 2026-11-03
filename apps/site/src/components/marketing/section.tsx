@@ -5,6 +5,10 @@ import { Container, Eyebrow, cn } from "@im/ui";
  * A full-width page band with the shared 1440px container and the 8pt rhythm (96px between sections on
  * desktop, 64px on phones). Light theme only: the former dark "ink" and "brand" tones now render as light
  * mist / mint bands, so `invert` is accepted for compatibility but no longer changes colours.
+ *
+ * `belowFold`: for bands that always start below the first screen. The browser skips their style, layout and paint
+ * (and any web font only they use) until they near the viewport, which brings the first paint forward on phones.
+ * The band then clips anything painted outside its own box, so keep decorations inside it.
  */
 export function Section({
   id,
@@ -12,6 +16,7 @@ export function Section({
   className,
   containerClassName,
   labelledBy,
+  belowFold = false,
   children,
 }: {
   id?: string;
@@ -19,6 +24,7 @@ export function Section({
   className?: string;
   containerClassName?: string;
   labelledBy?: string;
+  belowFold?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -27,6 +33,7 @@ export function Section({
       aria-labelledby={labelledBy}
       className={cn(
         "relative scroll-mt-20 py-16 lg:py-24",
+        belowFold && "[content-visibility:auto] [contain-intrinsic-size:auto_900px]",
         tone === "mist" && "bg-mist",
         tone === "ink" && "bg-mist",
         tone === "brand" && "bg-mint/60",

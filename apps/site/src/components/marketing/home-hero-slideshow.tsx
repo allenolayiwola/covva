@@ -7,12 +7,16 @@ import { buttonClass, cn, containerClass } from "@im/ui";
 import { HOME_HERO, HOME_HERO_CHIPS, type HeroLine, type HomeHeroSlide } from "./home-hero-content";
 
 export interface SlideMedia {
+  /** Tablet and up (768px+): eager; slide 1 at high priority. */
   desktop: React.ImgHTMLAttributes<HTMLImageElement>;
-  mobile: { srcSet?: string; sizes?: string };
+  /** Phones (up to 767px): the lazy-loaded portrait crop. */
+  mobile: React.ImgHTMLAttributes<HTMLImageElement>;
 }
 
 const LINES: HeroLine[] = HOME_HERO_CHIPS.map((c) => c.line);
 const CREAM = "#F6E9D5";
+/** A 1×1 transparent GIF: the <picture> source at the breakpoint an image is not for, so that file is never fetched. */
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 const noop = () => () => {};
 
 function useMediaQuery(query: string) {
@@ -169,19 +173,28 @@ export function HomeHeroSlideshow({ slides, media }: { slides: readonly HomeHero
       {/* Phones: the scene as a band under the quote card. Tablet and up: the right 60% of the hero, showing the painted
           half of each illustration whatever the hero height; its left edge blends into the cream. */}
       <figure className="relative h-[380px] sm:h-[480px] md:absolute md:inset-y-0 md:left-[40%] md:right-0 md:h-auto wide:left-[42%]">
-        {/* Slide 1 always; a slide the visitor picks at once; the rest after the page has loaded. */}
-        {slides.map((s, i) => (i === 0 || i === active || mediaReady) && (
-          <picture key={s.id}>
-            <source media="(max-width: 767px)" srcSet={media[i]!.mobile.srcSet} sizes={media[i]!.mobile.sizes} />
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes from getImageProps */}
-            <img
-              {...media[i]!.desktop}
-              aria-hidden={i === active ? undefined : true}
-              className={cn("absolute inset-0 block size-full object-cover object-[50%_75%] md:object-right", fade, i === active ? "opacity-100" : "opacity-0", !reducedMotion && i === active ? "scale-100" : "md:scale-[1.02]")}
-              style={fadeStyle}
-            />
-          </picture>
-        ))}
+        {/* Slide 1 always; a slide the visitor picks at once; the rest after the page has loaded. Each slide has one
+            image per breakpoint whose <picture> resolves to BLANK at the other breakpoint, so a phone never downloads
+            the wide scene (nor a laptop the phone crop) and each keeps its own loading and priority (home-hero.tsx). */}
+        {slides.map((s, i) => {
+          if (!(i === 0 || i === active || mediaReady)) return null;
+          const imgClass = cn("absolute inset-0 size-full object-cover object-[50%_75%] md:object-right", fade, i === active ? "opacity-100" : "opacity-0", !reducedMotion && i === active ? "scale-100" : "md:scale-[1.02]");
+          const shared = { "aria-hidden": i === active ? undefined : true, style: fadeStyle } as const;
+          return (
+            <React.Fragment key={s.id}>
+              <picture>
+                <source media="(max-width: 767px)" srcSet={BLANK} />
+                {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes from getImageProps */}
+                <img {...media[i]!.desktop} {...shared} className={cn(imgClass, "hidden md:block")} />
+              </picture>
+              <picture>
+                <source media="(min-width: 768px)" srcSet={BLANK} />
+                {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes from getImageProps */}
+                <img {...media[i]!.mobile} {...shared} className={cn(imgClass, "block md:hidden")} />
+              </picture>
+            </React.Fragment>
+          );
+        })}
         {/* Blend the scene into the cream: from the top on phones, from the left behind the copy on larger screens. */}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#F6E9D5] to-transparent md:inset-y-0 md:left-0 md:right-auto md:h-auto md:w-[35%] md:bg-gradient-to-r md:from-[#F6E9D5] md:to-transparent" />
         <figcaption className="absolute bottom-3 right-3 rounded-full bg-white/85 px-2.5 py-0.5 text-[12px] text-muted">Image: AI-generated</figcaption>
