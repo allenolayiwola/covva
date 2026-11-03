@@ -46,6 +46,9 @@ export function Drawer({
     if (!dialog.open) dialog.showModal();
     titleRef.current?.focus();
     return () => {
+      // Close the modal before React hides or unmounts it. Navigating away (e.g. "Open full record") can keep the
+      // old route mounted but hidden; a still-open modal <dialog> would leave the new page inert and unclickable.
+      if (dialog.open) dialog.close();
       // The drawer unmounts when the URL no longer asks for it: hand focus back to whatever opened it.
       if (!returnFocusId) return;
       requestAnimationFrame(() => document.getElementById(returnFocusId)?.focus({ preventScroll: true }));

@@ -32,7 +32,9 @@ test.describe("business accounts", () => {
       await page.getByRole("button", { name: "Create business account" }).click();
       await page.waitForURL(/\/account\/business\?org=[0-9a-f-]{36}&created=1$/);
     }
-    // Make sure there is a scheme to upload into.
+    // Make sure there is a scheme to upload into. Wait for the schemes section first: straight after creating the
+    // account the dashboard is still rendering, and isVisible() does not wait.
+    await expect(page.getByRole("heading", { level: 2, name: "Group schemes" })).toBeVisible();
     if (await page.getByText("No schemes yet").isVisible()) {
       await page.getByText("Create a scheme").click();
       await page.getByLabel("Scheme name").fill(`${TAG} staff health`);
