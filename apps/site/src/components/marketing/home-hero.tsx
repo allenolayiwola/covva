@@ -6,16 +6,21 @@ import { HomeHeroSlideshow, type SlideMedia } from "./home-hero-slideshow";
 
 /**
  * Home hero: a slideshow of illustrated scenes, one per cover type (home-hero-slideshow.tsx). This server part builds
- * the responsive image sources. Slide 1 loads eagerly at high priority (on desktop its scene is the LCP element); the
- * others load after the page. Quality 85 and sizes up to 3840w keep the illustrations sharp on retina screens.
+ * the responsive image sources. Quality 85 and sizes up to 3840w keep the illustrations sharp on retina screens.
+ *
+ * - Tablet and up: slide 1 loads eagerly at high priority (its scene is the LCP element there); the others load after
+ *   the page.
+ * - Phones: the scene is a band below the quote card, under the fold, and the headline is the LCP element. The phone
+ *   crop therefore loads lazily so it never competes with the CSS, fonts and headline for the first paint.
  */
 export function HomeHero() {
   const media: SlideMedia[] = HOME_HERO_SLIDES.map((s, i) => {
-    const first = i === 0;
-    const common = { alt: s.alt, quality: 85, sizes: "100vw", loading: "eager" as const, fetchPriority: first ? ("high" as const) : ("low" as const) };
-    const { props: desktop } = getImageProps({ ...common, src: `/images/home-hero/${s.image}.webp`, width: 3840, height: 2160 });
-    const { props: mobile } = getImageProps({ ...common, src: `/images/home-hero/${s.image}-mobile.webp`, width: 1200, height: 1364 });
-    return { desktop, mobile: { srcSet: mobile.srcSet, sizes: mobile.sizes } };
+    const common = { alt: s.alt, quality: 85, sizes: "100vw" };
+    const { props: desktop } = getImageProps({
+      ...common, src: `/images/home-hero/${s.image}.webp`, width: 3840, height: 2160, loading: "eager", fetchPriority: i === 0 ? "high" : "low",
+    });
+    const { props: mobile } = getImageProps({ ...common, src: `/images/home-hero/${s.image}-mobile.webp`, width: 1200, height: 1364, loading: "lazy" });
+    return { desktop, mobile };
   });
   return <HomeHeroSlideshow slides={HOME_HERO_SLIDES} media={media} />;
 }

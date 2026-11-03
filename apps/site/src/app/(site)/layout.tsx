@@ -1,6 +1,6 @@
 import type { Viewport } from "next";
 import "../globals.css";
-import { inter, outfit } from "../fonts";
+import { fontVariables } from "../fonts";
 import { rootMetadata } from "@/lib/root-metadata";
 import { HTML_LANG_SCRIPT } from "@/lib/i18n/html-lang";
 
@@ -16,7 +16,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // `lang` is set from the covva_lang cookie by the inline script (the layout stays static;
     // English visitors keep en-GH). suppressHydrationWarning covers that one attribute.
-    <html lang="en-GH" className={`${outfit.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en-GH" className={fontVariables} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: HTML_LANG_SCRIPT }} />
       </head>

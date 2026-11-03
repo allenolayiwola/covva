@@ -11,7 +11,7 @@ export const APP_LINK = sitePath("/app");
 /** App download section: store badges, a QR code to the app link, and the phone illustration. */
 export function AppDownload({ insurers }: { insurers: string[] }) {
   return (
-    <Section tone="mist" labelledBy="app-title" className="overflow-hidden">
+    <Section belowFold tone="mist" labelledBy="app-title" className="overflow-hidden">
       <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div>
           <Eyebrow className="mb-3">The Covva app</Eyebrow>

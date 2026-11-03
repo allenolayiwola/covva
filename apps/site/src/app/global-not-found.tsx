@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { inter, outfit } from "./fonts";
+import { fontVariables } from "./fonts";
 import { HTML_LANG_SCRIPT } from "@/lib/i18n/html-lang";
 import NotFound from "./(site)/not-found";
 
@@ -15,7 +15,7 @@ export const viewport: Viewport = { themeColor: "#00796E", width: "device-width"
  */
 export default function GlobalNotFound() {
   return (
-    <html lang="en-GH" className={`${outfit.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en-GH" className={fontVariables} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: HTML_LANG_SCRIPT }} />
       </head>
