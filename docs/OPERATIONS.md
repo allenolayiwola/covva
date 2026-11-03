@@ -28,6 +28,8 @@ The marketing site (covva-site) needs only a subset of these; see `docs/APPS.md`
 | `EMAIL_FROM` | no | prod | e.g. `Covva <no-reply@your-domain>` (verified Resend domain) |
 | `SMS_PROVIDER` | no | prod | `log` (default) \| `arkesel` \| `hubtel` |
 | `SMS_API_KEY` | **yes** | if SMS | Arkesel API key, or `clientId:clientSecret` for Hubtel |
+| `SMS_SENDER_ID` | no | if SMS | Sender name, max 11 characters (default `Covva`); must be approved by the provider |
+| `SUPABASE_SMS_HOOK_SECRET` | **yes** | phone OTP | Secret Supabase generates for the Send SMS hook (`v1,whsec_…`) |
 | `HUBTEL_CLIENT_ID` / `HUBTEL_CLIENT_SECRET` | **yes** | if Hubtel | Preferred over `SMS_API_KEY` for Hubtel |
 | `SMS_SENDER_ID` | no | if SMS | Registered sender id, ≤ 11 chars (default `Covva`) |
 | `EXPO_ACCESS_TOKEN` | **yes** | optional | Required only if Expo push security is enabled for the project |
@@ -311,8 +313,11 @@ the insurer receives**; foreign-currency figures are a display only.
 * **Redirect URLs**: `https://<web-host>/auth/callback`, `https://<web-host>/**` (previews:
   `https://*-<team>.vercel.app/**`), `covva://auth/callback`, `exp://**` (Expo Go dev only),
   admin host `https://<admin-host>/auth/callback`.
-* **Providers**: Email (confirm email on; OTP length 6), Phone with an SMS provider (Twilio/MessageBird/Vonage
-  or a Send-SMS hook to Arkesel/Hubtel) for phone OTP; set OTP expiry ≤ 10 minutes.
+* **Providers**: Email (confirm email on; OTP length 6) and Phone. Supabase has no Arkesel integration, so phone
+  codes go through our **Send SMS hook**: Authentication → Hooks → *Send SMS hook* → HTTPS →
+  `https://app.covva.com.gh/api/auth/sms-hook`, generate the secret and store it as `SUPABASE_SMS_HOOK_SECRET` on
+  covva-app (then redeploy). The route verifies Supabase's signature and sends the code via `SMS_PROVIDER`
+  (`arkesel`, with `SMS_API_KEY` and an approved `SMS_SENDER_ID`). Set OTP expiry to 10 minutes (the SMS says so).
 * **MFA**: enable TOTP. The admin portal requires AAL2 for platform staff; the partner workspace
   (`/partner`) requires AAL2 for broker and insurer users (`PARTNER_MFA_REQUIRED`, see §3a).
 * **JWT signing keys**: asymmetric keys recommended (`getClaims()` verifies locally via JWKS).
