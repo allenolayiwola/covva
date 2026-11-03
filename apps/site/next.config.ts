@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   poweredByHeader: false,
   partialPrefetching: true,
+  // Unmatched URLs render app/global-not-found.tsx (the branded 404) as complete HTML on the first request.
+  experimental: { globalNotFound: true },
   typedRoutes: false,
   transpilePackages: ["@im/core", "@im/db", "@im/tokens", "@im/ui"],
   images: {
