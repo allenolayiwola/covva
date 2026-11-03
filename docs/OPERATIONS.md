@@ -641,3 +641,39 @@ tax-inclusive, the effective date and who remits it (premium levies are usually 
 for reporting only). Then set the rate and status `active` in admin → Accounting (the database refuses `active`
 without a rate; `retired` instead of deleting). Computed tax lines are recorded in `tax_entries` (append-only, one per
 ledger entry and tax code); levies are computed on the original base, not compounded.
+
+## 15. Regulatory status and launch partner
+
+**NIC approval.** The National Insurance Commission gave Covva the go-ahead in November 2026 to work with insurance
+companies and licensed brokers. Keep the written confirmation with the company records. Covva remains a technology
+platform: it never holds client premiums and is never described as an insurer or a broker.
+
+**How sales are routed** (per insurer, per product line, in `insurer_line_integrations`; admin → Routing →
+Integrations, or the insurer's own *Integrations* page):
+
+- *Direct from the insurer*: `direct_sales = true`. At **L2** Covva issues on the insurer's behalf (certificate + QR)
+  when the risk passes the insurer's underwriting rules and a policy number block is available; otherwise the policy
+  is referred to the insurer. At **L1** the insurer issues through its portal within the line's SLA.
+- *Through a registered broker*: `direct_sales = false`, or whenever the customer asks for advice or the risk is
+  complex (fleet, commercial property, marine, group, high sum insured). Only brokers the insurer has appointed for
+  that line receive the offer.
+- Licensed brokers self-register at `/partner/register?type=broker` (flag `partner_self_service_broker`, on); admin
+  verifies the NIC licence before they go live.
+
+**Launch partner: Unique Insurance Company Limited** (org slug `unique-insurance`, added 3 Nov 2026). Non-life
+insurer, NIC licence NIC/NL/UIC 018 /08, licensed since October 1999, member of the Ghana Insurers Association. No. 86
+North Ridge, Ring Road Central, Accra · +233 501 569 433 / +233 30 224 8174 · https://www.uicghana.org/.
+
+| Product | Line set-up | Issued by |
+|---|---|---|
+| Unique Motor (`UIC_MOTOR`) | L2, direct sales on, instant | Covva on Unique's behalf (needs a number block) |
+| Unique Home & Contents (`UIC_HOME`) | L1, direct sales on, 48 h | Unique |
+| Unique Business Property (`UIC_SME_PROPERTY`) | L1, brokers only, 72 h | Unique |
+
+All three price from **sample** rate tables (named "… SAMPLE rates"). To replace them, Unique uploads its table from
+the partner portal (Products → version → Rates, CSV or row editor); admin approves it under Products → Rate tables;
+then a new product version linked to it is published. Approved tables are read-only by design.
+
+Outstanding from Unique before the first live sale: real rate tables, a Motor policy number block
+(`/partner/issuance/number-blocks`), staff logins (invite from admin → Organisations), approved certificate/schedule
+templates and policy wordings, and a Paystack subaccount for settlement.

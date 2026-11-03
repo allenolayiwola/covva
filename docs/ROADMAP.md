@@ -77,7 +77,7 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 - [x] Issuance type + SLA per product ("Instant" / "Issued within X hours") shown before payment (Addendum 2 G).
 - [x] Scheduled price changes with effective dates (`price-schedule` cron promotes them); existing quotes/policies keep their version.
 - [x] Broker-submitted pending rate tables for insurers not yet on Covva (creates a partnerships lead). Attaching an approved proposal to the insurer's product once they join still needs an admin action.
-- [ ] Launch insurer seed: load one real insurer's catalogue (needs their product data — see dependencies).
+- [~] Launch insurer seed: **Unique Insurance Company Limited** (NIC/NL/UIC 018 /08, non-life) is live as the launch partner with Motor, Home & Contents and Business Property on **sample** rate tables (3 Nov 2026). Still needed from Unique: real rate tables, a policy number block, staff logins, branded templates, wordings and a Paystack payout account (see *Launch partner* in `docs/OPERATIONS.md`).
 
 **Commercial terms and ledger (Addendum 2 F)**
 - [x] `org_commercial_terms` (broker: revenue share % or subscription; insurer: fee/commission %), `policies.source`, `payment_splits`, append-only `ledger_entries`, fee transparency on quotes and at checkout.
@@ -201,8 +201,8 @@ briefs is listed once, under the phase where it is delivered. Items already buil
 
 | Item | Why it blocks | Needed from you / third party |
 |---|---|---|
-| **Launch insurer** | Phase 0/1 seed and L2 rules need real products, rates, wording, templates, number blocks. | Name the partner; their product/rate data (CSV/Excel), approved document templates, settlement account, integration level per line. |
-| **NIC classification** | Direct-to-insurer sales and delegated issuance (Covva issuing on the insurer's behalf) may need NIC clearance (technical service provider / innovative intermediary). Self-service registration is flag-gated for this reason. | Written NIC guidance; until then, keep broker-fulfilled routing as default. |
+| **Launch insurer** | Real rates, number blocks, templates and settlement. | **Named: Unique Insurance** (3 Nov 2026). Outstanding from Unique: real rate tables (due week of 3 Nov), policy number block for Motor, staff logins, approved certificate/schedule templates and wordings, Paystack subaccount. |
+| **NIC classification** | Direct-to-insurer sales and delegated issuance (Covva issuing on the insurer's behalf). | **Resolved: NIC gave the go-ahead (Nov 2026)** to work with insurers and licensed brokers. Both sales routes are on: customers buy directly from the insurer (Covva issues instantly with QR where the insurer's line is L2, otherwise the insurer fulfils) or through a registered broker. Broker and insurer self-registration (`partner_self_service_broker`/`_insurer`) are on. Keep the written NIC confirmation on file. |
 | **NIC register / motor database** | Licence verification and motor policy registration. | Confirm whether an API exists; otherwise manual verification stays and motor registration is a hand-off to the insurer. |
 | **Paystack** | Live MoMo/cards; three-way split needs split groups enabled on your account; refunds; international cards for diaspora. | Live secret key, subaccounts per insurer/broker, split-group feature, webhook secret. |
 | **Hubtel (optional)** | Second provider, USSD + SMS. | Client id/secret, USSD short code. |
