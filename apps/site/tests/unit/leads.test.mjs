@@ -126,24 +126,35 @@ function renderLeadForm(props) {
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(prevented, true, 'the browser never submits on its own once hydrated');
     return { sent: sent.length > before };
-  } };
+  }, async doubleClick(fields) {
+    const before = sent.length;
+    form.props.onSubmit({ currentTarget: fields, preventDefault: () => {} });
+    form.props.onSubmit({ currentTarget: fields, preventDefault: () => {} });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return sent.length - before;
+  }, lastState: () => states.filter(value => typeof value !== 'boolean').at(-1) };
 }
 
 test('LeadForm loads LeadSchema on demand, blocks invalid submissions and sends valid ones', async () => {
   const form = renderLeadForm({});
   assert.equal(typeof form.form.props.onFocus, 'function', 'the schema starts loading when someone focuses the form');
   assert.equal((await form.submit({ ...valid, email: 'invalid', consent: undefined })).sent, false);
-  assert.ok(form.states.at(-1).fieldErrors.email);
-  assert.ok(form.states.at(-1).fieldErrors.consent);
+  assert.ok(form.lastState().fieldErrors.email);
+  assert.ok(form.lastState().fieldErrors.consent);
   assert.equal((await form.submit(valid)).sent, true);
-  assert.equal(form.states.at(-1), null);
+  assert.equal(form.lastState(), null);
+});
+
+test('LeadForm sends one enquiry when submit is clicked twice while validation loads', async () => {
+  const form = renderLeadForm({});
+  assert.equal(await form.doubleClick(valid), 1);
 });
 
 test('LeadForm uses its supplied schema for validation and error messages', async () => {
   const schema = LeadSchema.refine(value => value.message === 'Approved', { path: ['message'], message: 'Please use the approved message.' });
   const form = renderLeadForm({ schema });
   assert.equal((await form.submit(valid)).sent, false);
-  assert.equal(form.states.at(-1).fieldErrors.message, 'Please use the approved message.');
+  assert.equal(form.lastState().fieldErrors.message, 'Please use the approved message.');
   assert.equal((await form.submit({ ...valid, message: 'Approved' })).sent, true);
-  assert.equal(form.states.at(-1), null);
+  assert.equal(form.lastState(), null);
 });
