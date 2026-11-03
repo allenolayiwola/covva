@@ -19,6 +19,19 @@ test.describe('public error polish', () => {
     }
     await expect(page.getByRole('alert').getByRole('link')).toHaveCount(3);
   });
+  // A URL nobody has requested before must get the full branded page server-side (not an empty shell that
+  // only JavaScript can fill), so this runs with JavaScript off on a path unique to this run.
+  test('a never-seen unknown URL is a full branded 404 without JavaScript', async ({ browser, baseURL }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    const res = await page.goto(`${baseURL}/no-such-page-${Date.now()}-${Math.random().toString(36).slice(2)}/deeper`);
+    expect(res.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('We couldn’t find that page.');
+    await expect(page.getByRole('link', { name: 'Back to home', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Explore cover', exact: true })).toBeVisible();
+    await expect(page.locator("meta[name='robots']").first()).toHaveAttribute('content', /noindex/);
+    await context.close();
+  });
   test('unknown cover is a real 404 with recovery links', async ({ page, request }) => {
     expect((await request.head('/cover/zzz')).status()).toBe(404);
     expect((await page.goto('/cover/zzz', { waitUntil: 'domcontentloaded' })).status()).toBe(404);

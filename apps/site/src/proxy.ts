@@ -68,8 +68,8 @@ function route(request: NextRequest, gate: GateDecision): NextResponse {
   if ((cover && !findProductLine(cover[1]!)) || learnSlugMissing(path)) {
     const url = request.nextUrl.clone();
     url.pathname = NOT_FOUND_PATH;
-    // No status override: the catch-all route answers 404 itself. On Vercel a rewrite that forces 404 is served
-    // Next's default /404 page instead of the branded one.
+    // No status override: the unmatched path renders app/global-not-found.tsx with a 404 itself. On Vercel a
+    // rewrite that forces 404 is served Next's default /404 page instead of the branded one.
     const notFound = NextResponse.rewrite(url);
     response.cookies.getAll().forEach((c) => notFound.cookies.set(c));
     return notFound;
@@ -137,7 +137,7 @@ function captureReferral(request: NextRequest, response: NextResponse) {
 /**
  * `/learn/<slug>` is partially prerendered: its shell streams before the page can call `notFound()`, so an
  * unknown slug would otherwise answer 200 (a "soft 404"). The slug is checked here against the articles in code,
- * and a missing one is rewritten to a route that renders the not-found page with a 404 status.
+ * and a missing one is rewritten to an unmatched path, which renders the branded not-found page with a 404 status.
  */
 const NOT_FOUND_PATH = "/__not-found";
 function learnSlugMissing(path: string): boolean {
