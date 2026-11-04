@@ -27,11 +27,12 @@ test('every page shows the waitlist while gated, app paths included', async () =
 });
 
 test('legal pages, APIs, crawler files and share images stay reachable', async () => {
-  for (const path of [GATE_PATH, '/legal/privacy', '/legal/terms', '/legal/cookies', '/api/consent', '/robots.txt', '/sitemap.xml', '/opengraph-image', '/about/opengraph-image', '/manifest.webmanifest']) {
+  for (const path of [GATE_PATH, '/verify', '/legal/privacy', '/legal/terms', '/legal/cookies', '/api/consent', '/robots.txt', '/sitemap.xml', '/opengraph-image', '/about/opengraph-image', '/manifest.webmanifest']) {
     assert.equal(isGateOpenPath(path), true, path);
     assert.deepEqual(await decide({ url: `https://covva.com.gh${path}` }), { kind: 'open' }, path);
   }
-  for (const path of ['/', '/legal', '/legalese', '/apis', '/coming-soonish']) assert.equal(isGateOpenPath(path), false, path);
+  for (const path of ['/', '/legal', '/legalese', '/apis', '/coming-soonish', '/verifyx', '/verification']) assert.equal(isGateOpenPath(path), false, path);
+  assert.deepEqual(await decide({ url: 'https://covva.com.gh/verify?q=JKB67GVDSY' }), { kind: 'open' }, 'QR links on certificates still work while gated');
 });
 
 test('SITE_GATE_HOSTS limits the gate to those hostnames (port and case ignored)', async () => {
