@@ -32,11 +32,13 @@ export default function ApplyPage({ params, searchParams }: PageProps<"/account/
 }
 
 const STEPS = ["Your broker", "Declarations", "Payment", "Confirmation"];
+/** Bought directly from the insurer (server/direct-quotes.ts): no broker of record, so no broker disclosure step. */
+const DIRECT_STEPS = ["Your insurer", "Declarations", "Payment", "Confirmation"];
 
-function Stepper({ current }: { current: number }) {
+function Stepper({ current, steps = STEPS }: { current: number; steps?: string[] }) {
   return (
     <ol className="mb-8 grid grid-cols-4 gap-2" aria-label="Checkout progress">
-      {STEPS.map((s, i) => (
+      {steps.map((s, i) => (
         <li key={s} aria-current={i === current ? "step" : undefined}>
           <span className={cn("block h-2 rounded-full", i <= current ? "bg-brand" : "bg-mint")} />
           <span className={cn("mt-2 flex items-center gap-1 text-xs font-medium sm:text-sm", i === current ? "text-ink" : i < current ? "text-brand" : "text-subtle")}>
@@ -72,10 +74,14 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
   const disclosed = (disclosureRes.data?.length ?? 0) > 0;
   const insurerName = quote.insurer?.name ?? "the insurer";
   const broker = request.broker;
-  const disclosureText = buildDisclosure({
-    broker: { name: broker?.name ?? "your broker of record", licence: broker?.nic_licence_number },
-    insurer: { name: insurerName },
-  });
+  const direct = !request.broker_org_id && request.routing_mode === "insurer_direct" && !quote.broker_org_id;
+  const steps = direct ? DIRECT_STEPS : STEPS;
+  const disclosureText = direct
+    ? `${quote.commission_disclosure ?? "Sold directly by the insurer."} This policy is underwritten and issued by ${insurerName}.`
+    : buildDisclosure({
+        broker: { name: broker?.name ?? "your broker of record", licence: broker?.nic_licence_number },
+        insurer: { name: insurerName },
+      });
 
   let payment: Pick<Row<"payments">, "id" | "status" | "failure_reason" | "authorization_url" | "amount" | "provider" | "channel_detail"> | null = null;
   if (application) {
@@ -97,12 +103,12 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
   const discount = discountTotal(discountLines);
   const amount =
     Math.max(0, Number(quote.premium) - discount) + Number(quote.taxes ?? 0) + Number(quote.fees ?? 0) + benefits.filter((b) => chosenBenefits.includes(b.key)).reduce((s, b) => s + (b.premium ?? 0), 0);
-  const step = !disclosed ? 0 : !application ? 1 : 2;
+  const step = !disclosed && !direct ? 0 : !application ? 1 : 2;
   const waitingPaymentId = typeof sp.payment === "string" && UUID_RE.test(sp.payment) ? sp.payment : null;
   const failure = payment && ["failed", "abandoned", "reversed"].includes(payment.status) ? payment.failure_reason ?? "The payment was declined or cancelled." : null;
 
   let body: React.ReactNode;
-  if (!broker) {
+  if (!broker && !direct) {
     body = <Notice tone="wait" title="Your broker hasn't been assigned yet">You&apos;ll be able to apply once a licensed broker of record has been named to you.</Notice>;
   } else if (!application && (quote.status !== "ready_to_accept" || expired)) {
     body = (
@@ -111,7 +117,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
         <Link href={`/account/requests/${id}/quotes`} className="font-semibold underline">Back to quotes</Link>
       </Notice>
     );
-  } else if (step === 0) {
+  } else if (step === 0 && broker) {
     body = <DisclosureStep requestId={id} quoteId={quoteId} text={disclosureText} brokerName={broker.name} />;
   } else if (step === 1) {
     body = (
@@ -184,8 +190,8 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
         ]}
       />
       <h1 className="mb-2 text-h3 text-ink"><T k="checkout.applyFor" vars={{ insurer: insurerName }} /></h1>
-      <p className="mb-6 text-sm text-muted">Step {step + 1} of {STEPS.length} · A quote request is not cover. Payment does not make cover active until the insurer accepts.</p>
-      <Stepper current={step} />
+      <p className="mb-6 text-sm text-muted">Step {step + 1} of {steps.length} · A quote request is not cover. Payment does not make cover active until the insurer accepts.</p>
+      <Stepper current={step} steps={steps} />
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">{body}</div>
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
@@ -210,7 +216,7 @@ async function Checkout({ params, searchParams }: Pick<PageProps<"/account/reque
             {flags.demo_mode && <DemoBadge className="mt-3" />}
           </Card>
           <DisclosureBlock text={disclosureText} />
-          <Link href={`/account/requests/${id}/messages`} className={buttonClass("ghost", "sm", "w-full")}>Questions? Message your broker</Link>
+          {!direct && <Link href={`/account/requests/${id}/messages`} className={buttonClass("ghost", "sm", "w-full")}>Questions? Message your broker</Link>}
         </aside>
       </div>
     </div>

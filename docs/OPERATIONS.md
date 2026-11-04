@@ -662,6 +662,11 @@ Integrations, or the insurer's own *Integrations* page):
 - *Through a registered broker*: `direct_sales = false`, or whenever the customer asks for advice or the risk is
   complex (fleet, commercial property, marine, group, high sum insured). Only brokers the insurer has appointed for
   that line receive the offer.
+- *Instant direct quotes*: when a customer picks an insurer in the quote flow ("Buy directly from the insurer") and that
+  line sells directly with `instant`/`within_hours` issuance, `server/direct-quotes.ts` prices the order from the
+  insurer's approved rating at once: a binding `ready_to_accept` quote with no broker, valid for `quote_validity_days`,
+  and checkout opens straight away (no broker disclosure step). Complex risks, underwriting refer/decline, manual
+  products or a missing rate fall back to the insurer quoting through its portal.
 - Licensed brokers self-register at `/partner/register?type=broker` (flag `partner_self_service_broker`, on); admin
   verifies the NIC licence before they go live.
 

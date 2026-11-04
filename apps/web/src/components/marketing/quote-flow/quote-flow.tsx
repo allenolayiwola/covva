@@ -8,10 +8,11 @@ import { CATEGORY_AVAILABILITY, ROLE_STATEMENTS, formatGHS, riskSchemaToZod } fr
 import { Container, Notice, Pill, Spinner, buttonClass, cn } from "@im/ui";
 import { createClient } from "@/lib/supabase/client";
 import { sitePath } from "@/lib/site-url";
-import { submitQuoteRequest } from "@/app/(site)/(public)/quote/actions";
+import { getDirectOffers, submitDirectOrder, submitQuoteRequest, type DirectOfferView } from "@/app/(site)/(public)/quote/actions";
 import { track } from "../analytics";
 import { CategoryIcon } from "../category-icon";
 import { BrokerPicker } from "./broker-picker";
+import { DirectOffers } from "./direct-offers";
 import { QuestionScreen } from "./question";
 import {
   LINE_TO_CATEGORY,
@@ -53,6 +54,8 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
   const [user, setUser] = React.useState<"unknown" | "anonymous" | "signed_in">("unknown");
   const [submitting, startSubmit] = React.useTransition();
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [loadedOffers, setLoadedOffers] = React.useState<{ key: string; offers: DirectOfferView[] } | null>(null);
+  const [buying, setBuying] = React.useState<string | null>(null);
   const headingRef = React.useRef<HTMLHeadingElement>(null);
 
   const category = available.find((c) => c.slug === slug) ?? null;
@@ -228,6 +231,42 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
     });
   };
 
+  // Instant prices from insurers that sell directly: fetched when the customer reaches the broker step.
+  const riskKey = category ? `${category.slug}:${JSON.stringify(riskPayload(category.risk_schema, values))}` : "";
+  const offers = loadedOffers && loadedOffers.key === riskKey ? loadedOffers.offers : null;
+  React.useEffect(() => {
+    if (screen.kind !== "brokers" || !category) return;
+    let live = true;
+    getDirectOffers({ categorySlug: category.slug, risk: JSON.parse(riskKey.slice(category.slug.length + 1)) })
+      .then((o) => live && setLoadedOffers({ key: riskKey, offers: o }))
+      .catch(() => live && setLoadedOffers({ key: riskKey, offers: [] }));
+    return () => {
+      live = false;
+    };
+  }, [screen.kind, category, riskKey]);
+
+  const buyDirect = (offer: DirectOfferView) => {
+    if (!category || submitting) return;
+    setSubmitError(null);
+    setBuying(offer.productId);
+    startSubmit(async () => {
+      const result = await submitDirectOrder({ categorySlug: category.slug, risk: riskPayload(category.risk_schema, values), insurerOrgId: offer.insurerOrgId, productId: offer.productId });
+      if (result.ok) {
+        clearDraft();
+        track("generate_lead", { kind: "customer", tag: "direct_order", page: "/quote" });
+        router.push(result.quoteId ? `/account/requests/${result.requestId}/apply/${result.quoteId}` : `/account/requests/${result.requestId}?new=1`);
+        return;
+      }
+      setBuying(null);
+      if (result.code === "unauthorised") {
+        setUser("anonymous");
+        go(screens.findIndex((s) => s.kind === "auth"));
+        return;
+      }
+      setSubmitError(result.error);
+    });
+  };
+
   const step = macroStep(screen);
   const percent = Math.round((index / Math.max(1, screens.length)) * 100);
   const signInNext = encodeURIComponent("/quote?resume=1");
@@ -352,7 +391,16 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
 
           {screen.kind === "brokers" && category && (
             <>
-              <ScreenHeading ref={headingRef} eyebrow="Brokers" title="Choose up to three brokers" lede="Licensed brokers prepare quotes from the insurers they represent and stay with you through claims and renewals." />
+              {offers && offers.length > 0 ? (
+                <>
+                  <ScreenHeading ref={headingRef} eyebrow="Your quote" title="Buy directly or choose a broker" lede="Buy now from an insurer that sells this cover directly, or send your request to licensed brokers for quotes and advice." />
+                  <DirectOffers offers={offers} busyId={submitting ? buying : null} disabled={submitting} onBuy={buyDirect} />
+                  <h2 className="mt-12 text-xl font-semibold text-ink">Or choose up to three brokers</h2>
+                  <p className="mt-1 text-[15px] text-muted">Licensed brokers prepare quotes from the insurers they represent and stay with you through claims and renewals.</p>
+                </>
+              ) : (
+                <ScreenHeading ref={headingRef} eyebrow="Brokers" title="Choose up to three brokers" lede="Licensed brokers prepare quotes from the insurers they represent and stay with you through claims and renewals." />
+              )}
               <div className="mt-8">
                 <BrokerPicker brokers={brokers} selected={brokerIds} onToggle={(id) => setBrokerIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= MAX_BROKERS ? prev : [...prev, id]))} />
               </div>

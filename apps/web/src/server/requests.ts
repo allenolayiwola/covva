@@ -19,6 +19,8 @@ import { emitEvent } from "@/server/webhooks";
 import { routeNewRequest, type RoutingResult } from "@/server/routing";
 import { recordAttribution } from "@/server/referrals";
 import { applyLoyaltyToQuote } from "@/server/loyalty";
+import { instantDirectQuote } from "@/server/direct-quotes";
+import { getSetting } from "@/lib/catalog";
 
 export class BusinessRuleError extends Error {
   constructor(message: string, public code = "business_rule") {
@@ -262,6 +264,13 @@ export interface CreateRequestArgs {
    * group summary (counts and ages only, never member PII) and is not validated against the personal-lines form.
    */
   welfareGroup?: { id: string; title: string } | null;
+  /**
+   * The customer chose to buy directly from this insurer (and optionally this product). Routing sends the request
+   * `insurer_direct` when the insurer's line sells directly; instant lines are priced at once (server/direct-quotes.ts).
+   * Kept as explicit arguments because the category's risk form strips unknown keys.
+   */
+  preferredInsurerOrgId?: string | null;
+  preferredProductId?: string | null;
 }
 
 export async function createRequest(
@@ -297,7 +306,9 @@ export async function createRequest(
   if (parsed && !parsed.success) {
     throw new BusinessRuleError(parsed.error.issues.map((i) => i.message).join(" "), "invalid_input");
   }
-  const risk = (parsed ? parsed.data : args.risk) as Record<string, unknown>;
+  const risk = { ...((parsed ? parsed.data : args.risk) as Record<string, unknown>) };
+  if (args.preferredInsurerOrgId) risk.preferred_insurer_org_id = args.preferredInsurerOrgId;
+  if (args.preferredProductId) risk.preferred_product_id = args.preferredProductId;
   const talkToExpert = (args.talkToExpert ?? false) || !!args.business || !!args.welfareGroup;
   const fingerprint = await riskFingerprint({ customerId: user.id, categorySlug: category.slug, risk });
 
@@ -362,11 +373,23 @@ export async function createRequest(
   if (category.availability === "integrated" && routing.brokerOrgId) {
     estimates = await generateEstimates(svc, request);
   }
+  // Direct from an insurer whose line issues instantly: price it now so the customer can pay straight away.
+  let directQuote: { quoteId: string; insurerName: string } | null = null;
+  if (!routing.brokerOrgId && routing.mode === "insurer_direct" && routing.insurerOrgId && !needsReview) {
+    try {
+      const validity = (await getSetting<number>("quote_validity_days")) ?? 14;
+      directQuote = await instantDirectQuote(svc, request, routing.insurerOrgId, validity);
+    } catch (err) {
+      console.error("instantDirectQuote failed", err);
+    }
+  }
 
   // Status: binding quotes ready → quotes_ready; estimates only → insurer_response; assisted → adviser_action.
   // Without a broker of record yet (offers out / direct to insurer / ops hold) the request stays
   // submitted until a broker accepts; direct insurer orders wait on the insurer.
-  const nextStatus: Enum<"request_status"> = !routing.brokerOrgId
+  const nextStatus: Enum<"request_status"> = directQuote
+    ? "quotes_ready"
+    : !routing.brokerOrgId
     ? routing.mode === "insurer_direct"
       ? "insurer_response"
       : "submitted"
@@ -377,7 +400,9 @@ export async function createRequest(
         : estimates.quotes > 0
           ? "insurer_response"
           : "adviser_action";
-  const nextStep = !routing.brokerOrgId
+  const nextStep = directQuote
+    ? `Your quote from ${directQuote.insurerName} is ready. Review it and pay to start your cover.`
+    : !routing.brokerOrgId
     ? routing.mode === "insurer_direct"
       ? "The insurer is preparing your quote."
       : routing.mode === "ops_hold"
