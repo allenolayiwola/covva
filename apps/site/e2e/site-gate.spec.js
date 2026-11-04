@@ -68,6 +68,14 @@ test.describe("pre-launch gate on", () => {
     }
   });
 
+  test("policy verification stays open: QR codes on certificates point here", async ({ page }) => {
+    const res = await page.goto(`${GATED}/verify?q=E2EUNKNOWN1`);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+    await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(WAITLIST_H1);
+    await expect(page.getByLabel("Policy number", { exact: true })).toBeVisible();
+  });
+
   test("robots.txt lists no sitemap and the sitemap is gone", async ({ request }) => {
     const robots = await request.get(`${GATED}/robots.txt`);
     expect(robots.status()).toBe(200);

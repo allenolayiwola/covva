@@ -149,7 +149,7 @@ after changing them. While the gate is on, for a gated host:
   It is a deliberately minimal teaser (logo, one headline, one line, the sign-up, legal links) that gives nothing
   away about the product or business model. The sign-up is the lead form in compact mode (name, email, consent;
   `leads` table, `waitlist` tag, same honeypot and minimum fill time). `?ref=` is still captured.
-- Still reachable: `/legal/*`, `/api/*`, static files and images, Open Graph images and the web manifest.
+- Still reachable: `/legal/*`, `/verify` (QR codes on issued certificates and stickers point there), `/api/*`, static files and images, Open Graph images and the web manifest.
 - Every response carries `X-Robots-Tag: noindex, nofollow`; `robots.txt` lists no sitemap and `/sitemap.xml` is 404.
   `/coming-soon` itself is always `noindex`.
 - No site navigation, images, analytics or cookie banner on the waitlist page.

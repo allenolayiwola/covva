@@ -35,10 +35,12 @@ export function readGateConfig(env: Record<string, string | undefined>): GateCon
   return { on, hosts: hosts.length ? hosts : null, bypassToken: token.length >= GATE_MIN_TOKEN_LENGTH ? token : null };
 }
 
-/** Paths that stay reachable while gated: the waitlist itself, legal pages, APIs, crawler files and share images. */
+/** Paths that stay reachable while gated: the waitlist itself, legal pages, policy verification, APIs, crawler files and share images. */
 export function isGateOpenPath(path: string): boolean {
   if (path === GATE_PATH || path.startsWith(`${GATE_PATH}/`)) return true;
   if (path.startsWith("/legal/") || path.startsWith("/api/") || path.startsWith("/_next/")) return true;
+  // Policy verification: QR codes on issued certificates and stickers point here (police, DVLA and garages scan them).
+  if (path === "/verify" || path.startsWith("/verify/")) return true;
   if (path === "/robots.txt" || path === "/sitemap.xml" || path === "/manifest.webmanifest") return true;
   // Social share cards (app/opengraph-image.tsx and per-route ones), so a shared link still previews nicely.
   return /(^|\/)opengraph-image(-[\w-]+)?$/.test(path);
