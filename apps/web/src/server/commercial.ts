@@ -3,6 +3,8 @@ import { computeSplit, feeBreakdownForQuote, type BusinessSource, type FeeBreakd
 import type { Json, Row } from "@im/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { log } from "@/server/log";
+import { subaccountBlocksPayment } from "@/server/paystack-subaccount";
+import { BusinessRuleError } from "@/server/requests";
 
 /**
  * Commercial terms and checkout splits (Addendum 2 §F). Pure arithmetic lives in
@@ -114,6 +116,12 @@ export async function splitForPayment(
   const split = computeSplit(input);
   const feeBreakdown = feeBreakdownForQuote({ ...input, currency: args.quote.currency, insurerName: args.insurer.name, brokerName: broker.data?.name ?? null });
   const splitCode = args.provider === "paystack" ? args.insurer.paystack_split_code || process.env.PAYSTACK_SPLIT_GROUP_CODE || null : null;
+  // Safeguard: settling to the insurer's own subaccount must not route premium to Covva's main account.
+  if (args.provider === "paystack" && !splitCode && args.insurer.paystack_subaccount_code) {
+    const allowedPct = split.total > 0 ? (split.platform / split.total) * 100 : 0;
+    const blocked = await subaccountBlocksPayment(args.insurer.paystack_subaccount_code, allowedPct, { insurerOrgId: args.insurer.id });
+    if (blocked) throw new BusinessRuleError(blocked, "unavailable");
+  }
   const summary: SplitSummary = {
     source,
     total: split.total,

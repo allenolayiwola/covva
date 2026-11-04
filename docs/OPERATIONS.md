@@ -77,6 +77,11 @@ been pasted into chat, logs or tickets.
 1. Create one **subaccount per insurer** (Dashboard → Subaccounts) with the insurer's settlement bank
    account. Store the code (`ACCT_…`) on `organizations.paystack_subaccount_code` (admin portal).
    Without it, live checkout is refused for that insurer — premiums must settle to the insurer.
+   Set the subaccount's **percentage charge to 0** (or at most the platform fee agreed in the commercial terms):
+   Paystack sends that percentage of every payment to Covva's main account. Checkout looks the subaccount up on
+   Paystack (`server/paystack-subaccount.ts`, cached 10 min) and refuses to take payment if it is missing,
+   inactive, not GHS, or would send more than the agreed platform share to the main account
+   (`paystack.subaccount_unsafe` in the logs). After editing a subaccount, allow up to 10 minutes for the cache.
 2. Transactions are initialised with `subaccount = <insurer code>` and `bearer = "subaccount"`, so the
    insurer receives the premium and bears Paystack fees; the platform never holds the money.
 3. **Webhook URL**: `https://<web-host>/api/webhooks/paystack` (Settings → API Keys & Webhooks), for
