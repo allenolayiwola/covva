@@ -7,8 +7,20 @@ import { CircleCheck } from "lucide-react";
 import { Button, Checkbox, Field, Input, Notice, Select, Textarea, cn } from "@im/ui";
 import { submitLead, type LeadState } from "@/app/(site)/(marketing)/actions";
 import type { LeadTag } from "./lead-tags";
-import { LeadSchema } from "./lead-schema";
 import { track } from "./analytics";
+
+/**
+ * The client-side check uses zod (~37 KB gzipped), so it is downloaded only when someone starts filling a form in
+ * (first focus) instead of with every page that shows one. The server action validates again and is authoritative.
+ */
+let schemaPromise: Promise<typeof import("./lead-schema").LeadSchema | null> | null = null;
+function loadSchema() {
+  schemaPromise ??= import("./lead-schema").then((m) => m.LeadSchema).catch(() => {
+    schemaPromise = null; // a failed chunk download is retried next time; the server still validates this submission
+    return null;
+  });
+  return schemaPromise;
+}
 
 type Kind = "customer" | "broker" | "insurer" | "enterprise" | "press" | "other";
 
@@ -24,8 +36,8 @@ const KIND_LABELS: Record<Kind, string> = {
 const INITIAL: LeadState = { status: "idle" };
 
 export interface LeadFormProps {
-  /** Client validation schema; server validation remains authoritative. */
-  schema?: typeof LeadSchema;
+  /** Client validation schema; default: LeadSchema, loaded on demand. Server validation remains authoritative. */
+  schema?: typeof import("./lead-schema").LeadSchema;
   /** Fixed enquiry type. Omit to let the person choose. */
   kind?: Kind;
   kindOptions?: Kind[];
@@ -61,7 +73,7 @@ export function LeadForm(props: LeadFormProps) {
 }
 
 function LeadFormInstance({
-  schema = LeadSchema,
+  schema: schemaProp,
   kind,
   kindOptions = ["customer", "broker", "insurer", "enterprise", "press", "other"],
   defaultKind,
@@ -83,6 +95,13 @@ function LeadFormInstance({
 }: LeadFormProps & { onReset: () => void }) {
   const [serverState, formAction, pending] = useActionState(submitLead, INITIAL);
   const [clientState, setClientState] = React.useState<LeadState | null>(null);
+  // One submission at a time: set from the first click until the server answers (or validation fails), so a second
+  // click while the schema is still downloading cannot send a duplicate enquiry.
+  const submittingRef = React.useRef(false);
+  const [checking, setChecking] = React.useState(false);
+  React.useEffect(() => {
+    submittingRef.current = false;
+  }, [serverState]);
   const state = clientState ?? serverState;
   const startedRef = React.useRef<HTMLInputElement>(null);
   const pageRef = React.useRef<HTMLInputElement>(null);
@@ -141,18 +160,32 @@ function LeadFormInstance({
   }
 
   return (
-    <form action={formAction} onSubmit={(event) => {
-      const raw = Object.fromEntries(new FormData(event.currentTarget));
-      const parsed = schema.safeParse(raw);
-      if (!parsed.success) {
-        event.preventDefault();
-        const fieldErrors: NonNullable<LeadState["fieldErrors"]> = {};
-        for (const issue of parsed.error.issues) {
-          const key = issue.path[0] as keyof typeof fieldErrors;
-          if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+    <form action={formAction} onFocus={() => void loadSchema()} onSubmit={(event) => {
+      // Validate in the browser first (schema loaded on demand), then hand the same data to the server action.
+      event.preventDefault();
+      if (submittingRef.current || pending) return;
+      submittingRef.current = true;
+      setChecking(true);
+      const formData = new FormData(event.currentTarget);
+      void (schemaProp ? Promise.resolve(schemaProp) : loadSchema()).then((schema) => {
+        if (schema) {
+          const parsed = schema.safeParse(Object.fromEntries(formData));
+          if (!parsed.success) {
+            const fieldErrors: NonNullable<LeadState["fieldErrors"]> = {};
+            for (const issue of parsed.error.issues) {
+              const key = issue.path[0] as keyof typeof fieldErrors;
+              if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
+            }
+            submittingRef.current = false;
+            setChecking(false);
+            setClientState({ status: "error", message: "Please check the highlighted fields.", fieldErrors });
+            return;
+          }
         }
-        setClientState({ status: "error", message: "Please check the highlighted fields.", fieldErrors });
-      } else setClientState(null);
+        setClientState(null);
+        React.startTransition(() => formAction(formData));
+        setChecking(false); // `pending` takes over until the server answers
+      });
     }} noValidate className={cn("relative rounded-card border border-line bg-white p-6 sm:p-8", className)}>
       {state.status === "error" && state.message && (
         <div ref={statusRef} tabIndex={-1} className="mb-6 focus:outline-none">
@@ -242,8 +275,8 @@ function LeadFormInstance({
 
       <div className={cn("mt-7 flex flex-col-reverse items-stretch gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
         {!compact && <p className="text-xs leading-relaxed text-subtle">Please don’t include medical details, ID numbers or card details.</p>}
-        <Button type="submit" size="lg" loading={pending}>
-          {pending ? "Sending…" : submitLabel}
+        <Button type="submit" size="lg" loading={pending || checking}>
+          {pending || checking ? "Sending…" : submitLabel}
         </Button>
       </div>
     </form>

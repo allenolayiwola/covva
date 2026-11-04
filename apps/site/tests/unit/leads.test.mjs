@@ -95,10 +95,12 @@ test('both spam guards return generic success before either schema or database a
 // Effects and DOM rendering are outside this validation contract.
 function renderLeadForm(props) {
   const states = [];
+  const sent = [];
   const react = {
     createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
     useState: initial => [initial, value => states.push(value)],
-    useActionState: () => [{ status: 'idle' }, () => {}, false],
+    useActionState: () => [{ status: 'idle' }, data => sent.push(data), false],
+    startTransition: fn => fn(),
     useRef: () => ({ current: null }),
     useId: () => 'lead',
     useEffect: () => {},
@@ -115,27 +117,44 @@ function renderLeadForm(props) {
   const instance = exports.LeadForm(props);
   const form = instance.type(instance.props);
   assert.equal(form.type, 'form');
-  return { states, submit(fields) {
+  // The handler always takes over the submit, validates once the schema has loaded (on demand), and only then hands
+  // the data to the server action. `sent` reports whether the data reached the action.
+  return { states, form, async submit(fields) {
     let prevented = false;
+    const before = sent.length;
     form.props.onSubmit({ currentTarget: fields, preventDefault: () => { prevented = true; } });
-    return prevented;
-  } };
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(prevented, true, 'the browser never submits on its own once hydrated');
+    return { sent: sent.length > before };
+  }, async doubleClick(fields) {
+    const before = sent.length;
+    form.props.onSubmit({ currentTarget: fields, preventDefault: () => {} });
+    form.props.onSubmit({ currentTarget: fields, preventDefault: () => {} });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return sent.length - before;
+  }, lastState: () => states.filter(value => typeof value !== 'boolean').at(-1) };
 }
 
-test('LeadForm defaults to LeadSchema and clears client errors for valid submissions', () => {
+test('LeadForm loads LeadSchema on demand, blocks invalid submissions and sends valid ones', async () => {
   const form = renderLeadForm({});
-  assert.equal(form.submit({ ...valid, email: 'invalid', consent: undefined }), true);
-  assert.ok(form.states.at(-1).fieldErrors.email);
-  assert.ok(form.states.at(-1).fieldErrors.consent);
-  assert.equal(form.submit(valid), false);
-  assert.equal(form.states.at(-1), null);
+  assert.equal(typeof form.form.props.onFocus, 'function', 'the schema starts loading when someone focuses the form');
+  assert.equal((await form.submit({ ...valid, email: 'invalid', consent: undefined })).sent, false);
+  assert.ok(form.lastState().fieldErrors.email);
+  assert.ok(form.lastState().fieldErrors.consent);
+  assert.equal((await form.submit(valid)).sent, true);
+  assert.equal(form.lastState(), null);
 });
 
-test('LeadForm uses its supplied schema for validation and error messages', () => {
+test('LeadForm sends one enquiry when submit is clicked twice while validation loads', async () => {
+  const form = renderLeadForm({});
+  assert.equal(await form.doubleClick(valid), 1);
+});
+
+test('LeadForm uses its supplied schema for validation and error messages', async () => {
   const schema = LeadSchema.refine(value => value.message === 'Approved', { path: ['message'], message: 'Please use the approved message.' });
   const form = renderLeadForm({ schema });
-  assert.equal(form.submit(valid), true);
-  assert.equal(form.states.at(-1).fieldErrors.message, 'Please use the approved message.');
-  assert.equal(form.submit({ ...valid, message: 'Approved' }), false);
-  assert.equal(form.states.at(-1), null);
+  assert.equal((await form.submit(valid)).sent, false);
+  assert.equal(form.lastState().fieldErrors.message, 'Please use the approved message.');
+  assert.equal((await form.submit({ ...valid, message: 'Approved' })).sent, true);
+  assert.equal(form.lastState(), null);
 });
