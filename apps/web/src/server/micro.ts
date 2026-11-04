@@ -28,6 +28,7 @@ import { resolvePaymentMethod } from "@/server/payment-methods";
 import { chargeStoredMethod, initiatePayment, initiatePolicyCollection, type InitiatePaymentResult, type PaymentOutcome } from "@/server/payments";
 import { appUrl, simulatorEnabled } from "@/server/env";
 import { planDb, type MicroSessionRow, type VersionPlanColumns } from "@/server/plan-db";
+import { DIRECT_QUOTE_DISCLOSURE } from "@/components/marketing/trust-copy";
 
 /**
  * Micro and on-demand cover (Addendum 6 item 1; roadmap Phase 3). Daily / weekly / monthly low-cost
@@ -212,7 +213,7 @@ export async function buyMicroCover(
       conditions: version.conditions,
       assumptions: { micro: true, period, rating: "period_pricing", issuance: { issuanceType: version.issuance_type } } as unknown as Json,
       valid_until: new Date(Date.now() + 2 * 3_600_000).toISOString(),
-      commission_disclosure: "Sold directly by the insurer. Covva is a technology platform and is paid a platform fee by the insurer.",
+      commission_disclosure: DIRECT_QUOTE_DISCLOSURE,
     })
     .select("id")
     .single();
