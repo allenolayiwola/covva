@@ -1,4 +1,5 @@
 import "server-only";
+import { payerEmail } from "@/server/payer-email";
 import { simulatorProvider } from "@/server/providers/simulator";
 import { paystack } from "@/server/providers/paystack";
 import { verifyPaystackSignature as checkPaystackSignature } from "@/server/providers/signatures";
@@ -271,7 +272,7 @@ export async function initiatePayment(args: {
   }
 
   const { data: profile } = await svc.from("profiles").select("email, phone").eq("id", callerId).maybeSingle();
-  const email = profile?.email ?? `customer-${callerId.slice(0, 8)}@payments.covva.com.gh`;
+  const email = payerEmail(profile?.email, `customer-${callerId.slice(0, 8)}`);
   const reference = newReference();
   const callbackUrl = args.callbackUrl ?? `${appUrl()}/account/requests/${request.id}/confirmation`;
   const init = {
@@ -550,7 +551,7 @@ export async function chargeStoredMethod(args: {
   const commercial = await splitForPayment(svc, { amount, quote: quoteForSplit, request, insurer, provider });
   const reference = newReference();
   const { data: profile } = await svc.from("profiles").select("email").eq("id", sub.sponsor_user_id).maybeSingle();
-  const email = profile?.email ?? `sponsor-${sub.sponsor_user_id.slice(0, 8)}@payments.covva.com.gh`;
+  const email = payerEmail(profile?.email, `sponsor-${sub.sponsor_user_id.slice(0, 8)}`);
   const settlement = provider === "simulator" ? "SIMULATED" : insurer.paystack_subaccount_code;
   const { data: payment, error } = await svc
     .from("payments")
@@ -677,7 +678,7 @@ export async function initiatePolicyCollection(args: {
   const commercial = await splitForPayment(svc, { amount, quote: quoteForSplit, request, insurer, provider });
   const reference = newReference();
   const { data: profile } = await svc.from("profiles").select("email, phone").eq("id", args.payerUserId).maybeSingle();
-  const email = profile?.email ?? `customer-${args.payerUserId.slice(0, 8)}@payments.covva.com.gh`;
+  const email = payerEmail(profile?.email, `customer-${args.payerUserId.slice(0, 8)}`);
   const settlement = provider === "simulator" ? "SIMULATED" : provider === "hubtel" ? hubtelMerchant : insurer.paystack_subaccount_code;
   const callbackUrl = args.callbackUrl ?? `${appUrl()}/account/policies/${policy.id}`;
   const channel: Enum<"payment_channel"> = args.channel === "card" ? "card" : "mobile_money";
