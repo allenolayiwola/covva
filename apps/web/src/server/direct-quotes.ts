@@ -82,10 +82,15 @@ async function priceCandidate(svc: Svc, c: Candidate, risk: Record<string, unkno
 
 /**
  * Prices the instant direct offers for a risk (used by the quote form before anything is saved).
- * Complex risks never get instant offers: they always go to a broker.
+ * Complex risks never get instant offers: they always go to a broker. Neither does a customer with a standing
+ * broker (customer_broker_assignments): routing keeps them with that broker, so a direct offer could not be honoured.
  */
-export async function directOffers(categorySlug: string, risk: Record<string, unknown>): Promise<DirectOffer[]> {
+export async function directOffers(categorySlug: string, risk: Record<string, unknown>, opts: { customerId?: string | null } = {}): Promise<DirectOffer[]> {
   const svc = createServiceClient();
+  if (opts.customerId) {
+    const { data: assignment } = await svc.from("customer_broker_assignments").select("id").eq("customer_id", opts.customerId).eq("active", true).limit(1).maybeSingle();
+    if (assignment) return [];
+  }
   const { data: category } = await svc.from("product_categories").select("id, slug, segment").eq("slug", categorySlug).maybeSingle();
   if (!category || category.segment !== "personal") return [];
   if (complexityFlags({ categorySlug: category.slug, risk }).length) return [];

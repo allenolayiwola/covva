@@ -399,7 +399,12 @@ export function QuoteFlow({ categories, brokers }: { categories: FlowCategory[];
                   <p className="mt-1 text-[15px] text-muted">Licensed brokers prepare quotes from the insurers they represent and stay with you through claims and renewals.</p>
                 </>
               ) : (
+                <>
+                {offers === null && (
+                  <p role="status" className="mb-4 flex items-center gap-2 text-sm text-muted"><Spinner className="size-4" /> Checking for instant prices…</p>
+                )}
                 <ScreenHeading ref={headingRef} eyebrow="Brokers" title="Choose up to three brokers" lede="Licensed brokers prepare quotes from the insurers they represent and stay with you through claims and renewals." />
+                </>
               )}
               <div className="mt-8">
                 <BrokerPicker brokers={brokers} selected={brokerIds} onToggle={(id) => setBrokerIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= MAX_BROKERS ? prev : [...prev, id]))} />

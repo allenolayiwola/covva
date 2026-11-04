@@ -36,6 +36,10 @@ test("a signed-in customer buys Motor directly from an insurer and lands on chec
   }
   await page.getByRole("button", { name: /Continue/ }).click();
 
+  // Wait for the broker step to render, then for the instant-price lookup to finish, before deciding whether any
+  // direct offer exists (both headings name brokers; the status shows while prices load).
+  await expect(page.getByRole("heading", { level: 1, name: /broker/ })).toBeVisible();
+  await expect(page.getByText("Checking for instant prices…")).toHaveCount(0, { timeout: 20_000 });
   const direct = page.getByRole("list", { name: "Direct offers" });
   const brokersOnly = page.getByRole("heading", { level: 1, name: "Choose up to three brokers" });
   await expect(direct.or(brokersOnly)).toBeVisible({ timeout: 20_000 });

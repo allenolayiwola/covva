@@ -86,7 +86,9 @@ export async function getDirectOffers(raw: unknown): Promise<DirectOfferView[]> 
   const parsed = OffersInput.safeParse(raw);
   if (!parsed.success) return [];
   try {
-    const offers = await directOffers(parsed.data.categorySlug, parsed.data.risk);
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    const offers = await directOffers(parsed.data.categorySlug, parsed.data.risk, { customerId: auth.user?.id ?? null });
     return offers.map((o) => ({ insurerOrgId: o.insurerOrgId, insurerName: o.insurerName, productId: o.productId, productName: o.productName, premium: o.premium, issuanceLabel: o.issuance.label }));
   } catch (err) {
     console.error("getDirectOffers failed", err);
