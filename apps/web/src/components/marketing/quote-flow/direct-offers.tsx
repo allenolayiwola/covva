@@ -5,10 +5,11 @@ import { formatGHS } from "@im/core";
 import { Pill, Spinner, buttonClass } from "@im/ui";
 import type { DirectOfferView } from "@/app/(site)/(public)/quote/actions";
 import { OrgTile } from "../org-tile";
+import { DIRECT_QUOTE_DISCLOSURE } from "../trust-copy";
 
 /**
  * Instant offers from insurers that sell this cover directly (server/direct-quotes.ts). Choosing one places the
- * order with that insurer and opens checkout with a binding price. Covva is the technology platform only.
+ * order with that insurer and opens checkout with a binding price. The footnote is the shared commission disclosure.
  */
 export function DirectOffers({ offers, busyId, disabled, onBuy }: { offers: DirectOfferView[]; busyId: string | null; disabled: boolean; onBuy: (offer: DirectOfferView) => void }) {
   return (
@@ -36,7 +37,7 @@ export function DirectOffers({ offers, busyId, disabled, onBuy }: { offers: Dire
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[13px] text-muted">Sold directly by the insurer. Covva is a technology platform, not an insurer or a broker.</p>
+      <p className="mt-3 text-[13px] text-muted">{DIRECT_QUOTE_DISCLOSURE}</p>
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { evaluateUnderwriting, issuanceSummary, quoteVersion, type IssuanceSummary } from "@/server/catalogue";
 import { applyLoyaltyToQuote } from "@/server/loyalty";
 import { log } from "@/server/log";
+import { DIRECT_QUOTE_DISCLOSURE } from "@/components/marketing/trust-copy";
 
 /**
  * Instant direct quotes. When a customer buys straight from an insurer whose line sells directly
@@ -16,8 +17,7 @@ import { log } from "@/server/log";
 
 type Svc = ReturnType<typeof createServiceClient>;
 
-export const DIRECT_QUOTE_DISCLOSURE =
-  "Sold directly by the insurer. Covva is a technology platform, not an insurer or a broker, and is paid a platform fee by the insurer.";
+export { DIRECT_QUOTE_DISCLOSURE };
 
 export interface DirectOffer {
   insurerOrgId: string;
