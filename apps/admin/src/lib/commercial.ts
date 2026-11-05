@@ -27,15 +27,23 @@ export async function commercialDefaults(supabase: Supabase): Promise<Commercial
   };
 }
 
-/** The organisation's open commercial terms row, if any. */
-export async function openTerms(supabase: Supabase, orgId: string) {
-  const { data } = await supabase
-    .from("org_commercial_terms")
-    .select("*")
-    .eq("org_id", orgId)
-    .is("effective_to", null)
-    .order("effective_from", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data ?? null;
+/**
+ * The terms in force today (the same row checkout uses: effective_from <= today <= effective_to) and the
+ * next scheduled change, if one is dated later.
+ */
+export async function termsFor(supabase: Supabase, orgId: string, on = new Date().toISOString().slice(0, 10)) {
+  const [current, scheduled] = await Promise.all([
+    supabase
+      .from("org_commercial_terms")
+      .select("*")
+      .eq("org_id", orgId)
+      .lte("effective_from", on)
+      .or(`effective_to.is.null,effective_to.gte.${on}`)
+      .order("effective_from", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("org_commercial_terms").select("*").eq("org_id", orgId).gt("effective_from", on).order("effective_from").limit(1).maybeSingle(),
+  ]);
+  return { current: current.data ?? null, scheduled: scheduled.data ?? null };
 }

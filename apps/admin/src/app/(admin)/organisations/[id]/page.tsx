@@ -15,7 +15,7 @@ import { DUE_DILIGENCE, NIC_VERIFY_URL, ROLES_BY_ORG_TYPE, STATUS_TONE } from "@
 import { Breadcrumb, KeyValues, LoadingBlock, Panel, ReadOnlyBanner } from "@/components/ui/layout";
 import { ActionForm, ConfirmAction, ToggleForm } from "@/components/ui/forms";
 import { AuditTable } from "@/components/AuditTable";
-import { openTerms } from "@/lib/commercial";
+import { termsFor } from "@/lib/commercial";
 import { setCommercialTerms } from "../../commercial/actions";
 import { OrgFields } from "../OrgForm";
 import {
@@ -63,7 +63,7 @@ async function OrgDetail({ params, searchParams }: { params: Promise<{ id: strin
   const canNetwork = can(staff.roles, "network");
   const canDD = can(staff.roles, "dueDiligence");
   const canCommercial = can(staff.roles, "commercial");
-  const terms = isPartner ? await openTerms(supabase, org.id) : null;
+  const { current: terms, scheduled: nextTerms } = isPartner ? await termsFor(supabase, org.id) : { current: null, scheduled: null };
 
   const tabs = TABS.filter((t) => (t === "diligence" ? isPartner : t === "routing" ? org.type === "broker" : t === "appointments" ? isPartner : true)).map((t) => ({
     key: t,
@@ -186,6 +186,12 @@ async function OrgDetail({ params, searchParams }: { params: Promise<{ id: strin
                   />
                 ) : (
                   <Notice tone="wait">No terms recorded, so this {org.type} is treated as 0%{org.type === "insurer" ? " and checkout is blocked if its Paystack subaccount sends Covva a share" : ""}. Set them below.</Notice>
+                )}
+                {nextTerms && (
+                  <Notice tone="info" className="mt-4">
+                    Scheduled from {formatDate(nextTerms.effective_from)}:{" "}
+                    {org.type === "insurer" ? `${Number(nextTerms.platform_fee_pct)}% platform fee` : `${Number(nextTerms.revenue_share_pct)}% revenue share`}. Change the Paystack percentage charge on that date, not before.
+                  </Notice>
                 )}
                 {org.type === "insurer" ? (
                   <details className="mt-4" open={!terms}>
