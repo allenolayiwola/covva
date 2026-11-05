@@ -185,7 +185,9 @@ test.describe("admin portal", () => {
     await page.waitForURL(/\/organisations\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { name: "Commercial terms" })).toBeVisible();
     await expect(page.getByText("Platform fee", { exact: true }).or(page.getByText(/No terms recorded/))).toBeVisible();
-    await page.getByText("Change terms").click();
+    // The form starts open when no terms are recorded.
+    const change = page.locator("details", { has: page.getByText("Change terms") });
+    if ((await change.getAttribute("open")) === null) await page.getByText("Change terms").click();
     await expect(page.getByLabel("Platform fee %")).toBeVisible();
     await expect(page.getByText(/Paystack subaccount percentage charge to the same platform fee/)).toBeVisible();
 
