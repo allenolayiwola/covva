@@ -77,8 +77,11 @@ been pasted into chat, logs or tickets.
 1. Create one **subaccount per insurer** (Dashboard → Subaccounts) with the insurer's settlement bank
    account. Store the code (`ACCT_…`) on `organizations.paystack_subaccount_code` (admin portal).
    Without it, live checkout is refused for that insurer — premiums must settle to the insurer.
-   Set the subaccount's **percentage charge to 0** (or at most the platform fee agreed in the commercial terms):
-   Paystack sends that percentage of every payment to Covva's main account. Checkout looks the subaccount up on
+   Set the subaccount's **percentage charge to the insurer's platform fee** in its commercial terms (0 if none):
+   Paystack sends that percentage of every payment to Covva's main account. The fee is set in admin on the
+   insurer's page (Profile → Commercial terms) or under Commercial terms; new insurers start on the default in
+   Commercial terms → Defaults for new partners (`commercial.default_platform_fee_pct`), whether added in admin
+   or approved from self-registration. An insurer with no terms counts as 0%. Checkout looks the subaccount up on
    Paystack (`server/paystack-subaccount.ts`, cached 10 min) and refuses to take payment if it is missing,
    inactive, not GHS, or would send more than the agreed platform share to the main account
    (`paystack.subaccount_unsafe` in the logs). After editing a subaccount, allow up to 10 minutes for the cache.
@@ -123,7 +126,10 @@ Migration `20261027100200_commercial_ledger.sql` adds the commercial model (Adde
   business only) or `subscription` (monthly plan, full commission kept); insurers are on `insurer_fee`
   (`platform_fee_pct` of the net premium on Covva-sourced business, plus the standard
   `broker_commission_pct` they pay brokers). Setting terms closes the previous open row
-  (`set_commercial_terms`, platform admins only, approval recorded in `approved_by`).
+  (`set_commercial_terms`, platform admins only, approval recorded in `approved_by`). Every partner
+  gets terms when it is created: approval from self-registration and admin → Organisations → New both
+  apply the defaults (admin → Commercial terms → Defaults for new partners); a platform admin can enter
+  a different insurer fee when creating it. The Commercial terms page warns about partners with no terms.
 * **Source of business**: `requests.source_broker_org_id` marks a broker's own client; the policy is
   created with `policies.source = 'broker'` (no revenue share), otherwise `'covva'`.
 * **Checkout split** (`payment_splits`, computed by `@im/core` `computeSplit` in pesewas, remainder to
@@ -675,7 +681,7 @@ Integrations, or the insurer's own *Integrations* page):
 - Licensed brokers self-register at `/partner/register?type=broker` (flag `partner_self_service_broker`, on); admin
   verifies the NIC licence before they go live.
 
-**Launch partner: Unique Insurance Company Limited** (org slug `unique-insurance`, added 3 Nov 2026). Non-life
+**Launch partner: Unique Insurance Company Limited** (org slug `unique-insurance`, added 3 Nov 2026; platform fee 25% from 5 Nov 2026, matching its Paystack subaccount). Non-life
 insurer, NIC licence NIC/NL/UIC 018 /08, licensed since October 1999, member of the Ghana Insurers Association. No. 86
 North Ridge, Ring Road Central, Accra · +233 501 569 433 / +233 30 224 8174 · https://www.uicghana.org/.
 

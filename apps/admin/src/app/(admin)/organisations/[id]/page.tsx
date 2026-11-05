@@ -15,6 +15,8 @@ import { DUE_DILIGENCE, NIC_VERIFY_URL, ROLES_BY_ORG_TYPE, STATUS_TONE } from "@
 import { Breadcrumb, KeyValues, LoadingBlock, Panel, ReadOnlyBanner } from "@/components/ui/layout";
 import { ActionForm, ConfirmAction, ToggleForm } from "@/components/ui/forms";
 import { AuditTable } from "@/components/AuditTable";
+import { termsFor } from "@/lib/commercial";
+import { setCommercialTerms } from "../../commercial/actions";
 import { OrgFields } from "../OrgForm";
 import {
   addMember, changeMemberRole, saveDueDiligence, setDemoFlag, setMemberActive, setOrganisationStatus, toggleChecklistItem, updateOrganisation, verifyLicence,
@@ -60,6 +62,8 @@ async function OrgDetail({ params, searchParams }: { params: Promise<{ id: strin
   const verifiedBy = org.licence_verified_by ? (await profileMap(supabase, [org.licence_verified_by])).get(org.licence_verified_by) : undefined;
   const canNetwork = can(staff.roles, "network");
   const canDD = can(staff.roles, "dueDiligence");
+  const canCommercial = can(staff.roles, "commercial");
+  const { current: terms, scheduled: nextTerms } = isPartner ? await termsFor(supabase, org.id) : { current: null, scheduled: null };
 
   const tabs = TABS.filter((t) => (t === "diligence" ? isPartner : t === "routing" ? org.type === "broker" : t === "appointments" ? isPartner : true)).map((t) => ({
     key: t,
@@ -159,6 +163,57 @@ async function OrgDetail({ params, searchParams }: { params: Promise<{ id: strin
                     body={org.licence_verified_at ? "Removing verification will block activation until it is verified again." : `I have checked ${org.nic_licence_number ?? "the licence"} on the NIC register and the details match.`}
                   />
                 </div>
+              </Panel>
+            )}
+            {isPartner && (
+              <Panel
+                title="Commercial terms"
+                description={org.type === "insurer" ? "Covva's platform fee on this insurer's premiums, taken through the Paystack split." : "How Covva is paid on this broker's business."}
+                actions={<Link href={`/commercial?org=${org.id}`} className="text-sm text-brand hover:underline">History →</Link>}
+              >
+                {terms ? (
+                  <KeyValues
+                    items={[
+                      { label: "Model", value: { revenue_share: "Revenue share", subscription: "Subscription", insurer_fee: "Insurer fee" }[terms.model] ?? terms.model },
+                      ...(org.type === "insurer"
+                        ? [
+                            { label: "Platform fee", value: <span className="tabular-nums">{Number(terms.platform_fee_pct)}%</span> },
+                            { label: "Broker commission", value: <span className="tabular-nums">{Number(terms.broker_commission_pct)}%</span> },
+                          ]
+                        : [{ label: "Revenue share", value: <span className="tabular-nums">{Number(terms.revenue_share_pct)}%</span> }]),
+                      { label: "In force from", value: formatDate(terms.effective_from) },
+                    ]}
+                  />
+                ) : (
+                  <Notice tone="wait">No terms recorded, so this {org.type} is treated as 0%{org.type === "insurer" ? " and checkout is blocked if its Paystack subaccount sends Covva a share" : ""}. Set them below.</Notice>
+                )}
+                {nextTerms && (
+                  <Notice tone="info" className="mt-4">
+                    Scheduled from {formatDate(nextTerms.effective_from)}:{" "}
+                    {org.type === "insurer" ? `${Number(nextTerms.platform_fee_pct)}% platform fee` : `${Number(nextTerms.revenue_share_pct)}% revenue share`}. Change the Paystack percentage charge on that date, not before.
+                  </Notice>
+                )}
+                {org.type === "insurer" ? (
+                  <details className="mt-4" open={!terms}>
+                    <summary className="cursor-pointer text-sm font-medium text-brand">Change terms</summary>
+                    <ActionForm action={setCommercialTerms} submitLabel="Save and approve" readOnly={!canCommercial} className="mt-3">
+                      <input type="hidden" name="orgId" value={org.id} />
+                      <input type="hidden" name="model" value="insurer_fee" />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Platform fee %" htmlFor="ct-pf"><Input id="ct-pf" name="platformFeePct" type="number" step="0.01" min={0} max={100} required defaultValue={terms ? Number(terms.platform_fee_pct) : 0} /></Field>
+                        <Field label="Broker commission %" htmlFor="ct-bc"><Input id="ct-bc" name="brokerCommissionPct" type="number" step="0.01" min={0} max={100} defaultValue={terms ? Number(terms.broker_commission_pct) : 0} /></Field>
+                        <Field label="Effective from" htmlFor="ct-from"><Input id="ct-from" name="effectiveFrom" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
+                        <Field label="Notes" htmlFor="ct-notes"><Input id="ct-notes" name="notes" placeholder="Agreement reference" /></Field>
+                      </div>
+                      <p className="text-xs text-muted">
+                        Set the insurer&apos;s Paystack subaccount percentage charge to the same platform fee. If Paystack sends Covva more than the fee in force, checkout for this insurer is blocked.
+                      </p>
+                      <Checkbox name="approve" label="I confirm these terms were agreed with the insurer" />
+                    </ActionForm>
+                  </details>
+                ) : (
+                  <p className="mt-3 text-xs text-muted">Change a broker&apos;s model or share under <Link href={`/commercial?org=${org.id}`} className="text-brand hover:underline">Commercial terms</Link>.</p>
+                )}
               </Panel>
             )}
             {isPartner && (

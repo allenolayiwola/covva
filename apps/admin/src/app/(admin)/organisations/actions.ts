@@ -6,6 +6,8 @@ import { licenceStatusFor } from "@im/core";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { DUE_DILIGENCE, ROLES_BY_ORG_TYPE } from "@/lib/org-meta";
 import { revalidateEverywhere } from "@/lib/revalidate";
+import { can } from "@/lib/roles";
+import { commercialDefaults } from "@/lib/commercial";
 
 const opt = (max = 300) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
 const optDate = z.string().trim().optional().transform((v) => (v ? v : null)).refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), "Use a valid date");
@@ -34,9 +36,13 @@ function slugify(s: string) {
   return s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "org";
 }
 
+const pctField = z.union([z.literal(""), z.coerce.number({ error: "Enter a percentage" }).min(0, "At least 0%").max(100, "At most 100%")]).optional();
+
 const Create = OrgFields.extend({
   type: z.enum(["broker", "insurer", "enterprise"]),
   demo: z.string().optional(),
+  platform_fee_pct: pctField,
+  broker_commission_pct: pctField,
 });
 
 export async function createOrganisation(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -44,7 +50,7 @@ export async function createOrganisation(_: ActionState, fd: FormData): Promise<
   if (!auth.ok) return fail(auth.error);
   const parsed = Create.safeParse(formObject(fd));
   if (!parsed.success) return zodError(parsed.error);
-  const { type, demo, ...fields } = parsed.data;
+  const { type, demo, platform_fee_pct, broker_commission_pct, ...fields } = parsed.data;
   if (type !== "insurer") fields.paystack_subaccount_code = null;
 
   let slug = slugify(fields.name);
@@ -57,6 +63,25 @@ export async function createOrganisation(_: ActionState, fd: FormData): Promise<
     .select("id")
     .single();
   if (error) return fail(dbMessage(error));
+
+  // Partners start on commercial terms straight away (as self-registration does): the platform default, or the
+  // fee entered here by someone allowed to set commercial terms.
+  if (type === "insurer" || type === "broker") {
+    const defaults = await commercialDefaults(auth.supabase);
+    const mayCustomise = can(auth.staff.roles, "commercial");
+    const fee = mayCustomise && typeof platform_fee_pct === "number" ? platform_fee_pct : defaults.platformFeePct;
+    const commission = mayCustomise && typeof broker_commission_pct === "number" ? broker_commission_pct : 0;
+    const { error: termsError } = await auth.supabase.rpc("set_commercial_terms", {
+      p_org: data.id,
+      p_model: type === "insurer" ? "insurer_fee" : "revenue_share",
+      p_platform_fee_pct: type === "insurer" ? fee : 0,
+      p_revenue_share_pct: type === "broker" ? defaults.revenueSharePct : 0,
+      p_broker_commission_pct: type === "insurer" ? commission : 0,
+      p_notes: type === "insurer" && mayCustomise && typeof platform_fee_pct === "number" ? "Set when the organisation was created" : "Platform default when the organisation was created",
+    });
+    // The organisation exists either way; its page warns when no terms are recorded, so don't fail (a retry would duplicate it).
+    if (termsError) console.error("organisations.create.terms_failed", { orgId: data.id, error: termsError.message });
+  }
   redirect(`/organisations/${data.id}`);
 }
 
