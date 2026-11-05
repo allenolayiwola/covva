@@ -4,6 +4,16 @@ const modelId = z.string().regex(/^[a-z0-9-]+\/[A-Za-z0-9._:-]+$/, "Model ids lo
 
 /** Validation for platform_settings keys the apps rely on. Unknown keys accept any JSON. */
 export const KNOWN_SETTINGS: Record<string, { schema: z.ZodType; hint: string; example: unknown }> = {
+  "commercial.default_platform_fee_pct": {
+    schema: z.number().min(0).max(100),
+    hint: "Platform fee % new insurers start on (admin → Commercial terms → Defaults). Their Paystack subaccount's percentage charge must match.",
+    example: 25,
+  },
+  "commercial.default_revenue_share_pct": {
+    schema: z.number().min(0).max(100),
+    hint: "Revenue share % new brokers on the revenue-share model start on.",
+    example: 20,
+  },
   brand: {
     schema: z
       .object({

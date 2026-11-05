@@ -2,6 +2,8 @@
 import { z } from "zod";
 import { authorize, dbMessage, done, fail, formObject, zodError, type ActionState } from "@/lib/actions";
 import { monthRange } from "@/lib/billing";
+import { DEFAULT_KEYS } from "@/lib/commercial";
+import { revalidateEverywhere } from "@/lib/revalidate";
 
 const Terms = z.object({
   orgId: z.string().uuid({ error: "Choose an organisation" }),
@@ -38,6 +40,33 @@ export async function setCommercialTerms(_: ActionState, fd: FormData): Promise<
   });
   if (error) return fail(dbMessage(error));
   return done("Commercial terms saved and approved.");
+}
+
+const Defaults = z.object({
+  platformFeePct: z.coerce.number({ error: "Enter a percentage" }).min(0, "At least 0%").max(100, "At most 100%"),
+  revenueSharePct: z.coerce.number({ error: "Enter a percentage" }).min(0, "At least 0%").max(100, "At most 100%"),
+});
+
+/**
+ * Defaults new partners start on: insurers (created here or approved from registration) get the platform fee,
+ * revenue-share brokers get the revenue share. Existing partners keep their terms.
+ */
+export async function saveCommercialDefaults(_: ActionState, fd: FormData): Promise<ActionState> {
+  const auth = await authorize("commercial");
+  if (!auth.ok) return fail(auth.error);
+  const parsed = Defaults.safeParse(formObject(fd));
+  if (!parsed.success) return zodError(parsed.error);
+  const now = new Date().toISOString();
+  const { error } = await auth.supabase.from("platform_settings").upsert(
+    [
+      { key: DEFAULT_KEYS.platformFeePct, value: parsed.data.platformFeePct, description: "Platform fee % new insurers start on", updated_by: auth.staff.userId, updated_at: now },
+      { key: DEFAULT_KEYS.revenueSharePct, value: parsed.data.revenueSharePct, description: "Revenue share % new revenue-share brokers start on", updated_by: auth.staff.userId, updated_at: now },
+    ],
+    { onConflict: "key" },
+  );
+  if (error) return fail(dbMessage(error));
+  await revalidateEverywhere(["settings"]);
+  return done(`Defaults saved: new insurers start on a ${parsed.data.platformFeePct}% platform fee, new brokers on a ${parsed.data.revenueSharePct}% revenue share. Existing partners are unchanged.`);
 }
 
 const Generate = z.object({

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Checkbox, Field, Input, Pill, Select, Textarea, buttonClass } from "@im/ui";
+import { Checkbox, Field, Input, Notice, Pill, Select, Textarea, buttonClass } from "@im/ui";
 import { PageHeader, Table, THead, Th, Td } from "@/components/ui/page";
 import type { Row } from "@im/db";
 import { requireStaff } from "@/lib/auth";
@@ -10,7 +10,8 @@ import { isUuid, orgMap, pageOf, sp, withParams, type SearchParams } from "@/lib
 import { formatDate, formatDateTime, formatGHS, humanize } from "@/lib/format";
 import { FilterBar, FilterInput, FilterSelect, LoadingBlock, Pagination, Panel } from "@/components/ui/layout";
 import { ActionForm } from "@/components/ui/forms";
-import { generateStatement, setCommercialTerms, transitionStatement } from "./actions";
+import { commercialDefaults } from "@/lib/commercial";
+import { generateStatement, saveCommercialDefaults, setCommercialTerms, transitionStatement } from "./actions";
 
 const ENTRY_TYPES = ["premium_received", "premium_to_insurer", "broker_commission", "platform_fee", "revenue_share", "subscription_fee", "refund", "adjustment"];
 const STATEMENT_TONE = { draft: "wait", issued: "info", paid: "ok" } as const;
@@ -55,12 +56,15 @@ async function Commercial({ searchParams }: { searchParams: Promise<SearchParams
   let statementsQ = supabase.from("settlement_statements").select("*").order("period_start", { ascending: false }).order("created_at", { ascending: false }).limit(60);
   if (isUuid(org)) statementsQ = statementsQ.eq("org_id", org);
 
-  const [{ data: terms }, { data: plans }, { data: entries, count }, { data: statements }] = await Promise.all([
+  const [{ data: terms }, { data: plans }, { data: entries, count }, { data: statements }, defaults] = await Promise.all([
     supabase.from("org_commercial_terms").select("*").is("effective_to", null).order("created_at", { ascending: false }).limit(500),
     supabase.from("plans").select("id, name, audience, monthly_fee").eq("active", true).order("sort_order"),
     ledger,
     statementsQ,
+    commercialDefaults(supabase),
   ]);
+  const withTerms = new Set((terms ?? []).map((t) => t.org_id));
+  const missingTerms = partners.filter((o) => !withTerms.has(o.id) && o.status !== "offboarded");
   const name = (id: string | null | undefined) => (id ? orgs.get(id)?.name ?? id.slice(0, 8) : "—");
   const money = (n: number | string) => formatGHS(Number(n), { decimals: true });
   const exportHref = withParams("/commercial/export", params, { page: undefined });
@@ -100,6 +104,23 @@ async function Commercial({ searchParams }: { searchParams: Promise<SearchParams
           </ActionForm>
         </Panel>
 
+        <div className="space-y-6">
+        <Panel
+          title="Defaults for new partners"
+          description="What a new insurer or broker starts on, whether added under Organisations or approved from self-registration. Changing these does not touch existing partners; change theirs above or on their organisation page."
+        >
+          <ActionForm action={saveCommercialDefaults} submitLabel="Save defaults" readOnly={!canAct}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Insurer platform fee %" htmlFor="d-pf" hint="Each insurer's Paystack subaccount percentage charge must match its fee, or checkout is blocked.">
+                <Input id="d-pf" name="platformFeePct" type="number" step="0.01" min={0} max={100} required defaultValue={defaults.platformFeePct} />
+              </Field>
+              <Field label="Broker revenue share %" htmlFor="d-rs" hint="Share of broker commission on Covva-sourced business.">
+                <Input id="d-rs" name="revenueSharePct" type="number" step="0.01" min={0} max={100} required defaultValue={defaults.revenueSharePct} />
+              </Field>
+            </div>
+          </ActionForm>
+        </Panel>
+
         <Panel title="Terms in force" description={`${(terms ?? []).length} organisation${(terms ?? []).length === 1 ? "" : "s"} with open terms`}>
           <Table>
             <THead><tr><Th>Organisation</Th><Th>Model</Th><Th>Rev. share</Th><Th>Platform fee</Th><Th>Commission</Th><Th>From</Th><Th>Approved</Th></tr></THead>
@@ -118,7 +139,15 @@ async function Commercial({ searchParams }: { searchParams: Promise<SearchParams
               {!terms?.length && <tr><Td colSpan={7} className="py-8 text-center text-muted">No commercial terms set yet.</Td></tr>}
             </tbody>
           </Table>
+          {missingTerms.length > 0 && (
+            <Notice tone="wait" className="mt-4">
+              No terms recorded for {missingTerms.map((o, i) => (
+                <span key={o.id}>{i > 0 ? ", " : ""}<Link href={`/commercial?org=${o.id}`} className="font-medium underline">{o.name}</Link></span>
+              ))}. They are treated as 0% (no platform fee, no revenue share) until terms are set.
+            </Notice>
+          )}
         </Panel>
+        </div>
       </div>
 
       <Panel

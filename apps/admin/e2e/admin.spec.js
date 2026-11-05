@@ -172,6 +172,28 @@ test.describe("admin portal", () => {
     await expect(page.getByText("Last 100 audit events for this organisation.")).toBeVisible();
   });
 
+  test("commercial terms: defaults for new partners and each insurer's fee on its page (nothing is saved)", async ({ page }) => {
+    await page.goto("/commercial");
+    await expect(page.getByRole("heading", { name: "Defaults for new partners" })).toBeVisible();
+    await expect(page.getByLabel("Insurer platform fee %")).toHaveValue(/^\d+(\.\d+)?$/);
+    await expect(page.getByLabel("Broker revenue share %")).toHaveValue(/^\d+(\.\d+)?$/);
+
+    // An insurer's page shows its terms (or a warning that none are recorded) with a form to change them.
+    await page.goto("/organisations");
+    await page.locator("main table").getByRole("link", { name: /Coastline General/ }).click();
+    await page.getByRole("dialog").getByRole("link", { name: "Open full record" }).click();
+    await page.waitForURL(/\/organisations\/[0-9a-f-]{36}$/);
+    await expect(page.getByRole("heading", { name: "Commercial terms" })).toBeVisible();
+    await expect(page.getByText("Platform fee", { exact: true }).or(page.getByText(/No terms recorded/))).toBeVisible();
+    await page.getByText("Change terms").click();
+    await expect(page.getByLabel("Platform fee %")).toBeVisible();
+    await expect(page.getByText(/Paystack subaccount percentage charge to the same platform fee/)).toBeVisible();
+
+    // New organisations start on the default fee.
+    await page.goto("/organisations/new");
+    await expect(page.getByLabel("Platform fee %")).toHaveValue(/^\d+(\.\d+)?$/);
+  });
+
   test("partner applications queue and appointment requests render", async ({ page }) => {
     await page.goto("/partners/applications");
     await expect(page.getByRole("heading", { level: 1, name: "Partner applications" })).toBeVisible();
