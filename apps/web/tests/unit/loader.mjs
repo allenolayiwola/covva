@@ -6,6 +6,8 @@ export async function resolve(specifier, context, next) {
   try { return await next(specifier, context); }
   catch (error) {
     if (specifier.startsWith('.')) return next(`${specifier}.ts`, context);
+    // next/headers, next/navigation, next/cache ship as CommonJS files without an exports map entry.
+    if (/^next\/[a-z-]+$/.test(specifier)) return next(`${specifier}.js`, context);
     throw error;
   }
 }
